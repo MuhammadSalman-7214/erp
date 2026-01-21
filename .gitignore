@@ -1,0 +1,38 @@
+# =====================
+# ROOT / GENERAL
+# =====================
+node_modules/
+.env
+.env.*
+.DS_Store
+*.log
+
+# =====================
+# FRONTEND
+# =====================
+frontend/node_modules/
+frontend/build/
+frontend/dist/
+frontend/.env
+frontend/.env.*
+
+# =====================
+# BACKEND
+# =====================
+backend/node_modules/
+backend/.env
+backend/.env.*
+backend/uploads/
+backend/logs/
+
+# =====================
+# IDE / TOOLS
+# =====================
+.vscode/
+.idea/
+*.swp
+
+# =====================
+# OS FILES
+# =====================
+Thumbs.db
