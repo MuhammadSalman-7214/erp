@@ -1,7 +1,5 @@
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import HomePage from "./pages/HomePage";
-import Navbar from "./Components/Navbar";
-import Footer from "./Components/Footer";
 import SignupPage from "./pages/SignupPages";
 import ServicePage from "./pages/ServicePage";
 import LoginPage from "./pages/LoginPage";
@@ -19,9 +17,13 @@ import Supplierpage from "./pages/Supplierpage";
 import Activitylogpage from "./pages/Activitylogpage";
 import Dashboardpage from "./pages/Dashboardpage";
 import Userstatus from "./pages/Userstatus";
-import NotificationPageRead from "./pages/Notificationpageread"
+import NotificationPageRead from "./pages/Notificationpageread";
 import ProtectedRoute from "./lib/ProtectedRoute";
-import toast, { Toaster } from "react-hot-toast";
+import { Toaster } from "react-hot-toast";
+import InvoicesPage from "./pages/InvoicesPage";
+import InvoiceDetailPage from "./pages/InvoiceDetailPage";
+import InvoiceEditPage from "./pages/InvoiceEditPage";
+import CreateInvoicePage from "./pages/CreateInvoicePage";
 
 function App() {
   return (
@@ -53,6 +55,22 @@ function App() {
             <Route
               path="sales"
               element={<ProtectedRoute element={<Salespage />} />}
+            />
+            <Route
+              path="invoices"
+              element={<ProtectedRoute element={<InvoicesPage />} />}
+            />
+            <Route
+              path="createInvoice"
+              element={<ProtectedRoute element={<CreateInvoicePage />} />}
+            />
+            <Route
+              path="invoice/:id"
+              element={<ProtectedRoute element={<InvoiceDetailPage />} />}
+            />
+            <Route
+              path="editInvoice/:id"
+              element={<ProtectedRoute element={<InvoiceEditPage />} />}
             />
             <Route
               path="stock-transaction"
@@ -99,6 +117,22 @@ function App() {
             <Route
               path="sales"
               element={<ProtectedRoute element={<Salespage />} />}
+            />
+            <Route
+              path="invoices"
+              element={<ProtectedRoute element={<InvoicesPage />} />}
+            />
+            <Route
+              path="createInvoice"
+              element={<ProtectedRoute element={<CreateInvoicePage />} />}
+            />
+            <Route
+              path="invoice/:id"
+              element={<ProtectedRoute element={<InvoiceDetailPage />} />}
+            />
+            <Route
+              path="editInvoice/:id"
+              element={<ProtectedRoute element={<InvoiceEditPage />} />}
             />
             <Route
               path="stock-transaction"
@@ -152,7 +186,7 @@ function App() {
             />
             <Route
               path="NotificationPageRead"
-              element={<ProtectedRoute element={<NotificationPageRead/>} />}
+              element={<ProtectedRoute element={<NotificationPageRead />} />}
             />
             <Route
               path="Profilepage"
