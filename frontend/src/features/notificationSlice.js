@@ -1,80 +1,68 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axiosInstance from "../lib/axios";
-import socket from "../lib/socket"; 
 import toast from "react-hot-toast";
-
-
 
 const initialState = {
   notifications: [],
   isLoading: false,
 };
-
 export const createNotification = createAsyncThunk(
   "notification/createNotification",
-  async (Notification, { rejectWithValue }) => {
+  async (notification, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.post(
-        "notification/createNotification",
-        Notification,
-        { withCredentials: true }
-      );
-      return response.data.notification; 
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Notification creation failed"
-      );
-    }
-  }
-);
-
-
-export const getAllNotifications = createAsyncThunk(
-  "notification/allNotification",
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await axiosInstance.get("notification/allNotification", {
+      const res = await axiosInstance.post("notification", notification, {
         withCredentials: true,
       });
-      return response.data; 
+      console.log({ fdsfsd: res.data });
+
+      return res.data.notification;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Notification retrieval failed"
+        error.response?.data?.message || "Notification creation failed",
       );
     }
-  }
+  },
 );
 
+export const getAllNotifications = createAsyncThunk(
+  "notification/getAllNotifications",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await axiosInstance.get("notification", {
+        withCredentials: true,
+      });
+      return res.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Notification retrieval failed",
+      );
+    }
+  },
+);
 
 export const deleteNotification = createAsyncThunk(
   "notification/deleteNotification",
-  async (NotificationId, { rejectWithValue }) => {
+  async (id, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.delete(
-        `notification/deleteNotification/${NotificationId}`,
-        { withCredentials: true }
-      );
-      return NotificationId; 
+      await axiosInstance.delete(`notification/${id}`, {
+        withCredentials: true,
+      });
+      return id;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Notification removal failed"
+        error.response?.data?.message || "Notification removal failed",
       );
     }
-  }
+  },
 );
-
 
 const notificationSlice = createSlice({
   name: "notification",
   initialState: initialState,
-  reducers: {
-
-    
-
-  },
+  reducers: {},
   extraReducers: (builder) => {
     builder
-   
+
       .addCase(getAllNotifications.pending, (state) => {
         state.isLoading = true;
       })
@@ -88,9 +76,7 @@ const notificationSlice = createSlice({
         toast.error(action.payload || "Error fetching notifications");
       })
 
-    
       .addCase(createNotification.fulfilled, (state, action) => {
-       
         toast.success("Notification created successfully");
         state.notifications.unshift(action.payload);
       })
@@ -98,11 +84,10 @@ const notificationSlice = createSlice({
         toast.error(action.payload || "Error creating notification");
       })
 
-  
       .addCase(deleteNotification.fulfilled, (state, action) => {
         toast.success("Notification deleted successfully");
         state.notifications = state.notifications.filter(
-          (notification) => notification._id !== action.payload
+          (notification) => notification._id !== action.payload,
         );
       })
       .addCase(deleteNotification.rejected, (state, action) => {
@@ -113,5 +98,3 @@ const notificationSlice = createSlice({
 
 export default notificationSlice.reducer;
 export const { addNotification } = notificationSlice.actions;
-
-

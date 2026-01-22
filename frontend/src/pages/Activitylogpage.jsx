@@ -1,8 +1,11 @@
 import { useDispatch, useSelector } from "react-redux";
-import { io } from "socket.io-client";
 import { useEffect, useState } from "react";
-import { getAllActivityLogs, getsingleUserActivityLogs } from "../features/activitySlice";
+import {
+  getAllActivityLogs,
+  getsingleUserActivityLogs,
+} from "../features/activitySlice";
 import TopNavbar from "../Components/TopNavbar";
+import { useSocket } from "../lib/useSocket";
 import FormattedTime from "../lib/FormattedTime ";
 
 function Activitylogpage() {
@@ -10,33 +13,39 @@ function Activitylogpage() {
   const [currentPage, setCurrentPage] = useState(1);
   const logsPerPage = 10;
 
-  const { activityLogs, isFetching, userdata } = useSelector((state) => state.activity);
-  const { Authuser } = useSelector((state) => state.auth);
+  const { activityLogs, myLogs } = useSelector((state) => state.activity);
+  const { user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
 
-  const socket = io("https://advanced-inventory-management-system-v1.onrender.com", {
-     withCredentials: true,
-     transports: ["websocket", "polling"], });
+  // 🔹 HANDLE REAL-TIME LOGS VIA SOCKET.IO
+  useSocket((newLog) => {
+    setLogs((prev) => [newLog, ...prev]);
+  });
 
+  // 🔹 FETCH LOGS BASED ON ROLE
   useEffect(() => {
-    if (Authuser?.id) {
+    if (!user) return;
+
+    if (user.role === "admin") {
       dispatch(getAllActivityLogs());
-      dispatch(getsingleUserActivityLogs(Authuser.id));
+    } else {
+      dispatch(getsingleUserActivityLogs());
     }
+  }, [dispatch, user]);
 
-    socket.on("newActivityLog", (newLog) => {
-      setLogs((prevLogs) => [newLog, ...prevLogs]);
-    });
-
-    return () => {
-      socket.off("newActivityLog");
-    };
-  }, [dispatch, Authuser.id]);
-
+  // 🔹 MERGE AND NORMALIZE LOGS
   useEffect(() => {
-    setLogs(activityLogs);
-  }, [activityLogs]);
+    // Admin sees all logs
+    if (user?.role === "admin") {
+      setLogs(activityLogs ?? []);
+    }
+    // Regular user sees own logs
+    else {
+      setLogs(myLogs ?? []);
+    }
+  }, [activityLogs, myLogs, user]);
 
+  // 🔹 PAGINATION
   const indexOfLastLog = currentPage * logsPerPage;
   const indexOfFirstLog = indexOfLastLog - logsPerPage;
   const currentLogs = logs.slice(indexOfFirstLog, indexOfLastLog);
@@ -47,6 +56,7 @@ function Activitylogpage() {
       <TopNavbar />
       <div className="mt-10 ml-5">
         <h1 className="text-xl font-semibold mb-4">Activity Logs</h1>
+
         <div className="overflow-x-auto">
           <table className="min-w-full bg-base-100 mb-24 border-gray-200 rounded-lg shadow-md">
             <thead className="bg-base-100">
@@ -65,16 +75,24 @@ function Activitylogpage() {
               {currentLogs.length > 0 ? (
                 currentLogs.map((log, index) => (
                   <tr key={log._id}>
-                    <td className="px-3 py-2 border">{indexOfFirstLog + index + 1}</td>
-                    <td className="px-3 py-2 border">{log.userId.name}</td>
-                    <td className="px-3 py-2 border">{log.userId.email}</td>
+                    <td className="px-3 py-2 border">
+                      {indexOfFirstLog + index + 1}
+                    </td>
+                    <td className="px-3 py-2 border">
+                      {log.userId?.name || "N/A"}
+                    </td>
+                    <td className="px-3 py-2 border">
+                      {log.userId?.email || "N/A"}
+                    </td>
                     <td className="px-3 py-2 border">{log.action}</td>
                     <td className="px-3 py-2 border">{log.entity}</td>
                     <td className="px-3 py-2 border">{log.description}</td>
                     <td className="px-4 py-2 border">
                       <FormattedTime timestamp={log.createdAt} />
                     </td>
-                    <td className="px-4 py-2 border">{log.ipAddress}</td>
+                    <td className="px-4 py-2 border">
+                      {log.ipAddress || "N/A"}
+                    </td>
                   </tr>
                 ))
               ) : (
@@ -88,6 +106,7 @@ function Activitylogpage() {
           </table>
         </div>
 
+        {/* 🔹 PAGINATION CONTROLS */}
         <div className="join mt-4 mb-20 ml-72 flex justify-center">
           <button
             className="join-item btn"
@@ -96,6 +115,7 @@ function Activitylogpage() {
           >
             Prev
           </button>
+
           {[...Array(totalPages)].map((_, index) => (
             <button
               key={index}
@@ -105,9 +125,12 @@ function Activitylogpage() {
               {index + 1}
             </button>
           ))}
+
           <button
             className="join-item btn"
-            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+            onClick={() =>
+              setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+            }
             disabled={currentPage === totalPages}
           >
             Next

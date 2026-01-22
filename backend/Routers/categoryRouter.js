@@ -1,22 +1,46 @@
-const express=require("express")
-const router=express.Router()
-const {createCategory,RemoveCategory,getCategory,updateCategory,Searchcategory}=require('../controller/categorycontroller')
-const {authmiddleware,adminmiddleware,managermiddleware}=require('../middleware/Authmiddleware')
+const express = require("express");
+const router = express.Router();
+const {
+  authmiddleware,
+  checkRole,
+} = require("../middleware/Authmiddleware.js");
 
+const {
+  createCategory,
+  getCategory,
+  updateCategory,
+  RemoveCategory,
+  Searchcategory,
+} = require("../controller/categorycontroller.js");
 
+// GET all categories
+router.get("/", authmiddleware, checkRole("admin", "manager"), getCategory);
 
-router.post("/createcategory",authmiddleware,createCategory)
-router.get("/getcategory",getCategory)
-router.get("/searchcategory",authmiddleware,Searchcategory)
+// CREATE category
+router.post("/", authmiddleware, checkRole("admin", "manager"), createCategory);
 
+// UPDATE category
+router.put(
+  "/:CategoryId",
+  authmiddleware,
+  checkRole("admin", "manager"),
+  updateCategory,
+);
 
-router.delete("/removecategory/:CategoryId",authmiddleware,RemoveCategory)
-router.put("/updateCategory",authmiddleware,updateCategory)
+// DELETE category
+router.delete(
+  "/:CategoryId",
+  authmiddleware,
+  checkRole("admin", "manager"),
+  RemoveCategory,
+);
 
+// SEARCH category
+router.get(
+  "/search",
+  authmiddleware,
+  checkRole("admin", "manager"),
+  Searchcategory,
+);
 
-
-
-
-
-
-module.exports=router
+module.exports = router;

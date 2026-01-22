@@ -1,39 +1,23 @@
+const mongoose = require("mongoose");
 
-const mongoose=require('mongoose')
-
-
-
-
-const SupplierSchema= new mongoose.Schema({
-
-    name:{
-        type:String,
-        require:true
+const SupplierSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
     },
-    contactInfo:{
-        phone:{type:String},
-        email:{type:String},
-        address:{type:String}
+    contactInfo: {
+      phone: { type: String },
+      email: { type: String },
+      address: { type: String },
     },
-    productsSupplied:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"Product"
+    productsSupplied: [
+      { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+    ],
+  },
+  { timestamps: true },
+);
 
-    },
-    createdAt:{
-        type:Date,
-        default:Date.now
+const Supplier = mongoose.model("Supplier", SupplierSchema);
 
-    },
-
-
-
-
-},    { timestamps: true }
-
-
-)
-
-const Supplier=mongoose.model("Supplier",SupplierSchema)
-
-module.exports=Supplier
+module.exports = Supplier;

@@ -1,43 +1,30 @@
-const User=require('../models/Usermodel')
+const User = require("../models/Usermodel.js");
 const bcrypt = require("bcryptjs");
-const generateToken=require('../libs/Tokengenerator')
-const Cloundinary=require('../libs/Cloundinary') 
-const logActivity = require('../libs/logger');
-
-
+const generateToken = require("../libs/Tokengenerator.js");
+const Cloundinary = require("../libs/Cloundinary.js");
+const logActivity = require("../libs/logger.js");
 
 module.exports.signup = async (req, res) => {
   try {
     const { name, email, password, ProfilePic, role } = req.body;
 
-  
     const duplicatedUser = await User.findOne({ email });
     if (duplicatedUser) {
       return res.status(400).json({ error: "User already exists" });
     }
 
-
     const hashedpassword = await bcrypt.hash(password, 10);
-
-
-
-
 
     const newUser = new User({
       name,
       email,
       password: hashedpassword,
-      ProfilePic:"",
+      ProfilePic: "",
       role,
     });
 
-
     const savedUser = await newUser.save();
     const token = await generateToken(savedUser, res);
-
-   
-   
-
 
     res.status(201).json({
       message: "Signup successful",
@@ -48,7 +35,6 @@ module.exports.signup = async (req, res) => {
         role: savedUser.role,
         ProfilePic: savedUser.ProfilePic,
         token,
-       
       },
     });
 
@@ -60,94 +46,76 @@ module.exports.signup = async (req, res) => {
       userId: savedUser._id,
       ipAddress: req.ip,
     });
-
-
   } catch (error) {
     console.error("Error during signup:", error.message);
     res.status(400).json({ error: "Error during signup: " + error.message });
   }
 };
 
+module.exports.login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const ipAddress = req.ip;
+    const duplicatedUser = await User.findOne({ email });
 
+    if (!duplicatedUser) {
+      return res.status(400).json({ error: "No user found" });
+    }
 
-module.exports.login=async(req,res)=>{
-    try {
-        
-     const {email,password}=req.body;
-     const ipAddress = req.ip; 
-     const duplicatedUser=await User.findOne({email})
+    const hasedpassword = await bcrypt.compare(
+      password,
+      duplicatedUser.password,
+    );
 
-     if(!duplicatedUser){
+    if (!hasedpassword) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
 
-   return res.status(400).json({error:"No user found"})
-     }
+    const token = await generateToken(duplicatedUser, res);
 
-
-     const hasedpassword=await bcrypt.compare(password,duplicatedUser.password)
-
-
-      if(!hasedpassword){
-            return res.status(400).json({message:'Invalid credentials'})
-        }
-
-        const token=await generateToken(duplicatedUser,res)
-
-
-
-
-
- await logActivity({
+    await logActivity({
       action: "User Login",
       description: `User ${duplicatedUser.name} logged in.`,
       entity: "user",
       entityId: duplicatedUser._id,
-      userId: duplicatedUser._id, 
+      userId: duplicatedUser._id,
       ipAddress: ipAddress,
     });
-   return res.status(201).json({
-    message:"login successfully",
-    user:{
-        id:duplicatedUser.id,
-        name:duplicatedUser.name,
-        email:duplicatedUser.email,
-        role:duplicatedUser.role,
-        ProfilePic:duplicatedUser.ProfilePic,
-        token
-
-    }
-
-   })
-
-
-    } catch (error) {
-  res.status(400).json({
-    error:"Error in login to the page"
-  })
-
-        
-    }
-}
-
-module.exports.logout=async(req,res)=>{
-  try {
-     res.cookie("Inventorymanagmentsystem",'',{maxAge:0})
-       res.status(200).json({message:"Logged out successfully"})
-
+    return res.status(201).json({
+      message: "login successfully",
+      user: {
+        id: duplicatedUser.id,
+        name: duplicatedUser.name,
+        email: duplicatedUser.email,
+        role: duplicatedUser.role,
+        ProfilePic: duplicatedUser.ProfilePic,
+        token,
+      },
+    });
   } catch (error) {
-     res.status(500).json({
-      message: 'An error occurred during logout. Please try again.',
+    res.status(400).json({
+      error: "Error in login to the page",
+    });
+  }
+};
+
+module.exports.logout = async (req, res) => {
+  try {
+    res.cookie("Inventorymanagmentsystem", "", { maxAge: 0 });
+    res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    res.status(500).json({
+      message: "An error occurred during logout. Please try again.",
       error: error.message,
     });
-    
   }
-}
-
+};
 
 module.exports.updateProfile = async (req, res) => {
   try {
     const { ProfilePic } = req.body;
     const userId = req.user?._id;
-    const ipAddress = req.ip; 
+    const ipAddress = req.ip;
 
     if (!userId) {
       return res.status(400).json({ message: "User not authenticated" });
@@ -155,16 +123,15 @@ module.exports.updateProfile = async (req, res) => {
 
     if (ProfilePic) {
       try {
-       
         const uploadResponse = await Cloundinary.uploader.upload(ProfilePic, {
-          folder: "profile_inventory_system", 
-          upload_preset: "upload", 
+          folder: "profile_inventory_system",
+          upload_preset: "upload",
         });
 
         const updatedUser = await User.findOneAndUpdate(
           { _id: userId },
           { ProfilePic: uploadResponse.secure_url },
-          { new: true }
+          { new: true },
         );
 
         if (!updatedUser) {
@@ -173,13 +140,16 @@ module.exports.updateProfile = async (req, res) => {
 
         return res.status(200).json({
           message: "Profile updated successfully",
-          updatedUser
+          updatedUser,
         });
-        
-
       } catch (cloudinaryError) {
         console.error("Cloudinary upload failed:", cloudinaryError);
-        return res.status(500).json({ message: "Image upload failed", error: cloudinaryError.message });
+        return res
+          .status(500)
+          .json({
+            message: "Image upload failed",
+            error: cloudinaryError.message,
+          });
       }
     } else {
       return res.status(400).json({ message: "No profile picture provided" });
@@ -190,13 +160,14 @@ module.exports.updateProfile = async (req, res) => {
   }
 };
 
-
 module.exports.staffuser = async (req, res) => {
   try {
     const staffuser = await User.find({ role: "staff" }).select("-password");
 
     if (staffuser.length === 0) {
-      return res.status(200).json({ message: "There are no staff users available." });
+      return res
+        .status(200)
+        .json({ message: "There are no staff users available." });
     }
 
     res.status(200).json(staffuser);
@@ -208,10 +179,14 @@ module.exports.staffuser = async (req, res) => {
 
 module.exports.manageruser = async (req, res) => {
   try {
-    const manageruser = await User.find({ role: "manager" }).select("-password");
+    const manageruser = await User.find({ role: "manager" }).select(
+      "-password",
+    );
 
     if (manageruser.length === 0) {
-      return res.status(200).json({ message: "There are no manager users available." });
+      return res
+        .status(200)
+        .json({ message: "There are no manager users available." });
     }
 
     res.status(200).json(manageruser);
@@ -226,7 +201,9 @@ module.exports.adminuser = async (req, res) => {
     const adminuser = await User.find({ role: "admin" }).select("-password");
 
     if (adminuser.length === 0) {
-      return res.status(200).json({ message: "There are no admin users available." });
+      return res
+        .status(200)
+        .json({ message: "There are no admin users available." });
     }
 
     res.status(200).json(adminuser);
@@ -234,9 +211,7 @@ module.exports.adminuser = async (req, res) => {
     console.log("Error in get admin Controller:", error.message);
     res.status(500).json({ message: "Internal Server Error", error });
   }
-}
-
-
+};
 
 module.exports.removeuser = async (req, res) => {
   try {

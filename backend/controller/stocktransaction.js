@@ -1,12 +1,15 @@
-const StockTransaction = require('../models/StockTranscationmodel');
+const StockTransaction = require("../models/StockTranscationmodel");
 
-
+// Create a stock transaction
 module.exports.createStockTransaction = async (req, res) => {
   try {
     const { product, type, quantity, supplier } = req.body;
 
     if (!product || !type || !quantity) {
-      return res.status(400).json({ success: false, message: "Product, type, and quantity are required." });
+      return res.status(400).json({
+        success: false,
+        message: "Product, type, and quantity are required.",
+      });
     }
 
     const newTransaction = new StockTransaction({
@@ -18,59 +21,98 @@ module.exports.createStockTransaction = async (req, res) => {
 
     await newTransaction.save();
 
-    res.status(201).json( {message: "Stock transaction created successfully"});
+    // Populate product and supplier for response
+    const populatedTransaction = await StockTransaction.findById(
+      newTransaction._id,
+    )
+      .populate("product")
+      .populate("supplier");
+
+    res.status(201).json({ success: true, transaction: populatedTransaction });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Error creating stock transaction", error });
+    console.error("Create Stock Transaction Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error creating stock transaction",
+      error: error.message,
+    });
   }
 };
 
-
+// Get all stock transactions
 module.exports.getAllStockTransactions = async (req, res) => {
   try {
     const transactions = await StockTransaction.find()
-    .sort({ transactionDate: -1 });
+      .populate("product")
+      .populate("supplier")
+      .sort({ transactionDate: -1 });
 
-    res.status(200).json({message: "Stock transaction created successfully",transactions});
+    res.status(200).json({ success: true, transactions });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Error fetching stock transactions", error });
+    console.error("Get All Stock Transactions Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching stock transactions",
+      error: error.message,
+    });
   }
 };
 
-
+// Get transactions by product
 module.exports.getStockTransactionsByProduct = async (req, res) => {
   try {
     const { productId } = req.params;
+    const transactions = await StockTransaction.find({ product: productId })
+      .populate("product")
+      .populate("supplier")
+      .sort({ transactionDate: -1 });
 
-    const transactions = await StockTransaction.find({ product: productId }).populate('Supplier').sort({ transactionDate: -1 });
-
-    if (!transactions || transactions.length === 0) {
-      return res.status(404).json({ success: false, message: "No transactions found for this product." });
+    if (!transactions.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No transactions found for this product.",
+      });
     }
 
     res.status(200).json({ success: true, transactions });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Error fetching transactions by product", error });
+    console.error("Get Stock Transactions By Product Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching transactions by product",
+      error: error.message,
+    });
   }
 };
 
-
+// Get transactions by supplier
 module.exports.getStockTransactionsBySupplier = async (req, res) => {
   try {
     const { supplierId } = req.params;
+    const transactions = await StockTransaction.find({ supplier: supplierId })
+      .populate("product")
+      .populate("supplier")
+      .sort({ transactionDate: -1 });
 
-    const transactions = await StockTransaction.find({ supplier: supplierId }).populate('product').sort({ transactionDate: -1 });
-
-    if (!transactions || transactions.length === 0) {
-      return res.status(404).json({ success: false, message: "No transactions found for this supplier." });
+    if (!transactions.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No transactions found for this supplier.",
+      });
     }
 
     res.status(200).json({ success: true, transactions });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Error fetching transactions by supplier", error });
+    console.error("Get Stock Transactions By Supplier Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching transactions by supplier",
+      error: error.message,
+    });
   }
 };
 
-
+// Search stock transactions
 module.exports.searchStocks = async (req, res) => {
   try {
     const { query } = req.query;
@@ -78,17 +120,28 @@ module.exports.searchStocks = async (req, res) => {
       return res.status(400).json({ message: "Query parameter is required" });
     }
 
-    const stocks = await StockTransaction.find({})
-      .populate('product') 
-      .then((transactions) => {
-        return transactions.filter((transaction) => 
-          transaction.type.toLowerCase().includes(query.toLowerCase()) ||
-          (transaction.product && transaction.product.name.toLowerCase().includes(query.toLowerCase()))
-        );
-      });
+    const transactions = await StockTransaction.find()
+      .populate("product")
+      .populate("supplier");
 
-    res.json(stocks);
+    const filtered = transactions.filter((t) => {
+      const typeMatch = t.type?.toLowerCase().includes(query.toLowerCase());
+      const productMatch = t.product?.name
+        ?.toLowerCase()
+        .includes(query.toLowerCase());
+      const supplierMatch = t.supplier?.name
+        ?.toLowerCase()
+        .includes(query.toLowerCase());
+      return typeMatch || productMatch || supplierMatch;
+    });
+
+    res.status(200).json({ success: true, transactions: filtered });
   } catch (error) {
-    res.status(500).json({ message: "Error finding product", error: error.message });
+    console.error("Search Stock Transactions Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error searching stock transactions",
+      error: error.message,
+    });
   }
 };

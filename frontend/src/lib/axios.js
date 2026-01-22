@@ -1,14 +1,16 @@
-import axios from 'axios';
+import axios from "axios";
 
-const fallbackURL = 'http://localhost:8009';
-console.log(
-  '🚀 ~ process.env.REACT_APP_BACKEND_URL:',
-  process.env.REACT_APP_BACKEND_URL
-);
+const fallbackURL = "http://localhost:8009";
+
 const axiosInstance = axios.create({
-    baseURL: `${process.env.REACT_APP_BACKEND_URL|| fallbackURL}/api`,
-    
-    withCredentials: true,
-  });
-  
-export default axiosInstance
+  baseURL: `${process.env.REACT_APP_BACKEND_URL || fallbackURL}/api`,
+  withCredentials: true,
+});
+
+axiosInstance.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+export default axiosInstance;

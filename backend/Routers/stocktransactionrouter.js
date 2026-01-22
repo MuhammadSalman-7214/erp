@@ -1,13 +1,42 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const {createStockTransaction,getAllStockTransactions,searchStocks,getStockTransactionsByProduct,getStockTransactionsBySupplier} = require('../controller/stocktransaction');
+const {
+  authmiddleware,
+  checkRole,
+} = require("../middleware/Authmiddleware.js");
 
+const stockController = require("../controller/stocktransaction.js");
 
-router.post('/createStockTransaction', createStockTransaction);
-router.get('/getallStockTransaction', getAllStockTransactions);
-router.get('/product/:productId',getStockTransactionsByProduct);
-router.get('/supplier/:supplierId',getStockTransactionsBySupplier);
-router.get('/searchstocks',searchStocks);
-
+// Stock Transaction - Admin and Manager only
+router.get(
+  "/",
+  authmiddleware,
+  checkRole("admin", "manager"),
+  stockController.getAllStockTransactions,
+);
+router.post(
+  "/",
+  authmiddleware,
+  checkRole("admin", "manager"),
+  stockController.createStockTransaction,
+);
+router.get(
+  "/searchstocks",
+  authmiddleware,
+  checkRole("admin", "manager"),
+  stockController.searchStocks,
+);
+router.get(
+  "/product/:productId",
+  authmiddleware,
+  checkRole("admin", "manager"),
+  stockController.getStockTransactionsByProduct,
+);
+router.get(
+  "/supplier/:supplierId",
+  authmiddleware,
+  checkRole("admin", "manager"),
+  stockController.getStockTransactionsBySupplier,
+);
 
 module.exports = router;

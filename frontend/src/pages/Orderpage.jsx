@@ -6,21 +6,19 @@ import { IoMdAdd } from "react-icons/io";
 import { MdKeyboardDoubleArrowLeft } from "react-icons/md";
 import { signup } from "../features/authSlice";
 import FormattedTime from "../lib/FormattedTime ";
-import OrderStatusChart from "../lib/OrderStatusChart"
+import OrderStatusChart from "../lib/OrderStatusChart";
 import {
   createdOrder,
   Removedorder,
   updatestatusOrder,
   gettingallOrder,
   SearchOrder,
- 
 } from "../features/orderSlice";
 
 import { gettingallproducts } from "../features/productSlice";
 import { gettingallCategory } from "../features/categorySlice";
 
 function Orderpage() {
- 
   const {
     getorder,
     isgetorder,
@@ -30,11 +28,11 @@ function Orderpage() {
     iseditorder,
     searchdata,
     isshowgraph,
-  statusgraph
+    statusgraph,
   } = useSelector((state) => state.order);
   const { getallproduct } = useSelector((state) => state.product);
   const { getallCategory } = useSelector((state) => state.category);
-  const { Authuser, isUserSignup } = useSelector((state) => state.auth);
+  const { user, isUserSignup } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const [status, setstatus] = useState(false);
   const [query, setquery] = useState("");
@@ -49,23 +47,11 @@ function Orderpage() {
     dispatch(gettingallOrder());
     dispatch(gettingallproducts());
     dispatch(gettingallCategory());
- 
-  }, [dispatch,Authuser]);
+  }, [dispatch, user]);
 
   useEffect(() => {
     dispatch(gettingallOrder());
- 
-  }, [dispatch,  editorder]);
-
-
-
-
-
-
-
-
-
-
+  }, [dispatch, editorder]);
 
   useEffect(() => {
     if (query.trim() !== "") {
@@ -81,23 +67,20 @@ function Orderpage() {
   const handleEditSubmit = (event) => {
     event.preventDefault();
 
-
     if (!selectedOrder) return;
 
     const updatedData = {
-      user: Authuser?.id || " ",
+      user: user?.id || " ",
       description: Description,
       status,
       products: {
-        
-          product: Product,
-          quantity: Number(quantity),
-          Price: Number(Price),
-        
+        product: Product,
+        quantity: Number(quantity),
+        Price: Number(Price),
       },
     };
-    
-    dispatch( updatestatusOrder({ OrderId: selectedOrder._id,  updatedData }))
+
+    dispatch(updatestatusOrder({ OrderId: selectedOrder._id, updatedData }))
       .unwrap()
       .then(() => {
         toast.success("Order updated successfully");
@@ -112,24 +95,23 @@ function Orderpage() {
 
   const submitOrder = async (event) => {
     event.preventDefault();
-  
 
     if (!Product || !Price || !quantity) {
       toast.error("Product, Price and Quantity are required");
       return;
     }
-  
+
     const orderData = {
-      user: Authuser?.id || "",
+      user: user?.id || "",
       Description,
       status,
       Product: {
-        product: Product,  
-        price: Number(Price), 
-        quantity: Number(quantity)
-      }
+        product: Product,
+        price: Number(Price),
+        quantity: Number(quantity),
+      },
     };
-  
+
     try {
       const result = await dispatch(createdOrder(orderData)).unwrap();
       toast.success("Order created successfully");
@@ -151,15 +133,15 @@ function Orderpage() {
   const handleEditClick = (order) => {
     setselectedOrder(order);
     setProduct(order.Product.product?._id || "");
-    setPrice(order.Product?.price|| "");
-    setQuantity(order.Product?.quantity|| "");
-    setstatus(order.status|| "");
-    setDescription(order.Description|| "");
+    setPrice(order.Product?.price || "");
+    setQuantity(order.Product?.quantity || "");
+    setstatus(order.status || "");
+    setDescription(order.Description || "");
     setIsFormVisible(true);
   };
 
   const handleremove = async (OrderId) => {
-    dispatch( Removedorder(OrderId))
+    dispatch(Removedorder(OrderId))
       .unwrap()
       .then(() => {
         toast.success("Order removed successfully");
@@ -171,17 +153,11 @@ function Orderpage() {
 
   const displayOrder = query.trim() !== "" ? searchdata : getorder;
 
-
-
-
-  
-
-
   return (
     <div className="bg-base-100 min-h-screen">
       <TopNavbar />
 
-      < OrderStatusChart className="mt-10 mb-10 mx-auto"/>
+      <OrderStatusChart className="mt-10 mb-10 mx-auto" />
 
       <div className="mt-12 ml-5">
         <div className="flex items-center space-x-4">
@@ -273,7 +249,7 @@ function Orderpage() {
                   value={status}
                   onChange={(e) => setstatus(e.target.value)}
                 >
-                   <option value="">Select a status</option>
+                  <option value="">Select a status</option>
                   <option value="pending">Pending</option>
                   <option value="shipped">Shipped</option>
                   <option value="delivered">Delivered</option>
@@ -301,7 +277,9 @@ function Orderpage() {
                   <th className="px-3 py-2 bg-base-100 border">qunatity</th>
                   <th className="px-3 py-2 bg-base-100 border">Price</th>
                   <th className="px-3 py-2 bg-base-100 border">Description</th>
-                  <th className="px-3 py-2  bg-base-100  border">totalAmount</th>
+                  <th className="px-3 py-2  bg-base-100  border">
+                    totalAmount
+                  </th>
                   <th className="px-3 py-2 bg-base-100  border">status</th>
                   <th className="px-3 py-2 bg-base-100 border">Created by</th>
                   <th className="px-3 py-2 bg-base-100 border">time stamp</th>
@@ -309,17 +287,12 @@ function Orderpage() {
                 </tr>
               </thead>
 
-              
               <tbody className="bg-base-100">
                 {Array.isArray(displayOrder) && displayOrder.length > 0 ? (
-           
                   displayOrder.map((order, index) => (
-                  
-
                     <tr key={order?._id} className="bg-base-100">
                       <td className="px-3 py-2 border">{index + 1}</td>
                       <td className="px-3 py-2 border">book</td>{" "}
-                      
                       <td className="px-3 py-2 border">
                         {order.Product?.quantity}
                       </td>
@@ -327,7 +300,6 @@ function Orderpage() {
                         ${order.Product?.price}
                       </td>
                       <td className="px-3 py-2 border">{order?.Description}</td>
-                 
                       <td className="px-3 py-2 border">{order?.totalAmount}</td>
                       <td className="px-3 py-2 border">{order?.status}</td>
                       <td className="px-3 py-2 border">{order.user?.name}</td>
@@ -341,7 +313,7 @@ function Orderpage() {
                         >
                           Remove
                         </button>
-    
+
                         <button
                           onClick={() => handleEditClick(order)}
                           className="h-10 w-24 bg-green-500 ml-10 hover:bg-green-700 rounded-md text-white"

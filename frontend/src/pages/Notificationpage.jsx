@@ -4,79 +4,91 @@ import { IoMdAdd } from "react-icons/io";
 import { MdClose } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
 import image from "../images/user.png";
-import { createNotification, getAllNotifications, deleteNotification } from "../features/notificationSlice"; 
+import {
+  createNotification,
+  getAllNotifications,
+  deleteNotification,
+} from "../features/notificationSlice";
 import { io } from "socket.io-client";
-import toast from 'react-hot-toast';
+import toast from "react-hot-toast";
 import FormattedTime from "../lib/FormattedTime ";
 
 function NotificationPage() {
   const dispatch = useDispatch();
   const { notifications } = useSelector((state) => state.notification);
-  const { Authuser } = useSelector((state) => state.auth);
+  const { user } = useSelector((state) => state.auth);
   const [name, setName] = useState("");
   const [type, setType] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    const newSocket = io("https://advanced-inventory-management-system-v1.onrender.com", {
-      withCredentials: true,
-      transports: ["websocket", "polling"],
-    });
+    const newSocket = io(
+      "https://advanced-inventory-management-system-v1.onrender.com",
+      {
+        withCredentials: true,
+        transports: ["websocket", "polling"],
+      },
+    );
     setSocket(newSocket);
 
     dispatch(getAllNotifications());
 
     newSocket.on("newNotification", (newNotification) => {
-   
-      toast.custom((t) => (
-        <div className={`flex items-center p-4 rounded-lg shadow-lg bg-white text-gray-800 ${t.visible ? 'animate-enter' : 'animate-leave'}`}>
-          <img 
-            src={Authuser?.ProfilePic || image} 
-            alt="Notification" 
-            className="w-10 h-10 rounded-full mr-3"
-          />
-          <div>
-            <p className="font-medium">{newNotification.name}</p>
-            <p className="text-sm text-gray-600">{newNotification.type}</p>
-          </div>
-          <button 
-            onClick={() => toast.dismiss(t.id)}
-            className="ml-4 text-gray-500 hover:text-gray-700"
+      toast.custom(
+        (t) => (
+          <div
+            className={`flex items-center p-4 rounded-lg shadow-lg bg-white text-gray-800 ${t.visible ? "animate-enter" : "animate-leave"}`}
           >
-            &times;
-          </button>
-        </div>
-      ), {
-        duration: 4000,
-        position: 'top-right',
-      });
+            <img
+              src={user?.ProfilePic || image}
+              alt="Notification"
+              className="w-10 h-10 rounded-full mr-3"
+            />
+            <div>
+              <p className="font-medium">{newNotification.name}</p>
+              <p className="text-sm text-gray-600">{newNotification.type}</p>
+            </div>
+            <button
+              onClick={() => toast.dismiss(t.id)}
+              className="ml-4 text-gray-500 hover:text-gray-700"
+            >
+              &times;
+            </button>
+          </div>
+        ),
+        {
+          duration: 4000,
+          position: "top-right",
+        },
+      );
       dispatch(getAllNotifications());
     });
 
     return () => {
       newSocket.disconnect();
     };
-  }, [dispatch, Authuser?.ProfilePic]);
+  }, [dispatch, user?.ProfilePic]);
 
   const resetForm = () => {
     setName("");
     setType("");
   };
 
-  const submitNotification = async (event) => {
-    event.preventDefault();
-    const NotificationData = { name, type };
+  const submitNotification = async (e) => {
+    e.preventDefault();
+    if (!name || !type) return toast.error("Title and description required");
+    const notificationData = { name, type };
+    console.log({ notificationData });
 
-    dispatch(createNotification(NotificationData))
+    dispatch(createNotification(notificationData))
+      .unwrap()
       .then(() => {
         toast.success("Notification added successfully");
         resetForm();
         setIsFormVisible(false);
       })
-      .catch(() => {
-        toast.error("Failed to add notification");
-      });
+      .catch(() => toast.error("Failed to add notification"));
   };
 
   return (
@@ -98,9 +110,9 @@ function NotificationPage() {
           <div className="p-6 rounded-lg bg-base-100 shadow-md mb-6">
             <div className="flex bg-base-100 justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Add Notification</h2>
-              <MdClose 
-                className="text-2xl cursor-pointer" 
-                onClick={() => setIsFormVisible(false)} 
+              <MdClose
+                className="text-2xl cursor-pointer"
+                onClick={() => setIsFormVisible(false)}
               />
             </div>
             <form onSubmit={submitNotification}>
@@ -138,17 +150,20 @@ function NotificationPage() {
         <div className="space-y-4 bg-base-100">
           {notifications.length > 0 ? (
             notifications.map((notification) => (
-              <div key={notification._id} className="flex items-center bg-base-300 p-4 rounded-lg shadow-md hover:bg-base-200 transition">
-                <img 
-                  src={Authuser?.ProfilePic || image} 
-                  alt="User" 
+              <div
+                key={notification._id}
+                className="flex items-center bg-base-300 p-4 rounded-lg shadow-md hover:bg-base-200 transition"
+              >
+                <img
+                  src={user?.ProfilePic || image}
+                  alt="User"
                   className="w-12 h-12 rounded-full mr-4 object-cover"
                 />
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold">{notification.name}</h3>
                   <p className="text-sm text-gray-600">{notification.type}</p>
                   <p className="text-xs text-gray-500 mt-1">
-                    <FormattedTime timestamp={notification.createdAt}/>
+                    <FormattedTime timestamp={notification.createdAt} />
                   </p>
                 </div>
                 <button
@@ -161,7 +176,9 @@ function NotificationPage() {
               </div>
             ))
           ) : (
-            <p className="text-center bg-base-100 text-gray-600 py-4">No notifications found.</p>
+            <p className="text-center bg-base-100 text-gray-600 py-4">
+              No notifications found.
+            </p>
           )}
         </div>
       </div>

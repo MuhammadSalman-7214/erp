@@ -1,6 +1,13 @@
-const ActivityLog = require("../models/ActivityLogmodel");
+const ActivityLog = require("../models/ActivityLogmodel.js");
 
-const logActivity = async ({ action, description, entity, entityId, userId, ipAddress }) => {
+const logActivity = async ({
+  action,
+  description,
+  entity,
+  entityId,
+  userId,
+  ipAddress,
+}) => {
   try {
     const newActivity = new ActivityLog({
       action,

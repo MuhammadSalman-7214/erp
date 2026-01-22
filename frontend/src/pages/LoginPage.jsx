@@ -1,19 +1,24 @@
-import React, { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+// LoginPage.jsx - Fixed version
+import React, { useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useDispatch, useSelector } from "react-redux";
 import * as yup from "yup";
-import { login } from '../features/authSlice'; 
-import homeImage from '../images/welcomeimage.webp'
+import { login } from "../features/authSlice";
+import toast from "react-hot-toast";
 
 function LoginPage() {
-  const { Authuser, isUserLogin } = useSelector((state) => state.auth);
+  const { user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
-const navigator=useNavigate()
+  const navigate = useNavigate();
+
   const schema = yup.object().shape({
     email: yup.string().email("Invalid email").required("Email is required"),
-    password: yup.string().min(6, "Password must be at least 6 characters").required("Password is required"),
+    password: yup
+      .string()
+      .min(6, "Password must be at least 6 characters")
+      .required("Password is required"),
   });
 
   const {
@@ -24,38 +29,41 @@ const navigator=useNavigate()
     resolver: yupResolver(schema),
   });
 
-  const onSubmit = (data) => {
-    console.log("Form Submitted:", data);
-    dispatch(login(data))
-    .then(()=>{
-    
-      navigator('/ManagerDashboard')
-      if(Authuser.user.role==="staff"){
-        navigator('/StaffDashboard')
-      } 
-      else if(Authuser.user.role=="admin"){
-        navigator('/AdminDashboard')
-      }
-      else{
-        navigator('/ManagerDashboard')
-      }
+  const onSubmit = async (data) => {
+    try {
+      const result = await dispatch(login(data)).unwrap();
 
+      const roleRedirects = {
+        admin: "/AdminDashboard",
+        manager: "/ManagerDashboard",
+        staff: "/StaffDashboard",
+      };
 
-    }) 
-    .catch((error) => {
-    
+      const userRole = result?.user?.role;
+      toast.success(`Welcome back, ${result?.user?.name || "User"}!`);
+      navigate(roleRedirects[userRole] || "/ManagerDashboard", {
+        replace: true,
+      });
+    } catch (error) {
       console.error("Error in Login:", error);
-    });
+      toast.error(error?.message || "Login failed. Please try again.");
+    }
   };
 
+  // Redirect if already logged in
   useEffect(() => {
-    if (Authuser) {
-      
+    if (user?.role) {
+      const roleRedirects = {
+        admin: "/AdminDashboard",
+        manager: "/ManagerDashboard",
+        staff: "/StaffDashboard",
+      };
+      navigate(roleRedirects[user.role], { replace: true });
     }
-  }, [Authuser]);
+  }, [user, navigate]);
 
   return (
-    <div className="min-h-screen bg-base-100 flex bg-gray-50 min-h-screen">
+    <div className="min-h-screen bg-gray-50 flex">
       <div className="w-full sm:w-1/2 p-6 flex items-center justify-center bg-white shadow-lg rounded-xl">
         <div className="max-w-md w-full">
           <div className="text-center mb-8">
@@ -65,30 +73,44 @@ const navigator=useNavigate()
 
           <form onSubmit={handleSubmit(onSubmit)}>
             <div className="mb-6">
-              <label className="block text-gray-700 text-sm font-medium mb-2">Email</label>
+              <label className="block text-gray-700 text-sm font-medium mb-2">
+                Email
+              </label>
               <input
                 type="email"
                 {...register("email")}
                 className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="you@example.com"
               />
-              {errors.email && <p className="text-red-500">{errors.email.message}</p>}
+              {errors.email && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
 
             <div className="mb-6">
-              <label className="block text-gray-700 text-sm font-medium mb-2">Password</label>
+              <label className="block text-gray-700 text-sm font-medium mb-2">
+                Password
+              </label>
               <input
                 type="password"
                 {...register("password")}
                 className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Enter your password"
               />
-              {errors.password && <p className="text-red-500">{errors.password.message}</p>}
+              {errors.password && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.password.message}
+                </p>
+              )}
             </div>
 
             <div className="flex items-center mb-6">
-              <input type="checkbox" id="2fa" className="mr-2" />
-              <label htmlFor="2fa" className="text-gray-600 text-sm">Agree on terms and conditions</label>
+              <input type="checkbox" id="terms" className="mr-2" />
+              <label htmlFor="terms" className="text-gray-600 text-sm">
+                Agree on terms and conditions
+              </label>
             </div>
 
             <button
@@ -100,15 +122,27 @@ const navigator=useNavigate()
           </form>
 
           <div className="text-center mt-6">
-            <p>Don't have an account? <Link to='/SignupPage' className="text-blue-600 text-sm hover:underline">Click here</Link></p>
+            <p>
+              Don't have an account?{" "}
+              <Link
+                to="/SignupPage"
+                className="text-blue-600 text-sm hover:underline"
+              >
+                Click here
+              </Link>
+            </p>
           </div>
         </div>
       </div>
 
-      <div className="w-full sm:w-1/2 p-10  bg-black text-white flex flex-col justify-center rounded-r-xl">
-        <h2 className="font-bold mb-4 text-4xl">Efficient Inventory Management</h2>
-        <p className="mb-6 text-lg font-medium text-gray-300">Streamline your operations with real-time tracking, automated reports, and seamless integrations.</p>
-        
+      <div className="w-full sm:w-1/2 p-10 bg-black text-white flex flex-col justify-center rounded-r-xl">
+        <h2 className="font-bold mb-4 text-4xl">
+          Efficient Inventory Management
+        </h2>
+        <p className="mb-6 text-lg font-medium text-gray-300">
+          Streamline your operations with real-time tracking, automated reports,
+          and seamless integrations.
+        </p>
       </div>
     </div>
   );

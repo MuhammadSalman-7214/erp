@@ -1,13 +1,18 @@
 const express = require("express");
 const router = express.Router();
-const {createSale,getAllSales,SearchSales,getSaleById,updateSale} = require("../controller/salescontroller");
+const { authmiddleware } = require("../middleware/Authmiddleware.js");
+const {
+  createSale,
+  getAllSales,
+  updateSale,
+  getSaleById,
+  SearchSales,
+} = require("../controller/salescontroller.js");
 
-router.post("/createsales", createSale);
-router.get("/getallsales", getAllSales); 
-router.get("/searchdata", SearchSales); 
-router.get("/:saleId", getSaleById);
-router.put("/updatesales/:saleId",updateSale); 
-
-
+router.get("/", authmiddleware, getAllSales);
+router.get("/searchdata", authmiddleware, SearchSales); // frontend uses this
+router.get("/:id", authmiddleware, getSaleById);
+router.post("/", authmiddleware, createSale);
+router.put("/:id", authmiddleware, updateSale);
 
 module.exports = router;

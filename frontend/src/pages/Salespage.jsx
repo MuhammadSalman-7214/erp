@@ -5,6 +5,7 @@ import { MdKeyboardDoubleArrowLeft } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
 import { gettingallproducts } from "../features/productSlice";
 import FormattedTime from "../lib/FormattedTime ";
+
 import {
   CreateSales,
   gettingallSales,
@@ -13,6 +14,7 @@ import {
 } from "../features/salesSlice";
 import SalesChart from "../lib/Salesgraph";
 import toast from "react-hot-toast";
+import { gettingallCategory } from "../features/categorySlice";
 
 function Salespage() {
   const {
@@ -24,6 +26,7 @@ function Salespage() {
   } = useSelector((state) => state.sales);
 
   const { getallproduct } = useSelector((state) => state.product);
+
   const dispatch = useDispatch();
   const [query, setquery] = useState("");
 
@@ -37,10 +40,15 @@ function Salespage() {
   const [Status, setStatus] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [selectedSales, setselectedSales] = useState(null);
+  const { getallCategory } = useSelector((state) => state.category);
+  useEffect(() => {
+    dispatch(gettingallCategory());
+    dispatch(gettingallproducts()); // fetch products for the dropdown
+  }, [dispatch]);
 
   useEffect(() => {
     dispatch(gettingallSales());
-  }, [dispatch, CreateSales, EditSales]);
+  }, [dispatch]);
 
   useEffect(() => {
     if (query.trim() !== "") {
@@ -59,17 +67,13 @@ function Salespage() {
 
     const updatedData = {
       customerName: name,
-      products: {
-        product: Product,
-        quantity: Number(quantity),
-        price: Number(Price),
-      },
+      products: [
+        { product: Product, quantity: Number(quantity), price: Number(Price) },
+      ],
       paymentMethod: Payment,
       paymentStatus,
       status: Status,
     };
-
-    console.log("Updated Data:", updatedData);
 
     dispatch(EditSales({ salesId: selectedSales._id, updatedData }))
       .unwrap()
@@ -90,7 +94,9 @@ function Salespage() {
 
     const salesData = {
       customerName: name,
-      products: { product: Product, quantity, price: Price },
+      products: [
+        { product: Product, quantity: Number(quantity), price: Number(Price) },
+      ],
       paymentMethod: Payment,
       paymentStatus,
       status: Status,
@@ -116,18 +122,32 @@ function Salespage() {
     setpaymentStatus("");
     setStatus("");
   };
-
   const handleEditClick = (sales) => {
+    console.log({ sales });
+
     setselectedSales(sales);
     setName(sales.customerName);
-    setProduct(sales.products?.product._id || "");
-    setPayment(sales.paymentMethod);
-    setPrice(sales.products?.price || "");
-    setQuantity(sales.products?.quantity || "");
-    setpaymentStatus(sales.paymentStatus);
-    setStatus(sales.status);
+
+    if (sales.products && sales.products.length > 0) {
+      const firstProduct = sales.products[0];
+      setProduct(firstProduct.product?._id || "");
+      setPrice(firstProduct.price || "");
+      setQuantity(firstProduct.quantity || "");
+    } else {
+      setProduct("");
+      setPrice("");
+      setQuantity("");
+    }
+
+    setPayment(sales.paymentMethod || "");
+    setpaymentStatus(sales.paymentStatus || "");
+    setStatus(sales.status || "");
     setIsFormVisible(true);
   };
+
+  useEffect(() => {
+    setProduct(""); // reset selected product when category changes
+  }, [Category]);
 
   const displaySales = query.trim() !== "" ? searchdata : getallsales;
 
@@ -180,8 +200,23 @@ function Salespage() {
                   className="w-full h-10 px-2 border-2 rounded-lg mt-2"
                 />
               </div>
+              <div className="mb-4">
+                <label>Category</label>
+                <select
+                  value={Category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full h-10 px-2 border-2 rounded-lg mt-2"
+                >
+                  <option value="">Select a Category</option>
+                  {getallCategory?.map((cat) => (
+                    <option key={cat._id} value={cat._id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-              <div className="mb-4 ">
+              <div className="mb-4">
                 <label>Product</label>
                 <select
                   value={Product}
@@ -189,11 +224,13 @@ function Salespage() {
                   className="w-full h-10 px-2 border-2 rounded-lg mt-2"
                 >
                   <option value="">Select a Product</option>
-                  {getallproduct?.map((product) => (
-                    <option key={product._id} value={product._id}>
-                      {product.name}
-                    </option>
-                  ))}
+                  {getallproduct
+                    ?.filter((p) => p.Category?._id === Category) // ✅ filter by selected category
+                    .map((product) => (
+                      <option key={product._id} value={product._id}>
+                        {product.name}
+                      </option>
+                    ))}
                 </select>
               </div>
 

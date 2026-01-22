@@ -1,7 +1,5 @@
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import HomePage from "./pages/HomePage";
-import Navbar from "./Components/Navbar";
-import Footer from "./Components/Footer";
 import SignupPage from "./pages/SignupPages";
 import ServicePage from "./pages/ServicePage";
 import LoginPage from "./pages/LoginPage";
@@ -19,9 +17,9 @@ import Supplierpage from "./pages/Supplierpage";
 import Activitylogpage from "./pages/Activitylogpage";
 import Dashboardpage from "./pages/Dashboardpage";
 import Userstatus from "./pages/Userstatus";
-import NotificationPageRead from "./pages/Notificationpageread"
+import NotificationPageRead from "./pages/Notificationpageread";
 import ProtectedRoute from "./lib/ProtectedRoute";
-import toast, { Toaster } from "react-hot-toast";
+import { Toaster } from "react-hot-toast";
 
 function App() {
   return (
@@ -29,143 +27,130 @@ function App() {
       <div>
         <Toaster />
         <Routes>
+          {/* Public Routes */}
           <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<ServicePage />} />
           <Route path="/SignupPage" element={<SignupPage />} />
           <Route path="/LoginPage" element={<LoginPage />} />
 
+          {/* ========== MANAGER DASHBOARD ========== */}
           <Route
             path="/ManagerDashboard"
-            element={<ProtectedRoute element={<ManagerDashboard />} />}
+            element={
+              <ProtectedRoute allowedRoles={["manager"]}>
+                <ManagerDashboard />
+              </ProtectedRoute>
+            }
           >
-            <Route
-              index
-              element={<ProtectedRoute element={<Dashboardpage />} />}
-            />
-            <Route
-              path="product"
-              element={<ProtectedRoute element={<Productpage />} />}
-            />
-            <Route
-              path="order"
-              element={<ProtectedRoute element={<Orderpage />} />}
-            />
-            <Route
-              path="sales"
-              element={<ProtectedRoute element={<Salespage />} />}
-            />
-            <Route
-              path="stock-transaction"
-              element={<ProtectedRoute element={<StockTransaction />} />}
-            />
-            <Route
-              path="category"
-              element={<ProtectedRoute element={<Categorypage />} />}
-            />
+            {/* Dashboard - Manager */}
+            <Route index element={<Dashboardpage />} />
+
+            {/* Product - Manager (full access) */}
+            <Route path="product" element={<Productpage />} />
+
+            {/* Order - Manager */}
+            <Route path="order" element={<Orderpage />} />
+
+            {/* Sales - Manager */}
+            <Route path="sales" element={<Salespage />} />
+
+            {/* Stock Transaction - Manager */}
+            <Route path="stock-transaction" element={<StockTransaction />} />
+
+            {/* Category - Manager */}
+            <Route path="category" element={<Categorypage />} />
+
+            {/* Notifications (Read) - Manager */}
             <Route
               path="NotificationPageRead"
-              element={<ProtectedRoute element={<NotificationPageRead />} />}
+              element={<NotificationPageRead />}
             />
-            <Route
-              path="Profilepage"
-              element={<ProtectedRoute element={<Profilepage />} />}
-            />
-            <Route
-              path="supplier"
-              element={<ProtectedRoute element={<Supplierpage />} />}
-            />
-            <Route
-              path="Userstatus"
-              element={<ProtectedRoute element={<Userstatus />} />}
-            />
-            <Route
-              path="activity-log"
-              element={<ProtectedRoute element={<Activitylogpage />} />}
-            />
+
+            {/* Profile - Manager */}
+            <Route path="Profilepage" element={<Profilepage />} />
+
+            {/* Supplier - Manager */}
+            <Route path="supplier" element={<Supplierpage />} />
+
+            {/* User Status - Manager */}
+            <Route path="Userstatus" element={<Userstatus />} />
           </Route>
 
+          {/* ========== ADMIN DASHBOARD ========== */}
           <Route
             path="/AdminDashboard"
-            element={<ProtectedRoute element={<AdminDashboard />} />}
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
           >
-            <Route
-              path="product"
-              element={<ProtectedRoute element={<Productpage />} />}
-            />
-            <Route
-              path="order"
-              element={<ProtectedRoute element={<Orderpage />} />}
-            />
-            <Route
-              path="sales"
-              element={<ProtectedRoute element={<Salespage />} />}
-            />
-            <Route
-              path="stock-transaction"
-              element={<ProtectedRoute element={<StockTransaction />} />}
-            />
-            <Route
-              path="category"
-              element={<ProtectedRoute element={<Categorypage />} />}
-            />
-            <Route
-              path="notifications"
-              element={<ProtectedRoute element={<Notificationpage />} />}
-            />
-            <Route
-              path="Profilepage"
-              element={<ProtectedRoute element={<Profilepage />} />}
-            />
-            <Route
-              path="supplier"
-              element={<ProtectedRoute element={<Supplierpage />} />}
-            />
-            <Route
-              path="activity-log"
-              element={<ProtectedRoute element={<Activitylogpage />} />}
-            />
+            {/* Dashboard - Admin */}
+            <Route index element={<Dashboardpage />} />
+
+            {/* Product - Admin */}
+            <Route path="product" element={<Productpage />} />
+
+            {/* Order - Admin */}
+            <Route path="order" element={<Orderpage />} />
+
+            {/* Sales - Admin */}
+            <Route path="sales" element={<Salespage />} />
+
+            {/* Stock Transaction - Admin */}
+            <Route path="stock-transaction" element={<StockTransaction />} />
+
+            {/* Category - Admin */}
+            <Route path="category" element={<Categorypage />} />
+
+            {/* Notifications (Create) - Admin */}
+            <Route path="notifications" element={<Notificationpage />} />
+
+            {/* Profile - Admin */}
+            <Route path="Profilepage" element={<Profilepage />} />
+
+            {/* Supplier - Admin */}
+            <Route path="supplier" element={<Supplierpage />} />
+
+            {/* Activity Log - Admin Only */}
+            <Route path="activity-log" element={<Activitylogpage />} />
+
+            {/* User Status - Admin */}
+            <Route path="Userstatus" element={<Userstatus />} />
           </Route>
 
+          {/* ========== STAFF DASHBOARD ========== */}
           <Route
             path="/StaffDashboard"
-            element={<ProtectedRoute element={<StaffDashboard />} />}
+            element={
+              <ProtectedRoute allowedRoles={["staff"]}>
+                <StaffDashboard />
+              </ProtectedRoute>
+            }
           >
-            <Route
-              path="product"
-              element={<ProtectedRoute element={<Productpage />} />}
-            />
-            <Route
-              path="order"
-              element={<ProtectedRoute element={<Orderpage />} />}
-            />
-            <Route
-              path="sales"
-              element={<ProtectedRoute element={<Salespage />} />}
-            />
-            <Route
-              path="stock-transaction"
-              element={<ProtectedRoute element={<StockTransaction />} />}
-            />
-            <Route
-              path="category"
-              element={<ProtectedRoute element={<Categorypage />} />}
-            />
+            {/* Dashboard - Staff */}
+            <Route index element={<Dashboardpage />} />
+
+            {/* Product - Staff (read-only) */}
+            <Route path="product" element={<Productpage readOnly />} />
+
+            {/* Order - Staff */}
+            <Route path="order" element={<Orderpage />} />
+
+            {/* Sales - Staff */}
+            <Route path="sales" element={<Salespage />} />
+
+            {/* Notifications (Read) - Staff */}
             <Route
               path="NotificationPageRead"
-              element={<ProtectedRoute element={<NotificationPageRead/>} />}
+              element={<NotificationPageRead />}
             />
-            <Route
-              path="Profilepage"
-              element={<ProtectedRoute element={<Profilepage />} />}
-            />
-            <Route
-              path="supplier"
-              element={<ProtectedRoute element={<Supplierpage />} />}
-            />
-            <Route
-              path="activity-log"
-              element={<ProtectedRoute element={<Activitylogpage />} />}
-            />
+
+            {/* Profile - Staff */}
+            <Route path="Profilepage" element={<Profilepage />} />
+
+            {/* Supplier - Staff (read-only) */}
+            <Route path="supplier" element={<Supplierpage readOnly />} />
           </Route>
         </Routes>
       </div>

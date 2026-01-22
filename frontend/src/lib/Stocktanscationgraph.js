@@ -1,9 +1,26 @@
 import React, { useEffect, useState } from "react";
 import { Line } from "react-chartjs-2";
 import axiosInstance from "./axios";
-import { Chart as ChartJS, LineElement, PointElement, CategoryScale, LinearScale, Title, Tooltip, Legend } from "chart.js";
+import {
+  Chart as ChartJS,
+  LineElement,
+  PointElement,
+  CategoryScale,
+  LinearScale,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
 
-ChartJS.register(LineElement, PointElement, CategoryScale, LinearScale, Title, Tooltip, Legend);
+ChartJS.register(
+  LineElement,
+  PointElement,
+  CategoryScale,
+  LinearScale,
+  Title,
+  Tooltip,
+  Legend,
+);
 
 const StockTransactionGraph = () => {
   const [chartData, setChartData] = useState(null);
@@ -11,14 +28,22 @@ const StockTransactionGraph = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axiosInstance.get("/stocktransaction/getallStockTransaction");
+        const response = await axiosInstance.get("/stocktransaction");
         const transactions = response.data.transactions;
 
-        transactions.sort((a, b) => new Date(a.transactionDate) - new Date(b.transactionDate));
+        transactions.sort(
+          (a, b) => new Date(a.transactionDate) - new Date(b.transactionDate),
+        );
 
-        const labels = transactions.map(tx => new Date(tx.transactionDate).toLocaleDateString());
-        const stockInQuantities = transactions.map(tx => (tx.type === "Stock-in" ? tx.quantity : 0));
-        const stockOutQuantities = transactions.map(tx => (tx.type === "Stock-out" ? tx.quantity : 0));
+        const labels = transactions.map((tx) =>
+          new Date(tx.transactionDate).toLocaleDateString(),
+        );
+        const stockInQuantities = transactions.map((tx) =>
+          tx.type === "Stock-in" ? tx.quantity : 0,
+        );
+        const stockOutQuantities = transactions.map((tx) =>
+          tx.type === "Stock-out" ? tx.quantity : 0,
+        );
 
         setChartData({
           labels,
@@ -50,9 +75,26 @@ const StockTransactionGraph = () => {
   }, []);
 
   return (
-    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "70vh", width: "80vw" }}>
-      <div style={{ width: "90%", maxWidth: "800px", height: "70%", maxHeight: "600px" }}>
-        <h2 style={{ textAlign: "center", color: "#333" }}>Stock Transactions Overview</h2>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "70vh",
+        width: "80vw",
+      }}
+    >
+      <div
+        style={{
+          width: "90%",
+          maxWidth: "800px",
+          height: "70%",
+          maxHeight: "600px",
+        }}
+      >
+        <h2 style={{ textAlign: "center", color: "#333" }}>
+          Stock Transactions Overview
+        </h2>
         {chartData ? (
           <Line
             data={chartData}
@@ -65,7 +107,10 @@ const StockTransactionGraph = () => {
               },
               scales: {
                 x: { grid: { display: false } },
-                y: { grid: { color: "rgba(200, 200, 200, 0.3)" }, ticks: { beginAtZero: true } },
+                y: {
+                  grid: { color: "rgba(200, 200, 200, 0.3)" },
+                  ticks: { beginAtZero: true },
+                },
               },
             }}
           />

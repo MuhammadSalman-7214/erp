@@ -13,20 +13,31 @@ import {
 } from "../features/productSlice";
 import { gettingallCategory } from "../features/categorySlice";
 import toast from "react-hot-toast";
+import { useRolePermissions } from "../hooks/useRolePermissions";
 
-function Productpage() {
-  const { getallproduct, editedProduct, isproductadd, searchdata } = useSelector(
-    (state) => state.product
-  );
+function Productpage({ readOnly = false }) {
+  const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
+
+  // Determine if page is in read-only mode (from props OR role)
+  const isReadOnlyMode = readOnly || checkReadOnly("product");
+  const canWrite = hasPermission("product", "write");
+  const canDelete = hasPermission("product", "delete");
+
+  const { getallproduct, editedProduct, isproductadd, searchdata } =
+    useSelector((state) => state.product);
+
   const { getallCategory } = useSelector((state) => state.category);
   const dispatch = useDispatch();
-  const [query, setquery] = useState("");
+
+  const [query, setQuery] = useState("");
   const [name, setName] = useState("");
   const [Category, setCategory] = useState("");
   const [Price, setPrice] = useState("");
   const [quantity, setQuantity] = useState("");
   const [Desciption, setDesciption] = useState("");
-  const [dateAdded, setDateAdded] = useState(new Date().toISOString().split('T')[0]); // Initialize with current date
+  const [dateAdded, setDateAdded] = useState(
+    new Date().toISOString().split("T")[0],
+  );
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
@@ -47,6 +58,11 @@ function Productpage() {
   }, [query, dispatch]);
 
   const handleremove = async (productId) => {
+    if (!canDelete) {
+      toast.error("You do not have permission to delete products");
+      return;
+    }
+
     dispatch(Removeproduct(productId))
       .unwrap()
       .then(() => {
@@ -60,6 +76,11 @@ function Productpage() {
   const handleEditSubmit = (event) => {
     event.preventDefault();
 
+    if (!canWrite) {
+      toast.error("You do not have permission to edit products");
+      return;
+    }
+
     if (!selectedProduct) return;
 
     const updatedData = {
@@ -68,8 +89,9 @@ function Productpage() {
       Price,
       quantity,
       Desciption,
-      dateAdded: selectedProduct.dateAdded || new Date().toISOString() 
+      dateAdded: selectedProduct.dateAdded || new Date().toISOString(),
     };
+    console.log({ updatedData });
 
     dispatch(EditProduct({ id: selectedProduct._id, updatedData }))
       .unwrap()
@@ -86,13 +108,19 @@ function Productpage() {
 
   const submitProduct = async (event) => {
     event.preventDefault();
-    const productData = { 
-      name, 
-      Desciption, 
-      Category, 
-      Price, 
+
+    if (!canWrite) {
+      toast.error("You do not have permission to add products");
+      return;
+    }
+
+    const productData = {
+      name,
+      Desciption,
+      Category,
+      Price,
       quantity,
-      dateAdded: new Date(dateAdded).toISOString() 
+      dateAdded: new Date(dateAdded).toISOString(),
     };
 
     dispatch(Addproduct(productData))
@@ -112,18 +140,20 @@ function Productpage() {
     setPrice("");
     setQuantity("");
     setDesciption("");
-   
   };
 
   const handleEditClick = (product) => {
+    if (isReadOnlyMode) {
+      toast.error("You can only view products in read-only mode");
+      return;
+    }
+
     setSelectedProduct(product);
     setName(product.name);
     setCategory(product.Category?._id || "");
     setPrice(product.Price);
     setQuantity(product.quantity);
     setDesciption(product.Desciption);
-  
-   
     setIsFormVisible(true);
   };
 
@@ -135,12 +165,17 @@ function Productpage() {
 
       <div className="mt-10 flex">
         <div className="bg-blue-950 w-56 rounded-xl ml-10 block h-24">
-          <h1 className="text-white ml-12 block pt-5 font-bold">Total Product</h1>
-          <p className="text-white font-bold pt-2 ml-24">{getallproduct?.length || "0"}</p>
+          <h1 className="text-white ml-12 block pt-5 font-bold">
+            Total Product
+          </h1>
+          <p className="text-white font-bold pt-2 ml-24">
+            {getallproduct?.length || "0"}
+          </p>
         </div>
         <div className="bg-blue-950 ml-10 rounded-xl block w-56 h-24">
           <h1 className="text-white font-bold ml-12 pt-5">Total store value</h1>
-          <p className="text-white font-bold pt-2 ml-24">$
+          <p className="text-white font-bold pt-2 ml-24">
+            $
             {getallproduct?.reduce((totalAmount, product) => {
               return totalAmount + product.Price;
             }, 0) || "0"}
@@ -148,7 +183,9 @@ function Productpage() {
         </div>
         <div className="bg-blue-950 bg-base-100 w-56 rounded-xl ml-10 block h-24">
           <h1 className="text-white font-bold ml-12 pt-5">Total Category</h1>
-          <p className="text-white font-bold pt-2 ml-24"> {getallCategory?.length || "0"}</p>
+          <p className="text-white font-bold pt-2 ml-24">
+            {getallCategory?.length || "0"}
+          </p>
         </div>
       </div>
 
@@ -157,22 +194,29 @@ function Productpage() {
           <input
             type="text"
             value={query}
-            onChange={(e) => setquery(e.target.value)}
+            onChange={(e) => setQuery(e.target.value)}
             className="w-full md:w-96 h-12 pl-4 pr-12 border-2 border-gray-300 rounded-lg"
             placeholder="Enter your product"
           />
-          <button
-            onClick={() => {
-              setIsFormVisible(true);
-              setSelectedProduct(null);
-            }}
-            className="bg-blue-800 text-white w-40 h-12 rounded-lg flex items-center justify-center"
-          >
-            <IoMdAdd className="text-xl mr-2" /> Add Product
-          </button>
+          {canWrite && (
+            <button
+              onClick={() => {
+                setIsFormVisible(true);
+                setSelectedProduct(null);
+              }}
+              className="bg-blue-800 text-white w-40 h-12 rounded-lg flex items-center justify-center hover:bg-blue-700"
+            >
+              <IoMdAdd className="text-xl mr-2" /> Add Product
+            </button>
+          )}
+          {isReadOnlyMode && (
+            <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-2 rounded">
+              Read-Only Mode
+            </div>
+          )}
         </div>
 
-        {isFormVisible && (
+        {isFormVisible && canWrite && (
           <div className="absolute top-16 bg-gray-100 right-0 h-svh p-6 border-2 border-gray-300 rounded-lg shadow-md transition-transform transform">
             <div className="text-right">
               <MdKeyboardDoubleArrowLeft
@@ -253,8 +297,6 @@ function Productpage() {
                 />
               </div>
 
-              
-
               <button
                 type="submit"
                 className="bg-blue-800 text-white w-full h-12 rounded-lg hover:bg-blue-700 mt-4"
@@ -277,52 +319,56 @@ function Productpage() {
                   <th className="px-3 py-2 border">Description</th>
                   <th className="px-3 py-2 border">Quantity</th>
                   <th className="px-3 py-2 border">Price</th>
-                  <th className="px-3 py-2 border">Date </th>
-                  <th className="px-3 py-2 w-72 border">Operations</th>
+                  <th className="px-3 py-2 border">Date</th>
+                  {!isReadOnlyMode && (
+                    <th className="px-3 py-2 w-72 border">Operations</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
                 {Array.isArray(displayProducts) &&
                 displayProducts.length > 0 ? (
-                  displayProducts.map((product, index) => {
-                    // Format the date for display
-                    const formattedDate = product.dateAdded 
-                      ? new Date(product.dateAdded).toLocaleDateString() 
-                      : 'N/A';
-                    
-                    return (
-                      <tr key={product._id}>
-                        <td className="px-3 py-2 border">{index+1}</td>
-                        <td className="px-3 py-2 border">{product.name}</td>
-                        <td className="px-3 py-2 border">
-                          {product.Category?.name || "No Category"}
-                        </td>
-                        <td className="px-3 py-2 border">
-                          {product.Desciption}
-                        </td>
-                        <td className="px-3 py-2 border">{product.quantity}</td>
-                        <td className="px-3 py-2 border">${product.Price}</td>
-                        <td className="px-3 py-2 border"><FormattedTime timestamp={product?.createdAt} /></td>
+                  displayProducts.map((product, index) => (
+                    <tr key={product._id}>
+                      <td className="px-3 py-2 border">{index + 1}</td>
+                      <td className="px-3 py-2 border">{product.name}</td>
+                      <td className="px-3 py-2 border">
+                        {product.Category?.name || "No Category"}
+                      </td>
+                      <td className="px-3 py-2 border">{product.Desciption}</td>
+                      <td className="px-3 py-2 border">{product.quantity}</td>
+                      <td className="px-3 py-2 border">${product.Price}</td>
+                      <td className="px-3 py-2 border">
+                        <FormattedTime timestamp={product?.createdAt} />
+                      </td>
+                      {!isReadOnlyMode && (
                         <td className="px-4 py-2 border">
-                          <button
-                            onClick={() => handleremove(product._id)}
-                            className="h-10 w-24 bg-red-500 hover:bg-red-700 rounded-md text-white"
-                          >
-                            Remove
-                          </button>
-                          <button
-                            onClick={() => handleEditClick(product)}
-                            className="h-10 w-24 bg-green-500 ml-10 hover:bg-green-700 rounded-md text-white"
-                          >
-                            Edit
-                          </button>
+                          {canDelete && (
+                            <button
+                              onClick={() => handleremove(product._id)}
+                              className="h-10 w-24 bg-red-500 hover:bg-red-700 rounded-md text-white"
+                            >
+                              Remove
+                            </button>
+                          )}
+                          {canWrite && (
+                            <button
+                              onClick={() => handleEditClick(product)}
+                              className="h-10 w-24 bg-green-500 ml-10 hover:bg-green-700 rounded-md text-white"
+                            >
+                              Edit
+                            </button>
+                          )}
                         </td>
-                      </tr>
-                    );
-                  })
+                      )}
+                    </tr>
+                  ))
                 ) : (
                   <tr>
-                    <td colSpan="8" className="text-center py-4">
+                    <td
+                      colSpan={isReadOnlyMode ? "7" : "8"}
+                      className="text-center py-4"
+                    >
                       No products found.
                     </td>
                   </tr>
