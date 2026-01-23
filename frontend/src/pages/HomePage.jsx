@@ -9,13 +9,13 @@ import {
 
 function HomePage() {
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-6">
-      <div className="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-        {/* LEFT – Auth Section */}
-        <div className="bg-white rounded-2xl shadow-lg p-10">
-          <h1 className="text-4xl font-bold text-slate-800 leading-tight mb-4">
-            Welcome to <br />
-            <span className="text-teal-700">InventoryPro</span>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+      <div className="flex flex-col md:flex-row gap-8 justify-center items-center">
+        {/* Left Side - Auth Section */}
+        <div className="bg-white rounded-2xl shadow-xl p-8 lg:p-12 lg:sticky lg:top-24">
+          <h1 className="text-4xl lg:text-5xl font-bold text-slate-800 mb-3">
+            Welcome <br />
+            to Your <span className="text-teal-700">InventoryPro</span>
           </h1>
 
           <p className="text-slate-600 text-lg mb-10">
