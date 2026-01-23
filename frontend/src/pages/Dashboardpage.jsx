@@ -42,7 +42,7 @@ function Dashboardpage() {
         dispatch(getsingleUserActivityLogs()).catch(console.error);
       }
     }
-  }, [dispatch, userRole, hasPermission]);
+  }, [dispatch, userRole]);
 
   // useEffect(() => {
   //   // Only fetch once when component mounts
@@ -88,6 +88,7 @@ function Dashboardpage() {
       setReleventLogs(myLogs.slice(0, 6) || []);
     }
   }, [userRole, recentLogs, myLogs]);
+  console.log({ releventLogs });
 
   return (
     <div className="bg-base-100">
@@ -151,9 +152,9 @@ function Dashboardpage() {
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold">
-                      {logs.userId.name || "Unknown User"}
+                      {logs.userId?.name || "Unknown User"}
                     </h2>
-                    <p className="text-sm text-gray-500">{logs.action}</p>
+                    <p className="text-sm text-gray-500">{logs?.action}</p>
                   </div>
                 </div>
               ))
