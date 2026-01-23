@@ -27,7 +27,7 @@ const ROLE_PERMISSIONS = {
     supplier: { read: true, write: true, delete: true },
     notification: { read: true, write: false, delete: false },
     user: { read: true, write: false, delete: false },
-    activityLog: { read: false, write: false, delete: false },
+    activityLog: { read: true, write: false, delete: false },
   },
   staff: {
     product: { read: true, write: false, delete: false },
@@ -38,7 +38,7 @@ const ROLE_PERMISSIONS = {
     supplier: { read: true, write: false, delete: false },
     notification: { read: true, write: false, delete: false },
     user: { read: false, write: false, delete: false },
-    activityLog: { read: false, write: false, delete: false },
+    activityLog: { read: true, write: false, delete: false },
   },
 };
 

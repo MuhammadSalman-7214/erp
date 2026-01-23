@@ -75,49 +75,29 @@ const StockTransactionGraph = () => {
   }, []);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        height: "70vh",
-        width: "80vw",
-      }}
-    >
-      <div
-        style={{
-          width: "90%",
-          maxWidth: "800px",
-          height: "70%",
-          maxHeight: "600px",
-        }}
-      >
-        <h2 style={{ textAlign: "center", color: "#333" }}>
-          Stock Transactions Overview
-        </h2>
-        {chartData ? (
-          <Line
-            data={chartData}
-            options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { position: "top" },
-                tooltip: { enabled: true },
+    <div className="bg-white w-full h-[50vh] p-4 sm:p-6 rounded-2xl shadow-sm border">
+      {chartData ? (
+        <Line
+          data={chartData}
+          options={{
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: "top" },
+              tooltip: { enabled: true },
+            },
+            scales: {
+              x: { grid: { display: false } },
+              y: {
+                grid: { color: "rgba(200, 200, 200, 0.3)" },
+                ticks: { beginAtZero: true },
               },
-              scales: {
-                x: { grid: { display: false } },
-                y: {
-                  grid: { color: "rgba(200, 200, 200, 0.3)" },
-                  ticks: { beginAtZero: true },
-                },
-              },
-            }}
-          />
-        ) : (
-          <p style={{ textAlign: "center" }}>Loading...</p>
-        )}
-      </div>
+            },
+          }}
+        />
+      ) : (
+        <p style={{ textAlign: "center" }}>Loading...</p>
+      )}
     </div>
   );
 };

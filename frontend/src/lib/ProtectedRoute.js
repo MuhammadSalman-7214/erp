@@ -10,7 +10,7 @@ const ProtectedRoute = ({
 }) => {
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   if (requireAuth && !isAuthenticated) {
-    return <Navigate to="/LoginPage" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   if (allowedRoles.length > 0) {

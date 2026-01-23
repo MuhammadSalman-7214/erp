@@ -1,7 +1,4 @@
-// ==========================================
-// SignupPage.jsx - Fixed version
-// ==========================================
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { signup } from "../features/authSlice";
@@ -70,12 +67,12 @@ function SignupPage() {
   }, [user, navigate]);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-base-100 flex bg-gray-50">
       <div className="w-full sm:w-1/2 p-6 flex items-center justify-center bg-white shadow-lg rounded-xl">
         <div className="max-w-md w-full">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">InventoryPro</h1>
-            <p className="text-gray-600">by TechSolutions Inc.</p>
+            <h1 className="text-3xl font-bold text-teal-900">InventoryPro</h1>
+            <p className="text-gray-600">by DevSouq Technologies</p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)}>
@@ -181,8 +178,8 @@ function SignupPage() {
             <p>
               Already have an account?
               <Link
-                to="/LoginPage"
-                className="text-blue-600 text-sm hover:underline ml-1"
+                to="/login"
+                className="text-teal-600 text-sm hover:underline ml-1"
               >
                 Click here
               </Link>

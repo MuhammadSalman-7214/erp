@@ -69,7 +69,7 @@ const notificationSlice = createSlice({
       .addCase(getAllNotifications.fulfilled, (state, action) => {
         state.isLoading = false;
         state.notifications = action.payload || [];
-        toast.success("Notifications fetched successfully");
+        // toast.success("Notifications fetched successfully");
       })
       .addCase(getAllNotifications.rejected, (state, action) => {
         state.isLoading = false;

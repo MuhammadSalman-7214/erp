@@ -1,24 +1,37 @@
-import React from 'react';
-import Sidebar from '../Components/Sidebar';
-import { Outlet } from 'react-router-dom';
+import Sidebar from "../Components/Sidebar";
+import { Outlet } from "react-router-dom";
+import TopNavbar from "../Components/TopNavbar";
+import { useState } from "react";
+
 function AdminDashboard() {
-  
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
   return (
-    <div className="flex bg-gray-200 min-h-screen">
+    <div className="flex h-screen bg-gray-100">
+      <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
-      <div className="fixed h-full">
-        <Sidebar />
-      </div>
+      <div
+        className={`flex flex-col flex-1 transition-all duration-300 ${
+          sidebarOpen ? "ml-64" : "ml-14"
+        }`}
+      >
+        <div
+          className={`fixed top-0 z-40 transition-all duration-300 ${
+            sidebarOpen ? "left-64" : "left-14"
+          } right-0`}
+        >
+          <TopNavbar
+            sidebarOpen={sidebarOpen}
+            setSidebarOpen={setSidebarOpen}
+          />
+        </div>
 
-     
-      <div className="flex-1 pl-64"> 
-        <Outlet />
+        <main className="pt-[8vh] h-full overflow-y-auto">
+          <Outlet />
+        </main>
       </div>
     </div>
   );
 }
 
-export default AdminDashboard
-
-
-
+export default AdminDashboard;

@@ -101,7 +101,7 @@ module.exports.login = async (req, res) => {
 
 module.exports.logout = async (req, res) => {
   try {
-    res.cookie("Inventorymanagmentsystem", "", { maxAge: 0 });
+    res.cookie("token", "", { maxAge: 0 });
     res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
     res.status(500).json({
@@ -144,12 +144,10 @@ module.exports.updateProfile = async (req, res) => {
         });
       } catch (cloudinaryError) {
         console.error("Cloudinary upload failed:", cloudinaryError);
-        return res
-          .status(500)
-          .json({
-            message: "Image upload failed",
-            error: cloudinaryError.message,
-          });
+        return res.status(500).json({
+          message: "Image upload failed",
+          error: cloudinaryError.message,
+        });
       }
     } else {
       return res.status(400).json({ message: "No profile picture provided" });

@@ -1,9 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { Line } from "react-chartjs-2";
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from "chart.js";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
 import { useDispatch, useSelector } from "react-redux";
 import { gettingallSales } from "../features/salesSlice";
-
 
 ChartJS.register(
   CategoryScale,
@@ -12,7 +20,7 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
 );
 
 const SalesChart = () => {
@@ -33,9 +41,13 @@ const SalesChart = () => {
   useEffect(() => {
     if (getallsales && getallsales.length > 0) {
       // Extract labels (dates) and datasets from sales data
-      const labels = getallsales.map((sale) => new Date(sale.createdAt).toLocaleDateString());
+      const labels = getallsales.map((sale) =>
+        new Date(sale.createdAt).toLocaleDateString(),
+      );
       const totalSales = getallsales.map((sale) => sale.totalAmount);
-      const paymentStatuses = getallsales.map((sale) => (sale.paymentStatus === "Paid" ? 1 : 0));
+      const paymentStatuses = getallsales.map((sale) =>
+        sale.paymentStatus === "Paid" ? 1 : 0,
+      );
 
       // Prepare customer messages for display
       const customerMessages = getallsales.map((sale) => ({
@@ -74,6 +86,7 @@ const SalesChart = () => {
   // Chart options
   const chartOptions = {
     responsive: true,
+    maintainAspectRatio: false, // 🔥 REQUIRED
     plugins: {
       legend: {
         position: "top",
@@ -81,9 +94,7 @@ const SalesChart = () => {
       title: {
         display: true,
         text: "Sales Overview",
-        font: {
-          size: 16,
-        },
+        font: { size: 16 },
       },
       tooltip: {
         enabled: true,
@@ -93,30 +104,17 @@ const SalesChart = () => {
     },
     scales: {
       x: {
-        title: {
-          display: true,
-          text: "Date",
-        },
+        title: { display: true, text: "Date" },
       },
       y: {
-        title: {
-          display: true,
-          text: "Amount / Status",
-        },
+        title: { display: true, text: "Amount / Status" },
       },
     },
   };
 
   return (
-    <div className="bg-base-100 min-h-screen p-8">
-      <h1 className="text-3xl font-semibold mb-6 text-center">Sales Overview</h1>
-
-      
-      <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-        <Line data={chartData} options={chartOptions} />
-      </div>
-
-      
+    <div className="bg-white w-full h-[50vh] p-4 sm:p-6 rounded-2xl shadow-sm border">
+      <Line data={chartData} options={chartOptions} />
     </div>
   );
 };

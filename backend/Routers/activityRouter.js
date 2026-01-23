@@ -22,7 +22,7 @@ router.get("/recent", authmiddleware, managermiddleware, async (req, res) => {
   const logs = await ActivityLog.find()
     .populate("userId", "-password")
     .sort({ createdAt: -1 })
-    .limit(5);
+    .limit(6);
 
   res.json(logs);
 });
