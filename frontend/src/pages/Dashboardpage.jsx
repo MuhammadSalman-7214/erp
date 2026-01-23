@@ -8,7 +8,9 @@ import FormattedTime from "../lib/FormattedTime ";
 import { io } from "socket.io-client";
 
 function Dashboardpage() {
-  const { staffuser, manageruser, adminuser } = useSelector((state) => state.auth);
+  const { staffuser, manageruser, adminuser } = useSelector(
+    (state) => state.auth,
+  );
   const { recentuser } = useSelector((state) => state.activity);
   const dispatch = useDispatch();
 
@@ -33,7 +35,6 @@ function Dashboardpage() {
 
   return (
     <div className="bg-base-100">
-      <TopNavbar />
       <div className="min-h-screen flex flex-col items-center p-10">
         <h1 className="text-3xl font-semibold mb-6">Dashboard</h1>
 
@@ -41,19 +42,25 @@ function Dashboardpage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           <div className="bg-white shadow-lg rounded-xl p-6 flex flex-col items-center w-56 h-56 hover:shadow-xl transition-shadow">
             <LuUsers className="text-5xl text-blue-500 mb-4" />
-            <p className="text-xl font-bold text-gray-700">{staffuser?.length || 0}</p>
+            <p className="text-xl font-bold text-gray-700">
+              {staffuser?.length || 0}
+            </p>
             <p className="text-gray-500">Staff Users</p>
           </div>
 
           <div className="bg-white shadow-lg rounded-xl p-6 flex flex-col items-center w-56 h-56 hover:shadow-xl transition-shadow">
             <LuUsers className="text-5xl text-green-500 mb-4" />
-            <p className="text-xl font-bold text-gray-700">{manageruser?.length || 0}</p>
+            <p className="text-xl font-bold text-gray-700">
+              {manageruser?.length || 0}
+            </p>
             <p className="text-gray-500">Managers</p>
           </div>
 
           <div className="bg-white shadow-lg rounded-xl p-6 flex flex-col items-center w-56 h-56 hover:shadow-xl transition-shadow">
             <LuUsers className="text-5xl text-red-500 mb-4" />
-            <p className="text-xl font-bold text-gray-700">{adminuser?.length || 0}</p>
+            <p className="text-xl font-bold text-gray-700">
+              {adminuser?.length || 0}
+            </p>
             <p className="text-gray-500">Admins</p>
           </div>
         </div>
@@ -77,7 +84,9 @@ function Dashboardpage() {
                     <LuActivity className="text-blue-500 text-2xl" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-semibold">{logs.userId.name || "Unknown User"}</h2>
+                    <h2 className="text-lg font-semibold">
+                      {logs.userId.name || "Unknown User"}
+                    </h2>
                     <p className="text-sm text-gray-500">{logs.action}</p>
                   </div>
                 </div>

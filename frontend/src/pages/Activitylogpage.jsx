@@ -1,7 +1,10 @@
 import { useDispatch, useSelector } from "react-redux";
 import { io } from "socket.io-client";
 import { useEffect, useState } from "react";
-import { getAllActivityLogs, getsingleUserActivityLogs } from "../features/activitySlice";
+import {
+  getAllActivityLogs,
+  getsingleUserActivityLogs,
+} from "../features/activitySlice";
 import TopNavbar from "../Components/TopNavbar";
 import FormattedTime from "../lib/FormattedTime ";
 
@@ -10,13 +13,19 @@ function Activitylogpage() {
   const [currentPage, setCurrentPage] = useState(1);
   const logsPerPage = 10;
 
-  const { activityLogs, isFetching, userdata } = useSelector((state) => state.activity);
+  const { activityLogs, isFetching, userdata } = useSelector(
+    (state) => state.activity,
+  );
   const { Authuser } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
 
-  const socket = io("https://advanced-inventory-management-system-v1.onrender.com", {
-     withCredentials: true,
-     transports: ["websocket", "polling"], });
+  const socket = io(
+    "https://advanced-inventory-management-system-v1.onrender.com",
+    {
+      withCredentials: true,
+      transports: ["websocket", "polling"],
+    },
+  );
 
   useEffect(() => {
     if (Authuser?.id) {
@@ -43,52 +52,75 @@ function Activitylogpage() {
   const totalPages = Math.ceil(logs.length / logsPerPage);
 
   return (
-    <div className="bg-base-100 min-h-screen">
-      <TopNavbar />
-      <div className="mt-10 ml-5">
-        <h1 className="text-xl font-semibold mb-4">Activity Logs</h1>
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-base-100 mb-24 border-gray-200 rounded-lg shadow-md">
-            <thead className="bg-base-100">
-              <tr>
-                <th className="px-3 py-2 border w-5">#</th>
-                <th className="px-3 py-2 border">Name</th>
-                <th className="px-3 py-2 border">Email</th>
-                <th className="px-3 py-2 border">Action</th>
-                <th className="px-3 py-2 border">Affected Part</th>
-                <th className="px-3 py-2 border">Description</th>
-                <th className="px-3 py-2 border">Time</th>
-                <th className="px-3 py-2 border">IP Address</th>
-              </tr>
-            </thead>
-            <tbody>
-              {currentLogs.length > 0 ? (
-                currentLogs.map((log, index) => (
-                  <tr key={log._id}>
-                    <td className="px-3 py-2 border">{indexOfFirstLog + index + 1}</td>
-                    <td className="px-3 py-2 border">{log.userId.name}</td>
-                    <td className="px-3 py-2 border">{log.userId.email}</td>
-                    <td className="px-3 py-2 border">{log.action}</td>
-                    <td className="px-3 py-2 border">{log.entity}</td>
-                    <td className="px-3 py-2 border">{log.description}</td>
-                    <td className="px-4 py-2 border">
+    <div className="min-h-[92vh] bg-gray-100 p-4">
+      <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+        {currentLogs.length === 0 ? (
+          <div className="p-10 text-center">
+            <p className="text-slate-500">No activity logs available</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 border-b">
+                <tr className="text-left text-slate-500">
+                  <th className="px-5 py-4 font-medium">#</th>
+                  <th className="px-5 py-4 font-medium">Name</th>
+                  <th className="px-5 py-4 font-medium">Email</th>
+                  <th className="px-5 py-4 font-medium">Action</th>
+                  <th className="px-5 py-4 font-medium">Affected Part</th>
+                  <th className="px-5 py-4 font-medium">Description</th>
+                  <th className="px-5 py-4 font-medium">Time</th>
+                  {/* <th className="px-5 py-4 font-medium">IP Address</th> */}
+                </tr>
+              </thead>
+
+              <tbody>
+                {currentLogs.map((log, index) => (
+                  <tr
+                    key={log._id}
+                    className="border-b last:border-b-0 hover:bg-slate-50 transition"
+                  >
+                    <td className="px-5 py-4 text-slate-500">
+                      {indexOfFirstLog + index + 1}
+                    </td>
+
+                    <td className="px-5 py-4 font-medium text-slate-800">
+                      {log.userId.name}
+                    </td>
+
+                    <td className="px-5 py-4 text-slate-700">
+                      {log.userId.email}
+                    </td>
+
+                    <td className="px-5 py-4">
+                      <span className="inline-flex px-2 py-1 rounded-md bg-teal-50 text-teal-700 text-xs font-semibold">
+                        {log.action}
+                      </span>
+                    </td>
+
+                    <td className="px-5 py-4 text-slate-700">{log.entity}</td>
+
+                    <td className="px-5 py-4 text-slate-600 max-w-xs truncate">
+                      {log.description}
+                    </td>
+
+                    <td className="px-5 py-4 text-slate-600">
                       <FormattedTime timestamp={log.createdAt} />
                     </td>
-                    <td className="px-4 py-2 border">{log.ipAddress}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="8" className="text-center py-4">
-                    <p>No activity logs available</p>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
 
-        <div className="join mt-4 mb-20 ml-72 flex justify-center">
+                    {/* <td className="px-5 py-4 text-slate-600">
+                        {log.ipAddress}
+                      </td> */}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="flex justify-end">
+        <div className="join mt-4">
           <button
             className="join-item btn"
             onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
@@ -107,7 +139,9 @@ function Activitylogpage() {
           ))}
           <button
             className="join-item btn"
-            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+            onClick={() =>
+              setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+            }
             disabled={currentPage === totalPages}
           >
             Next

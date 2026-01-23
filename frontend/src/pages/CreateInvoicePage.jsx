@@ -67,7 +67,7 @@ function CreateInvoicePage() {
       return toast.error("Invoice must have at least one item");
 
     try {
-      await axiosInstance.post("/AdminDashboard/invoice", {
+      await axiosInstance.post("invoice/", {
         invoiceNumber,
         client,
         items: items.map(({ name, description, quantity, unitPrice }) => ({

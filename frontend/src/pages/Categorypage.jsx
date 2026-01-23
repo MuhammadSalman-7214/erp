@@ -1,28 +1,26 @@
-import React,{useState,useEffect} from 'react'
+import { useState, useEffect } from "react";
 import { IoMdAdd } from "react-icons/io";
-import { FaFileExport } from "react-icons/fa6";
 import FormattedTime from "../lib/FormattedTime ";
-
-
-
-
-
 import TopNavbar from "../Components/TopNavbar";
-
-import { MdKeyboardDoubleArrowLeft } from "react-icons/md";
+import {
+  MdDelete,
+  MdEdit,
+  MdKeyboardDoubleArrowLeft,
+  MdOutlineCategory,
+} from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
-import { gettingallCategory,CreateCategory , RemoveCategory,SearchCategory } from "../features/categorySlice";
+import {
+  gettingallCategory,
+  CreateCategory,
+  RemoveCategory,
+  SearchCategory,
+} from "../features/categorySlice";
 import toast from "react-hot-toast";
 
-
-
-
 function Categorypage() {
-
-
-
-  
-  const { getallCategory, iscreatedCategory,  searchdata } = useSelector((state) => state.category);
+  const { getallCategory, iscreatedCategory, searchdata } = useSelector(
+    (state) => state.category,
+  );
   const dispatch = useDispatch();
   const [query, setquery] = useState("");
 
@@ -31,23 +29,9 @@ function Categorypage() {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
-
-
-
-
-
-
-
-
-  
   useEffect(() => {
-
     dispatch(gettingallCategory());
   }, [dispatch]);
-
-  
-
-
 
   useEffect(() => {
     if (query.trim() !== "") {
@@ -56,13 +40,12 @@ function Categorypage() {
       }, 500);
       return () => clearTimeout(repeatTimeout);
     } else {
-      dispatch(gettingallCategory()); 
+      dispatch(gettingallCategory());
     }
-  }, [query, dispatch]); 
-
+  }, [query, dispatch]);
 
   const handleremove = async (categoryId) => {
-    dispatch( RemoveCategory (categoryId))
+    dispatch(RemoveCategory(categoryId))
       .unwrap()
       .then(() => {
         toast.success("category removed successfully");
@@ -72,14 +55,11 @@ function Categorypage() {
       });
   };
 
-  
-
-
   const submitCategory = async (event) => {
     event.preventDefault();
-    const CategoryData = { name, description};
+    const CategoryData = { name, description };
 
-    dispatch( CreateCategory( CategoryData))
+    dispatch(CreateCategory(CategoryData))
       .unwrap()
       .then(() => {
         toast.success(" CategoryData added successfully");
@@ -90,160 +70,188 @@ function Categorypage() {
       });
   };
 
-
   const resetForm = () => {
     setname("");
     setdescription("");
   };
 
-  
-
-
-  const displayCategory =query.trim() !== "" ? searchdata : getallCategory;
-
-  
-
-
-
-
+  const displayCategory = query.trim() !== "" ? searchdata : getallCategory;
 
   return (
+    <div className="min-h-[92vh] bg-gray-100 p-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+        {/* Total Products */}
+        <div className="bg-white border rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition">
+          <div className="flex items-center gap-3">
+            <span className="rounded-xl bg-orange-500 text-white text-lg sm:text-xl p-2">
+              <MdOutlineCategory />
+            </span>
 
-    <div className='bg-base-100 min-h-screen'>
-         <TopNavbar />
-
-
-         <div className="mt-10 flex ">
-      <div className="bg-blue-950 w-56 rounded-xl  ml-10 block h-24">
-          <h1 className="text-white ml-12 block pt-5 font-bold">Total Category</h1>
-          <p className="text-white font-bold  pt-2  ml-24">{getallCategory?.length || "0"}</p>
-
+            <h2 className="text-2xl sm:text-3xl font-bold">
+              {getallCategory?.length || "0"}
+            </h2>
+          </div>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Total Category
+          </p>
         </div>
-  
-</div>
-
-      <div className='flex'>
-
-      <input type='text' 
-       value={query}
-       onChange={(e) => setquery(e.target.value)}
-      placeholder='Search the category' 
-      className="w-full ml-10 mt-20 md:w-96 h-12 pl-4 pr-12 border-2 border-gray-300 rounded-lg"/>
-      <div className='flex mt-20'>
-      <button onClick={()=>{
-           setIsFormVisible(true);
-           setSelectedProduct(null);
-
-      }} className="bg-blue-800 ml-10 text-white w-40 h-12 rounded-lg flex items-center justify-center"><IoMdAdd className='text-xl mr-3'/>Add Category</button>
       </div>
 
+      <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setquery(e.target.value)}
+          placeholder="Search the category"
+          className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+        />
+        <button
+          onClick={() => {
+            setIsFormVisible(true);
+            setSelectedProduct(null);
+          }}
+          className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
+        >
+          <IoMdAdd className="text-xl mr-2" />
+          Add Category
+        </button>
       </div>
-
-
+      {/* OVERLAY */}
       {isFormVisible && (
-          <div className="absolute top-10 bg-base-100 bg-gray-100 right-0 h-svh p-6 border-2 border-gray-300 rounded-lg shadow-md transition-transform transform">
-            <div className="text-right">
-              <MdKeyboardDoubleArrowLeft
-                onClick={() => setIsFormVisible(false)}
-                className="cursor-pointer text-2xl"
+        <div
+          className="fixed inset-0 bg-black/40 z-40"
+          onClick={() => setIsFormVisible(false)}
+        />
+      )}
+
+      {/* SLIDE-IN DRAWER */}
+      {isFormVisible && (
+        <div className="fixed top-0 right-0 w-full sm:w-[420px] h-full bg-white p-6 border-l shadow-2xl z-50">
+          <div className="flex justify-between items-center mb-6 border-b pb-3">
+            <h2 className="text-xl font-semibold text-slate-800">
+              {selectedProduct ? "Edit Category" : "Add Category"}
+            </h2>
+
+            <MdKeyboardDoubleArrowLeft
+              onClick={() => setIsFormVisible(false)}
+              className="cursor-pointer text-2xl text-slate-500 hover:text-slate-800"
+            />
+          </div>
+
+          <form onSubmit={submitCategory} className="space-y-4">
+            {/* Name */}
+            <div>
+              <label className="text-sm font-medium text-slate-700">
+                Category Name
+              </label>
+              <input
+                value={name}
+                placeholder="Enter category name"
+                onChange={(e) => setname(e.target.value)}
+                type="text"
+                className="w-full h-11 px-4 border border-gray-300 rounded-xl mt-2
+            focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                required
               />
             </div>
 
-            <h1 className="text-xl font-semibold mb-4">
-              {selectedProduct ? "Edit Product" : "Add Product"}
-            </h1>
+            {/* Description */}
+            <div>
+              <label className="text-sm font-medium text-slate-700">
+                Description
+              </label>
+              <input
+                value={description}
+                placeholder="Enter category description"
+                onChange={(e) => setdescription(e.target.value)}
+                type="text"
+                className="w-full h-11 px-4 border border-gray-300 rounded-xl mt-2
+            focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                required
+              />
+            </div>
 
-            <form onSubmit={ submitCategory}>
-              <div className="mb-4">
-                <label>Name</label>
-                <input
-                  value={name}
-                  placeholder="Enter product name"
-                  onChange={(e) => setname(e.target.value)}
-                  type="text"
-                  className="w-full h-10 px-2 border-2 rounded-lg mt-2"
-                />
-              </div>
+            {/* Submit */}
+            <button
+              type="submit"
+              className="w-full h-12 bg-teal-700 hover:bg-teal-600
+          text-white rounded-xl shadow-md font-medium mt-6 transition"
+            >
+              {selectedProduct ? "Update Category" : "Add Category"}
+            </button>
+          </form>
+        </div>
+      )}
 
-              
-
-              <div className="mb-4">
-                <label>Description</label>
-                <input
-                  value={description}
-                  placeholder="Enter product description"
-                  onChange={(e) => setdescription(e.target.value)}
-                  type="text"
-                  className="w-full h-10 px-2 border-2 rounded-lg mt-2"
-                />
-              </div>
-
-              
-
-             
-
-              <button
-                type="submit"
-                className="bg-blue-800 text-white w-full h-12 rounded-lg hover:bg-blue-700 mt-4"
-              >
-                {selectedProduct ? "Update Category " : "Add Category "}
-              </button>
-            </form>
-          </div>
-        )}
-
-        <div className="mt-10">
-          <h2 className="text-xl ml-10 font-semibold mb-4">Category List</h2>
+      {/* CATEGORY TABLE */}
+      <div className="mt-4">
+        <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full ml-10 bg-base-100 bg-white border mb-24 border-gray-200 rounded-lg shadow-md">
-              <thead className="bg-gray-100">
-                <tr>
-                <th className="px-3 py-2 bg-base-100 border w-5">#</th>
-                  <th className="px-3 py-2 bg-base-100 border">Name</th>
-                  <th className="px-3 py-2 bg-base-100 border">Total Product</th>
-                  <th className="px-3 py-2 bg-base-100 border">Description</th>
-                  <th className="px-3 py-2 bg-base-100 border">Created At</th>
-                  <th className="px-3 py-2 bg-base-100 w-72 border">Operations</th>
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 border-b">
+                <tr className="text-left text-slate-500">
+                  <th className="px-5 py-4 font-medium">#</th>
+                  <th className="px-5 py-4 font-medium">Name</th>
+                  <th className="px-5 py-4 font-medium">Total Products</th>
+                  <th className="px-5 py-4 font-medium">Description</th>
+                  <th className="px-5 py-4 font-medium">Created At</th>
+                  <th className="px-5 py-4 font-medium text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className='bg-base-100'>
+
+              <tbody>
                 {Array.isArray(displayCategory) &&
                 displayCategory.length > 0 ? (
-                  displayCategory.map((Category,index) => (
-                    <tr key={Category._id} className="">
-                       <td className="px-3 py-2 border">{index+1}</td>
-                      <td className="px-3 py-2 border">{Category.name}</td>
-                      <td className="px-3 py-2 border">
-                        {Category.productCount}
-                      </td>
-                      <td className="px-3 py-2 border">
-                        {Category.description}
-                      </td>
-                      <td className="px-3 py-2 border">
-                        <FormattedTime timestamp={Category.createdAt}/>
+                  displayCategory.map((Category, index) => (
+                    <tr
+                      key={Category._id}
+                      className="border-b last:border-b-0 hover:bg-slate-50 transition"
+                    >
+                      <td className="px-5 py-4 text-slate-500">{index + 1}</td>
+
+                      <td className="px-5 py-4 font-semibold text-slate-800">
+                        {Category.name}
                       </td>
 
-                      <td className="px-4  py-2 border">
-                        <button
-                          onClick={() => handleremove(Category._id)}
-                         
-                          className="h-10 w-24 bg-red-500 hover:bg-red-700 rounded-md text-white"
-                        >
-                          Remove
-                        </button>
-                        <button
-                    
-                          className="h-10 w-24 bg-green-500 ml-10 hover:bg-green-700 rounded-md text-white"
-                        >
-                          Edit
-                        </button>
+                      <td className="px-5 py-4 text-slate-700">
+                        {Category.productCount || 0}
+                      </td>
+
+                      <td className="px-5 py-4 text-slate-600 max-w-xs truncate">
+                        {Category.description}
+                      </td>
+
+                      <td className="px-5 py-4 text-slate-600">
+                        <FormattedTime timestamp={Category.createdAt} />
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => handleremove(Category._id)}
+                            className="p-2 rounded-xl bg-slate-100 hover:bg-red-100 text-red-600 transition"
+                            title="Delete"
+                          >
+                            <MdDelete size={18} />
+                          </button>
+
+                          <button
+                            className="p-2 rounded-xl bg-slate-100 hover:bg-green-100 text-blue-600 transition"
+                            title="Edit"
+                          >
+                            <MdEdit size={18} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5" className="text-center bg-base-100 py-4">
-                      No Category found.
+                    <td
+                      colSpan={6}
+                      className="px-6 py-10 text-center text-slate-500"
+                    >
+                      No categories found.
                     </td>
                   </tr>
                 )}
@@ -251,9 +259,9 @@ function Categorypage() {
             </table>
           </div>
         </div>
-      
+      </div>
     </div>
-  )
+  );
 }
 
-export default Categorypage
+export default Categorypage;

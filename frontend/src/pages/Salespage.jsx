@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import TopNavbar from "../Components/TopNavbar";
 import { IoMdAdd } from "react-icons/io";
-import { MdKeyboardDoubleArrowLeft } from "react-icons/md";
+import { MdEdit, MdKeyboardDoubleArrowLeft } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
 import FormattedTime from "../lib/FormattedTime ";
 import {
@@ -13,6 +13,7 @@ import {
 import SalesChart from "../lib/Salesgraph";
 import toast from "react-hot-toast";
 import axiosInstance from "../lib/axios";
+import { PiInvoiceBold } from "react-icons/pi";
 
 function Salespage() {
   const { getallsales, searchdata } = useSelector((state) => state.sales);
@@ -109,7 +110,11 @@ function Salespage() {
     setpaymentStatus("");
     setStatus("");
   };
-
+  const closeForm = () => {
+    setIsFormVisible(false);
+    setselectedSales(null);
+    resetForm();
+  };
   const handleEditClick = (sales) => {
     setselectedSales(sales);
     setName(sales.customerName);
@@ -179,221 +184,228 @@ function Salespage() {
   };
 
   return (
-    <div className="bg-base-100 min-h-screen">
-      <TopNavbar />
+    <div className="min-h-[92vh] bg-gray-100 p-4">
+      <SalesChart />
 
-      <div className="mt-12 ml-5">
-        <SalesChart className=" mb-10" />
-        <div className="flex items-center space-x-4">
-          <input
-            value={query}
-            onChange={(e) => setquery(e.target.value)}
-            type="text"
-            className="w-full md:w-96 h-12 pl-4 pr-12 border-2 border-gray-300 rounded-lg"
-            placeholder="Enter your product"
-          />
-          <button
-            onClick={() => {
-              setIsFormVisible(true);
-              setselectedSales(null);
-            }}
-            className="bg-blue-800 text-white w-40 h-12 rounded-lg flex items-center justify-center"
+      <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">
+        <input
+          value={query}
+          onChange={(e) => setquery(e.target.value)}
+          type="text"
+          className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+          placeholder="Enter your product"
+        />
+        <button
+          onClick={() => {
+            setIsFormVisible(true);
+            setselectedSales(null);
+          }}
+          className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
+        >
+          <IoMdAdd className="text-xl mr-2" /> Add Sales
+        </button>
+      </div>
+
+      {/* OVERLAY */}
+      {isFormVisible && (
+        <div
+          className="fixed inset-0 bg-black/40 z-40"
+          onClick={closeForm} // clicking outside closes the form
+        />
+      )}
+
+      {/* FORM SLIDE-IN */}
+      {isFormVisible && (
+        <div className="fixed top-0 right-0 w-full sm:w-[420px] h-full bg-white p-6 border-l shadow-2xl z-50 flex flex-col">
+          {/* Header */}
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-semibold">
+              {selectedSales ? "Edit Sale" : "Add Sale"}
+            </h2>
+            <MdKeyboardDoubleArrowLeft
+              onClick={closeForm}
+              className="cursor-pointer text-2xl text-gray-600 hover:text-gray-800 transition"
+            />
+          </div>
+
+          {/* Form */}
+          <form
+            onSubmit={selectedSales ? handleEditSubmit : submitsales}
+            className="flex-1 flex flex-col gap-4 overflow-y-auto"
           >
-            <IoMdAdd className="text-xl mr-2" /> Add Sales
-          </button>
-        </div>
-
-        {isFormVisible && (
-          <div className="absolute top-10 bg-base-100 bg-gray-100 right-0 h-svh p-6 border-2 border-gray-300 rounded-lg shadow-md transition-transform transform">
-            <div className="text-right">
-              <MdKeyboardDoubleArrowLeft
-                onClick={() => setIsFormVisible(false)}
-                className="cursor-pointer text-2xl"
+            <div className="flex flex-col gap-1">
+              <label className="text-gray-700 font-medium">Customer Name</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter customer name"
+                className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                required
               />
             </div>
 
-            <h1 className="text-xl font-semibold mb-4">
-              {selectedSales ? "Edit Sales" : "Add Sales"}
-            </h1>
-
-            <form onSubmit={selectedSales ? handleEditSubmit : submitsales}>
-              <div className="mb-4">
-                <label>Name</label>
-                <input
-                  value={name}
-                  placeholder="Enter product name"
-                  onChange={(e) => setName(e.target.value)}
-                  type="text"
-                  className="w-full h-10 px-2 border-2 rounded-lg mt-2"
-                />
-              </div>
-
-              <div className="mb-4 ">
-                <label>Product</label>
-                <select
-                  value={Product}
-                  onChange={(e) => setProduct(e.target.value)}
-                  className="w-full h-10 px-2 border-2 rounded-lg mt-2"
-                >
-                  <option value="">Select a Product</option>
-                  {getallproduct?.map((product) => (
-                    <option key={product._id} value={product._id}>
-                      {product.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="mb-4">
-                <label>Price</label>
-                <input
-                  type="number"
-                  placeholder="Enter product price"
-                  value={Price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  className="w-full h-10 px-2 border-2 rounded-lg mt-2"
-                />
-              </div>
-
-              <div className="mb-4">
-                <label>Quantity</label>
-                <input
-                  type="number"
-                  placeholder="Enter product quantity"
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  className="w-full h-10 px-2 border-2 rounded-lg mt-2"
-                />
-              </div>
-
-              <div className="mb-4">
-                <label>Payment</label>
-                <select
-                  className="w-full h-10 px-2 border-2 rounded-lg mt-2"
-                  value={Payment}
-                  onChange={(e) => setPayment(e.target.value)}
-                >
-                  <option value="">Select Payment Method</option>
-                  <option value={"cash"}>cash</option>
-                  <option value={"creditcard"}>creditcard</option>
-                  <option value={"banktransfer"}>banktransfer</option>
-                </select>
-              </div>
-
-              <div className="mb-4">
-                <label>payment Status</label>
-                <select
-                  className="w-full h-10 px-2 border-2 rounded-lg mt-2"
-                  value={paymentStatus}
-                  onChange={(e) => setpaymentStatus(e.target.value)}
-                >
-                  <option value="">Select Payment Status</option>
-                  <option value={"pending"}>pending</option>
-                  <option value={"paid"}>paid</option>
-                </select>
-              </div>
-
-              <div className="mb-4">
-                <label>Status</label>
-                <select
-                  className="w-full h-10 px-2 border-2 rounded-lg mt-2"
-                  value={Status}
-                  onChange={(e) => setStatus(e.target.value)}
-                >
-                  <option value="">Select Status</option>
-                  <option value={"pending"}>pending</option>
-                  <option value={"completed"}>completed</option>
-                  <option value={"cancelled"}>cancelled</option>
-                </select>
-              </div>
-
-              <button
-                type="submit"
-                className="bg-blue-800 text-white w-full h-12 rounded-lg hover:bg-blue-700 mt-4"
+            <div className="flex flex-col gap-1">
+              <label className="text-gray-700 font-medium">Product</label>
+              <select
+                value={Product}
+                onChange={(e) => setProduct(e.target.value)}
+                className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                required
               >
-                {selectedSales ? "Edit sales" : "Add sales"}
-              </button>
-            </form>
-          </div>
-        )}
+                <option value="">Select Product</option>
+                {getallproduct?.map((product) => (
+                  <option key={product._id} value={product._id}>
+                    {product.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        <div className="mt-10">
-          <h2 className="text-xl font-semibold mb-4">Sales List</h2>
+            <div className="flex flex-col gap-1">
+              <label className="text-gray-700 font-medium">Price</label>
+              <input
+                type="number"
+                value={Price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="Enter price"
+                className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                required
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-gray-700 font-medium">Quantity</label>
+              <input
+                type="number"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                placeholder="Enter quantity"
+                className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                required
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-gray-700 font-medium">
+                Payment Method
+              </label>
+              <select
+                value={Payment}
+                onChange={(e) => setPayment(e.target.value)}
+                className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                required
+              >
+                <option value="">Select Payment</option>
+                <option value="cash">Cash</option>
+                <option value="creditcard">Credit Card</option>
+                <option value="banktransfer">Bank Transfer</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-gray-700 font-medium">
+                Payment Status
+              </label>
+              <select
+                value={paymentStatus}
+                onChange={(e) => setpaymentStatus(e.target.value)}
+                className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                required
+              >
+                <option value="">Select Status</option>
+                <option value="pending">Pending</option>
+                <option value="paid">Paid</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-gray-700 font-medium">Order Status</label>
+              <select
+                value={Status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                required
+              >
+                <option value="">Select Status</option>
+                <option value="pending">Pending</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full h-12 bg-teal-700 hover:bg-teal-600 text-white rounded-xl shadow-md mt-4"
+            >
+              {selectedSales ? "Update Sale" : "Add Sale"}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* TABLE */}
+      <div className="mt-4 bg-white rounded-2xl shadow-sm border overflow-hidden">
+        {!displaySales || displaySales.length === 0 ? (
+          <div className="p-10 text-center text-slate-500">No sales found</div>
+        ) : (
           <div className="overflow-x-auto">
-            <table className="bg-base-100 min-w-full bg-white border mb-24 border-gray-200 rounded-lg shadow-md">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-3 py-2 border w-5 bg-base-100">#</th>
-                  <th className="px-3 py-2 border bg-base-100">
-                    Customer Name
-                  </th>
-                  <th className="px-3 py-2 border bg-base-100">Product</th>
-                  <th className="px-3 py-2 border bg-base-100">Total Amount</th>
-                  <th className="px-3 py-2 border bg-base-100">Status</th>
-                  <th className="px-3 py-2  border bg-base-100">Date</th>
-                  <th className="px-3 py-2 border bg-base-100">
-                    Payment Method
-                  </th>
-                  <th className="px-3 py-2 border bg-base-100">
-                    Payment Status
-                  </th>
-                  <th className="px-3 py-2  border bg-base-100">Operation</th>
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 border-b">
+                <tr className="text-left text-slate-500">
+                  <th className="px-5 py-4 font-medium">#</th>
+                  <th className="px-5 py-4 font-medium">Customer</th>
+                  <th className="px-5 py-4 font-medium">Product</th>
+                  <th className="px-5 py-4 font-medium">Total Amount</th>
+                  <th className="px-5 py-4 font-medium">Status</th>
+                  <th className="px-5 py-4 font-medium">Date</th>
+                  <th className="px-5 py-4 font-medium">Payment</th>
+                  <th className="px-5 py-4 font-medium">Payment Status</th>
+                  <th className="px-5 py-4 font-medium text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-base-100">
-                {Array.isArray(displaySales) && displaySales.length > 0 ? (
-                  displaySales.map((sales, index) => (
-                    <tr key={sales?._id} className="">
-                      <td className="px-3 py-2 border">{index + 1}</td>
-                      <td className="px-3 py-2 border">
-                        {sales?.customerName}
-                      </td>
-                      <td className="px-3 py-2 border">
-                        {sales.products?.product?.name || "No Product"}
-                      </td>
-                      <td className="px-3 py-2 border">
-                        $ {sales?.totalAmount}
-                      </td>
-
-                      <td className="px-3 py-2 border">{sales?.status}</td>
-                      <td className="px-3 py-2 border">
-                        <FormattedTime timestamp={sales?.createdAt} />
-                      </td>
-                      <td className="px-3 py-2 border">
-                        {sales?.paymentMethod}
-                      </td>
-
-                      <td className="px-3 py-2 border">
-                        {sales?.paymentStatus || "hwllomd"}
-                      </td>
-
-                      <td className="px-4  py-2 border flex gap-2 items-center">
+              <tbody>
+                {displaySales.map((sale, index) => (
+                  <tr
+                    key={sale._id}
+                    className="border-b last:border-b-0 hover:bg-slate-50 transition"
+                  >
+                    <td className="px-5 py-4 text-slate-500">{index + 1}</td>
+                    <td className="px-5 py-4">{sale.customerName}</td>
+                    <td className="px-5 py-4">
+                      {sale.products?.product?.name || "-"}
+                    </td>
+                    <td className="px-5 py-4 font-semibold text-slate-800">
+                      ${sale.totalAmount || 0}
+                    </td>
+                    <td className="px-5 py-4">{sale.status}</td>
+                    <td className="px-5 py-4 text-slate-600">
+                      <FormattedTime timestamp={sale.createdAt} />
+                    </td>
+                    <td className="px-5 py-4">{sale.paymentMethod}</td>
+                    <td className="px-5 py-4">{sale.paymentStatus}</td>
+                    <td className="px-5 py-4">
+                      <div className="flex justify-end gap-2">
                         <button
-                          onClick={() => handleEditClick(sales)}
-                          className="h-10 p-2 bg-green-500 ml-10 hover:bg-green-700 rounded-md text-white"
+                          onClick={() => handleEditClick(sale)}
+                          className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
                         >
-                          Edit
+                          <MdEdit size={18} />
                         </button>
                         <button
-                          onClick={() => createInvoice(sales)}
-                          className="h-10 p-2 bg-yellow-500 ml-10 hover:bg-green-700 rounded-md text-white"
+                          onClick={() => createInvoice(sale)}
+                          className="p-2 rounded-lg bg-slate-100 hover:bg-yellow-100 text-yellow-600 transition"
                         >
-                          Create Invoice
+                          <PiInvoiceBold size={18} />
                         </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="5" className=" bg-base-100 text-center py-4">
-                      No sales found.
+                      </div>
                     </td>
                   </tr>
-                )}
+                ))}
               </tbody>
             </table>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
