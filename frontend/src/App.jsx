@@ -20,6 +20,10 @@ import Userstatus from "./pages/Userstatus";
 import NotificationPageRead from "./pages/Notificationpageread";
 import ProtectedRoute from "./lib/ProtectedRoute";
 import { Toaster } from "react-hot-toast";
+import InvoicesPage from "./pages/InvoicesPage";
+import InvoiceDetailPage from "./pages/InvoiceDetailPage";
+import InvoiceEditPage from "./pages/InvoiceEditPage";
+import CreateInvoicePage from "./pages/CreateInvoicePage";
 
 function App() {
   return (
@@ -59,6 +63,11 @@ function App() {
 
             {/* Category - Manager */}
             <Route path="category" element={<Categorypage />} />
+
+            <Route path="invoices" element={<InvoicesPage />} />
+            <Route path="createInvoice" element={<CreateInvoicePage />} />
+            <Route path="invoice/:id" element={<InvoiceDetailPage />} />
+            <Route path="editInvoice/:id" element={<InvoiceEditPage />} />
 
             {/* Notifications (Read) - Manager */}
             <Route
@@ -102,6 +111,11 @@ function App() {
 
             {/* Category - Admin */}
             <Route path="category" element={<Categorypage />} />
+
+            <Route path="invoices" element={<InvoicesPage />} />
+            <Route path="createInvoice" element={<CreateInvoicePage />} />
+            <Route path="invoice/:id" element={<InvoiceDetailPage />} />
+            <Route path="editInvoice/:id" element={<InvoiceEditPage />} />
 
             {/* Notifications (Create) - Admin */}
             <Route path="notifications" element={<Notificationpage />} />

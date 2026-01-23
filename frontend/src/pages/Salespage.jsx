@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import TopNavbar from "../Components/TopNavbar";
 import { IoMdAdd } from "react-icons/io";
 import { MdKeyboardDoubleArrowLeft } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
-import { gettingallproducts } from "../features/productSlice";
 import FormattedTime from "../lib/FormattedTime ";
 
 import {
@@ -15,15 +14,11 @@ import {
 import SalesChart from "../lib/Salesgraph";
 import toast from "react-hot-toast";
 import { gettingallCategory } from "../features/categorySlice";
+import { gettingallproducts } from "../features/productSlice";
+import axiosInstance from "../lib/axios";
 
 function Salespage() {
-  const {
-    getallsales,
-    searchdata,
-    isgetallsales,
-    editedsales,
-    iscreatedsales,
-  } = useSelector((state) => state.sales);
+  const { getallsales, searchdata } = useSelector((state) => state.sales);
 
   const { getallproduct } = useSelector((state) => state.product);
 
@@ -31,7 +26,6 @@ function Salespage() {
   const [query, setquery] = useState("");
 
   const [name, setName] = useState("");
-  const [Category, setCategory] = useState("");
   const [Product, setProduct] = useState("");
   const [Payment, setPayment] = useState("");
   const [Price, setPrice] = useState("");
@@ -39,6 +33,8 @@ function Salespage() {
   const [paymentStatus, setpaymentStatus] = useState("");
   const [Status, setStatus] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
+  const [Category, setCategory] = useState("");
+
   const [selectedSales, setselectedSales] = useState(null);
   const { getallCategory } = useSelector((state) => state.category);
   useEffect(() => {
@@ -150,6 +146,60 @@ function Salespage() {
   }, [Category]);
 
   const displaySales = query.trim() !== "" ? searchdata : getallsales;
+
+  const createInvoice = async (sale) => {
+    if (!sale) return;
+
+    // Safely extract product(s)
+    const productsArray = Array.isArray(sale.products)
+      ? sale.products
+      : [sale.products]; // wrap single product for future-proofing
+
+    // Map items for invoice
+    const items = productsArray.map((p) => ({
+      description: p.product.Desciption,
+      name: p.product.name,
+      quantity: p.quantity,
+      unitPrice: p.price,
+      total: p.quantity * p.price,
+    }));
+
+    // Calculate totals
+    const subTotal = items.reduce((sum, i) => sum + i.total, 0);
+    const taxRate = 0; // add if needed
+    const discount = 0; // add if needed
+    const taxAmount = (subTotal * taxRate) / 100;
+    const totalAmount = subTotal + taxAmount - discount;
+
+    // Prepare payload matching Invoice model
+    const payload = {
+      invoiceNumber: `INV-${Date.now()}`, // you can replace with backend-generated
+      client: {
+        name: sale.customerName,
+        // add email, phone, address if available
+      },
+      items,
+      subTotal,
+      taxRate,
+      taxAmount,
+      discount,
+      totalAmount,
+      currency: "USD",
+      status: sale.paymentStatus === "paid" ? "paid" : "sent",
+      paymentMethod: sale.paymentMethod,
+      issueDate: new Date(),
+      dueDate: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000),
+    };
+
+    try {
+      await axiosInstance.post("/invoice", payload);
+
+      toast.success("Invoice Created!");
+    } catch (err) {
+      console.error("Invoice creation failed:", err);
+      toast.error("Invoice creation failed");
+    }
+  };
 
   return (
     <div className="bg-base-100 min-h-screen">
@@ -357,12 +407,18 @@ function Salespage() {
                         {sales?.paymentStatus || "hwllomd"}
                       </td>
 
-                      <td className="px-4  py-2 border">
+                      <td className="px-4  py-2 border flex gap-2 items-center">
                         <button
                           onClick={() => handleEditClick(sales)}
-                          className="h-10 w-24 bg-green-500 ml-10 hover:bg-green-700 rounded-md text-white"
+                          className="h-10 p-2 bg-green-500 ml-10 hover:bg-green-700 rounded-md text-white"
                         >
                           Edit
+                        </button>
+                        <button
+                          onClick={() => createInvoice(sales)}
+                          className="h-10 p-2 bg-yellow-500 ml-10 hover:bg-green-700 rounded-md text-white"
+                        >
+                          Create Invoice
                         </button>
                       </td>
                     </tr>

@@ -13,6 +13,7 @@ const activityrouter = require("./Routers/activityRouter.js");
 const inventoryrouter = require("./Routers/inventoryRouter.js");
 const salesrouter = require("./Routers/salesRouter.js");
 const supplierrouter = require("./Routers/supplierrouter.js");
+const invoiceRouter = require("./Routers/invoiceRouter.js");
 const stocktransactionrouter = require("./Routers/stocktransactionrouter.js");
 
 require("dotenv").config();
@@ -60,6 +61,7 @@ app.use("/api/inventory", inventoryrouter);
 app.use("/api/sales", salesrouter);
 app.use("/api/supplier", supplierrouter);
 app.use("/api/stocktransaction", stocktransactionrouter);
+app.use("/api/invoice", invoiceRouter);
 
 server.listen(PORT, () => {
   MongoDBconfig();

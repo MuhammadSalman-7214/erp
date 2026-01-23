@@ -65,6 +65,10 @@ function Sidebar() {
               <Link to="/ManagerDashboard/sales">Sales</Link>
             </li>
             <li className="flex items-center space-x-3 text-gray-700 hover:text-blue-700 cursor-pointer p-2 rounded-md transition">
+              <MdPointOfSale className="text-xl" />
+              <Link to="/ManagerDashboard/invoices">Invoices</Link>
+            </li>
+            <li className="flex items-center space-x-3 text-gray-700 hover:text-blue-700 cursor-pointer p-2 rounded-md transition">
               <FiShoppingCart className="text-xl" />
               <Link to="/ManagerDashboard/order">Order</Link>
             </li>
@@ -108,6 +112,10 @@ function Sidebar() {
             <li className="flex items-center space-x-3 text-gray-700 hover:text-blue-700 cursor-pointer p-2 rounded-md transition">
               <MdPointOfSale className="text-xl" />
               <Link to="/AdminDashboard/sales">Sales</Link>
+            </li>
+            <li className="flex items-center space-x-3 text-gray-700 hover:text-blue-700 cursor-pointer p-2 rounded-md transition">
+              <MdPointOfSale className="text-xl" />
+              <Link to="/AdminDashboard/invoices">Invoices</Link>
             </li>
             <li className="flex items-center space-x-3 text-gray-700 hover:text-blue-700 cursor-pointer p-2 rounded-md transition">
               <FiShoppingCart className="text-xl" />
