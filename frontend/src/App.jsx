@@ -24,6 +24,7 @@ import InvoicesPage from "./pages/InvoicesPage";
 import InvoiceDetailPage from "./pages/InvoiceDetailPage";
 import InvoiceEditPage from "./pages/InvoiceEditPage";
 import CreateInvoicePage from "./pages/CreateInvoicePage";
+import NotFoundPage from "./pages/NotFoundPage";
 
 function App() {
   return (
@@ -166,6 +167,7 @@ function App() {
             {/* Supplier - Staff (read-only) */}
             <Route path="supplier" element={<Supplierpage readOnly />} />
           </Route>
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </div>
     </Router>

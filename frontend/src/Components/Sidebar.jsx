@@ -96,13 +96,13 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
               label="Product"
               sidebarOpen={sidebarOpen}
             />
-
+            {/* 
             <NavItem
               to="/ManagerDashboard/activity-log"
               icon={<RxActivityLog />}
               label="Activity Log"
               sidebarOpen={sidebarOpen}
-            />
+            /> */}
 
             <NavItem
               to="/ManagerDashboard/supplier"
@@ -238,12 +238,12 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
               sidebarOpen={sidebarOpen}
             />
 
-            <NavItem
+            {/* <NavItem
               to="/StaffDashboard/activity-log"
               icon={<RxActivityLog />}
               label="Activity Log"
               sidebarOpen={sidebarOpen}
-            />
+            /> */}
 
             <NavItem
               to="/StaffDashboard/supplier"
@@ -266,12 +266,12 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
               sidebarOpen={sidebarOpen}
             />
 
-            <NavItem
+            {/* <NavItem
               to="/StaffDashboard/stock-transaction"
               icon={<RiStockLine />}
               label="Stock Transaction"
               sidebarOpen={sidebarOpen}
-            />
+            /> */}
 
             <NavItem
               to="/StaffDashboard/NotificationPageRead"

@@ -102,9 +102,7 @@ function InvoiceEditPage() {
     return <p className="p-6 text-center text-red-500">Invoice not found</p>;
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      <TopNavbar />
-
+    <div className="min-h-[92vh] bg-gray-100 p-4">
       <div className="p-6 max-w-5xl mx-auto">
         <div className="bg-white rounded-2xl shadow p-6">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">

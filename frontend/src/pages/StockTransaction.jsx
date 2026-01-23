@@ -12,8 +12,9 @@ import {
 import { gettingallSupplier } from "../features/SupplierSlice";
 import { gettingallproducts } from "../features/productSlice";
 import toast from "react-hot-toast";
+import { useRolePermissions } from "../hooks/useRolePermissions";
 
-function StockTransaction() {
+function StockTransaction({ readOnly = false }) {
   const { getallStocks, isgetallStocks, iscreatedStocks, searchdata } =
     useSelector((state) => state.stocktransaction);
 
@@ -28,7 +29,11 @@ function StockTransaction() {
   const [supplier, setsupplier] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
 
+  // Determine if page is in read-only mode (from props OR role)
+  const isReadOnlyMode = readOnly || checkReadOnly("stock");
+  const canWrite = hasPermission("stock", "write");
   useEffect(() => {
     if (query.trim() !== "") {
       const repeatTimeout = setTimeout(() => {
@@ -89,15 +94,23 @@ function StockTransaction() {
           className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="Enter your Stock"
         />
-        <button
-          onClick={() => {
-            setIsFormVisible(true);
-            setSelectedProduct(null);
-          }}
-          className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
-        >
-          <IoMdAdd className="text-xl mr-2" /> Add Stock
-        </button>
+
+        {canWrite && (
+          <button
+            onClick={() => {
+              setIsFormVisible(true);
+              setSelectedProduct(null);
+            }}
+            className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
+          >
+            <IoMdAdd className="text-xl mr-2" /> Add Stock
+          </button>
+        )}
+        {isReadOnlyMode && (
+          <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-2 rounded">
+            Read-Only Mode
+          </div>
+        )}
       </div>
       {/* Overlay */}
       {isFormVisible && (

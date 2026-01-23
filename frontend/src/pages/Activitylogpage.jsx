@@ -84,11 +84,11 @@ function Activitylogpage() {
                     </td>
 
                     <td className="px-5 py-4 font-medium text-slate-800">
-                      {log.userId.name}
+                      {log.userId?.name}
                     </td>
 
                     <td className="px-5 py-4 text-slate-700">
-                      {log.userId.email}
+                      {log.userId?.email}
                     </td>
 
                     <td className="px-5 py-4">

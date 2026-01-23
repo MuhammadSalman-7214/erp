@@ -92,70 +92,107 @@ function Dashboardpage() {
 
   return (
     <div className="bg-base-100">
-      <div className="min-h-screen flex flex-col items-center p-10">
-        <h1 className="text-3xl font-semibold mb-6">
-          Dashboard {userRole && `- ${userRole.toUpperCase()}`}
-        </h1>
+      <div className=" bg-gray-50 p-4">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          {/* <h1 className="text-3xl font-bold text-gray-800 mb-8">
+            Dashboard{" "}
+            <span className="text-blue-600">• {userRole?.toUpperCase()}</span>
+          </h1> */}
 
-        {/* User Count Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          <div className="bg-white shadow-lg rounded-xl p-6 flex flex-col items-center w-56 h-56 hover:shadow-xl transition-shadow">
-            <LuUsers className="text-5xl text-blue-500 mb-4" />
-            <p className="text-xl font-bold text-gray-700">
-              {staffuser?.length || 0}
-            </p>
-            <p className="text-gray-500">Staff Users</p>
+          {/* Cards */}
+          <div
+            className={`grid grid-cols-1 sm:grid-cols-2 ${userRole === "admin" ? "lg:grid-cols-3" : "lg:grid-cols-2"} gap-4`}
+          >
+            {/* STAFF CARD */}
+            {(userRole === "admin" || userRole === "manager") && (
+              <div className="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition">
+                <div className="flex items-center gap-4">
+                  <div className="p-4 rounded-xl bg-blue-100">
+                    <LuUsers className="text-3xl text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-gray-800">
+                      {staffuser?.length || 0}
+                    </p>
+                    <p className="text-gray-500 text-sm">Staff Members</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* MANAGER CARD */}
+            {(userRole === "admin" || userRole === "manager") && (
+              <div className="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition">
+                <div className="flex items-center gap-4">
+                  <div className="p-4 rounded-xl bg-green-100">
+                    <LuUsers className="text-3xl text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-gray-800">
+                      {manageruser?.length || 0}
+                    </p>
+                    <p className="text-gray-500 text-sm">Managers</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ADMIN CARD */}
+            {userRole === "admin" && (
+              <div className="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition">
+                <div className="flex items-center gap-4">
+                  <div className="p-4 rounded-xl bg-red-100">
+                    <LuUsers className="text-3xl text-red-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-gray-800">
+                      {adminuser?.length || 0}
+                    </p>
+                    <p className="text-gray-500 text-sm">Admins</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="bg-white shadow-lg rounded-xl p-6 flex flex-col items-center w-56 h-56 hover:shadow-xl transition-shadow">
-            <LuUsers className="text-5xl text-green-500 mb-4" />
-            <p className="text-xl font-bold text-gray-700">
-              {manageruser?.length || 0}
-            </p>
-            <p className="text-gray-500">Managers</p>
-          </div>
-
-          <div className="bg-white shadow-lg rounded-xl p-6 flex flex-col items-center w-56 h-56 hover:shadow-xl transition-shadow">
-            <LuUsers className="text-5xl text-red-500 mb-4" />
-            <p className="text-xl font-bold text-gray-700">
-              {adminuser?.length || 0}
-            </p>
-            <p className="text-gray-500">Admins</p>
+          {/* Top Products */}
+          <div className="mt-16">
+            <Gettopproduct />
           </div>
         </div>
-
-        {/* Top Products Section */}
-        <Gettopproduct className="mt-20" />
       </div>
 
       {/* Recent Activity Section - Only for Admin */}
       {showActivityLogs && (
-        <div className="mt-10 p-10 bg-gray-50">
+        <div className="p-4 bg-gray-50">
           <h1 className="text-2xl font-bold mb-6">Recent Activity</h1>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {releventLogs && releventLogs.length > 0 ? (
               releventLogs.map((logs) => (
                 <div
                   key={logs._id}
                   className="bg-white shadow-lg rounded-lg p-6 hover:shadow-xl transition-shadow"
                 >
-                  <div className="flex items-center space-x-4 mb-4">
+                  <div className="flex items-center space-x-4">
                     <div className="p-3 bg-blue-100 rounded-full">
                       <LuActivity className="text-blue-500 text-2xl" />
                     </div>
                     <div>
-                      <h2 className="text-lg font-semibold">
+                      <h2 className="text-lg font-semibold">{logs.action}</h2>
+
+                      <p className="text-sm text-gray-500 capitalize">
+                        {" "}
                         {logs.userId?.name || "Unknown User"}
-                      </h2>
-                      <p className="text-sm text-gray-500">{logs.action}</p>
+                      </p>
                     </div>
                   </div>
-                  <div>
+                  {/* <div>
                     <h2 className="text-lg font-semibold">
                       {logs.userId?.name || "Unknown User"}
                     </h2>
                     <p className="text-sm text-gray-500">{logs?.action}</p>
-                  </div>
+                  </div> */}
                 </div>
               ))
             ) : (
@@ -171,7 +208,7 @@ function Dashboardpage() {
 
       {/* Welcome message for staff who can't see activity logs */}
       {!showActivityLogs && (
-        <div className="mt-10 p-10 bg-gray-50 text-center">
+        <div className=" p-10 bg-gray-50 text-center">
           <p className="text-gray-600 text-lg mb-2">
             Welcome to your dashboard!
           </p>

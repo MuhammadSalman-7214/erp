@@ -314,15 +314,17 @@ function Orderpage() {
                   <td className="px-5 py-4 flex justify-end gap-2">
                     <button
                       onClick={() => handleRemove(order._id)}
-                      className="px-3 py-1 rounded-lg bg-red-100 text-red-600 hover:bg-red-200"
+                      className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition"
+                      title="Delete"
                     >
-                      Remove
+                      <MdDelete size={18} />
                     </button>
                     <button
                       onClick={() => handleEditClick(order)}
-                      className="px-3 py-1 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200"
+                      className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
+                      title="Edit"
                     >
-                      Edit
+                      <MdEdit size={18} />
                     </button>
                   </td>
                 </tr>

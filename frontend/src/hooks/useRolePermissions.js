@@ -33,7 +33,7 @@ const ROLE_PERMISSIONS = {
     product: { read: true, write: false, delete: false },
     order: { read: true, write: true, delete: false },
     sales: { read: true, write: true, delete: false },
-    stock: { read: true, write: false, delete: false },
+    stock: { read: false, write: false, delete: false },
     category: { read: true, write: false, delete: false },
     supplier: { read: true, write: false, delete: false },
     notification: { read: true, write: false, delete: false },
