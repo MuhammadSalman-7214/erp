@@ -1,18 +1,53 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import TopNavbar from "../Components/TopNavbar";
 import { IoCameraOutline } from "react-icons/io5";
 import image from "../images/user.png";
-import { updateProfile } from "../features/authSlice";
+import {
+  adminUser,
+  managerUser,
+  staffUser,
+  updateProfile,
+} from "../features/authSlice";
 import toast from "react-hot-toast";
 import FormattedTime from "../lib/FormattedTime ";
+import { useRolePermissions } from "../hooks/useRolePermissions";
+import {
+  getAllActivityLogs,
+  getsingleUserActivityLogs,
+} from "../features/activitySlice";
 
 function ProfilePage() {
   const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.auth);
-  const { userdata } = useSelector((state) => state.activity);
+  const [releventLogs, setReleventLogs] = useState([]);
+  const { staffuser, manageruser, adminuser, user } = useSelector(
+    (state) => state.auth,
+  );
+  const { myLogs, activityLogs } = useSelector((state) => state.activity);
   const [images, setImage] = useState(null);
+  const { hasPermission, userRole } = useRolePermissions();
 
+  useEffect(() => {
+    const canViewUsers = hasPermission("user", "read");
+    const canViewActivity = hasPermission("activityLog", "read");
+
+    // Fetch user counts
+    if (canViewUsers) {
+      dispatch(staffUser()).catch(console.error);
+      dispatch(managerUser()).catch(console.error);
+      dispatch(adminUser()).catch(console.error);
+    }
+
+    // Fetch activity logs based on role
+    if (canViewActivity) {
+      if (userRole === "admin") {
+        dispatch(getAllActivityLogs()).catch(console.error);
+      } else if (userRole === "manager" || userRole === "staff") {
+        // Manager or Staff → own logs
+        dispatch(getsingleUserActivityLogs()).catch(console.error);
+      }
+    }
+  }, [dispatch, userRole]);
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) {
@@ -47,8 +82,15 @@ function ProfilePage() {
     };
   };
 
+  useEffect(() => {
+    if (userRole === "admin") {
+      setReleventLogs(activityLogs || []);
+    } else {
+      setReleventLogs(myLogs || []);
+    }
+  }, [userRole, activityLogs, myLogs]);
   return (
-    <div className="min-h-[100vh] bg-gray-100 p-4">
+    <div className="min-h-[80vh] bg-gray-100 p-4">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* LEFT: PROFILE INFO (AUTO HEIGHT) */}
         <div className="lg:col-span-3">
@@ -110,7 +152,7 @@ function ProfilePage() {
             {/* FIXED HEADER */}
             <div className="stick top-0 bg-white z-10 border-b p-4 rounded-t-xl">
               <h1 className="text-lg font-semibold text-slate-800">
-                Recent Activity
+                All Activity
               </h1>
               <p className="text-sm text-slate-500">
                 Your latest system actions
@@ -119,8 +161,8 @@ function ProfilePage() {
 
             {/* SCROLLABLE BODY */}
             <div className="flex-1 overflow-y-auto divide-y">
-              {userdata && userdata.length > 0 ? (
-                userdata[0].map((log, index) => (
+              {releventLogs && releventLogs.length > 0 ? (
+                releventLogs.map((log, index) => (
                   <div key={index} className="p-4 hover:bg-slate-50 transition">
                     <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
                       <div>
