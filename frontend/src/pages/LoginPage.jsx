@@ -150,7 +150,7 @@ function LoginPage() {
           {/* Feature List – Cards untouched */}
           <div className="space-y-5">
             <div className="flex gap-4 items-start bg-teal-100 border border-slate-200 rounded-xl p-5 shadow-sm">
-              <div className="p-3 rounded-lg bg-teal-50 text-teal-700">📦</div>
+              <div className="p-3 rounded-lg bg-teal-600 text-teal-700">📦</div>
               <div>
                 <h4 className="font-semibold text-slate-800">
                   Centralized Inventory
@@ -162,7 +162,7 @@ function LoginPage() {
             </div>
 
             <div className="flex gap-4 items-start bg-teal-100 border border-slate-200 rounded-xl p-5 shadow-sm">
-              <div className="p-3 rounded-lg bg-blue-50 text-blue-700">📊</div>
+              <div className="p-3 rounded-lg bg-teal-600 text-blue-700">📊</div>
               <div>
                 <h4 className="font-semibold text-slate-800">
                   Business Insights
@@ -174,7 +174,7 @@ function LoginPage() {
             </div>
 
             <div className="flex gap-4 items-start bg-teal-100 border border-slate-200 rounded-xl p-5 shadow-sm">
-              <div className="p-3 rounded-lg bg-purple-50 text-purple-700">
+              <div className="p-3 rounded-lg bg-teal-600 text-purple-700">
                 🔒
               </div>
               <div>

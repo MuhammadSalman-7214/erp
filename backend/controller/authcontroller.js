@@ -12,7 +12,14 @@ module.exports.signup = async (req, res) => {
     if (duplicatedUser) {
       return res.status(400).json({ error: "User already exists" });
     }
-
+    if (role === "admin") {
+      const existingAdmin = await User.findOne({ role: "admin" });
+      if (existingAdmin) {
+        return res.status(403).json({
+          message: "Admin already exists. Only one admin is allowed.",
+        });
+      }
+    }
     const hashedpassword = await bcrypt.hash(password, 10);
 
     const newUser = new User({
@@ -48,7 +55,7 @@ module.exports.signup = async (req, res) => {
     });
   } catch (error) {
     console.error("Error during signup:", error.message);
-    res.status(400).json({ error: "Error during signup: " + error.message });
+    res.status(400).json({ message: "Error during signup: " + error.message });
   }
 };
 

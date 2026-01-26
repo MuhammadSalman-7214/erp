@@ -88,7 +88,6 @@ function Dashboardpage() {
       setReleventLogs(myLogs.slice(0, 6) || []);
     }
   }, [userRole, recentLogs, myLogs]);
-  console.log({ releventLogs });
 
   return (
     <div className="bg-base-100">

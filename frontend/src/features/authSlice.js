@@ -24,6 +24,7 @@ export const signup = createAsyncThunk(
       });
       localStorage.setItem("user", JSON.stringify(response.data.savedUser));
       localStorage.setItem("token", response.data.savedUser.token);
+
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || "Signup failed");
