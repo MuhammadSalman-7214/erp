@@ -10,7 +10,7 @@ module.exports.signup = async (req, res) => {
 
     const duplicatedUser = await User.findOne({ email });
     if (duplicatedUser) {
-      return res.status(400).json({ error: "User already exists" });
+      return res.status(400).json({ message: "Email already exists" });
     }
     if (role === "admin") {
       const existingAdmin = await User.findOne({ role: "admin" });
@@ -66,7 +66,7 @@ module.exports.login = async (req, res) => {
     const duplicatedUser = await User.findOne({ email });
 
     if (!duplicatedUser) {
-      return res.status(400).json({ error: "No user found" });
+      return res.status(400).json({ message: "No user found" });
     }
 
     const hasedpassword = await bcrypt.compare(
@@ -101,7 +101,7 @@ module.exports.login = async (req, res) => {
     });
   } catch (error) {
     res.status(400).json({
-      error: "Error in login to the page",
+      message: "Error in login to the page",
     });
   }
 };

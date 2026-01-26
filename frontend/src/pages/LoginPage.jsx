@@ -45,7 +45,7 @@ function LoginPage() {
       });
     } catch (error) {
       console.error("Error in Login:", error);
-      toast.error(error?.message || "Login failed. Please try again.");
+      toast.error(error || "Login failed. Please try again.");
     }
   };
 
