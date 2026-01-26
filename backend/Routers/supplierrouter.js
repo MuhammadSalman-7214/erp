@@ -13,6 +13,7 @@ const {
   deleteSupplier,
   createSupplier,
   getAllSuppliers,
+  searchSupplier,
 } = require("../controller/suppliercontroller");
 
 // GET - All roles (Admin, Manager can write; Staff read-only)
@@ -45,6 +46,12 @@ router.delete(
   authmiddleware,
   checkPermission("supplier", "delete"),
   deleteSupplier,
+);
+router.get(
+  "/searchSupplier",
+  authmiddleware,
+  checkPermission("supplier", "read"),
+  searchSupplier,
 );
 
 module.exports = router;

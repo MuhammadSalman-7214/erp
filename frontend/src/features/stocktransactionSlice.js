@@ -6,6 +6,7 @@ const initialState = {
   isgetallStocks: false,
   iscreatedStocks: false,
   searchdata: [],
+  products: [],
 };
 
 export const createStockTransaction = createAsyncThunk(
@@ -74,18 +75,32 @@ const stocktransactionSlice = createSlice({
       .addCase(getAllStockTransactions.rejected, (state) => {
         state.isgetallStocks = false;
       })
-
       .addCase(createStockTransaction.pending, (state) => {
         state.iscreatedStocks = true;
       })
       .addCase(createStockTransaction.fulfilled, (state, action) => {
         state.iscreatedStocks = false;
-        state.getallStocks.unshift(action.payload); // add new stock to top
+
+        // Add transaction to top
+        state.getallStocks.unshift(action.payload);
+
+        // Update product quantity in store
+        if (state.products) {
+          const productIndex = state.products.findIndex(
+            (p) => p._id === action.payload.product._id,
+          );
+          if (productIndex !== -1) {
+            if (action.payload.type === "Stock-in") {
+              state.products[productIndex].quantity += action.payload.quantity;
+            } else if (action.payload.type === "Stock-out") {
+              state.products[productIndex].quantity -= action.payload.quantity;
+            }
+          }
+        }
       })
       .addCase(createStockTransaction.rejected, (state) => {
         state.iscreatedStocks = false;
       })
-
       .addCase(searchstockdata.fulfilled, (state, action) => {
         state.searchdata = action.payload;
       })

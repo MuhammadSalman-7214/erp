@@ -1,3 +1,4 @@
+const Product = require("../models/Productmodel");
 const StockTransaction = require("../models/StockTranscationmodel");
 
 // Create a stock transaction
@@ -20,7 +21,26 @@ module.exports.createStockTransaction = async (req, res) => {
     });
 
     await newTransaction.save();
+    const productToUpdate = await Product.findById(product);
 
+    if (!productToUpdate) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Product not found" });
+    }
+    if (type === "Stock-in") {
+      productToUpdate.quantity += Number(quantity);
+    } else if (type === "Stock-out") {
+      if (productToUpdate.quantity < quantity) {
+        return res.status(400).json({
+          success: false,
+          message: "Insufficient stock for Stock-out",
+        });
+      }
+      productToUpdate.quantity -= Number(quantity);
+    }
+
+    await productToUpdate.save();
     // Populate product and supplier for response
     const populatedTransaction = await StockTransaction.findById(
       newTransaction._id,

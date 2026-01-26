@@ -31,7 +31,7 @@ function Supplierpage({ readOnly = false }) {
 
   const [query, setQuery] = useState("");
   const [name, setName] = useState("");
-  const [contactInfo, setContactInfo] = useState("");
+  // const [contactInfo, setContactInfo] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -43,7 +43,7 @@ function Supplierpage({ readOnly = false }) {
   useEffect(() => {
     dispatch(gettingallSupplier());
     dispatch(gettingallproducts());
-  }, [dispatch, editedsupplier, iscreatedsupplier]);
+  }, [dispatch]);
 
   useEffect(() => {
     if (query.trim() !== "") {
@@ -79,17 +79,22 @@ function Supplierpage({ readOnly = false }) {
       toast.error("You do not have permission to edit suppliers");
       return;
     }
+    if (!name || !phone || !email) {
+      toast.error("Name, phone and email are required");
+      return;
+    }
 
     if (!selectedSupplier) return;
 
     const updatedData = {
       name,
       contactInfo: {
-        phone: contactInfo,
-        email: email,
+        phone,
+        email,
+        address,
       },
       // optionally keep productsSupplied if needed
-      productsSupplied: selectedSupplier.productsSupplied || [],
+      productsSupplied: product ? [product] : [],
     };
 
     dispatch(EditSupplier({ supplierId: selectedSupplier._id, updatedData }))
@@ -112,14 +117,20 @@ function Supplierpage({ readOnly = false }) {
       toast.error("You do not have permission to add suppliers");
       return;
     }
+    if (!name || !phone || !email) {
+      toast.error("Name, phone and email are required");
+      return;
+    }
+
     const supplierData = {
       name,
       contactInfo: {
-        phone: contactInfo, // or separate fields if you have them
-        email: email,
+        phone,
+        email,
+        address,
       },
       // optionally include productsSupplied if any
-      productsSupplied: [], // leave empty if none
+      productsSupplied: product ? [product] : [],
     };
     dispatch(CreateSupplier(supplierData))
       .unwrap()
@@ -129,7 +140,7 @@ function Supplierpage({ readOnly = false }) {
 
   const resetForm = () => {
     setName("");
-    setContactInfo("");
+    setPhone("");
     setEmail("");
   };
 
@@ -141,9 +152,9 @@ function Supplierpage({ readOnly = false }) {
 
     setSelectedSupplier(supplier);
     setName(supplier.name || "");
-    setContactInfo(supplier.contactInfo?.phone || "");
-    setContactInfo(supplier.contactInfo?.address || "");
+    setPhone(supplier.contactInfo?.phone || "");
     setEmail(supplier.contactInfo?.email || "");
+    setAddress(supplier.contactInfo?.address || "");
     setIsFormVisible(true);
   };
 
@@ -257,9 +268,10 @@ function Supplierpage({ readOnly = false }) {
               <label>Phone</label>
               <input
                 value={phone}
+                type="number"
                 placeholder="Enter Supplier Phone"
                 onChange={(e) => setPhone(e.target.value)}
-                type="text"
+                // type="text"
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
               />
             </div>

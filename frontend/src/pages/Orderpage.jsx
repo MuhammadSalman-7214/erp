@@ -30,6 +30,8 @@ function Orderpage() {
   const { getallproduct } = useSelector((state) => state.product);
   const { getallCategory } = useSelector((state) => state.category);
   const { user, isUserSignup } = useSelector((state) => state.auth);
+  const [formErrors, setFormErrors] = useState({});
+
   const dispatch = useDispatch();
 
   const [query, setquery] = useState("");
@@ -84,16 +86,45 @@ function Orderpage() {
         setselectedOrder(null);
         resetForm();
       })
-      .catch(() => {
-        toast.error("Failed to update Order");
+      .catch((error) => {
+        handleOrderError(error);
       });
+  };
+  const handleOrderError = (error) => {
+    // Stock-related error
+    if (error?.available && error?.requested) {
+      setFormErrors({
+        quantity: `Only ${error.available} items available. You requested ${error.requested}.`,
+      });
+      return;
+    }
+
+    // Validation error from backend
+    if (error?.response?.data?.errors) {
+      setFormErrors(error.response.data.errors);
+      return;
+    }
+
+    // Generic fallback
+    setFormErrors({
+      general:
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to create order",
+    });
   };
 
   const submitOrder = async (event) => {
     event.preventDefault();
 
-    if (!Product || !Price || !quantity) {
-      toast.error("Product, Price and Quantity are required");
+    const errors = {};
+
+    if (!Product) errors.product = "Product is required";
+    if (!Price) errors.price = "Price is required";
+    if (!quantity) errors.quantity = "Quantity is required";
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
       return;
     }
 
@@ -109,12 +140,12 @@ function Orderpage() {
     };
 
     try {
-      const result = await dispatch(createdOrder(orderData)).unwrap();
+      await dispatch(createdOrder(orderData)).unwrap();
       toast.success("Order created successfully");
       resetForm();
+      setFormErrors({});
     } catch (error) {
-      console.error("Order creation failed:", error);
-      toast.error(error.message || "Failed to create order");
+      handleOrderError(error);
     }
   };
 
@@ -240,13 +271,25 @@ function Orderpage() {
 
             <div className="mb-4">
               <label>Quantity</label>
+
               <input
                 type="number"
                 value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2"
+                onChange={(e) => {
+                  setQuantity(e.target.value);
+                  setFormErrors((prev) => ({ ...prev, quantity: "" }));
+                }}
+                className={`w-full h-10 px-2 border-2 rounded-lg mt-2 ${
+                  formErrors.quantity ? "border-red-500" : ""
+                }`}
                 placeholder="Enter quantity"
               />
+
+              {formErrors.quantity && (
+                <p className="text-red-600 text-sm mt-1">
+                  {formErrors.quantity}
+                </p>
+              )}
             </div>
 
             <div className="mb-4">

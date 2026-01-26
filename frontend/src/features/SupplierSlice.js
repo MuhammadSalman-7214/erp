@@ -140,21 +140,27 @@ const supplierSlice = createSlice({
       })
       .addCase(deleteSupplier.fulfilled, (state, action) => {
         state.isSupplierremove = false;
-        state.getallCategory = action.payload.allCategory || [];
+        state.getallSupplier = state.getallSupplier.filter(
+          (supplier) => supplier._id !== action.meta.arg,
+        );
       })
 
       .addCase(deleteSupplier.rejected, (state, action) => {
         state.isSupplierremove = false;
       })
-
       .addCase(SearchSupplier.fulfilled, (state, action) => {
-        state.searchdata = action.payload;
+        state.searchdata = action.payload.suppliers || [];
       })
 
       .addCase(SearchSupplier.rejected, (state, action) => {})
-
       .addCase(EditSupplier.fulfilled, (state, action) => {
-        state.editedsupplier = action.payload;
+        state.editedsupplier = action.payload.supplier;
+        const index = state.getallSupplier.findIndex(
+          (s) => s._id === action.payload.supplier._id,
+        );
+        if (index !== -1) {
+          state.getallSupplier[index] = action.payload.supplier;
+        }
       })
 
       .addCase(EditSupplier.rejected, (state, action) => {});
