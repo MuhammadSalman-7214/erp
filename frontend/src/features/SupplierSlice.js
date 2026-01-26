@@ -18,8 +18,6 @@ export const CreateSupplier = createAsyncThunk(
   "supplier/createsupplier",
   async (Supplier, { rejectWithValue }) => {
     try {
-      console.log({ Supplier });
-
       const response = await axiosInstance.post("supplier", {
         name: Supplier.name,
         contactInfo: Supplier.contactInfo,
@@ -54,8 +52,6 @@ export const deleteSupplier = createAsyncThunk(
   "supplier/delete",
   async (supplierId, { rejectWithValue }) => {
     try {
-      console.log({ supplierId });
-
       const response = await axiosInstance.delete(
         `supplier/${supplierId}`, // just pass ID in URL
         { withCredentials: true }, // config object
@@ -91,8 +87,6 @@ export const EditSupplier = createAsyncThunk(
   "supplier/updatesupplier",
   async ({ supplierId, updatedData }, { rejectWithValue }) => {
     try {
-      console.log({ supplierId });
-
       const response = await axiosInstance.put(
         `supplier/${supplierId}`,
         updatedData,

@@ -125,8 +125,6 @@ function Salespage() {
     resetForm();
   };
   const handleEditClick = (sales) => {
-    console.log({ sales });
-
     setselectedSales(sales);
     setName(sales.customerName);
 

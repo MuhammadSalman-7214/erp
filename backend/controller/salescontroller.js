@@ -8,13 +8,6 @@ module.exports.createSale = async (req, res) => {
   try {
     const { customerName, products, paymentMethod, paymentStatus, status } =
       req.body;
-    console.log({
-      customerName,
-      products,
-      paymentMethod,
-      paymentStatus,
-      status,
-    });
 
     // Validation: Make sure products array is provided and has at least one item
     if (!products || !Array.isArray(products) || products.length === 0) {

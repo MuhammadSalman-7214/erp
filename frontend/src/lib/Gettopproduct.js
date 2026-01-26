@@ -61,7 +61,7 @@ function Gettopproduct() {
   };
 
   return (
-    <div className="bg-white p-6 shadow-md rounded-md w-full max-w-2xl mx-auto">
+    <div className="bg-white w-full h-[50vh] p-4 sm:p-6 rounded-2xl shadow-sm border">
       <h2 className="text-xl font-semibold mb-4 text-center">
         Top Products by Quantity
       </h2>

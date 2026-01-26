@@ -19,7 +19,6 @@ export const Addproduct = createAsyncThunk(
   async (product, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem("token");
-      console.log({ token });
 
       const response = await axiosInstance.post("product", product, {
         headers: { Authorization: `Bearer ${token}` },
@@ -108,8 +107,6 @@ export const gettingallproducts = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem("token");
-      console.log({ token });
-
       const response = await axiosInstance.get("product", {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,

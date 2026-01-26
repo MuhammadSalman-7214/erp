@@ -53,8 +53,6 @@ module.exports.getProduct = async (req, res) => {
     if (!Products || Products.length === 0) {
       return res.status(404).json({ message: "Products not found" });
     }
-    console.log({ Products, totalProduct });
-
     res.status(200).json({ Products, totalProduct });
   } catch (error) {
     res
@@ -68,8 +66,6 @@ module.exports.RemoveProduct = async (req, res) => {
     const { productId } = req.params;
     const userId = req.user.userId;
     const ipAddress = req.ip;
-    console.log({ productId });
-
     const deletedProduct = await Product.findByIdAndDelete(productId);
 
     if (!deletedProduct) {

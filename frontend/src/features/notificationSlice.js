@@ -13,8 +13,6 @@ export const createNotification = createAsyncThunk(
       const res = await axiosInstance.post("notification", notification, {
         withCredentials: true,
       });
-      console.log({ fdsfsd: res.data });
-
       return res.data.notification;
     } catch (error) {
       return rejectWithValue(

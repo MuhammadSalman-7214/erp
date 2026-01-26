@@ -10,6 +10,7 @@ import {
 import { staffUser, managerUser, adminUser } from "../features/authSlice";
 import FormattedTime from "../lib/FormattedTime ";
 import { useRolePermissions } from "../hooks/useRolePermissions";
+import SalesChart from "../lib/Salesgraph";
 
 function Dashboardpage() {
   const { staffuser, manageruser, adminuser, user } = useSelector(
@@ -92,7 +93,7 @@ function Dashboardpage() {
   return (
     <div className="bg-base-100">
       <div className=" bg-gray-50 p-4">
-        <div className="max-w-7xl mx-auto">
+        <div className="">
           {/* Header */}
           {/* <h1 className="text-3xl font-bold text-gray-800 mb-8">
             Dashboard{" "}
@@ -156,7 +157,9 @@ function Dashboardpage() {
           </div>
 
           {/* Top Products */}
-          <div className="mt-16">
+          <div className="mt-16 flex justify-between w-full gap-6">
+            <SalesChart />
+
             <Gettopproduct />
           </div>
         </div>

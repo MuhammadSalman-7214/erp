@@ -95,8 +95,6 @@ function Productpage({ readOnly = false }) {
       Desciption,
       dateAdded: selectedProduct.dateAdded || new Date().toISOString(),
     };
-    console.log({ updatedData });
-
     dispatch(EditProduct({ id: selectedProduct._id, updatedData }))
       .unwrap()
       .then(() => {

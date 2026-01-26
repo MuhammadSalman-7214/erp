@@ -12,8 +12,6 @@ router.get("/", authmiddleware, adminmiddleware, async (req, res) => {
   const logs = await ActivityLog.find()
     .populate("userId", "-password")
     .sort({ createdAt: -1 });
-  console.log({ logs });
-
   res.json(logs);
 });
 

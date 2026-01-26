@@ -105,8 +105,6 @@ module.exports.editSupplier = async (req, res) => {
 module.exports.deleteSupplier = async (req, res) => {
   try {
     const { supplierId } = req.params; // <-- use req.params
-    console.log({ supplierId });
-
     const supplier = await Supplier.findByIdAndDelete(supplierId);
 
     if (!supplier) {

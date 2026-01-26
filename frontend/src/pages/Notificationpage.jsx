@@ -79,8 +79,6 @@ function NotificationPage() {
     e.preventDefault();
     if (!name || !type) return toast.error("Title and description required");
     const notificationData = { name, type };
-    console.log({ notificationData });
-
     dispatch(createNotification(notificationData))
       .unwrap()
       .then(() => {
