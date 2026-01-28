@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { IoMdAdd } from "react-icons/io";
-import FormattedTime from "../lib/FormattedTime ";
+import FormattedTime from "../lib/FormattedTime";
 import TopNavbar from "../Components/TopNavbar";
 import {
   MdDelete,
@@ -51,7 +51,7 @@ function Categorypage() {
         toast.success("category removed successfully");
       })
       .catch((error) => {
-        toast.error(error || "Failed to categoryproduct");
+        toast.error(error?.message || "Failed to remove category");
       });
   };
 
@@ -68,7 +68,7 @@ function Categorypage() {
       })
       .catch((err) => {
         console.error("Error adding category:", err);
-        toast.error(err || "CategoryData add unsuccessful");
+        toast.error(err?.message || "Category add unsuccessful");
       });
   };
 
@@ -216,7 +216,7 @@ function Categorypage() {
                       </td>
 
                       <td className="px-5 py-4 text-slate-700">
-                        {Category.productCount || 0}
+                        {Category.productCount ?? 0}
                       </td>
 
                       <td className="px-5 py-4 text-slate-600 max-w-xs truncate">

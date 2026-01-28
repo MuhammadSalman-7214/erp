@@ -32,6 +32,32 @@ module.exports.createSale = async (req, res) => {
       (total, item) => total + item.price * item.quantity,
       0,
     );
+    // Before creating the sale
+    for (const item of products) {
+      const productRecord = await ProductModel.findById(item.product);
+      if (!productRecord) {
+        return res.status(404).json({
+          success: false,
+          message: `Product ${item.product} not found`,
+        });
+      }
+
+      if (productRecord.quantity < item.quantity) {
+        return res.status(400).json({
+          success: false,
+          message: `Only ${productRecord.quantity} items available for ${productRecord.name}. You requested ${item.quantity}.`,
+          available: productRecord.quantity,
+          requested: item.quantity,
+        });
+      }
+    }
+
+    // After validation, decrement stock
+    for (const item of products) {
+      const productRecord = await ProductModel.findById(item.product);
+      productRecord.quantity -= item.quantity;
+      await productRecord.save();
+    }
 
     // Create sale
     const sale = await Sale.create({
@@ -42,11 +68,13 @@ module.exports.createSale = async (req, res) => {
       status,
       totalAmount,
     });
-
+    const populatedSale = await Sale.findById(sale._id).populate(
+      "products.product",
+    );
     res.status(201).json({
       success: true,
       message: "Sale created successfully",
-      sale,
+      sale: populatedSale,
     });
   } catch (error) {
     console.error("Create Sale Error:", error);
@@ -100,29 +128,83 @@ module.exports.updateSale = async (req, res) => {
     const updatedData = req.body;
 
     if (!updatedData.products || !updatedData.products.length) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Products are required." });
+      return res.status(400).json({
+        success: false,
+        message: "Products are required.",
+      });
     }
 
+    // 1️⃣ Fetch existing sale
+    const existingSale = await Sale.findById(id);
+    if (!existingSale) {
+      return res.status(404).json({
+        success: false,
+        message: "Sale not found",
+      });
+    }
+
+    // 2️⃣ Rollback OLD stock
+    for (const oldItem of existingSale.products) {
+      const product = await ProductModel.findById(oldItem.product);
+      if (product) {
+        product.quantity += oldItem.quantity;
+        await product.save();
+      }
+    }
+
+    // 3️⃣ Validate NEW products & availability
     let updatedTotalAmount = 0;
-    for (let p of updatedData.products) {
-      updatedTotalAmount += p.quantity * p.price;
+
+    for (const item of updatedData.products) {
+      if (!item.product || !item.quantity || !item.price) {
+        return res.status(400).json({
+          success: false,
+          message: "Each product must have product id, quantity, and price",
+        });
+      }
+
+      const productRecord = await ProductModel.findById(item.product);
+      if (!productRecord) {
+        return res.status(404).json({
+          success: false,
+          message: `Product ${item.product} not found`,
+        });
+      }
+
+      if (productRecord.quantity < item.quantity) {
+        return res.status(400).json({
+          success: false,
+          message: `Only ${productRecord.quantity} items available for ${productRecord.name}. You requested ${item.quantity}.`,
+          available: productRecord.quantity,
+          requested: item.quantity,
+        });
+      }
+
+      updatedTotalAmount += item.quantity * item.price;
     }
 
-    const sale = await Sale.findByIdAndUpdate(
+    // 4️⃣ Deduct NEW stock
+    for (const item of updatedData.products) {
+      const product = await ProductModel.findById(item.product);
+      product.quantity -= item.quantity;
+      await product.save();
+    }
+
+    // 5️⃣ Update sale
+    await Sale.findByIdAndUpdate(
       id,
       { ...updatedData, totalAmount: updatedTotalAmount },
       { new: true },
     );
-    if (!sale)
-      return res
-        .status(404)
-        .json({ success: false, message: "Sale not found" });
 
-    res
-      .status(200)
-      .json({ success: true, message: "Sale updated successfully", sale });
+    // 6️⃣ Populate for frontend
+    const populatedSale = await Sale.findById(id).populate("products.product");
+
+    res.status(200).json({
+      success: true,
+      message: "Sale updated successfully",
+      sale: populatedSale,
+    });
   } catch (error) {
     console.error("Update Sale Error:", error);
     res.status(500).json({

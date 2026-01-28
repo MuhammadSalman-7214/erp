@@ -10,7 +10,7 @@ import {
   updateProfile,
 } from "../features/authSlice";
 import toast from "react-hot-toast";
-import FormattedTime from "../lib/FormattedTime ";
+import FormattedTime from "../lib/FormattedTime";
 import { useRolePermissions } from "../hooks/useRolePermissions";
 import {
   getAllActivityLogs,

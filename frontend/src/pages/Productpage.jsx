@@ -7,7 +7,7 @@ import {
   MdOutlineCategory,
 } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
-import FormattedTime from "../lib/FormattedTime ";
+import FormattedTime from "../lib/FormattedTime";
 import { FaMoneyBill1Wave } from "react-icons/fa6";
 
 import {
@@ -108,7 +108,7 @@ function Productpage({ readOnly = false }) {
     event.preventDefault();
 
     if (!canWrite) {
-      toast.error("You do not have permission to add products");
+      toast.error("You do not have permission to create products");
       return;
     }
 
@@ -117,7 +117,6 @@ function Productpage({ readOnly = false }) {
       Desciption,
       Category,
       Price,
-      quantity,
       dateAdded: new Date(dateAdded).toISOString(),
     };
 
@@ -229,7 +228,7 @@ function Productpage({ readOnly = false }) {
             onClick={() => setIsFormVisible(true)}
             className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
           >
-            <IoMdAdd className="text-xl mr-2" /> Add Product
+            <IoMdAdd className="text-xl mr-2" /> Create Product
           </button>
         )}
         {isReadOnlyMode && (
@@ -257,7 +256,7 @@ function Productpage({ readOnly = false }) {
                 className="inline-flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg"
               >
                 <IoMdAdd />
-                Add your first product
+                Create your first product
               </button>
             </div>
           ) : (
@@ -301,7 +300,7 @@ function Productpage({ readOnly = false }) {
                       </td>
 
                       <td className="px-5 py-4 text-slate-700">
-                        {product.quantity}
+                        {product.quantity ? product.quantity : "--"}
                       </td>
 
                       <td className="px-5 py-4 font-semibold text-slate-800">
@@ -314,7 +313,7 @@ function Productpage({ readOnly = false }) {
 
                       {!isReadOnlyMode && (
                         <td className="px-5 py-4">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex gap-2">
                             {canDelete && (
                               <button
                                 onClick={() => handleremove(product._id)}
@@ -355,7 +354,7 @@ function Productpage({ readOnly = false }) {
         <div className="fixed top-0 right-0 w-full sm:w-[420px] h-full bg-white p-6 border-l shadow-2xl z-50">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">
-              {selectedProduct ? "Edit Product" : "Add Product"}
+              {selectedProduct ? "Edit Product" : "Create Product"}
             </h2>
             <MdKeyboardDoubleArrowLeft
               onClick={closeForm}
@@ -371,7 +370,7 @@ function Productpage({ readOnly = false }) {
               ["Name", name, setName, "text"],
               ["Description", Desciption, setDesciption, "text"],
               ["Price", Price, setPrice, "number"],
-              ["Quantity", quantity, setQuantity, "number"],
+              // ["Quantity", quantity, setQuantity, "number"],
             ].map(([label, val, setter, type]) => (
               <div key={label}>
                 <label className="text-sm font-medium">{label}</label>
@@ -406,7 +405,7 @@ function Productpage({ readOnly = false }) {
               type="submit"
               className="w-full h-12 bg-teal-700 hover:bg-teal-600 text-white rounded-xl shadow-md mt-4"
             >
-              {selectedProduct ? "Update Product" : "Add Product"}
+              {selectedProduct ? "Update Product" : "Create Product"}
             </button>
           </form>
         </div>

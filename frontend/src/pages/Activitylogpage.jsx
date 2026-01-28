@@ -5,7 +5,7 @@ import {
   getsingleUserActivityLogs,
 } from "../features/activitySlice";
 import { useSocket } from "../lib/useSocket";
-import FormattedTime from "../lib/FormattedTime ";
+import FormattedTime from "../lib/FormattedTime";
 
 function Activitylogpage() {
   const [logs, setLogs] = useState([]);

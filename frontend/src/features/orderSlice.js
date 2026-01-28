@@ -139,7 +139,9 @@ const orderSlice = createSlice({
 
       .addCase(createdOrder.fulfilled, (state, action) => {
         state.isorderadd = false;
-        state.getorder.push(action.payload);
+        if (action.payload?.displayOrder?.length > 0) {
+          state.getorder.push(action.payload.displayOrder[0]);
+        }
       })
 
       .addCase(createdOrder.rejected, (state, action) => {
@@ -177,7 +179,15 @@ const orderSlice = createSlice({
       })
       .addCase(SearchOrder.fulfilled, (state, action) => {
         state.issearchdata = false;
-        state.searchdata = action.payload;
+        if (Array.isArray(action.payload)) {
+          state.searchdata = action.payload;
+        } else if (Array.isArray(action.payload?.searchdata)) {
+          state.searchdata = action.payload.searchdata;
+        } else if (Array.isArray(action.payload?.displayOrder)) {
+          state.searchdata = action.payload.displayOrder;
+        } else {
+          state.searchdata = []; // fallback to empty array
+        }
       })
 
       .addCase(SearchOrder.rejected, (state, action) => {

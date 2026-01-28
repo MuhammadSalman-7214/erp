@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { IoMdAdd } from "react-icons/io";
 import { MdKeyboardDoubleArrowLeft } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
-import FormattedTime from "../lib/FormattedTime ";
+import FormattedTime from "../lib/FormattedTime";
 import Stocktanscationgraph from "../lib/Stocktanscationgraph";
 import {
   createStockTransaction,
@@ -53,7 +53,7 @@ function StockTransaction({ readOnly = false }) {
 
   const resetForm = () => {
     setproduct("");
-    settype("Stock-in"); // default
+    settype(""); // default
     setquantity("");
     setsupplier("");
   };
@@ -67,8 +67,6 @@ function StockTransaction({ readOnly = false }) {
     }
 
     const StocksData = { product, type, quantity, supplier };
-    console.log("Submitting Stock Transaction:", StocksData);
-
     dispatch(createStockTransaction(StocksData))
       .unwrap()
       .then(() => {
@@ -147,12 +145,14 @@ function StockTransaction({ readOnly = false }) {
             </div>
 
             <div className="mb-4">
-              <label>type</label>
+              <label>Type</label>
               <select
                 value={type}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2"
                 onChange={(e) => settype(e.target.value)}
               >
+                <option value="">Select type</option>
+
                 <option value={"Stock-in"}>Stock-in</option>
                 <option value={"Stock-out"}>Stock-out</option>
               </select>

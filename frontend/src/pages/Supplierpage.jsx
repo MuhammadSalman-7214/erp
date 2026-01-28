@@ -3,7 +3,7 @@ import TopNavbar from "../Components/TopNavbar";
 import { IoMdAdd } from "react-icons/io";
 import { MdKeyboardDoubleArrowLeft, MdDelete, MdEdit } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
-import FormattedTime from "../lib/FormattedTime ";
+import FormattedTime from "../lib/FormattedTime";
 import {
   SearchSupplier,
   CreateSupplier,

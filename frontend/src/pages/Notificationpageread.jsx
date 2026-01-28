@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { getAllNotifications } from "../features/notificationSlice";
 import { io } from "socket.io-client";
-import FormattedTime from "../lib/FormattedTime ";
+import FormattedTime from "../lib/FormattedTime";
 import image from "../images/user.png";
 import TopNavbar from "../Components/TopNavbar";
 import { MdDelete } from "react-icons/md";

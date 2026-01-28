@@ -3,7 +3,7 @@ import TopNavbar from "../Components/TopNavbar";
 import { IoMdAdd } from "react-icons/io";
 import { MdEdit, MdKeyboardDoubleArrowLeft } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
-import FormattedTime from "../lib/FormattedTime ";
+import FormattedTime from "../lib/FormattedTime";
 
 import {
   CreateSales,
@@ -25,6 +25,7 @@ function Salespage() {
 
   const dispatch = useDispatch();
   const [query, setquery] = useState("");
+  const [formErrors, setFormErrors] = useState({});
 
   const [name, setName] = useState("");
   const [Product, setProduct] = useState("");
@@ -35,6 +36,7 @@ function Salespage() {
   const [Status, setStatus] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [Category, setCategory] = useState("");
+  const [unitPrice, setUnitPrice] = useState(0);
 
   const [selectedSales, setselectedSales] = useState(null);
   const { getallCategory } = useSelector((state) => state.category);
@@ -99,17 +101,17 @@ function Salespage() {
       status: Status,
     };
 
-    dispatch(CreateSales(salesData))
-      .unwrap()
-      .then(() => {
-        toast.success("Sales added successfully");
-        resetForm();
-      })
-      .catch(() => {
-        toast.error("Sales add unsuccessful");
-      });
+    try {
+      await dispatch(CreateSales(salesData)).unwrap();
+      toast.success("Sale created successfully");
+    } catch (error) {
+      if (error?.available && error?.requested) {
+        setFormErrors({
+          quantity: `Only ${error.available} items available. You requested ${error.requested}.`,
+        });
+      }
+    }
   };
-
   const resetForm = () => {
     setName("");
     setProduct("");
@@ -133,6 +135,13 @@ function Salespage() {
       setProduct(firstProduct.product?._id || "");
       setPrice(firstProduct.price || "");
       setQuantity(firstProduct.quantity || "");
+      const productObj = getallproduct.find(
+        (p) => p._id === firstProduct.product?._id,
+      );
+
+      if (productObj) {
+        setUnitPrice(productObj.Price);
+      }
     } else {
       setProduct("");
       setPrice("");
@@ -286,7 +295,21 @@ function Salespage() {
               <label>Product</label>
               <select
                 value={Product}
-                onChange={(e) => setProduct(e.target.value)}
+                onChange={(e) => {
+                  const selectedProductId = e.target.value;
+                  setProduct(selectedProductId);
+
+                  const selectedProduct = getallproduct.find(
+                    (p) => p._id === selectedProductId,
+                  );
+
+                  if (selectedProduct) {
+                    setUnitPrice(selectedProduct.Price);
+                    setPrice(
+                      quantity ? selectedProduct.Price * Number(quantity) : "",
+                    );
+                  }
+                }}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2"
               >
                 <option value="">Select a Product</option>
@@ -301,25 +324,45 @@ function Salespage() {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-gray-700 font-medium">Price</label>
-              <input
-                type="number"
-                value={Price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder="Enter price"
-                className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
-                required
-              />
-            </div>
-
-            <div className="flex flex-col gap-1">
               <label className="text-gray-700 font-medium">Quantity</label>
               <input
                 type="number"
                 value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                placeholder="Enter quantity"
                 className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                onChange={(e) => {
+                  const qty = Number(e.target.value);
+                  setQuantity(qty);
+
+                  if (unitPrice) {
+                    setPrice(unitPrice * qty);
+                  }
+
+                  // Optional: client-side check if you have product stock loaded
+                  const productObj = getallproduct.find(
+                    (p) => p._id === Product,
+                  );
+                  if (productObj && qty > productObj.quantity) {
+                    setFormErrors((prev) => ({
+                      ...prev,
+                      quantity: `Only ${productObj.quantity} available`,
+                    }));
+                  } else {
+                    setFormErrors((prev) => ({ ...prev, quantity: "" }));
+                  }
+                }}
+              />
+            </div>
+            {formErrors.quantity && (
+              <p className="text-red-600 text-sm mt-1">{formErrors.quantity}</p>
+            )}
+            <div className="flex flex-col gap-1">
+              <label className="text-gray-700 font-medium">Price</label>
+              <input
+                type="number"
+                value={Price}
+                readOnly
+                // placeholder="Enter price"
+                className="w-full h-11 px-3 border rounded-xl bg-gray-100 cursor-not-allowed"
                 required
               />
             </div>
@@ -358,7 +401,7 @@ function Salespage() {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-gray-700 font-medium">Order Status</label>
+              <label className="text-gray-700 font-medium">Sale Status</label>
               <select
                 value={Status}
                 onChange={(e) => setStatus(e.target.value)}
@@ -394,6 +437,7 @@ function Salespage() {
                   <th className="px-5 py-4 font-medium">#</th>
                   <th className="px-5 py-4 font-medium">Customer</th>
                   <th className="px-5 py-4 font-medium">Product</th>
+                  <th className="px-5 py-4 font-medium">Quantity</th>
                   <th className="px-5 py-4 font-medium">Total Amount</th>
                   <th className="px-5 py-4 font-medium">Status</th>
                   <th className="px-5 py-4 font-medium">Date</th>
@@ -411,7 +455,10 @@ function Salespage() {
                     <td className="px-5 py-4 text-slate-500">{index + 1}</td>
                     <td className="px-5 py-4">{sale.customerName}</td>
                     <td className="px-5 py-4">
-                      {sale.products?.product?.name || "-"}
+                      {sale.products?.[0]?.product?.name || "-"}{" "}
+                    </td>
+                    <td className="px-5 py-4">
+                      {sale.products?.[0]?.quantity || "-"}{" "}
                     </td>
                     <td className="px-5 py-4 font-semibold text-slate-800">
                       ${sale.totalAmount || 0}

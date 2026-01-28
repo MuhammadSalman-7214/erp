@@ -19,9 +19,7 @@ export const CreateSales = createAsyncThunk(
       });
       return response.data;
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "sales creation failed",
-      );
+      return rejectWithValue(error.response?.data || "sales creation failed");
     }
   },
 );

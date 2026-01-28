@@ -3,7 +3,7 @@ import axiosInstance from "../lib/axios";
 import toast, { Toaster } from "react-hot-toast";
 
 const initialState = {
-  getallproduct: null,
+  getallproduct: [],
   isallproductget: false,
   isproductadd: false,
   isproductremove: false,
@@ -24,7 +24,7 @@ export const Addproduct = createAsyncThunk(
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       }); // <-- updated
-      return response.data;
+      return response.data.product;
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || "Product adding failed",
@@ -114,7 +114,7 @@ export const gettingallproducts = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Product getting failed",
+        error.response?.data.message || "Product getting failed",
       );
     }
   },
@@ -181,7 +181,6 @@ const productSlice = createSlice({
 
       .addCase(gettingallproducts.rejected, (state, action) => {
         state.isallproductget = false;
-        toast.error(action.payload || "Error In adding product logout");
       })
 
       .addCase(Removeproduct.pending, (state) => {

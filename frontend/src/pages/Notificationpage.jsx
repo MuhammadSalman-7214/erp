@@ -11,7 +11,7 @@ import {
 } from "../features/notificationSlice";
 import { io } from "socket.io-client";
 import toast from "react-hot-toast";
-import FormattedTime from "../lib/FormattedTime ";
+import FormattedTime from "../lib/FormattedTime";
 
 function NotificationPage() {
   const dispatch = useDispatch();

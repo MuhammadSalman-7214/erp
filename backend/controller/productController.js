@@ -5,9 +5,9 @@ module.exports.Addproduct = async (req, res) => {
   const ipAddress = req.ip;
 
   try {
-    const { name, Desciption, Category, Price, quantity } = req.body;
+    const { name, Desciption, Category, Price } = req.body;
 
-    if (!name || !Category || !Desciption || !Price || !quantity) {
+    if (!name || !Category || !Desciption || !Price) {
       return res
         .status(400)
         .json({ error: "Please provide all product details." });
@@ -18,7 +18,6 @@ module.exports.Addproduct = async (req, res) => {
       Desciption,
       Category,
       Price,
-      quantity,
       // sku will be auto-generated
     });
 
@@ -49,10 +48,6 @@ module.exports.getProduct = async (req, res) => {
     const Products = await Product.find({}).populate("Category");
 
     const totalProduct = await Product.countDocuments({});
-
-    if (!Products || Products.length === 0) {
-      return res.status(404).json({ message: "Products not found" });
-    }
     res.status(200).json({ Products, totalProduct });
   } catch (error) {
     res

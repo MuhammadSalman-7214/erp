@@ -8,7 +8,7 @@ import {
   getsingleUserActivityLogs,
 } from "../features/activitySlice";
 import { staffUser, managerUser, adminUser } from "../features/authSlice";
-import FormattedTime from "../lib/FormattedTime ";
+import FormattedTime from "../lib/FormattedTime";
 import { useRolePermissions } from "../hooks/useRolePermissions";
 import SalesChart from "../lib/Salesgraph";
 

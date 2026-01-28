@@ -3,7 +3,7 @@ import axiosInstance from "../lib/axios";
 import toast from "react-hot-toast";
 
 const initialState = {
-  getallCategory: null,
+  getallCategory: [],
   isgetallCategory: false,
   iscreatedCategory: false,
   iscategoryremove: false,
@@ -89,8 +89,11 @@ const categorySlice = createSlice({
       })
       .addCase(CreateCategory.fulfilled, (state, action) => {
         state.iscreatedCategory = false;
-        state.getallCategory.unshift(action.payload);
+        if (Array.isArray(state.getallCategory)) {
+          state.getallCategory.unshift(action.payload);
+        }
       })
+
       .addCase(CreateCategory.rejected, (state, action) => {
         state.iscreatedCategory = false;
       })
