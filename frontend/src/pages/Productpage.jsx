@@ -251,13 +251,15 @@ function Productpage({ readOnly = false }) {
             /* Empty State */
             <div className="p-10 text-center">
               <p className="text-slate-500 mb-4">No products found</p>
-              <button
-                onClick={() => setIsFormVisible(true)}
-                className="inline-flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg"
-              >
-                <IoMdAdd />
-                Create your first product
-              </button>
+              {!isReadOnlyMode && (
+                <button
+                  onClick={() => setIsFormVisible(true)}
+                  className="inline-flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg"
+                >
+                  <IoMdAdd />
+                  Create your first product
+                </button>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">

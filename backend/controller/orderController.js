@@ -64,7 +64,7 @@ const createOrder = async (req, res) => {
 const Removeorder = async (req, res) => {
   try {
     const { OrdertId } = req.params;
-    const userId = req.user._id;
+    const userId = req.user.userId;
     const ipAddress = req.ip;
 
     const Deletedorder = await Order.findByIdAndDelete(OrdertId);

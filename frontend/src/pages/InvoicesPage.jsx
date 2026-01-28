@@ -103,7 +103,7 @@ function InvoicesPage() {
             <p className="text-slate-500 mb-4">No invoices found</p>
             <button
               onClick={() => navigate(`${dashboardBasePath}/createInvoice`)}
-              className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg"
+              className="inline-flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg"
             >
               <IoMdAdd />
               Create your first invoice

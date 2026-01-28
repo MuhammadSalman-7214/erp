@@ -182,7 +182,7 @@ module.exports.markInvoiceAsPaid = async (req, res) => {
     const invoice = await Invoice.findOneAndUpdate(
       {
         _id: req.params.id,
-        createdBy: req.user._id,
+        createdBy: req.user.userId,
       },
       {
         status: "paid",

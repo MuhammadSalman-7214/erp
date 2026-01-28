@@ -41,7 +41,7 @@ module.exports.createCategory = async (req, res) => {
 module.exports.RemoveCategory = async (req, res) => {
   try {
     const { CategoryId } = req.params;
-    const userId = req.user._id;
+    const userId = req.user.userId;
     const ipAddress = req.ip;
     const DeletedCategory = await Category.findByIdAndDelete(CategoryId);
 
@@ -96,7 +96,7 @@ module.exports.updateCategory = async (req, res) => {
   try {
     const { updatedCategory } = req.body;
     const { CategoryId } = req.params;
-    const userId = req.user._id;
+    const userId = req.user.userId;
     const ipAddress = req.ip;
 
     const updatingCategory = await Category.findByIdAndUpdate(
