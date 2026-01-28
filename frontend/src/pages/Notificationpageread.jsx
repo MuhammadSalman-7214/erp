@@ -6,6 +6,7 @@ import FormattedTime from "../lib/FormattedTime";
 import image from "../images/user.png";
 import TopNavbar from "../Components/TopNavbar";
 import { MdDelete } from "react-icons/md";
+import NoData from "../Components/NoData";
 function NotificationPageRead() {
   const dispatch = useDispatch();
   const { notifications } = useSelector((state) => state.notification);
@@ -59,8 +60,11 @@ function NotificationPageRead() {
             </div>
           ))
         ) : (
-          <div className="p-10 text-center text-slate-500">
-            No notifications found.
+          <div className="p-10">
+            <NoData
+              title="No Notifications Found"
+              //  description="Try adding notification to get started."
+            />
           </div>
         )}
       </div>

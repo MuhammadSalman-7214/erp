@@ -16,6 +16,7 @@ import { useRolePermissions } from "../hooks/useRolePermissions";
 import { gettingallproducts } from "../features/productSlice";
 import { AiOutlineProduct } from "react-icons/ai";
 import { TfiSupport } from "react-icons/tfi";
+import NoData from "../Components/NoData";
 
 function Supplierpage({ readOnly = false }) {
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
@@ -316,7 +317,7 @@ function Supplierpage({ readOnly = false }) {
 
             <button
               type="submit"
-              className="bg-blue-800 text-white w-full h-12 rounded-lg hover:bg-blue-700 mt-4"
+              className="bg-teal-800 text-white w-full h-12 rounded-lg hover:bg-blue-700 mt-4"
             >
               {selectedSupplier ? "Update Supplier" : "Add Supplier"}
             </button>
@@ -328,14 +329,10 @@ function Supplierpage({ readOnly = false }) {
         <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
           {!Array.isArray(displaySuppliers) || displaySuppliers.length === 0 ? (
             <div className="p-10 text-center">
-              <p className="text-slate-500 mb-4">No suppliers found</p>
-              <button
-                onClick={() => setIsFormVisible(true)}
-                className="inline-flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg"
-              >
-                <IoMdAdd />
-                Add your first supplier
-              </button>
+              <NoData
+                title="No Supplier Found"
+                description="Try adjusting filters or add a new supplier to get started."
+              />
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -349,9 +346,7 @@ function Supplierpage({ readOnly = false }) {
                     <th className="px-5 py-4 font-medium">Address</th>
                     <th className="px-5 py-4 font-medium">Date</th>
                     {!isReadOnlyMode && (
-                      <th className="px-5 py-4 font-medium text-right">
-                        Actions
-                      </th>
+                      <th className="px-5 py-4 font-medium">Actions</th>
                     )}
                   </tr>
                 </thead>
@@ -386,7 +381,7 @@ function Supplierpage({ readOnly = false }) {
 
                       {!isReadOnlyMode && (
                         <td className="px-5 py-4">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex gap-2">
                             {canDelete && (
                               <button
                                 onClick={() => handleRemove(supplier._id)}

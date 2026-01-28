@@ -14,6 +14,7 @@ import {
 } from "../features/orderSlice";
 import { gettingallproducts } from "../features/productSlice";
 import { gettingallCategory } from "../features/categorySlice";
+import NoData from "../Components/NoData";
 
 function Orderpage() {
   const {
@@ -376,25 +377,24 @@ function Orderpage() {
 
       {/* Orders Table */}
       <div className="mt-4 bg-white rounded-2xl shadow-sm border overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 border-b">
-            <tr className="text-left text-slate-500">
-              <th className="px-5 py-4 font-medium">#</th>
-              <th className="px-5 py-4 font-medium">Product</th>
-              <th className="px-5 py-4 font-medium">Quantity</th>
-              <th className="px-5 py-4 font-medium">Total Amount</th>
-              <th className="px-5 py-4 font-medium">Description</th>
-              {/* <th className="px-5 py-4 font-medium">Total Amount</th> */}
-              <th className="px-5 py-4 font-medium">Status</th>
-              <th className="px-5 py-4 font-medium">Created By</th>
-              <th className="px-5 py-4 font-medium">Timestamp</th>
-              <th className="px-5 py-4 font-medium ">Actions</th>
-            </tr>
-          </thead>
+        {Array.isArray(displayOrder) && displayOrder.length > 0 ? (
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 border-b">
+              <tr className="text-left text-slate-500">
+                <th className="px-5 py-4 font-medium">#</th>
+                <th className="px-5 py-4 font-medium">Product</th>
+                <th className="px-5 py-4 font-medium">Quantity</th>
+                <th className="px-5 py-4 font-medium">Total Amount</th>
+                <th className="px-5 py-4 font-medium">Description</th>
+                <th className="px-5 py-4 font-medium">Status</th>
+                <th className="px-5 py-4 font-medium">Created By</th>
+                <th className="px-5 py-4 font-medium">Timestamp</th>
+                <th className="px-5 py-4 font-medium">Actions</th>
+              </tr>
+            </thead>
 
-          <tbody>
-            {Array.isArray(displayOrder) && displayOrder.length > 0 ? (
-              displayOrder.map((order, index) => (
+            <tbody>
+              {displayOrder.map((order, index) => (
                 <tr
                   key={order._id}
                   className="border-b last:border-b-0 hover:bg-slate-50 transition"
@@ -406,15 +406,7 @@ function Orderpage() {
                   <td className="px-5 py-4">{order.Product?.quantity}</td>
                   <td className="px-5 py-4">${order.Product?.price}</td>
                   <td className="px-5 py-4">{order.Description}</td>
-                  {/* <td className="px-5 py-4">${order.totalAmount || 0}</td> */}
-                  <td className="px-5 py-4">
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusBadge(order.status)}`}
-                    >
-                      {order.status?.charAt(0).toUpperCase() +
-                        order.status?.slice(1)}
-                    </span>
-                  </td>
+                  <td className="px-5 py-4">{order.status}</td>
                   <td className="px-5 py-4">{order.user?.name || "N/A"}</td>
                   <td className="px-5 py-4">
                     <FormattedTime timestamp={order.createdAt} />
@@ -436,16 +428,17 @@ function Orderpage() {
                     </button>
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="10" className="text-center py-6 text-slate-500">
-                  No orders found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <div className="p-10">
+            <NoData
+              title="No Orders Found"
+              description="Try adjusting filters or add a new order to get started."
+            />
+          </div>
+        )}
       </div>
     </div>
   );

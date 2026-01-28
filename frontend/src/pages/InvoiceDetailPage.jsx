@@ -145,13 +145,13 @@ function InvoiceDetailPage() {
                 onClick={() =>
                   navigate(`${dashboardBasePath}/editInvoice/${invoice._id}`)
                 }
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
               >
                 Edit
               </button>
               <button
                 onClick={downloadInvoice}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
               >
                 Download PDF
               </button>

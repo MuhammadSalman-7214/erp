@@ -125,8 +125,8 @@ function Dashboardpage() {
             {(userRole === "admin" || userRole === "manager") && (
               <div className="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition">
                 <div className="flex items-center gap-4">
-                  <div className="p-4 rounded-xl bg-green-100">
-                    <LuUsers className="text-3xl text-green-600" />
+                  <div className="p-4 rounded-xl bg-teal-100">
+                    <LuUsers className="text-3xl text-teal-600" />
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-gray-800">

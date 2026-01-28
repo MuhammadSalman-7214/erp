@@ -233,13 +233,12 @@ const productSlice = createSlice({
       .addCase(EditProduct.rejected, (state, action) => {
         state.iseditedProduct = false;
       })
-
       .addCase(getTopProductsByQuantity.fulfilled, (state, action) => {
-        state.gettopproduct = action.payload.topProducts || [];
+        const products = action.payload.topProducts || [];
+        state.gettopproduct = products;
       })
-
       .addCase(getTopProductsByQuantity.rejected, (state, action) => {
-        toast.error("Error In founding  product");
+        toast.error("Error fetching products");
       });
   },
 });

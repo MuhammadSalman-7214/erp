@@ -6,6 +6,7 @@ import axiosInstance from "../lib/axios";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
+import NoData from "../Components/NoData";
 
 function InvoicesPage() {
   const [invoices, setInvoices] = useState([]);
@@ -86,7 +87,7 @@ function InvoicesPage() {
 
         <button
           onClick={() => navigate(`${dashboardBasePath}/createInvoice`)}
-          className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
+          className="bg-teal-800 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
         >
           <IoMdAdd size={18} />
           Create Invoice
@@ -100,14 +101,10 @@ function InvoicesPage() {
           </div>
         ) : invoices.length === 0 ? (
           <div className="p-10 text-center">
-            <p className="text-slate-500 mb-4">No invoices found</p>
-            <button
-              onClick={() => navigate(`${dashboardBasePath}/createInvoice`)}
-              className="inline-flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg"
-            >
-              <IoMdAdd />
-              Create your first invoice
-            </button>
+            <NoData
+              title="No Invoice Found"
+              description="Try adjusting filters or add a new invoice to get started."
+            />
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -167,7 +164,7 @@ function InvoicesPage() {
                           onClick={() =>
                             navigate(`${dashboardBasePath}/invoice/${inv._id}`)
                           }
-                          className="p-2 rounded-lg bg-slate-100 hover:bg-green-100 text-green-600 transition"
+                          className="p-2 rounded-lg bg-slate-100 hover:bg-teal-100 text-teal-600 transition"
                           title="View"
                         >
                           <MdVisibility size={18} />

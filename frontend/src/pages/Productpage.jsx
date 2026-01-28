@@ -21,6 +21,7 @@ import { gettingallCategory } from "../features/categorySlice";
 import toast from "react-hot-toast";
 import { useRolePermissions } from "../hooks/useRolePermissions";
 import { AiOutlineProduct } from "react-icons/ai";
+import NoData from "../Components/NoData";
 
 function Productpage({ readOnly = false }) {
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
@@ -250,16 +251,10 @@ function Productpage({ readOnly = false }) {
             displayProducts.length === 0 ? (
             /* Empty State */
             <div className="p-10 text-center">
-              <p className="text-slate-500 mb-4">No products found</p>
-              {!isReadOnlyMode && (
-                <button
-                  onClick={() => setIsFormVisible(true)}
-                  className="inline-flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg"
-                >
-                  <IoMdAdd />
-                  Create your first product
-                </button>
-              )}
+              <NoData
+                title="No Products Found"
+                description="Try adjusting filters or add a new product to get started."
+              />
             </div>
           ) : (
             <div className="overflow-x-auto">

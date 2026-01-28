@@ -13,6 +13,7 @@ import { gettingallSupplier } from "../features/SupplierSlice";
 import { gettingallproducts } from "../features/productSlice";
 import toast from "react-hot-toast";
 import { useRolePermissions } from "../hooks/useRolePermissions";
+import NoData from "../Components/NoData";
 
 function StockTransaction({ readOnly = false }) {
   const { getallStocks, isgetallStocks, iscreatedStocks, searchdata } =
@@ -196,22 +197,23 @@ function StockTransaction({ readOnly = false }) {
       )}
 
       {/* Table Card */}
+      {/* Table Card */}
       <div className="mt-6 bg-white rounded-2xl shadow-sm border overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 border-b">
-            <tr className="text-left text-slate-500">
-              <th className="px-5 py-4 font-medium">#</th>
-              <th className="px-5 py-4 font-medium">Date</th>
-              <th className="px-5 py-4 font-medium">Product</th>
-              <th className="px-5 py-4 font-medium">Type</th>
-              <th className="px-5 py-4 font-medium">Quantity</th>
-              <th className="px-5 py-4 font-medium">Supplier</th>
-            </tr>
-          </thead>
+        {Array.isArray(displaystock) && displaystock.length > 0 ? (
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 border-b">
+              <tr className="text-left text-slate-500">
+                <th className="px-5 py-4 font-medium">#</th>
+                <th className="px-5 py-4 font-medium">Date</th>
+                <th className="px-5 py-4 font-medium">Product</th>
+                <th className="px-5 py-4 font-medium">Type</th>
+                <th className="px-5 py-4 font-medium">Quantity</th>
+                <th className="px-5 py-4 font-medium">Supplier</th>
+              </tr>
+            </thead>
 
-          <tbody>
-            {Array.isArray(displaystock) && displaystock.length > 0 ? (
-              displaystock.map((stock, index) => (
+            <tbody>
+              {displaystock.map((stock, index) => (
                 <tr
                   key={stock._id}
                   className="border-b last:border-b-0 hover:bg-slate-50 transition"
@@ -225,16 +227,17 @@ function StockTransaction({ readOnly = false }) {
                   <td className="px-5 py-4">{stock.quantity}</td>
                   <td className="px-5 py-4">{stock.supplier?.name || "N/A"}</td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="6" className="text-center py-6 text-slate-500">
-                  No Stocks found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <div className="p-10">
+            <NoData
+              title="No Stock Transactions Found"
+              description="Try adjusting filters or add stock to get started."
+            />
+          </div>
+        )}
       </div>
     </div>
   );

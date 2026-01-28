@@ -12,6 +12,7 @@ import {
 import { io } from "socket.io-client";
 import toast from "react-hot-toast";
 import FormattedTime from "../lib/FormattedTime";
+import NoData from "../Components/NoData";
 
 function NotificationPage() {
   const dispatch = useDispatch();
@@ -187,8 +188,11 @@ function NotificationPage() {
             </div>
           ))
         ) : (
-          <div className="p-10 text-center text-slate-500">
-            No notifications found.
+          <div className="p-10">
+            <NoData
+              title="No Notifications Found"
+              description="Try adding notification to get started."
+            />
           </div>
         )}
       </div>

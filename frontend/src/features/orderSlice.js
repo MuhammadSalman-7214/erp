@@ -12,7 +12,8 @@ const initialState = {
   issearchdata: true,
   searchdata: null,
   isshowgraph: false,
-  statusgraph: null,
+  statusgraph: [],
+  errorGraph: null,
 };
 export const createdOrder = createAsyncThunk(
   "order/createorder",
@@ -199,12 +200,16 @@ const orderSlice = createSlice({
       })
       .addCase(getstatusgraphOrder.fulfilled, (state, action) => {
         state.isshowgraph = false;
-        state.statusgraph = action.payload;
+        state.statusgraph = Array.isArray(action.payload)
+          ? action.payload
+          : action.payload?.statusgraph || [];
+        state.errorGraph = null; // reset error if success
       })
-
       .addCase(getstatusgraphOrder.rejected, (state, action) => {
         state.isshowgraph = false;
-        toast.error("Error In founding graph  Order");
+        state.statusgraph = []; // empty array ensures chart can render
+        state.errorGraph = action.payload || "Failed to fetch order graph";
+        toast.error(state.errorGraph);
       });
   },
 });

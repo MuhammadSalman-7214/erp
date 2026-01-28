@@ -16,6 +16,7 @@ import {
   SearchCategory,
 } from "../features/categorySlice";
 import toast from "react-hot-toast";
+import NoData from "../Components/NoData";
 
 function Categorypage() {
   const { getallCategory, iscreatedCategory, searchdata } = useSelector(
@@ -189,44 +190,40 @@ function Categorypage() {
       <div className="mt-4">
         <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-b">
-                <tr className="text-left text-slate-500">
-                  <th className="px-5 py-4 font-medium">#</th>
-                  <th className="px-5 py-4 font-medium">Name</th>
-                  <th className="px-5 py-4 font-medium">Total Products</th>
-                  <th className="px-5 py-4 font-medium">Description</th>
-                  <th className="px-5 py-4 font-medium">Created At</th>
-                  <th className="px-5 py-4 font-medium text-right">Actions</th>
-                </tr>
-              </thead>
+            {Array.isArray(displayCategory) && displayCategory.length > 0 ? (
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 border-b">
+                  <tr className="text-left text-slate-500">
+                    <th className="px-5 py-4 font-medium">#</th>
+                    <th className="px-5 py-4 font-medium">Name</th>
+                    <th className="px-5 py-4 font-medium">Total Products</th>
+                    <th className="px-5 py-4 font-medium">Description</th>
+                    <th className="px-5 py-4 font-medium">Created At</th>
+                    <th className="px-5 py-4 font-medium text-right">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
 
-              <tbody>
-                {Array.isArray(displayCategory) &&
-                displayCategory.length > 0 ? (
-                  displayCategory.map((Category, index) => (
+                <tbody>
+                  {displayCategory.map((Category, index) => (
                     <tr
                       key={Category._id}
                       className="border-b last:border-b-0 hover:bg-slate-50 transition"
                     >
                       <td className="px-5 py-4 text-slate-500">{index + 1}</td>
-
                       <td className="px-5 py-4 font-semibold text-slate-800">
                         {Category.name}
                       </td>
-
                       <td className="px-5 py-4 text-slate-700">
                         {Category.productCount ?? 0}
                       </td>
-
                       <td className="px-5 py-4 text-slate-600 max-w-xs truncate">
                         {Category.description}
                       </td>
-
                       <td className="px-5 py-4 text-slate-600">
                         <FormattedTime timestamp={Category.createdAt} />
                       </td>
-
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-2">
                           <button
@@ -246,19 +243,17 @@ function Categorypage() {
                         </div>
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="px-6 py-10 text-center text-slate-500"
-                    >
-                      No categories found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="p-10">
+                <NoData
+                  title="No Categories Found"
+                  description="Try adjusting filters or add a new category to get started."
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
