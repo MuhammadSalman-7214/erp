@@ -303,7 +303,7 @@ function CreateInvoicePage() {
           <div className="flex justify-end gap-3">
             <button
               onClick={handleSubmit}
-              className="px-6 py-2 bg-teal-800 text-white rounded-lg hover:bg-green-700"
+              className="px-6 py-2 bg-teal-800 text-white rounded-lg hover:bg-teal-700"
             >
               Create Invoice
             </button>

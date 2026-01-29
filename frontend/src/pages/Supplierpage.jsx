@@ -317,7 +317,7 @@ function Supplierpage({ readOnly = false }) {
 
             <button
               type="submit"
-              className="bg-teal-800 text-white w-full h-12 rounded-lg hover:bg-blue-700 mt-4"
+              className="bg-teal-800 text-white w-full h-12 rounded-lg hover:bg-teal-700 mt-4"
             >
               {selectedSupplier ? "Update Supplier" : "Add Supplier"}
             </button>

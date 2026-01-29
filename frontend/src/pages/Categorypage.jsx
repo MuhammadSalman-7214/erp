@@ -235,7 +235,7 @@ function Categorypage() {
                           </button>
 
                           <button
-                            className="p-2 rounded-xl bg-slate-100 hover:bg-green-100 text-blue-600 transition"
+                            className="p-2 rounded-xl bg-slate-100 hover:bg-teal-100 text-blue-600 transition"
                             title="Edit"
                           >
                             <MdEdit size={18} />

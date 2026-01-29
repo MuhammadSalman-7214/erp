@@ -18,13 +18,13 @@ function TopNavbar() {
     }
   })();
   return (
-    <nav className="bg-white border-b w-full h-[8vh] flex items-center justify-between px-6">
+    <nav className="bg-white w-full h-[72px] flex items-center justify-between px-8 border-b border-gray-200 shadow-sm">
+      {/* LEFT */}
       <div className="flex flex-col">
-        <h1 className="text-xl font-semibold text-gray-800">
-          Welcome, {user?.name || "Guest"}
+        <h1 className="text-lg font-semibold text-gray-900">
+          Welcome back, {user?.name || "Guest"}
         </h1>
-        <p className="text-sm">
-          Today is{" "}
+        <p className="text-sm text-gray-500">
           {new Date().toLocaleDateString("en-GB", {
             weekday: "long",
             day: "2-digit",
@@ -34,23 +34,26 @@ function TopNavbar() {
         </p>
       </div>
 
-      <div className="flex items-center space-x-4">
-        <div className="flex items-center space-x-2">
-          <Link to={`${dashboardBasePath}/Profilepage`}>
-            <img
-              className="border-2 border-teal-500 h-12 w-12 rounded-full object-cover"
-              src={user?.ProfilePic || image}
-              alt="Profile"
-            />
-          </Link>
-          <div className="text-left">
-            <h1 className="text-gray-800 font-medium">
+      {/* RIGHT */}
+      <div className="flex items-center gap-4">
+        <div className="h-8 w-[1px] bg-gray-200" /> {/* Divider */}
+        <Link
+          to={`${dashboardBasePath}/Profilepage`}
+          className="flex items-center gap-3 hover:bg-gray-50 px-3 py-2 rounded-lg transition"
+        >
+          <img
+            className="h-10 w-10 rounded-full object-cover border border-gray-300"
+            src={user?.ProfilePic || image}
+            alt="Profile"
+          />
+
+          <div className="text-left leading-tight">
+            <p className="text-sm font-medium text-gray-900">
               {user?.name || "Guest"}
-            </h1>
-            <p className="text-gray-500 text-sm">{user?.role || "Visitor"}</p>
+            </p>
+            <p className="text-xs text-gray-500">{user?.role || "Visitor"}</p>
           </div>
-        </div>
-        {/* <ThemeToggle className="text-gray-600 text-xl cursor-pointer" /> */}
+        </Link>
       </div>
     </nav>
   );

@@ -46,7 +46,6 @@ function InvoicesPage() {
   }, []);
 
   const deleteInvoice = async (id) => {
-    if (!window.confirm("Delete this invoice permanently?")) return;
     try {
       await axiosInstance.delete(`invoice/${id}`);
       toast.success("Invoice deleted");
