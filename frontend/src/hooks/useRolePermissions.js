@@ -1,44 +1,156 @@
-// hooks/useRolePermissions.js
+// hooks/useRolePermissions.js - COMPLETE VERSION
 import { useSelector } from "react-redux";
 import { useMemo } from "react";
 
-/**
- * Role-based permissions configuration
- * Define what each role can do for each resource
- */
 const ROLE_PERMISSIONS = {
-  admin: {
+  superadmin: {
+    // Core Operations
     product: { read: true, write: true, delete: true },
     order: { read: true, write: true, delete: true },
     sales: { read: true, write: true, delete: true },
-    stock: { read: true, write: true, delete: true },
+    stockTransaction: { read: true, write: true, delete: true },
     category: { read: true, write: true, delete: true },
     supplier: { read: true, write: true, delete: true },
-    notification: { read: true, write: true, delete: true },
+    invoice: { read: true, write: true, delete: true },
+
+    // Hierarchy Management
+    country: { read: true, write: true, delete: true },
+    branch: { read: true, write: true, delete: true },
+    exchangeRate: { read: true, write: true, delete: true },
+
+    // Client-Specific
+    shipment: { read: true, write: true, delete: true },
+    clearingJob: { read: true, write: true, delete: true },
+
+    // User Management
     user: { read: true, write: true, delete: true },
+
+    // System
+    notification: { read: true, write: true, delete: true },
     activityLog: { read: true, write: false, delete: false },
+
+    // Reports
+    reports: { read: true, write: false, delete: false },
   },
-  manager: {
+
+  countryadmin: {
+    // Core Operations (Country Scope)
     product: { read: true, write: true, delete: true },
     order: { read: true, write: true, delete: true },
     sales: { read: true, write: true, delete: true },
-    stock: { read: true, write: true, delete: true },
+    stockTransaction: { read: true, write: true, delete: true },
     category: { read: true, write: true, delete: true },
     supplier: { read: true, write: true, delete: true },
-    notification: { read: true, write: false, delete: false },
-    user: { read: true, write: false, delete: false },
+    invoice: { read: true, write: true, delete: true },
+
+    // Hierarchy Management (Limited)
+    country: { read: true, write: false, delete: false }, // Can only view their country
+    branch: { read: true, write: true, delete: true }, // Can manage branches in their country
+    exchangeRate: { read: true, write: false, delete: false },
+
+    // Client-Specific
+    shipment: { read: true, write: true, delete: true },
+    clearingJob: { read: true, write: true, delete: true },
+
+    // User Management (Country Scope)
+    user: { read: true, write: true, delete: true }, // Can manage users in their country
+
+    // System
+    notification: { read: true, write: true, delete: false },
     activityLog: { read: true, write: false, delete: false },
+
+    // Reports
+    reports: { read: true, write: false, delete: false },
   },
+
+  branchadmin: {
+    // Core Operations (Branch Scope)
+    product: { read: true, write: true, delete: true },
+    order: { read: true, write: true, delete: true },
+    sales: { read: true, write: true, delete: true },
+    stockTransaction: { read: true, write: true, delete: true },
+    category: { read: true, write: true, delete: false },
+    supplier: { read: true, write: true, delete: true },
+    invoice: { read: true, write: true, delete: true },
+
+    // Hierarchy Management (Read Only)
+    country: { read: true, write: false, delete: false },
+    branch: { read: true, write: false, delete: false }, // Can only view their branch
+    exchangeRate: { read: true, write: false, delete: false },
+
+    // Client-Specific
+    shipment: { read: true, write: true, delete: true },
+    clearingJob: { read: true, write: true, delete: true },
+
+    // User Management (Branch Scope - Staff & Agents only)
+    user: { read: true, write: true, delete: true },
+
+    // System
+    notification: { read: true, write: false, delete: false },
+    activityLog: { read: true, write: false, delete: false },
+
+    // Reports
+    reports: { read: true, write: false, delete: false },
+  },
+
   staff: {
-    product: { read: true, write: false, delete: false },
+    // Core Operations (Limited)
+    product: { read: true, write: true, delete: false },
     order: { read: true, write: true, delete: false },
     sales: { read: true, write: true, delete: false },
-    stock: { read: false, write: false, delete: false },
+    stockTransaction: { read: true, write: false, delete: false },
     category: { read: true, write: false, delete: false },
     supplier: { read: true, write: false, delete: false },
-    notification: { read: true, write: false, delete: false },
+    invoice: { read: true, write: false, delete: false },
+
+    // Hierarchy Management (Read Only)
+    country: { read: false, write: false, delete: false },
+    branch: { read: false, write: false, delete: false },
+    exchangeRate: { read: false, write: false, delete: false },
+
+    // Client-Specific
+    shipment: { read: true, write: true, delete: false },
+    clearingJob: { read: true, write: false, delete: false },
+
+    // User Management (None)
     user: { read: false, write: false, delete: false },
+
+    // System
+    notification: { read: true, write: false, delete: false },
     activityLog: { read: true, write: false, delete: false },
+
+    // Reports
+    reports: { read: false, write: false, delete: false },
+  },
+
+  agent: {
+    // Core Operations (None - Agents only handle clearing)
+    product: { read: false, write: false, delete: false },
+    order: { read: false, write: false, delete: false },
+    sales: { read: false, write: false, delete: false },
+    stockTransaction: { read: false, write: false, delete: false },
+    category: { read: false, write: false, delete: false },
+    supplier: { read: false, write: false, delete: false },
+    invoice: { read: false, write: false, delete: false },
+
+    // Hierarchy Management (None)
+    country: { read: false, write: false, delete: false },
+    branch: { read: false, write: false, delete: false },
+    exchangeRate: { read: false, write: false, delete: false },
+
+    // Client-Specific (ONLY Clearing Jobs)
+    shipment: { read: false, write: false, delete: false },
+    clearingJob: { read: true, write: true, delete: false }, // Can only update assigned jobs
+
+    // User Management (None)
+    user: { read: false, write: false, delete: false },
+
+    // System
+    notification: { read: true, write: false, delete: false },
+    activityLog: { read: false, write: false, delete: false },
+
+    // Reports
+    reports: { read: false, write: false, delete: false },
   },
 };
 
@@ -49,12 +161,6 @@ export const useRolePermissions = () => {
     return user?.role || null;
   }, [user]);
 
-  /**
-   * Check if user has specific permission for a resource
-   * @param {string} resource - The resource name (e.g., 'product', 'order')
-   * @param {string} action - The action type ('read', 'write', 'delete')
-   * @returns {boolean}
-   */
   const hasPermission = (resource, action) => {
     if (!userRole || !ROLE_PERMISSIONS[userRole]) {
       return false;
@@ -64,11 +170,6 @@ export const useRolePermissions = () => {
     return permissions ? permissions[action] === true : false;
   };
 
-  /**
-   * Check if a resource is read-only for the current user
-   * @param {string} resource - The resource name
-   * @returns {boolean}
-   */
   const isReadOnly = (resource) => {
     if (!userRole || !ROLE_PERMISSIONS[userRole]) {
       return true;
@@ -78,19 +179,10 @@ export const useRolePermissions = () => {
     return permissions ? permissions.read && !permissions.write : true;
   };
 
-  /**
-   * Check if user can access a resource at all
-   * @param {string} resource - The resource name
-   * @returns {boolean}
-   */
   const canAccess = (resource) => {
     return hasPermission(resource, "read");
   };
 
-  /**
-   * Get all permissions for current user role
-   * @returns {object}
-   */
   const getAllPermissions = () => {
     if (!userRole || !ROLE_PERMISSIONS[userRole]) {
       return {};

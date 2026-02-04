@@ -32,17 +32,24 @@ function LoginPage() {
     try {
       const result = await dispatch(login(data)).unwrap();
 
+      // ✅ FIXED: Updated role redirects to match new hierarchy
       const roleRedirects = {
-        admin: "/AdminDashboard",
-        manager: "/ManagerDashboard",
+        superadmin: "/SuperAdminDashboard",
+        countryadmin: "/CountryAdminDashboard",
+        branchadmin: "/BranchAdminDashboard",
         staff: "/StaffDashboard",
+        agent: "/AgentDashboard",
       };
 
       const userRole = result?.user?.role;
+
+      if (!roleRedirects[userRole]) {
+        toast.error("Invalid user role. Please contact administrator.");
+        return;
+      }
+
       toast.success(`Welcome back, ${result?.user?.name || "User"}!`);
-      navigate(roleRedirects[userRole] || "/ManagerDashboard", {
-        replace: true,
-      });
+      navigate(roleRedirects[userRole], { replace: true });
     } catch (error) {
       console.error("Error in Login:", error);
       toast.error(error || "Login failed. Please try again.");
@@ -53,11 +60,17 @@ function LoginPage() {
   useEffect(() => {
     if (user?.role) {
       const roleRedirects = {
-        admin: "/AdminDashboard",
-        manager: "/ManagerDashboard",
+        superadmin: "/SuperAdminDashboard",
+        countryadmin: "/CountryAdminDashboard",
+        branchadmin: "/BranchAdminDashboard",
         staff: "/StaffDashboard",
+        agent: "/AgentDashboard",
       };
-      navigate(roleRedirects[user.role], { replace: true });
+
+      const redirectPath = roleRedirects[user.role];
+      if (redirectPath) {
+        navigate(redirectPath, { replace: true });
+      }
     }
   }, [user, navigate]);
 

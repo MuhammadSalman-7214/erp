@@ -7,34 +7,38 @@ module.exports.createCategory = async (req, res) => {
   try {
     const { name, description } = req.body;
 
-    const userId = req.user.userId;
-    const ipAddress = req.ip;
     if (!name || !description) {
-      return res
-        .status(400)
-        .json({ message: "Please provide all necessary information." });
+      return res.status(400).json({
+        message: "Please provide all necessary information.",
+      });
     }
+
+    const { userId, branchId, countryId } = req.user;
 
     const newCategory = new Category({
       name,
       description,
-    });
-
-    await logActivity({
-      action: "Add Category",
-      description: `Category "${name} was added`,
-      entity: "category",
-      entityId: newCategory._id,
-      userId: userId,
-      ipAddress: ipAddress,
+      branchId,
+      countryId,
     });
 
     await newCategory.save();
+
+    await logActivity({
+      action: "Add Category",
+      description: `Category "${name}" was added`,
+      entity: "category",
+      entityId: newCategory._id,
+      userId: userId,
+      ipAddress: req.ip,
+    });
+
     res.status(201).json(newCategory);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error in creating Category", error: error.message });
+    res.status(400).json({
+      message: "Error in creating Category",
+      error: error.message,
+    });
   }
 };
 

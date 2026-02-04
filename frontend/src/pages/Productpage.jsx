@@ -102,7 +102,7 @@ function Productpage({ readOnly = false }) {
         toast.success("Product updated successfully");
         closeForm();
       })
-      .catch(() => toast.error("Failed to update product"));
+      .catch(() => {});
   };
 
   const submitProduct = async (event) => {
@@ -262,7 +262,7 @@ function Productpage({ readOnly = false }) {
                 <thead className="bg-slate-50 border-b">
                   <tr className="text-left text-slate-500">
                     <th className="px-5 py-4 font-medium">#</th>
-                    <th className="px-5 py-4 font-medium">Product</th>
+                    <th className="px-5 py-4 font-medium">Title</th>
                     <th className="px-5 py-4 font-medium">Category</th>
                     <th className="px-5 py-4 font-medium">Description</th>
                     <th className="px-5 py-4 font-medium">Qty</th>
@@ -301,7 +301,7 @@ function Productpage({ readOnly = false }) {
                       </td>
 
                       <td className="px-5 py-4 font-semibold text-slate-800">
-                        ${product.Price?.toLocaleString()}
+                        {`${product.Price?.toLocaleString()} ${product?.currencySymbol} `}
                       </td>
 
                       <td className="px-5 py-4 text-slate-600">

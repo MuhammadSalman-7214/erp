@@ -1,5 +1,5 @@
 import { Bar } from "react-chartjs-2";
-import React, { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { getstatusgraphOrder } from "../features/orderSlice";
 import {

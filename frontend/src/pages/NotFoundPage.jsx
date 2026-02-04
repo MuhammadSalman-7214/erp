@@ -1,9 +1,7 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { AlertTriangle } from "lucide-react";
 
 export default function NotFoundPage() {
-  const location = useLocation();
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
       <div className="max-w-md w-full text-center bg-white shadow-xl rounded-2xl p-8">

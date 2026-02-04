@@ -1,6 +1,6 @@
+//authSlice
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axiosInstance from "../lib/axios";
-import toast from "react-hot-toast";
 
 const initialState = {
   // Authuser: JSON.parse(localStorage.getItem("user")) || null,
@@ -170,6 +170,17 @@ export const removeusers = createAsyncThunk(
     }
   },
 );
+export const getUserStats = createAsyncThunk(
+  "auth/getUserStats",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await axiosInstance.get("auth/users/stats");
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message);
+    }
+  },
+);
 
 const authSlice = createSlice({
   name: "auth",
@@ -182,9 +193,10 @@ const authSlice = createSlice({
         state.isUserSignup = true;
       })
       .addCase(signup.fulfilled, (state, action) => {
-        state.user = action.payload.savedUser;
-        state.token = action.payload.savedUser.token;
-        state.isAuthenticated = true;
+        // state.user = action.payload.savedUser;
+        // state.token = action.payload.savedUser.token;
+        // state.isAuthenticated = true;
+        state.isUserSignup = false;
       })
       .addCase(signup.rejected, (state, action) => {
         state.isUserSignup = false;
@@ -241,7 +253,10 @@ const authSlice = createSlice({
 
       .addCase(removeusers.fulfilled, (state, action) => {})
 
-      .addCase(removeusers.rejected, (state, action) => {});
+      .addCase(removeusers.rejected, (state, action) => {})
+      .addCase(getUserStats.fulfilled, (state, action) => {
+        state.userStats = action.payload;
+      });
   },
 });
 

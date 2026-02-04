@@ -1,12 +1,20 @@
+// App.jsx - COMPLETE WITH ALL ROLES
+
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import SignupPage from "./pages/SignupPages";
 import ServicePage from "./pages/ServicePage";
 import LoginPage from "./pages/LoginPage";
 import Profilepage from "./pages/Profilepage";
-import ManagerDashboard from "./pages/ManagerDashboard";
-import AdminDashboard from "./pages/AdminDashboard";
+
+// Dashboard Layouts
+import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import CountryAdminDashboard from "./pages/CountryAdminDashboard";
+import BranchAdminDashboard from "./pages/BranchAdminDashboard";
 import StaffDashboard from "./pages/StaffDashboard";
+import AgentDashboard from "./pages/AgentDashboard";
+
+// Shared Pages
 import Productpage from "./pages/Productpage";
 import Orderpage from "./pages/Orderpage";
 import Salespage from "./pages/Salespage";
@@ -16,15 +24,37 @@ import Notificationpage from "./pages/Notificationpage";
 import Supplierpage from "./pages/Supplierpage";
 import Activitylogpage from "./pages/Activitylogpage";
 import Dashboardpage from "./pages/Dashboardpage";
-import Userstatus from "./pages/Userstatus";
+// import Userstatus from "./pages/Userstatus";
 import NotificationPageRead from "./pages/Notificationpageread";
-import ProtectedRoute from "./lib/ProtectedRoute";
-import { Toaster } from "react-hot-toast";
+
+// Invoice Pages
 import InvoicesPage from "./pages/InvoicesPage";
 import InvoiceDetailPage from "./pages/InvoiceDetailPage";
 import InvoiceEditPage from "./pages/InvoiceEditPage";
 import CreateInvoicePage from "./pages/CreateInvoicePage";
+
+// NEW PAGES - Hierarchy Management
+import CountriesPage from "./pages/CountriesPage";
+import BranchesPage from "./pages/BranchesPage";
+import ExchangeRatesPage from "./pages/ExchangeRatesPage";
+
+// NEW PAGES - Client Requirements
+import ShipmentsPage from "./pages/ShipmentsPage";
+import ShipmentDetailPage from "./pages/ShipmentDetailPage";
+import CreateShipmentPage from "./pages/CreateShipmentPage";
+import ClearingJobsPage from "./pages/ClearingJobsPage";
+import ClearingJobDetailPage from "./pages/ClearingJobDetailPage";
+
+// NEW PAGES - Reports
+import GlobalReportsPage from "./pages/GlobalReportsPage";
+import CountryReportsPage from "./pages/CountryReportsPage";
+import BranchReportsPage from "./pages/BranchReportsPage";
+
+import ProtectedRoute from "./lib/ProtectedRoute";
+import { Toaster } from "react-hot-toast";
 import NotFoundPage from "./pages/NotFoundPage";
+import SetupPage from "./pages/SetupPage";
+import UserManagement from "./pages/UserManagement";
 
 function App() {
   return (
@@ -32,109 +62,221 @@ function App() {
       <div>
         <Toaster />
         <Routes>
-          {/* Public Routes */}
+          {/* ==================== PUBLIC ROUTES ==================== */}
           <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<ServicePage />} />
+          <Route path="/setup" element={<SetupPage />} />
           <Route path="/signup" element={<SignupPage />} />
+
           <Route path="/login" element={<LoginPage />} />
 
-          {/* ========== MANAGER DASHBOARD ========== */}
+          {/* ==================== SUPER ADMIN DASHBOARD ==================== */}
           <Route
-            path="/ManagerDashboard"
+            path="/SuperAdminDashboard"
             element={
-              <ProtectedRoute allowedRoles={["manager"]}>
-                <ManagerDashboard />
+              <ProtectedRoute allowedRoles={["superadmin"]}>
+                <SuperAdminDashboard />
               </ProtectedRoute>
             }
           >
-            {/* Dashboard - Manager */}
-            <Route index element={<Dashboardpage />} />
+            {/* Dashboard */}
+            <Route index element={<Dashboardpage role="superadmin" />} />
 
-            {/* Product - Manager (full access) */}
+            {/* Hierarchy Management */}
+            <Route path="countries" element={<CountriesPage />} />
+            <Route path="branches" element={<BranchesPage />} />
+            <Route path="exchange-rates" element={<ExchangeRatesPage />} />
+
+            {/* User Management */}
+            {/* <Route path="users" element={<Userstatus />} /> */}
+            <Route path="user-management" element={<UserManagement />} />
+
+            <Route path="Profilepage" element={<Profilepage />} />
+
+            {/* Global Reports (USD) */}
+            <Route path="reports/global" element={<GlobalReportsPage />} />
+            <Route path="reports/country" element={<CountryReportsPage />} />
+            <Route path="reports/branch" element={<BranchReportsPage />} />
+
+            {/* Products (Global View) */}
             <Route path="product" element={<Productpage />} />
 
-            {/* Order - Manager */}
+            {/* Orders (Global View) */}
             <Route path="order" element={<Orderpage />} />
 
-            {/* Sales - Manager */}
+            {/* Sales (Global View) */}
             <Route path="sales" element={<Salespage />} />
 
-            {/* Stock Transaction - Manager */}
+            {/* Stock Transaction (Global View) */}
             <Route path="stock-transaction" element={<StockTransaction />} />
 
-            {/* Category - Manager */}
+            {/* Category (Global) */}
             <Route path="category" element={<Categorypage />} />
 
+            {/* Supplier (Global View) */}
+            <Route path="supplier" element={<Supplierpage />} />
+
+            {/* Invoices (Global View) */}
             <Route path="invoices" element={<InvoicesPage />} />
             <Route path="createInvoice" element={<CreateInvoicePage />} />
             <Route path="invoice/:id" element={<InvoiceDetailPage />} />
             <Route path="editInvoice/:id" element={<InvoiceEditPage />} />
 
-            {/* Notifications (Read) - Manager */}
+            {/* Shipments (Global View) */}
+            <Route path="shipments" element={<ShipmentsPage />} />
+            <Route path="shipment/:id" element={<ShipmentDetailPage />} />
+            <Route path="createShipment" element={<CreateShipmentPage />} />
+
+            {/* Clearing Jobs (Global View) */}
+            <Route path="clearing-jobs" element={<ClearingJobsPage />} />
+            <Route
+              path="clearing-job/:id"
+              element={<ClearingJobDetailPage />}
+            />
+
+            {/* Notifications */}
+            <Route path="notifications" element={<Notificationpage />} />
+
+            {/* Activity Log */}
+            <Route path="activity-log" element={<Activitylogpage />} />
+          </Route>
+
+          {/* ==================== COUNTRY ADMIN DASHBOARD ==================== */}
+          <Route
+            path="/CountryAdminDashboard"
+            element={
+              <ProtectedRoute allowedRoles={["countryadmin"]}>
+                <CountryAdminDashboard />
+              </ProtectedRoute>
+            }
+          >
+            {/* Dashboard */}
+            <Route index element={<Dashboardpage role="countryadmin" />} />
+
+            {/* Branch Management (for their country) */}
+            <Route path="branches" element={<BranchesPage />} />
+
+            {/* User Management (country scope) */}
+            <Route path="user-management" element={<UserManagement />} />
+            <Route path="Profilepage" element={<Profilepage />} />
+
+            {/* Country Reports (Local Currency) */}
+            <Route path="reports/country" element={<CountryReportsPage />} />
+            <Route path="reports/branch" element={<BranchReportsPage />} />
+
+            {/* Products (Country Scope) */}
+            <Route path="product" element={<Productpage />} />
+
+            {/* Orders (Country Scope) */}
+            <Route path="order" element={<Orderpage />} />
+
+            {/* Sales (Country Scope) */}
+            <Route path="sales" element={<Salespage />} />
+
+            {/* Stock Transaction (Country Scope) */}
+            <Route path="stock-transaction" element={<StockTransaction />} />
+
+            {/* Category */}
+            <Route path="category" element={<Categorypage />} />
+
+            {/* Supplier (Country Scope) */}
+            <Route path="supplier" element={<Supplierpage />} />
+
+            {/* Invoices (Country Scope) */}
+            <Route path="invoices" element={<InvoicesPage />} />
+            <Route path="createInvoice" element={<CreateInvoicePage />} />
+            <Route path="invoice/:id" element={<InvoiceDetailPage />} />
+            <Route path="editInvoice/:id" element={<InvoiceEditPage />} />
+
+            {/* Shipments (Country Scope) */}
+            <Route path="shipments" element={<ShipmentsPage />} />
+            <Route path="shipment/:id" element={<ShipmentDetailPage />} />
+            <Route path="createShipment" element={<CreateShipmentPage />} />
+
+            {/* Clearing Jobs (Country Scope) */}
+            <Route path="clearing-jobs" element={<ClearingJobsPage />} />
+            <Route
+              path="clearing-job/:id"
+              element={<ClearingJobDetailPage />}
+            />
+
+            {/* Notifications */}
+            <Route path="notifications" element={<Notificationpage />} />
             <Route
               path="NotificationPageRead"
               element={<NotificationPageRead />}
             />
 
-            {/* Profile - Manager */}
-            <Route path="Profilepage" element={<Profilepage />} />
-
-            {/* Supplier - Manager */}
-            <Route path="supplier" element={<Supplierpage />} />
-
-            {/* User Status - Manager */}
-            <Route path="Userstatus" element={<Userstatus />} />
+            {/* Activity Log */}
+            <Route path="activity-log" element={<Activitylogpage />} />
           </Route>
 
-          {/* ========== ADMIN DASHBOARD ========== */}
+          {/* ==================== BRANCH ADMIN DASHBOARD ==================== */}
           <Route
-            path="/AdminDashboard"
+            path="/BranchAdminDashboard"
             element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <AdminDashboard />
+              <ProtectedRoute allowedRoles={["branchadmin"]}>
+                <BranchAdminDashboard />
               </ProtectedRoute>
             }
           >
-            {/* Dashboard - Admin */}
-            <Route index element={<Dashboardpage />} />
+            {/* Dashboard */}
+            <Route index element={<Dashboardpage role="branchadmin" />} />
 
-            {/* Product - Admin */}
+            {/* User Management (branch scope) */}
+            <Route path="user-management" element={<UserManagement />} />
+            <Route path="Profilepage" element={<Profilepage />} />
+
+            {/* Branch Reports */}
+            <Route path="reports" element={<BranchReportsPage />} />
+
+            {/* Products (Branch Scope - Full Access) */}
             <Route path="product" element={<Productpage />} />
 
-            {/* Order - Admin */}
+            {/* Orders (Branch Scope) */}
             <Route path="order" element={<Orderpage />} />
 
-            {/* Sales - Admin */}
+            {/* Sales (Branch Scope) */}
             <Route path="sales" element={<Salespage />} />
 
-            {/* Stock Transaction - Admin */}
+            {/* Stock Transaction (Branch Scope) */}
             <Route path="stock-transaction" element={<StockTransaction />} />
 
-            {/* Category - Admin */}
+            {/* Category */}
             <Route path="category" element={<Categorypage />} />
 
+            {/* Supplier (Branch Scope) */}
+            <Route path="supplier" element={<Supplierpage />} />
+
+            {/* Invoices (Branch Scope) */}
             <Route path="invoices" element={<InvoicesPage />} />
             <Route path="createInvoice" element={<CreateInvoicePage />} />
             <Route path="invoice/:id" element={<InvoiceDetailPage />} />
             <Route path="editInvoice/:id" element={<InvoiceEditPage />} />
 
-            {/* Notifications (Create) - Admin */}
-            <Route path="notifications" element={<Notificationpage />} />
+            {/* Shipments (Branch Scope) */}
+            <Route path="shipments" element={<ShipmentsPage />} />
+            <Route path="shipment/:id" element={<ShipmentDetailPage />} />
+            <Route path="createShipment" element={<CreateShipmentPage />} />
 
-            {/* Profile - Admin */}
-            <Route path="Profilepage" element={<Profilepage />} />
+            {/* Clearing Jobs (Branch Scope) */}
+            <Route path="clearing-jobs" element={<ClearingJobsPage />} />
+            <Route
+              path="clearing-job/:id"
+              element={<ClearingJobDetailPage />}
+            />
 
-            {/* Supplier - Admin */}
-            <Route path="supplier" element={<Supplierpage />} />
+            {/* Notifications */}
+            <Route
+              path="NotificationPageRead"
+              element={<NotificationPageRead />}
+            />
 
-            {/* Activity Log - Admin Only */}
+            {/* Activity Log */}
             <Route path="activity-log" element={<Activitylogpage />} />
-
-            {/* User Status - Admin */}
-            <Route path="Userstatus" element={<Userstatus />} />
           </Route>
 
-          {/* ========== STAFF DASHBOARD ========== */}
+          {/* ==================== STAFF DASHBOARD ==================== */}
           <Route
             path="/StaffDashboard"
             element={
@@ -143,30 +285,72 @@ function App() {
               </ProtectedRoute>
             }
           >
-            {/* Dashboard - Staff */}
-            <Route index element={<Dashboardpage />} />
+            {/* Dashboard */}
+            <Route index element={<Dashboardpage role="staff" />} />
 
-            {/* Product - Staff (read-only) */}
-            <Route path="product" element={<Productpage readOnly />} />
+            {/* Profile */}
+            <Route path="Profilepage" element={<Profilepage />} />
 
-            {/* Order - Staff */}
+            {/* Products (Read + Write) */}
+            <Route path="product" element={<Productpage />} />
+
+            {/* Orders (Create & Edit) */}
             <Route path="order" element={<Orderpage />} />
 
-            {/* Sales - Staff */}
+            {/* Sales (Create & Edit) */}
             <Route path="sales" element={<Salespage />} />
 
-            {/* Notifications (Read) - Staff */}
+            {/* Supplier (Read Only) */}
+            <Route path="supplier" element={<Supplierpage readOnly />} />
+
+            {/* Shipments (Create & Edit) */}
+            <Route path="shipments" element={<ShipmentsPage />} />
+            <Route path="shipment/:id" element={<ShipmentDetailPage />} />
+            <Route path="createShipment" element={<CreateShipmentPage />} />
+
+            {/* Notifications (Read Only) */}
             <Route
               path="NotificationPageRead"
               element={<NotificationPageRead />}
             />
 
-            {/* Profile - Staff */}
+            {/* Activity Log (Read Only) */}
+            <Route path="activity-log" element={<Activitylogpage />} />
+          </Route>
+
+          {/* ==================== AGENT DASHBOARD (Clearing Agent) ==================== */}
+          <Route
+            path="/AgentDashboard"
+            element={
+              <ProtectedRoute allowedRoles={["agent"]}>
+                <AgentDashboard />
+              </ProtectedRoute>
+            }
+          >
+            {/* Dashboard */}
+            <Route index element={<Dashboardpage role="agent" />} />
+
+            {/* Profile */}
             <Route path="Profilepage" element={<Profilepage />} />
 
-            {/* Supplier - Staff (read-only) */}
-            <Route path="supplier" element={<Supplierpage readOnly />} />
+            {/* Clearing Jobs (Assigned to Agent - Update Only) */}
+            <Route
+              path="clearing-jobs"
+              element={<ClearingJobsPage agentView />}
+            />
+            <Route
+              path="clearing-job/:id"
+              element={<ClearingJobDetailPage />}
+            />
+
+            {/* Notifications */}
+            <Route
+              path="NotificationPageRead"
+              element={<NotificationPageRead />}
+            />
           </Route>
+
+          {/* 404 Not Found */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </div>

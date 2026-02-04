@@ -17,23 +17,14 @@ import { gettingallCategory } from "../features/categorySlice";
 import NoData from "../Components/NoData";
 
 function Orderpage() {
-  const {
-    getorder,
-    isgetorder,
-    isorderadd,
-    isorderremove,
-    editorder,
-    iseditorder,
-    searchdata,
-    isshowgraph,
-    statusgraph,
-  } = useSelector((state) => state.order);
+  const { getorder, editorder, searchdata } = useSelector(
+    (state) => state.order,
+  );
   const { getallproduct } = useSelector((state) => state.product);
-  const { getallCategory } = useSelector((state) => state.category);
   const { getallSupplier } = useSelector((state) => state.supplier);
   const [supplier, setsupplier] = useState("");
 
-  const { user, isUserSignup } = useSelector((state) => state.auth);
+  const { user } = useSelector((state) => state.auth);
   const [formErrors, setFormErrors] = useState({});
 
   const dispatch = useDispatch();
@@ -406,7 +397,15 @@ function Orderpage() {
                   <td className="px-5 py-4">{order.Product?.quantity}</td>
                   <td className="px-5 py-4">${order.Product?.price}</td>
                   <td className="px-5 py-4">{order.Description}</td>
-                  <td className="px-5 py-4">{order.status}</td>
+                  <td className="px-5 py-4">
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-medium capitalize 
+    ${getStatusBadge(order.status)}`}
+                    >
+                      {order.status}
+                    </span>
+                  </td>
+
                   <td className="px-5 py-4">{order.user?.name || "N/A"}</td>
                   <td className="px-5 py-4">
                     <FormattedTime timestamp={order.createdAt} />
@@ -420,11 +419,16 @@ function Orderpage() {
                       <MdDelete size={18} />
                     </button>
                     <button
-                      onClick={() => handleEditClick(order)}
-                      className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
-                      title="Edit"
+                      disabled={order.status === "delivered"}
+                      className={`px-4 py-2 rounded
+    ${
+      order.status === "delivered"
+        ? "bg-gray-300 cursor-not-allowed"
+        : "bg-blue-600 text-white"
+    }
+  `}
                     >
-                      <MdEdit size={18} />
+                      Edit
                     </button>
                   </td>
                 </tr>

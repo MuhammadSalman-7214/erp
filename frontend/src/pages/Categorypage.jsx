@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { IoMdAdd } from "react-icons/io";
 import FormattedTime from "../lib/FormattedTime";
-import TopNavbar from "../Components/TopNavbar";
 import {
   MdDelete,
   MdEdit,
@@ -19,9 +18,8 @@ import toast from "react-hot-toast";
 import NoData from "../Components/NoData";
 
 function Categorypage() {
-  const { getallCategory, iscreatedCategory, searchdata } = useSelector(
-    (state) => state.category,
-  );
+  const { getallCategory, searchdata } = useSelector((state) => state.category);
+  const { user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const [query, setquery] = useState("");
 
@@ -63,7 +61,6 @@ function Categorypage() {
     dispatch(CreateCategory(CategoryData))
       .unwrap()
       .then((data) => {
-        console.log("Category created:", data); // <-- see what is returned
         toast.success("CategoryData added successfully");
         resetForm();
       })

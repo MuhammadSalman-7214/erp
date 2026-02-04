@@ -1,13 +1,34 @@
 import { FaArrowRightLong } from "react-icons/fa6";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   FiBox,
   FiFileText,
   FiTrendingUp,
   FiShoppingCart,
 } from "react-icons/fi";
+import { useEffect } from "react";
+import toast from "react-hot-toast";
+import axiosInstance from "../lib/axios";
 
 function HomePage() {
+  // Add a check in HomePage to guide first-time users
+  const navigate = useNavigate();
+  useEffect(() => {
+    const checkIfSetupNeeded = async () => {
+      try {
+        const response = await axiosInstance.get("/auth/check-setup");
+        if (!response.data.setupComplete) {
+          // Show banner or redirect to setup
+          toast.info("Please complete initial setup");
+          setTimeout(() => navigate("/setup"), 2000);
+        }
+      } catch (error) {
+        // Ignore errors
+      }
+    };
+
+    checkIfSetupNeeded();
+  }, []);
   return (
     <div className="min-h-screen bg-slate-50 flex justify-center item-center px-4 sm:px-6 md:px-10 lg:px-16 py-10">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12 items-center">

@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import TopNavbar from "../Components/TopNavbar";
 import { IoCameraOutline } from "react-icons/io5";
 import image from "../images/user.png";
 import {
@@ -20,9 +19,7 @@ import {
 function ProfilePage() {
   const dispatch = useDispatch();
   const [releventLogs, setReleventLogs] = useState([]);
-  const { staffuser, manageruser, adminuser, user } = useSelector(
-    (state) => state.auth,
-  );
+  const { user } = useSelector((state) => state.auth);
   const { myLogs, activityLogs } = useSelector((state) => state.activity);
   const [images, setImage] = useState(null);
   const { hasPermission, userRole } = useRolePermissions();

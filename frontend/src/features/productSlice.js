@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axiosInstance from "../lib/axios";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 
 const initialState = {
   getallproduct: [],
@@ -61,7 +61,6 @@ export const EditProduct = createAsyncThunk(
   "product/editproduct",
   async ({ id, updatedData }, { rejectWithValue }) => {
     if (!updatedData) {
-      console.log("No data to update!");
       return rejectWithValue("No updated data provided");
     }
 

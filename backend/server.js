@@ -15,7 +15,10 @@ const salesrouter = require("./Routers/salesRouter.js");
 const supplierrouter = require("./Routers/supplierrouter.js");
 const invoiceRouter = require("./Routers/invoiceRouter.js");
 const stocktransactionrouter = require("./Routers/stocktransactionrouter.js");
-
+const countryrouter = require("./Routers/countryRouter.js");
+const branchrouter = require("./Routers/branchRouter.js");
+const shipmentrouter = require("./Routers/shipmentRouter.js");
+const clearingjobrouter = require("./Routers/clearingJobRouter.js");
 require("dotenv").config();
 const PORT = process.env.PORT || 3003;
 console.log("🚀 ~ PORT:", PORT);
@@ -73,6 +76,10 @@ app.use("/api/sales", salesrouter);
 app.use("/api/supplier", supplierrouter);
 app.use("/api/stocktransaction", stocktransactionrouter);
 app.use("/api/invoice", invoiceRouter);
+app.use("/api/country", countryrouter);
+app.use("/api/branch", branchrouter);
+app.use("/api/shipment", shipmentrouter); // MISSING
+app.use("/api/clearing-job", clearingjobrouter); // MISSING
 
 server.listen(PORT, () => {
   MongoDBconfig();

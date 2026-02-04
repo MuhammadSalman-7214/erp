@@ -8,7 +8,7 @@ const {
 } = require("../middleware/Authmiddleware.js");
 
 const {
-  Addproduct,
+  createProduct,
   getProduct,
   RemoveProduct,
   EditProduct,
@@ -30,7 +30,7 @@ router.post(
   "/",
   authmiddleware,
   checkPermission("product", "write"),
-  Addproduct,
+  createProduct,
 );
 
 // PUT - Admin and Manager only
@@ -45,7 +45,7 @@ router.put(
 router.delete(
   "/:productId",
   authmiddleware,
-  checkRole("admin", "manager"),
+  checkPermission("product", "delete"),
   RemoveProduct,
 );
 

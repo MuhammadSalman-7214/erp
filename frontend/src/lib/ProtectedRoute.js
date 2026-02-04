@@ -16,9 +16,11 @@ const ProtectedRoute = ({
   if (allowedRoles.length > 0) {
     if (!user || !allowedRoles.includes(user.role)) {
       const roleRedirects = {
-        admin: "/AdminDashboard",
-        manager: "/ManagerDashboard",
+        superadmin: "/SuperAdminDashboard",
+        countryadmin: "/CountryAdminDashboard",
+        branchadmin: "/BranchAdminDashboard",
         staff: "/StaffDashboard",
+        agent: "/AgentDashboard",
       };
       return <Navigate to={roleRedirects[user?.role] || "/"} replace />;
     }

@@ -126,7 +126,6 @@ module.exports.deleteSupplier = async (req, res) => {
 module.exports.searchSupplier = async (req, res) => {
   try {
     const { query } = req.query;
-    console.log("Received query:", query);
 
     if (!query || query.trim() === "") {
       return res
