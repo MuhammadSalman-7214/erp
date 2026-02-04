@@ -4,12 +4,12 @@ const CategorySchema = new mongoose.Schema(
   {
     name: { type: String, required: true, unique: true },
     description: { type: String },
-    branchId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Branch",
-      required: true, // Every entry MUST belong to a branch
-      index: true,
-    },
+    // branchId: {
+    //   type: mongoose.Schema.Types.ObjectId,
+    //   ref: "Branch",
+    //   required: true, // Every entry MUST belong to a branch
+    //   index: true,
+    // },
     countryId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Country",

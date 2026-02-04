@@ -457,8 +457,6 @@ module.exports.getUserStats = async (req, res) => {
       formattedStats[stat._id] = stat.count;
       formattedStats.total += stat.count;
     });
-    console.log({ formattedStats });
-
     res.status(200).json(formattedStats);
   } catch (error) {
     console.log("Error in getUserStats Controller:", error.message);
@@ -497,7 +495,7 @@ module.exports.signup = async (req, res) => {
       });
     }
     if (creatorUser.role === "countryadmin") {
-      if (countryId._id?.toString() !== creatorUser.countryId?.toString()) {
+      if (countryId?.toString() !== creatorUser.countryId?.toString()) {
         return res.status(403).json({
           message: "You can only create users in your country",
         });
@@ -586,6 +584,7 @@ module.exports.signup = async (req, res) => {
         countryId: savedUser.countryId,
         branchId: savedUser.branchId,
         ProfilePic: savedUser.ProfilePic,
+        staffCanEdit: savedUser.staffCanEdit || false,
         token,
       },
     });
@@ -654,6 +653,7 @@ module.exports.login = async (req, res) => {
         country: user.countryId,
         branch: user.branchId,
         ProfilePic: user.ProfilePic,
+        staffCanEdit: user.staffCanEdit || false,
         token,
       },
     });
@@ -853,6 +853,76 @@ module.exports.toggleUserStatus = async (req, res) => {
     });
   } catch (error) {
     console.error("Error toggling user status:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+/**
+ * Update Staff Edit Permission (Branch Admin/Country Admin/Super Admin)
+ */
+module.exports.updateStaffEditPermission = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { staffCanEdit } = req.body;
+    const currentUser = req.user;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.role !== "staff") {
+      return res
+        .status(400)
+        .json({ message: "Only staff users can be updated" });
+    }
+
+    if (currentUser.role === "countryadmin") {
+      if (user.countryId?.toString() !== currentUser.countryId?.toString()) {
+        return res.status(403).json({
+          message: "Cannot modify staff from another country",
+        });
+      }
+    }
+
+    if (currentUser.role === "branchadmin") {
+      if (user.branchId?.toString() !== currentUser.branchId?.toString()) {
+        return res.status(403).json({
+          message: "Cannot modify staff from another branch",
+        });
+      }
+    }
+
+    if (
+      !["superadmin", "countryadmin", "branchadmin"].includes(currentUser.role)
+    ) {
+      return res.status(403).json({
+        message: "Access denied",
+      });
+    }
+
+    user.staffCanEdit = Boolean(staffCanEdit);
+    await user.save();
+
+    await logActivity({
+      action: "Staff Permission Updated",
+      description: `Staff ${user.name} edit permission set to ${user.staffCanEdit}`,
+      entity: "user",
+      entityId: user._id,
+      userId: currentUser._id,
+      ipAddress: req.ip,
+    });
+
+    res.status(200).json({
+      message: "Staff permissions updated",
+      user: {
+        id: user._id,
+        name: user.name,
+        staffCanEdit: user.staffCanEdit,
+      },
+    });
+  } catch (error) {
+    console.error("Error updating staff permissions:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

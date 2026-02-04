@@ -16,7 +16,6 @@ const {
 } = require("../controller/shipmentController.js");
 const {
   authmiddleware,
-  checkRole,
   checkPermission,
 } = require("../middleware/Authmiddleware.js");
 
@@ -28,7 +27,7 @@ const {
 router.get(
   "/",
   authmiddleware,
-  checkRole("superadmin", "countryadmin", "branchadmin", "staff"),
+  checkPermission("shipment", "read"),
   getAllShipments,
 );
 
@@ -36,7 +35,7 @@ router.get(
 router.get(
   "/statistics",
   authmiddleware,
-  checkRole("superadmin", "countryadmin", "branchadmin", "staff"),
+  checkPermission("shipment", "read"),
   getShipmentStatistics,
 );
 
@@ -44,7 +43,7 @@ router.get(
 router.get(
   "/:id",
   authmiddleware,
-  checkRole("superadmin", "countryadmin", "branchadmin", "staff"),
+  checkPermission("shipment", "read"),
   getShipmentById,
 );
 
@@ -52,7 +51,6 @@ router.get(
 router.post(
   "/",
   authmiddleware,
-  checkRole("superadmin", "countryadmin", "branchadmin", "staff"),
   checkPermission("shipment", "write"),
   createShipment,
 );
@@ -61,7 +59,6 @@ router.post(
 router.put(
   "/:id",
   authmiddleware,
-  checkRole("superadmin", "countryadmin", "branchadmin", "staff"),
   checkPermission("shipment", "write"),
   updateShipment,
 );
@@ -70,7 +67,7 @@ router.put(
 router.patch(
   "/:id/status",
   authmiddleware,
-  checkRole("superadmin", "countryadmin", "branchadmin", "staff"),
+  checkPermission("shipment", "write"),
   updateShipmentStatus,
 );
 
@@ -78,7 +75,7 @@ router.patch(
 router.post(
   "/:id/document",
   authmiddleware,
-  checkRole("superadmin", "countryadmin", "branchadmin", "staff"),
+  checkPermission("shipment", "write"),
   addShipmentDocument,
 );
 
@@ -86,7 +83,7 @@ router.post(
 router.post(
   "/:id/expense",
   authmiddleware,
-  checkRole("superadmin", "countryadmin", "branchadmin", "staff"),
+  checkPermission("shipment", "write"),
   addShipmentExpense,
 );
 
@@ -94,7 +91,7 @@ router.post(
 router.get(
   "/:id/profit",
   authmiddleware,
-  checkRole("superadmin", "countryadmin", "branchadmin", "staff"),
+  checkPermission("shipment", "read"),
   calculateShipmentProfit,
 );
 
@@ -102,7 +99,7 @@ router.get(
 router.delete(
   "/:id",
   authmiddleware,
-  checkRole("superadmin", "countryadmin", "branchadmin"),
+  checkPermission("shipment", "delete"),
   deleteShipment,
 );
 

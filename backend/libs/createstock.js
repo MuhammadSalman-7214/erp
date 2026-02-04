@@ -20,6 +20,11 @@ const createStockInTransaction = async (order) => {
     type: "Stock-in",
     quantity: order.Product.quantity,
     supplier: order.supplier || null,
+    branchId: order.branchId,
+    countryId: order.countryId,
+    currency: order.currency,
+    exchangeRateUsed: order.exchangeRateUsed,
+    priceUSD: 0,
   });
 
   // 2️⃣ Increase product stock

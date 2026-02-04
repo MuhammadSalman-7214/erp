@@ -6,6 +6,7 @@ import { toast } from "react-hot-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { useSelector } from "react-redux";
+import { useRolePermissions } from "../hooks/useRolePermissions";
 
 function InvoiceDetailPage() {
   const { id } = useParams();
@@ -13,15 +14,20 @@ function InvoiceDetailPage() {
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const { user } = useSelector((state) => state.auth);
+  const { hasPermission } = useRolePermissions();
 
   const dashboardBasePath = (() => {
     switch (user?.role) {
-      case "admin":
-        return "/AdminDashboard";
-      case "manager":
-        return "/ManagerDashboard";
+      case "superadmin":
+        return "/SuperAdminDashboard";
+      case "countryadmin":
+        return "/CountryAdminDashboard";
+      case "branchadmin":
+        return "/BranchAdminDashboard";
       case "staff":
         return "/StaffDashboard";
+      case "agent":
+        return "/AgentDashboard";
       default:
         return "/";
     }
@@ -127,6 +133,30 @@ function InvoiceDetailPage() {
     doc.save(`${invoice.invoiceNumber}.pdf`);
   };
 
+  const approveInvoice = async () => {
+    try {
+      await axiosInstance.patch(`/invoice/${id}/approve`);
+      toast.success("Invoice approved");
+      const res = await axiosInstance.get(`/invoice/${id}`);
+      setInvoice(res.data.data);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to approve invoice");
+    }
+  };
+
+  const payInvoice = async () => {
+    try {
+      await axiosInstance.patch(`/invoice/${id}/pay`);
+      toast.success("Invoice marked as paid");
+      const res = await axiosInstance.get(`/invoice/${id}`);
+      setInvoice(res.data.data);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to mark invoice as paid");
+    }
+  };
+
   if (loading) return <p className="p-6">Loading invoice...</p>;
   if (!invoice) return <p className="p-6">Invoice not found</p>;
 
@@ -141,14 +171,34 @@ function InvoiceDetailPage() {
               {invoice.invoiceNumber}
             </h1>
             <div className="flex gap-2">
-              <button
-                onClick={() =>
-                  navigate(`${dashboardBasePath}/editInvoice/${invoice._id}`)
-                }
-                className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
-              >
-                Edit
-              </button>
+              {["draft", "sent"].includes(invoice.status) && (
+                <button
+                  onClick={() =>
+                    navigate(`${dashboardBasePath}/editInvoice/${invoice._id}`)
+                  }
+                  className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
+                >
+                  Edit
+                </button>
+              )}
+              {hasPermission("invoiceApprove", "write") &&
+                ["draft", "sent"].includes(invoice.status) && (
+                  <button
+                    onClick={approveInvoice}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                  >
+                    Approve
+                  </button>
+                )}
+              {hasPermission("invoice", "write") &&
+                invoice.status === "approved" && (
+                  <button
+                    onClick={payInvoice}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                  >
+                    Pay
+                  </button>
+                )}
               <button
                 onClick={downloadInvoice}
                 className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"

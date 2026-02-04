@@ -5,11 +5,30 @@ const StockTransaction = require("../models/StockTranscationmodel");
 module.exports.createStockTransaction = async (req, res) => {
   try {
     const { product, type, quantity, supplier } = req.body;
+    const {
+      role,
+      countryId,
+      branchId,
+      userCurrency,
+      userCurrencyExchangeRate,
+    } = req.user || {};
 
     if (!product || !type || !quantity) {
       return res.status(400).json({
         success: false,
         message: "Product, type, and quantity are required.",
+      });
+    }
+    if (!branchId || !countryId) {
+      return res.status(400).json({
+        success: false,
+        message: "Branch and country are required for stock transactions.",
+      });
+    }
+    if (!userCurrency || !userCurrencyExchangeRate) {
+      return res.status(400).json({
+        success: false,
+        message: "Currency configuration is missing for this user",
       });
     }
 
@@ -19,6 +38,24 @@ module.exports.createStockTransaction = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Product not found",
+      });
+    }
+    if (
+      role === "countryadmin" &&
+      productToUpdate.countryId?.toString() !== countryId?.toString()
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied for this country",
+      });
+    }
+    if (
+      ["branchadmin", "staff", "agent"].includes(role) &&
+      productToUpdate.branchId?.toString() !== branchId?.toString()
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied for this branch",
       });
     }
 
@@ -44,6 +81,11 @@ module.exports.createStockTransaction = async (req, res) => {
       type,
       quantity,
       supplier,
+      branchId,
+      countryId,
+      currency: userCurrency,
+      exchangeRateUsed: userCurrencyExchangeRate,
+      priceUSD: 0,
     });
 
     await newTransaction.save();
@@ -70,7 +112,15 @@ module.exports.createStockTransaction = async (req, res) => {
 // Get all stock transactions
 module.exports.getAllStockTransactions = async (req, res) => {
   try {
-    const transactions = await StockTransaction.find()
+    const { role, countryId, branchId } = req.user || {};
+    const query = {};
+    if (role === "countryadmin") {
+      query.countryId = countryId;
+    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+      query.branchId = branchId;
+      query.countryId = countryId;
+    }
+    const transactions = await StockTransaction.find(query)
       .populate("product")
       .populate("supplier")
       .sort({ transactionDate: -1 });
@@ -90,7 +140,15 @@ module.exports.getAllStockTransactions = async (req, res) => {
 module.exports.getStockTransactionsByProduct = async (req, res) => {
   try {
     const { productId } = req.params;
-    const transactions = await StockTransaction.find({ product: productId })
+    const { role, countryId, branchId } = req.user || {};
+    const query = { product: productId };
+    if (role === "countryadmin") {
+      query.countryId = countryId;
+    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+      query.branchId = branchId;
+      query.countryId = countryId;
+    }
+    const transactions = await StockTransaction.find(query)
       .populate("product")
       .populate("supplier")
       .sort({ transactionDate: -1 });
@@ -117,7 +175,15 @@ module.exports.getStockTransactionsByProduct = async (req, res) => {
 module.exports.getStockTransactionsBySupplier = async (req, res) => {
   try {
     const { supplierId } = req.params;
-    const transactions = await StockTransaction.find({ supplier: supplierId })
+    const { role, countryId, branchId } = req.user || {};
+    const query = { supplier: supplierId };
+    if (role === "countryadmin") {
+      query.countryId = countryId;
+    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+      query.branchId = branchId;
+      query.countryId = countryId;
+    }
+    const transactions = await StockTransaction.find(query)
       .populate("product")
       .populate("supplier")
       .sort({ transactionDate: -1 });
@@ -144,11 +210,20 @@ module.exports.getStockTransactionsBySupplier = async (req, res) => {
 module.exports.searchStocks = async (req, res) => {
   try {
     const { query } = req.query;
+    const { role, countryId, branchId } = req.user || {};
     if (!query) {
       return res.status(400).json({ message: "Query parameter is required" });
     }
 
-    const transactions = await StockTransaction.find()
+    const scope = {};
+    if (role === "countryadmin") {
+      scope.countryId = countryId;
+    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+      scope.branchId = branchId;
+      scope.countryId = countryId;
+    }
+
+    const transactions = await StockTransaction.find(scope)
       .populate("product")
       .populate("supplier");
 

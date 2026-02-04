@@ -1,13 +1,51 @@
 const Sale = require("../models/Salesmodel.js");
 const ProductModel = require("../models/Productmodel.js");
+const Customer = require("../models/Customermodel.js");
+const LedgerEntry = require("../models/LedgerEntrymodel.js");
+const Branch = require("../models/Branchmodel.js");
+const { invalidateReportCache } = require("./reportController.js");
 
 // Create Sale
 // controller/salescontroller.js
 
 module.exports.createSale = async (req, res) => {
   try {
-    const { customerName, products, paymentMethod, paymentStatus, status } =
+    const {
+      customerName,
+      customerId,
+      products,
+      paymentMethod,
+      paymentStatus,
+      status,
+    } =
       req.body;
+    const {
+      branchId,
+      countryId,
+      userCurrency,
+      userCurrencyExchangeRate,
+    } = req.user || {};
+
+    if (!branchId || !countryId) {
+      return res.status(400).json({
+        success: false,
+        message: "Branch and country are required for sale creation",
+      });
+    }
+    if (!userCurrency || !userCurrencyExchangeRate) {
+      return res.status(400).json({
+        success: false,
+        message: "Currency configuration is missing for this user",
+      });
+    }
+
+    const branch = await Branch.findById(branchId);
+    if (!branch) {
+      return res.status(404).json({
+        success: false,
+        message: "Branch not found",
+      });
+    }
 
     // Validation: Make sure products array is provided and has at least one item
     if (!products || !Array.isArray(products) || products.length === 0) {
@@ -59,18 +97,87 @@ module.exports.createSale = async (req, res) => {
       await productRecord.save();
     }
 
+    // Validate customer scope if provided
+    let resolvedCustomerName = customerName;
+    if (customerId) {
+      const customer = await Customer.findById(customerId);
+      if (!customer) {
+        return res.status(404).json({
+          success: false,
+          message: "Customer not found",
+        });
+      }
+      if (
+        customer.countryId?.toString() !== countryId?.toString() ||
+        customer.branchId?.toString() !== branchId?.toString()
+      ) {
+        return res.status(403).json({
+          success: false,
+          message: "Customer does not belong to your branch/country",
+        });
+      }
+      resolvedCustomerName = customer.name;
+    }
+
     // Create sale
+    const priceUSD = Number(
+      (totalAmount / userCurrencyExchangeRate).toFixed(2),
+    );
+    const saleCount = await Sale.countDocuments({ branchId });
+    const saleNumber = `SAL-${branch.branchCode}-${String(saleCount + 1).padStart(5, "0")}`;
     const sale = await Sale.create({
-      customerName,
+      saleNumber,
+      customerName: resolvedCustomerName,
+      customerId: customerId || null,
       products,
       paymentMethod,
       paymentStatus,
       status,
       totalAmount,
+      currency: userCurrency,
+      exchangeRateUsed: userCurrencyExchangeRate,
+      priceUSD,
+      branchId,
+      countryId,
     });
+    if (customerId) {
+      await LedgerEntry.create({
+        partyType: "customer",
+        partyId: customerId,
+        entryType: "invoice",
+        debit: totalAmount,
+        credit: 0,
+        currency: userCurrency,
+        amountUSD: priceUSD,
+        exchangeRateUsed: userCurrencyExchangeRate,
+        branchId,
+        countryId,
+        referenceType: "sale",
+        referenceId: sale._id,
+        createdBy: req.user.userId,
+      });
+      if (paymentStatus === "paid") {
+        await LedgerEntry.create({
+          partyType: "customer",
+          partyId: customerId,
+          entryType: "payment",
+          debit: 0,
+          credit: totalAmount,
+          currency: userCurrency,
+          amountUSD: priceUSD,
+          exchangeRateUsed: userCurrencyExchangeRate,
+          branchId,
+          countryId,
+          referenceType: "sale",
+          referenceId: sale._id,
+          createdBy: req.user.userId,
+        });
+      }
+    }
     const populatedSale = await Sale.findById(sale._id).populate(
       "products.product",
     );
+    invalidateReportCache();
     res.status(201).json({
       success: true,
       message: "Sale created successfully",
@@ -89,7 +196,16 @@ module.exports.createSale = async (req, res) => {
 // Get All Sales
 module.exports.getAllSales = async (req, res) => {
   try {
-    const sales = await Sale.find()
+    const { role, countryId, branchId } = req.user || {};
+    const query = {};
+    if (role === "countryadmin") {
+      query.countryId = countryId;
+    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+      query.branchId = branchId;
+      query.countryId = countryId;
+    }
+
+    const sales = await Sale.find(query)
       .populate("products.product")
       .sort({ createdAt: -1 });
     res.status(200).json({ success: true, sales });
@@ -106,11 +222,24 @@ module.exports.getAllSales = async (req, res) => {
 module.exports.getSaleById = async (req, res) => {
   try {
     const { id } = req.params;
+    const { role, countryId, branchId } = req.user || {};
     const sale = await Sale.findById(id).populate("products.product");
     if (!sale)
       return res
         .status(404)
         .json({ success: false, message: "Sale not found" });
+    if (
+      role === "countryadmin" &&
+      sale.countryId?.toString() !== countryId?.toString()
+    ) {
+      return res.status(403).json({ success: false, message: "Access denied" });
+    }
+    if (
+      ["branchadmin", "staff", "agent"].includes(role) &&
+      sale.branchId?.toString() !== branchId?.toString()
+    ) {
+      return res.status(403).json({ success: false, message: "Access denied" });
+    }
     res.status(200).json({ success: true, sale });
   } catch (error) {
     res.status(500).json({
@@ -126,6 +255,8 @@ module.exports.updateSale = async (req, res) => {
   try {
     const { id } = req.params;
     const updatedData = req.body;
+    const { role, countryId, branchId, userCurrencyExchangeRate } =
+      req.user || {};
 
     if (!updatedData.products || !updatedData.products.length) {
       return res.status(400).json({
@@ -141,6 +272,18 @@ module.exports.updateSale = async (req, res) => {
         success: false,
         message: "Sale not found",
       });
+    }
+    if (
+      role === "countryadmin" &&
+      existingSale.countryId?.toString() !== countryId?.toString()
+    ) {
+      return res.status(403).json({ success: false, message: "Access denied" });
+    }
+    if (
+      ["branchadmin", "staff", "agent"].includes(role) &&
+      existingSale.branchId?.toString() !== branchId?.toString()
+    ) {
+      return res.status(403).json({ success: false, message: "Access denied" });
     }
 
     // 2️⃣ Rollback OLD stock
@@ -191,15 +334,62 @@ module.exports.updateSale = async (req, res) => {
     }
 
     // 5️⃣ Update sale
-    await Sale.findByIdAndUpdate(
+    const rate =
+      existingSale.exchangeRateUsed || userCurrencyExchangeRate || 1;
+    const priceUSD = Number((updatedTotalAmount / rate).toFixed(2));
+    const updatedSale = await Sale.findByIdAndUpdate(
       id,
-      { ...updatedData, totalAmount: updatedTotalAmount },
+      { ...updatedData, totalAmount: updatedTotalAmount, priceUSD },
       { new: true },
     );
 
     // 6️⃣ Populate for frontend
     const populatedSale = await Sale.findById(id).populate("products.product");
 
+    // Ledger adjustment if customer linked
+    if (updatedSale?.customerId) {
+      const diff = updatedTotalAmount - (existingSale.totalAmount || 0);
+      if (diff !== 0) {
+        await LedgerEntry.create({
+          partyType: "customer",
+          partyId: updatedSale.customerId,
+          entryType: "adjustment",
+          debit: diff > 0 ? diff : 0,
+          credit: diff < 0 ? Math.abs(diff) : 0,
+          currency: updatedSale.currency,
+          amountUSD: Math.abs(diff) / rate,
+          exchangeRateUsed: rate,
+          branchId: updatedSale.branchId,
+          countryId: updatedSale.countryId,
+          referenceType: "sale",
+          referenceId: updatedSale._id,
+          createdBy: req.user.userId,
+        });
+      }
+
+      if (
+        updatedSale.paymentStatus === "paid" &&
+        existingSale.paymentStatus !== "paid"
+      ) {
+        await LedgerEntry.create({
+          partyType: "customer",
+          partyId: updatedSale.customerId,
+          entryType: "payment",
+          debit: 0,
+          credit: updatedSale.totalAmount,
+          currency: updatedSale.currency,
+          amountUSD: updatedSale.priceUSD,
+          exchangeRateUsed: rate,
+          branchId: updatedSale.branchId,
+          countryId: updatedSale.countryId,
+          referenceType: "sale",
+          referenceId: updatedSale._id,
+          createdBy: req.user.userId,
+        });
+      }
+    }
+
+    invalidateReportCache();
     res.status(200).json({
       success: true,
       message: "Sale updated successfully",
@@ -219,18 +409,37 @@ module.exports.updateSale = async (req, res) => {
 module.exports.SearchSales = async (req, res) => {
   try {
     const { query } = req.query;
+    const { role, countryId, branchId } = req.user || {};
 
     if (!query || query.trim() === "") {
-      const allSales = await Sale.find().populate("products.product");
+      const allQuery = {};
+      if (role === "countryadmin") {
+        allQuery.countryId = countryId;
+      } else if (["branchadmin", "staff", "agent"].includes(role)) {
+        allQuery.branchId = branchId;
+        allQuery.countryId = countryId;
+      }
+      const allSales = await Sale.find(allQuery).populate("products.product");
       return res.status(200).json({ success: true, sales: allSales });
     }
 
-    const searchdata = await Sale.find({
+    const searchQuery = {
       $or: [
         { customerName: { $regex: query, $options: "i" } },
         { paymentMethod: { $regex: query, $options: "i" } },
+        { saleNumber: { $regex: query, $options: "i" } },
       ],
-    }).populate("products.product");
+    };
+    if (role === "countryadmin") {
+      searchQuery.countryId = countryId;
+    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+      searchQuery.branchId = branchId;
+      searchQuery.countryId = countryId;
+    }
+
+    const searchdata = await Sale.find(searchQuery).populate(
+      "products.product",
+    );
 
     res.status(200).json({ success: true, sales: searchdata });
   } catch (error) {

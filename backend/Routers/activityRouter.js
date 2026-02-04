@@ -3,21 +3,38 @@ const router = express.Router();
 const ActivityLog = require("../models/ActivityLogmodel");
 const {
   authmiddleware,
-  adminmiddleware,
-  managermiddleware,
+  checkPermission,
 } = require("../middleware/Authmiddleware");
 
 // 🔐 ADMIN → all logs
-router.get("/", authmiddleware, adminmiddleware, async (req, res) => {
-  const logs = await ActivityLog.find()
+router.get("/", authmiddleware, checkPermission("activityLog", "read"), async (req, res) => {
+  const { role, countryId, branchId } = req.user;
+  const query = {};
+  if (role === "countryadmin") {
+    query.countryId = countryId;
+  } else if (["branchadmin", "staff", "agent"].includes(role)) {
+    query.branchId = branchId;
+    query.countryId = countryId;
+  }
+
+  const logs = await ActivityLog.find(query)
     .populate("userId", "-password")
     .sort({ createdAt: -1 });
   res.json(logs);
 });
 
-// 🔐 ADMIN + MANAGER → recent logs (dashboard)
-router.get("/recent", authmiddleware, managermiddleware, async (req, res) => {
-  const logs = await ActivityLog.find()
+// 🔐 RECENT logs (dashboard)
+router.get("/recent", authmiddleware, checkPermission("activityLog", "read"), async (req, res) => {
+  const { role, countryId, branchId } = req.user;
+  const query = {};
+  if (role === "countryadmin") {
+    query.countryId = countryId;
+  } else if (["branchadmin", "staff", "agent"].includes(role)) {
+    query.branchId = branchId;
+    query.countryId = countryId;
+  }
+
+  const logs = await ActivityLog.find(query)
     .populate("userId", "-password")
     .sort({ createdAt: -1 })
     .limit(6);
@@ -35,7 +52,7 @@ router.get("/me", authmiddleware, async (req, res) => {
 });
 
 // 🧠 INTERNAL LOG CREATION
-router.post("/", async (req, res) => {
+router.post("/", authmiddleware, checkPermission("activityLog", "write"), async (req, res) => {
   const io = req.app.get("io");
 
   const log = await ActivityLog.create(req.body);
@@ -46,7 +63,7 @@ router.post("/", async (req, res) => {
 });
 
 // 🔐 ADMIN → delete log
-router.delete("/:id", authmiddleware, adminmiddleware, async (req, res) => {
+router.delete("/:id", authmiddleware, checkPermission("activityLog", "delete"), async (req, res) => {
   await ActivityLog.findByIdAndDelete(req.params.id);
   res.json({ message: "Log deleted" });
 });

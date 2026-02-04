@@ -9,6 +9,8 @@ const {
   updateClearingJob,
   updateClearingJobStatus,
   addClearingJobNote,
+  addClearingJobDocument,
+  addClearingJobExpense,
   assignAgentToClearingJob,
   getMyClearingJobs,
   deleteClearingJob,
@@ -29,7 +31,7 @@ const {
 router.get(
   "/",
   authmiddleware,
-  checkRole("superadmin", "countryadmin", "branchadmin", "staff", "agent"),
+  checkPermission("clearingJob", "read"),
   getAllClearingJobs,
 );
 
@@ -40,7 +42,7 @@ router.get("/my-jobs", authmiddleware, checkRole("agent"), getMyClearingJobs);
 router.get(
   "/statistics",
   authmiddleware,
-  checkRole("superadmin", "countryadmin", "branchadmin", "staff", "agent"),
+  checkPermission("clearingJob", "read"),
   getClearingJobStatistics,
 );
 
@@ -48,7 +50,7 @@ router.get(
 router.get(
   "/:id",
   authmiddleware,
-  checkRole("superadmin", "countryadmin", "branchadmin", "staff", "agent"),
+  checkPermission("clearingJob", "read"),
   getClearingJobById,
 );
 
@@ -56,7 +58,6 @@ router.get(
 router.post(
   "/",
   authmiddleware,
-  checkRole("superadmin", "countryadmin", "branchadmin", "staff"),
   checkPermission("clearingJob", "write"),
   createClearingJob,
 );
@@ -66,7 +67,7 @@ router.post(
 router.put(
   "/:id",
   authmiddleware,
-  checkRole("superadmin", "countryadmin", "branchadmin", "staff", "agent"),
+  checkPermission("clearingJob", "write"),
   updateClearingJob,
 );
 
@@ -75,7 +76,7 @@ router.put(
 router.patch(
   "/:id/status",
   authmiddleware,
-  checkRole("superadmin", "countryadmin", "branchadmin", "staff", "agent"),
+  checkPermission("clearingJob", "write"),
   updateClearingJobStatus,
 );
 
@@ -84,8 +85,24 @@ router.patch(
 router.post(
   "/:id/note",
   authmiddleware,
-  checkRole("superadmin", "countryadmin", "branchadmin", "staff", "agent"),
+  checkPermission("clearingJob", "write"),
   addClearingJobNote,
+);
+
+// Add document to clearing job
+router.post(
+  "/:id/document",
+  authmiddleware,
+  checkPermission("clearingJob", "write"),
+  addClearingJobDocument,
+);
+
+// Add expense to clearing job
+router.post(
+  "/:id/expense",
+  authmiddleware,
+  checkPermission("clearingJob", "write"),
+  addClearingJobExpense,
 );
 
 // Assign agent to clearing job
@@ -93,7 +110,7 @@ router.post(
 router.post(
   "/:id/assign-agent",
   authmiddleware,
-  checkRole("superadmin", "countryadmin", "branchadmin"),
+  checkPermission("clearingJob", "write"),
   assignAgentToClearingJob,
 );
 
@@ -102,7 +119,7 @@ router.post(
 router.delete(
   "/:id",
   authmiddleware,
-  checkRole("superadmin", "countryadmin", "branchadmin"),
+  checkPermission("clearingJob", "delete"),
   deleteClearingJob,
 );
 

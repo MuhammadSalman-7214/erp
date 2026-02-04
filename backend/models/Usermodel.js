@@ -51,6 +51,10 @@ const UserSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    staffCanEdit: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true },
 );

@@ -219,17 +219,28 @@ module.exports.EditProduct = async (req, res) => {
 module.exports.SearchProduct = async (req, res) => {
   try {
     const { query } = req.query;
+    const { role, countryId, branchId } = req.user;
     if (!query) {
       return res.status(400).json({ message: "Query parameter is required" });
+    }
+
+    let scopeFilter = {};
+    if (role === "superadmin") {
+      scopeFilter = {};
+    } else if (role === "countryadmin") {
+      scopeFilter = { countryId };
+    } else {
+      scopeFilter = { $or: [{ branchId: null }, { branchId }], countryId };
     }
 
     const products = await Product.find({
       $or: [
         { name: { $regex: query, $options: "i" } },
-        { Description: { $regex: query, $options: "i" } },
+        { Desciption: { $regex: query, $options: "i" } },
 
         { "Category.name": { $regex: query, $options: "i" } },
       ],
+      ...scopeFilter,
     });
 
     res.json(products);
@@ -242,7 +253,18 @@ module.exports.SearchProduct = async (req, res) => {
 
 module.exports.getTopProductsByQuantity = async (req, res) => {
   try {
-    const topProducts = await Product.find({}).sort({ quantity: -1 }).limit(10);
+    const { role, countryId, branchId } = req.user;
+    let filter = {};
+    if (role === "superadmin") {
+      filter = {};
+    } else if (role === "countryadmin") {
+      filter = { countryId };
+    } else {
+      filter = { $or: [{ branchId: null }, { branchId }], countryId };
+    }
+    const topProducts = await Product.find(filter)
+      .sort({ quantity: -1 })
+      .limit(10);
     res.status(200).json({ success: true, topProducts });
   } catch (error) {
     res.status(500).json({

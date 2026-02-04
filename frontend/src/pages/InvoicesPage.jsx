@@ -5,6 +5,7 @@ import axiosInstance from "../lib/axios";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { useRolePermissions } from "../hooks/useRolePermissions";
 import NoData from "../Components/NoData";
 
 function InvoicesPage() {
@@ -12,15 +13,20 @@ function InvoicesPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
+  const { hasPermission } = useRolePermissions();
 
   const dashboardBasePath = (() => {
     switch (user?.role) {
-      case "admin":
-        return "/AdminDashboard";
-      case "manager":
-        return "/ManagerDashboard";
+      case "superadmin":
+        return "/SuperAdminDashboard";
+      case "countryadmin":
+        return "/CountryAdminDashboard";
+      case "branchadmin":
+        return "/BranchAdminDashboard";
       case "staff":
         return "/StaffDashboard";
+      case "agent":
+        return "/AgentDashboard";
       default:
         return "/";
     }
@@ -55,9 +61,32 @@ function InvoicesPage() {
     }
   };
 
+  const approveInvoice = async (id) => {
+    try {
+      await axiosInstance.patch(`invoice/${id}/approve`);
+      toast.success("Invoice approved");
+      fetchInvoices();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to approve invoice");
+    }
+  };
+
+  const payInvoice = async (id) => {
+    try {
+      await axiosInstance.patch(`invoice/${id}/pay`);
+      toast.success("Invoice marked as paid");
+      fetchInvoices();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to mark invoice as paid");
+    }
+  };
+
   const statusStyles = {
     draft: "bg-gray-100 text-gray-700",
     sent: "bg-blue-100 text-blue-700",
+    approved: "bg-indigo-100 text-indigo-700",
     paid: "bg-green-100 text-green-700",
     overdue: "bg-red-100 text-red-700",
     cancelled: "bg-yellow-100 text-yellow-700",
@@ -168,25 +197,51 @@ function InvoicesPage() {
                           <MdVisibility size={18} />
                         </button>
 
-                        <button
-                          onClick={() =>
-                            navigate(
-                              `${dashboardBasePath}/editInvoice/${inv._id}`,
-                            )
-                          }
-                          className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
-                          title="Edit"
-                        >
-                          <MdEdit size={18} />
-                        </button>
+                        {["draft", "sent"].includes(inv.status) && (
+                          <button
+                            onClick={() =>
+                              navigate(
+                                `${dashboardBasePath}/editInvoice/${inv._id}`,
+                              )
+                            }
+                            className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
+                            title="Edit"
+                          >
+                            <MdEdit size={18} />
+                          </button>
+                        )}
 
-                        <button
-                          onClick={() => deleteInvoice(inv._id)}
-                          className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition"
-                          title="Delete"
-                        >
-                          <MdDelete size={18} />
-                        </button>
+                        {hasPermission("invoiceApprove", "write") &&
+                          ["draft", "sent"].includes(inv.status) && (
+                            <button
+                              onClick={() => approveInvoice(inv._id)}
+                              className="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition"
+                              title="Approve"
+                            >
+                              Approve
+                            </button>
+                          )}
+
+                        {hasPermission("invoice", "write") &&
+                          inv.status === "approved" && (
+                            <button
+                              onClick={() => payInvoice(inv._id)}
+                              className="px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white transition"
+                              title="Mark as Paid"
+                            >
+                              Pay
+                            </button>
+                          )}
+
+                        {hasPermission("invoice", "delete") && (
+                          <button
+                            onClick={() => deleteInvoice(inv._id)}
+                            className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition"
+                            title="Delete"
+                          >
+                            <MdDelete size={18} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

@@ -2,13 +2,33 @@ const mongoose = require("mongoose");
 
 const InventorySchema = new mongoose.Schema(
   {
-    product: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
+    product: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Product",
+      required: true,
+    },
+    branchId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Branch",
+      required: true,
+      index: true,
+    },
+    countryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Country",
+      required: true,
+      index: true,
+    },
     quantity: { type: Number, required: true, default: 0 },
-    status: { type: String, enum: ["in-stock", "low-stock", "out-of-stock"], default: "in-stock" },
+    status: {
+      type: String,
+      enum: ["in-stock", "low-stock", "out-of-stock"],
+      default: "in-stock",
+    },
     lastUpdated: { type: Date, default: Date.now },
   },
 
-{ timestamps: true }
+  { timestamps: true }
 
 );
 

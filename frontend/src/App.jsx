@@ -32,6 +32,9 @@ import InvoicesPage from "./pages/InvoicesPage";
 import InvoiceDetailPage from "./pages/InvoiceDetailPage";
 import InvoiceEditPage from "./pages/InvoiceEditPage";
 import CreateInvoicePage from "./pages/CreateInvoicePage";
+import CustomersPage from "./pages/CustomersPage";
+import PurchaseBillsPage from "./pages/PurchaseBillsPage";
+import LedgerPage from "./pages/LedgerPage";
 
 // NEW PAGES - Hierarchy Management
 import CountriesPage from "./pages/CountriesPage";
@@ -122,6 +125,11 @@ function App() {
             <Route path="invoice/:id" element={<InvoiceDetailPage />} />
             <Route path="editInvoice/:id" element={<InvoiceEditPage />} />
 
+            {/* Customers / Purchase / Ledger */}
+            <Route path="customers" element={<CustomersPage />} />
+            <Route path="purchase-bills" element={<PurchaseBillsPage />} />
+            <Route path="ledger" element={<LedgerPage />} />
+
             {/* Shipments (Global View) */}
             <Route path="shipments" element={<ShipmentsPage />} />
             <Route path="shipment/:id" element={<ShipmentDetailPage />} />
@@ -187,6 +195,11 @@ function App() {
             <Route path="createInvoice" element={<CreateInvoicePage />} />
             <Route path="invoice/:id" element={<InvoiceDetailPage />} />
             <Route path="editInvoice/:id" element={<InvoiceEditPage />} />
+
+            {/* Customers / Purchase / Ledger */}
+            <Route path="customers" element={<CustomersPage />} />
+            <Route path="purchase-bills" element={<PurchaseBillsPage />} />
+            <Route path="ledger" element={<LedgerPage />} />
 
             {/* Shipments (Country Scope) */}
             <Route path="shipments" element={<ShipmentsPage />} />
@@ -254,6 +267,11 @@ function App() {
             <Route path="invoice/:id" element={<InvoiceDetailPage />} />
             <Route path="editInvoice/:id" element={<InvoiceEditPage />} />
 
+            {/* Customers / Purchase / Ledger */}
+            <Route path="customers" element={<CustomersPage />} />
+            <Route path="purchase-bills" element={<PurchaseBillsPage />} />
+            <Route path="ledger" element={<LedgerPage />} />
+
             {/* Shipments (Branch Scope) */}
             <Route path="shipments" element={<ShipmentsPage />} />
             <Route path="shipment/:id" element={<ShipmentDetailPage />} />
@@ -300,8 +318,24 @@ function App() {
             {/* Sales (Create & Edit) */}
             <Route path="sales" element={<Salespage />} />
 
+            {/* Customers / Purchase / Ledger */}
+            <Route path="customers" element={<CustomersPage />} />
+            <Route path="purchase-bills" element={<PurchaseBillsPage />} />
+            <Route path="ledger" element={<LedgerPage />} />
+
             {/* Supplier (Read Only) */}
             <Route path="supplier" element={<Supplierpage readOnly />} />
+
+            {/* Invoices */}
+            <Route path="invoices" element={<InvoicesPage />} />
+            <Route path="createInvoice" element={<CreateInvoicePage />} />
+            <Route path="invoice/:id" element={<InvoiceDetailPage />} />
+            <Route path="editInvoice/:id" element={<InvoiceEditPage />} />
+
+            {/* Customers / Purchase / Ledger */}
+            <Route path="customers" element={<CustomersPage />} />
+            <Route path="purchase-bills" element={<PurchaseBillsPage />} />
+            <Route path="ledger" element={<LedgerPage />} />
 
             {/* Shipments (Create & Edit) */}
             <Route path="shipments" element={<ShipmentsPage />} />

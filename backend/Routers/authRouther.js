@@ -20,6 +20,7 @@ const {
   getUserStats,
   removeuser,
   toggleUserStatus,
+  updateStaffEditPermission,
   setupInitialAdmin,
   checkSetup,
 } = require("../controller/authcontroller.js");
@@ -46,9 +47,24 @@ router.post("/logout", authmiddleware, logout);
 router.put("/updateProfile", authmiddleware, updateProfile);
 
 // ==================== GET USERS BY ROLE (LEGACY - for backward compatibility) ====================
-router.get("/staffuser", authmiddleware, staffuser);
-router.get("/manageruser", authmiddleware, manageruser); // Maps to branchadmin
-router.get("/adminuser", authmiddleware, adminuser); // Maps to countryadmin
+router.get(
+  "/staffuser",
+  authmiddleware,
+  checkRole("superadmin", "countryadmin", "branchadmin"),
+  staffuser,
+);
+router.get(
+  "/manageruser",
+  authmiddleware,
+  checkRole("superadmin", "countryadmin"),
+  manageruser,
+); // Maps to branchadmin
+router.get(
+  "/adminuser",
+  authmiddleware,
+  checkRole("superadmin"),
+  adminuser,
+); // Maps to countryadmin
 
 // ==================== GET USERS BY ROLE (NEW HIERARCHY) ====================
 router.get(
@@ -121,6 +137,13 @@ router.patch(
   authmiddleware,
   checkRole("superadmin", "countryadmin", "branchadmin"),
   toggleUserStatus,
+);
+
+router.patch(
+  "/users/:userId/permissions",
+  authmiddleware,
+  checkRole("superadmin", "countryadmin", "branchadmin"),
+  updateStaffEditPermission,
 );
 
 module.exports = router;

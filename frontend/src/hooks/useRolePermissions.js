@@ -11,7 +11,12 @@ const ROLE_PERMISSIONS = {
     stockTransaction: { read: true, write: true, delete: true },
     category: { read: true, write: true, delete: true },
     supplier: { read: true, write: true, delete: true },
+    customer: { read: true, write: true, delete: true },
     invoice: { read: true, write: true, delete: true },
+    invoiceApprove: { read: true, write: true, delete: false },
+    purchase: { read: true, write: true, delete: true },
+    purchaseApprove: { read: true, write: true, delete: false },
+    ledger: { read: true, write: false, delete: false },
 
     // Hierarchy Management
     country: { read: true, write: true, delete: true },
@@ -41,7 +46,12 @@ const ROLE_PERMISSIONS = {
     stockTransaction: { read: true, write: true, delete: true },
     category: { read: true, write: true, delete: true },
     supplier: { read: true, write: true, delete: true },
+    customer: { read: true, write: true, delete: true },
     invoice: { read: true, write: true, delete: true },
+    invoiceApprove: { read: true, write: true, delete: false },
+    purchase: { read: true, write: true, delete: true },
+    purchaseApprove: { read: true, write: true, delete: false },
+    ledger: { read: true, write: false, delete: false },
 
     // Hierarchy Management (Limited)
     country: { read: true, write: false, delete: false }, // Can only view their country
@@ -71,7 +81,12 @@ const ROLE_PERMISSIONS = {
     stockTransaction: { read: true, write: true, delete: true },
     category: { read: true, write: true, delete: false },
     supplier: { read: true, write: true, delete: true },
+    customer: { read: true, write: true, delete: true },
     invoice: { read: true, write: true, delete: true },
+    invoiceApprove: { read: true, write: true, delete: false },
+    purchase: { read: true, write: true, delete: true },
+    purchaseApprove: { read: true, write: true, delete: false },
+    ledger: { read: true, write: false, delete: false },
 
     // Hierarchy Management (Read Only)
     country: { read: true, write: false, delete: false },
@@ -101,7 +116,10 @@ const ROLE_PERMISSIONS = {
     stockTransaction: { read: true, write: false, delete: false },
     category: { read: true, write: false, delete: false },
     supplier: { read: true, write: false, delete: false },
-    invoice: { read: true, write: false, delete: false },
+    customer: { read: true, write: true, delete: false },
+    invoice: { read: true, write: true, delete: false },
+    purchase: { read: true, write: true, delete: false },
+    ledger: { read: true, write: false, delete: false },
 
     // Hierarchy Management (Read Only)
     country: { read: false, write: false, delete: false },
@@ -160,6 +178,9 @@ export const useRolePermissions = () => {
   const userRole = useMemo(() => {
     return user?.role || null;
   }, [user]);
+  const staffCanEdit = useMemo(() => {
+    return Boolean(user?.staffCanEdit);
+  }, [user]);
 
   const hasPermission = (resource, action) => {
     if (!userRole || !ROLE_PERMISSIONS[userRole]) {
@@ -167,7 +188,11 @@ export const useRolePermissions = () => {
     }
 
     const permissions = ROLE_PERMISSIONS[userRole][resource];
-    return permissions ? permissions[action] === true : false;
+    const allowed = permissions ? permissions[action] === true : false;
+    if (userRole === "staff" && ["write", "delete"].includes(action)) {
+      return allowed && staffCanEdit;
+    }
+    return allowed;
   };
 
   const isReadOnly = (resource) => {
@@ -192,6 +217,7 @@ export const useRolePermissions = () => {
 
   return {
     userRole,
+    staffCanEdit,
     hasPermission,
     isReadOnly,
     canAccess,

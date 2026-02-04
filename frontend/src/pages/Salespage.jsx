@@ -17,6 +17,7 @@ import { gettingallproducts } from "../features/productSlice";
 import axiosInstance from "../lib/axios";
 import { PiInvoiceBold } from "react-icons/pi";
 import NoData from "../Components/NoData";
+import { fetchCustomers } from "../features/customerSlice";
 
 function Salespage() {
   const { getallsales, searchdata } = useSelector((state) => state.sales);
@@ -37,12 +38,15 @@ function Salespage() {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [Category, setCategory] = useState("");
   const [unitPrice, setUnitPrice] = useState(0);
+  const [customerId, setCustomerId] = useState("");
 
   const [selectedSales, setselectedSales] = useState(null);
   const { getallCategory } = useSelector((state) => state.category);
+  const { customers } = useSelector((state) => state.customers);
   useEffect(() => {
     dispatch(gettingallCategory());
     dispatch(gettingallproducts()); // fetch products for the dropdown
+    dispatch(fetchCustomers());
   }, [dispatch]);
 
   useEffect(() => {
@@ -66,6 +70,7 @@ function Salespage() {
 
     const updatedData = {
       customerName: name,
+      customerId: customerId || null,
       products: [
         { product: Product, quantity: Number(quantity), price: Number(Price) },
       ],
@@ -93,6 +98,7 @@ function Salespage() {
 
     const salesData = {
       customerName: name,
+      customerId: customerId || null,
       products: [
         { product: Product, quantity: Number(quantity), price: Number(Price) },
       ],
@@ -114,6 +120,7 @@ function Salespage() {
   };
   const resetForm = () => {
     setName("");
+    setCustomerId("");
     setProduct("");
     setPayment("");
     setPrice("");
@@ -129,6 +136,7 @@ function Salespage() {
   const handleEditClick = (sales) => {
     setselectedSales(sales);
     setName(sales.customerName);
+    setCustomerId(sales.customerId || "");
 
     if (sales.products && sales.products.length > 0) {
       const firstProduct = sales.products[0];
@@ -186,10 +194,9 @@ function Salespage() {
 
     // Prepare payload matching Invoice model
     const payload = {
-      invoiceNumber: `INV-${Date.now()}`, // you can replace with backend-generated
+      customerId: sale.customerId || null,
       client: {
         name: sale.customerName,
-        // add email, phone, address if available
       },
       items,
       subTotal,
@@ -197,7 +204,6 @@ function Salespage() {
       taxAmount,
       discount,
       totalAmount,
-      currency: "USD",
       status: sale.paymentStatus === "paid" ? "paid" : "sent",
       paymentMethod: sale.paymentMethod,
       issueDate: new Date(),
@@ -274,6 +280,26 @@ function Salespage() {
                 className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
                 required
               />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-gray-700 font-medium">Customer</label>
+              <select
+                value={customerId}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setCustomerId(id);
+                  const customer = customers?.find((c) => c._id === id);
+                  if (customer) setName(customer.name);
+                }}
+                className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+              >
+                <option value="">Select customer (optional)</option>
+                {customers?.map((c) => (
+                  <option key={c._id} value={c._id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="mb-4">
               <label>Category</label>
@@ -440,6 +466,7 @@ function Salespage() {
               <thead className="bg-slate-50 border-b">
                 <tr className="text-left text-slate-500">
                   <th className="px-5 py-4 font-medium">#</th>
+                  <th className="px-5 py-4 font-medium">Sale No</th>
                   <th className="px-5 py-4 font-medium">Customer</th>
                   <th className="px-5 py-4 font-medium">Product</th>
                   <th className="px-5 py-4 font-medium">Quantity</th>
@@ -458,6 +485,7 @@ function Salespage() {
                     className="border-b last:border-b-0 hover:bg-slate-50 transition"
                   >
                     <td className="px-5 py-4 text-slate-500">{index + 1}</td>
+                    <td className="px-5 py-4">{sale.saleNumber || "-"}</td>
                     <td className="px-5 py-4">{sale.customerName}</td>
                     <td className="px-5 py-4">
                       {sale.products?.[0]?.product?.name || "-"}{" "}

@@ -17,8 +17,8 @@ const SupplierSchema = new mongoose.Schema(
     branchId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Branch",
-      required: true, // Every entry MUST belong to a branch
-      index: true,
+      // required: true, // Every entry MUST belong to a branch
+      // index: true,
     },
     countryId: {
       type: mongoose.Schema.Types.ObjectId,

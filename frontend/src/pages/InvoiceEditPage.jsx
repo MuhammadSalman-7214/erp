@@ -4,10 +4,12 @@ import axiosInstance from "../lib/axios";
 import { toast } from "react-hot-toast";
 import { IoMdAdd } from "react-icons/io";
 import { MdDelete } from "react-icons/md";
+import { useSelector } from "react-redux";
 
 function InvoiceEditPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useSelector((state) => state.auth);
 
   const [loading, setLoading] = useState(true);
   const [invoice, setInvoice] = useState(null);
@@ -19,6 +21,22 @@ function InvoiceEditPage() {
   const [paymentMethod, setPaymentMethod] = useState("");
   const [status, setStatus] = useState("draft");
   const [dueDate, setDueDate] = useState("");
+  const dashboardBasePath = (() => {
+    switch (user?.role) {
+      case "superadmin":
+        return "/SuperAdminDashboard";
+      case "countryadmin":
+        return "/CountryAdminDashboard";
+      case "branchadmin":
+        return "/BranchAdminDashboard";
+      case "staff":
+        return "/StaffDashboard";
+      case "agent":
+        return "/AgentDashboard";
+      default:
+        return "/";
+    }
+  })();
 
   /* ================= FETCH INVOICE ================= */
   useEffect(() => {
@@ -86,7 +104,7 @@ function InvoiceEditPage() {
         dueDate,
       });
       toast.success("Invoice updated successfully");
-      navigate(`/ManagerDashboard/invoice/${id}`);
+      navigate(`${dashboardBasePath}/invoice/${id}`);
     } catch (err) {
       console.error(err);
       toast.error("Failed to update invoice");
@@ -245,7 +263,6 @@ function InvoiceEditPage() {
               >
                 <option value="draft">Draft</option>
                 <option value="sent">Sent</option>
-                <option value="paid">Paid</option>
                 <option value="overdue">Overdue</option>
                 <option value="cancelled">Cancelled</option>
               </select>
@@ -274,7 +291,7 @@ function InvoiceEditPage() {
               Save Changes
             </button>
             <button
-              onClick={() => navigate(`/ManagerDashboard/invoice/${id}`)}
+              onClick={() => navigate(`${dashboardBasePath}/invoice/${id}`)}
               className="px-6 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 transition"
             >
               Cancel

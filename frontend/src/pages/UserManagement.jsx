@@ -12,6 +12,7 @@ const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showStaffOnly, setShowStaffOnly] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -67,9 +68,27 @@ const UserManagement = () => {
     }
   };
 
+  const handleToggleStaffEdit = async (targetUser) => {
+    try {
+      const nextValue = !targetUser.staffCanEdit;
+      await userAPI.updateStaffPermissions(targetUser._id, nextValue);
+      toast.success("Staff permissions updated");
+      fetchUsers();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to update permission");
+    }
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
+
+  const canManageStaff =
+    ["superadmin", "countryadmin", "branchadmin"].includes(user?.role);
+
+  const filteredUsers = showStaffOnly
+    ? users.filter((u) => u.role === "staff")
+    : users;
 
   return (
     <div className="p-6">
@@ -103,6 +122,21 @@ const UserManagement = () => {
         </div>
       )}
 
+      <div className="mb-4 flex items-center justify-between">
+        <label className="flex items-center gap-2 text-sm text-gray-600">
+          <input
+            type="checkbox"
+            checked={showStaffOnly}
+            onChange={(e) => setShowStaffOnly(e.target.checked)}
+          />
+          Show staff only
+        </label>
+        <div className="text-xs text-gray-500">
+          Staff edit permission allows staff to edit + delete records in their
+          scope.
+        </div>
+      </div>
+
       {/* Users Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="min-w-full">
@@ -124,12 +158,15 @@ const UserManagement = () => {
                 Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Staff Edit
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Actions
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {users.map((u) => (
+            {filteredUsers.map((u) => (
               <tr key={u._id}>
                 <td className="px-6 py-4 whitespace-nowrap">{u.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{u.email}</td>
@@ -151,6 +188,23 @@ const UserManagement = () => {
                   >
                     {u.isActive ? "Active" : "Inactive"}
                   </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {canManageStaff && u.role === "staff" ? (
+                    <button
+                      onClick={() => handleToggleStaffEdit(u)}
+                      className="text-blue-600 hover:text-blue-800"
+                      title="Staff edit permission allows edit + delete in their scope"
+                    >
+                      {u.staffCanEdit ? (
+                        <ToggleRight className="text-green-500 w-8 h-8 hover:text-green-600 transition-colors" />
+                      ) : (
+                        <ToggleLeft className="text-red-500 w-8 h-8 hover:text-red-600 transition-colors" />
+                      )}
+                    </button>
+                  ) : (
+                    <span className="text-xs text-gray-400">-</span>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap space-x-2 flex items-center">
                   <button

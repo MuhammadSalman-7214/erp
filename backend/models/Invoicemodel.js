@@ -38,6 +38,10 @@ const InvoiceSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
+    customerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Customer",
+    },
 
     client: {
       name: {
@@ -98,15 +102,10 @@ const InvoiceSchema = new mongoose.Schema(
       min: 0,
     },
 
-    currency: {
-      type: String,
-      default: "USD",
-      uppercase: true,
-    },
 
     status: {
       type: String,
-      enum: ["draft", "sent", "paid", "overdue", "cancelled"],
+      enum: ["draft", "sent", "approved", "paid", "overdue", "cancelled"],
       default: "draft",
     },
 
@@ -128,10 +127,21 @@ const InvoiceSchema = new mongoose.Schema(
     paidAt: {
       type: Date,
     },
+    approvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    approvedAt: {
+      type: Date,
+    },
 
     notes: {
       type: String,
       trim: true,
+    },
+    isLocked: {
+      type: Boolean,
+      default: false,
     },
     branchId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -148,6 +158,7 @@ const InvoiceSchema = new mongoose.Schema(
     currency: {
       type: String,
       required: true, // Local currency (PKR, AED, etc.)
+      uppercase: true,
     },
     priceUSD: {
       type: Number,

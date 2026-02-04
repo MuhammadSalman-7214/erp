@@ -3,11 +3,25 @@ const Supplier = require("../models/Suppliermodel.js");
 module.exports.createSupplier = async (req, res) => {
   try {
     const { name, contactInfo, productsSupplied } = req.body;
+    const { branchId, countryId, userCurrency, userCurrencyExchangeRate } =
+      req.user || {};
 
     if (!name || !contactInfo || !contactInfo.email || !contactInfo.phone) {
       return res.status(400).json({
         success: false,
         message: "Name, phone and email are required.",
+      });
+    }
+    if (!countryId) {
+      return res.status(400).json({
+        success: false,
+        message: "Branch and country are required for supplier creation.",
+      });
+    }
+    if (!userCurrency || !userCurrencyExchangeRate) {
+      return res.status(400).json({
+        success: false,
+        message: "Currency configuration is missing for this user.",
       });
     }
 
@@ -19,6 +33,11 @@ module.exports.createSupplier = async (req, res) => {
         address: contactInfo.address || "",
       },
       productsSupplied: productsSupplied || [],
+      branchId,
+      countryId,
+      currency: userCurrency,
+      exchangeRateUsed: userCurrencyExchangeRate,
+      priceUSD: 0,
     });
 
     await newSupplier.save();
@@ -39,19 +58,49 @@ module.exports.createSupplier = async (req, res) => {
 
 module.exports.getAllSuppliers = async (req, res) => {
   try {
-    const Suppliers = await Supplier.find().populate("productsSupplied");
+    const { role, countryId, branchId } = req.user || {};
 
-    res.status(200).json(Suppliers);
+    const query = {};
+
+    if (role === "countryadmin") {
+      query.countryId = countryId;
+    }
+
+    if (["branchadmin", "staff", "agent"].includes(role)) {
+      query.countryId = countryId;
+
+      if (branchId) {
+        // Branch-specific + global suppliers
+        query.$or = [
+          { branchId: branchId },
+          { branchId: { $exists: false } },
+          { branchId: null },
+        ];
+      } else {
+        // Only global suppliers
+        query.$or = [{ branchId: { $exists: false } }, { branchId: null }];
+      }
+    }
+
+    const suppliers = await Supplier.find(query)
+      .populate("productsSupplied")
+      .lean();
+
+    res.status(200).json(suppliers);
   } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: "Error fetching suppliers", error });
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching suppliers",
+      error: error.message,
+    });
   }
 };
 
 module.exports.getSupplierById = async (req, res) => {
   try {
     const { supplierId } = req.params;
+    const { role, countryId, branchId } = req.user || {};
 
     const supplier =
       await Supplier.findById(supplierId).populate("productsSupplied");
@@ -60,6 +109,22 @@ module.exports.getSupplierById = async (req, res) => {
       return res
         .status(404)
         .json({ success: false, message: "Supplier not found" });
+    }
+    if (
+      role === "countryadmin" &&
+      supplier.countryId?.toString() !== countryId?.toString()
+    ) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Access denied for this country." });
+    }
+    if (
+      ["branchadmin", "staff", "agent"].includes(role) &&
+      supplier.branchId?.toString() !== branchId?.toString()
+    ) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Access denied for this branch." });
     }
 
     res.status(200).json({ success: true, supplier });
@@ -73,11 +138,28 @@ module.exports.getSupplierById = async (req, res) => {
 module.exports.editSupplier = async (req, res) => {
   const { id } = req.params;
   const { name, contactInfo, productsSupplied } = req.body;
+  const { role, countryId, branchId } = req.user || {};
 
   try {
     const supplier = await Supplier.findById(id);
     if (!supplier) {
       return res.status(404).json({ message: "Supplier not found" });
+    }
+    if (
+      role === "countryadmin" &&
+      supplier.countryId?.toString() !== countryId?.toString()
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Access denied for this country." });
+    }
+    if (
+      ["branchadmin", "staff", "agent"].includes(role) &&
+      supplier.branchId?.toString() !== branchId?.toString()
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Access denied for this branch." });
     }
 
     supplier.name = name || supplier.name;
@@ -105,13 +187,32 @@ module.exports.editSupplier = async (req, res) => {
 module.exports.deleteSupplier = async (req, res) => {
   try {
     const { supplierId } = req.params; // <-- use req.params
-    const supplier = await Supplier.findByIdAndDelete(supplierId);
+    const { role, countryId, branchId } = req.user || {};
+    const supplier = await Supplier.findById(supplierId);
 
     if (!supplier) {
       return res
         .status(404)
         .json({ success: false, message: "Supplier not found" });
     }
+    if (
+      role === "countryadmin" &&
+      supplier.countryId?.toString() !== countryId?.toString()
+    ) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Access denied for this country." });
+    }
+    if (
+      ["branchadmin", "staff", "agent"].includes(role) &&
+      supplier.branchId?.toString() !== branchId?.toString()
+    ) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Access denied for this branch." });
+    }
+
+    await Supplier.findByIdAndDelete(supplierId);
 
     res
       .status(200)
@@ -126,6 +227,7 @@ module.exports.deleteSupplier = async (req, res) => {
 module.exports.searchSupplier = async (req, res) => {
   try {
     const { query } = req.query;
+    const { role, countryId, branchId } = req.user || {};
 
     if (!query || query.trim() === "") {
       return res
@@ -133,9 +235,17 @@ module.exports.searchSupplier = async (req, res) => {
         .json({ success: false, message: "Query parameter is required" });
     }
 
-    const suppliers = await Supplier.find({
+    const searchQuery = {
       name: { $regex: new RegExp(query, "i") },
-    });
+    };
+    if (role === "countryadmin") {
+      searchQuery.countryId = countryId;
+    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+      searchQuery.branchId = branchId;
+      searchQuery.countryId = countryId;
+    }
+
+    const suppliers = await Supplier.find(searchQuery);
 
     return res.json({ success: true, suppliers });
   } catch (error) {

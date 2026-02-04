@@ -1,5 +1,6 @@
 // middleware/Authmiddleware.js - ENTERPRISE VERSION
 const jwt = require("jsonwebtoken");
+const User = require("../models/Usermodel.js");
 
 // Authentication middleware
 const authmiddleware = async (req, res, next) => {
@@ -39,7 +40,7 @@ const checkRole = (...allowedRoles) => {
 
 // ✅ NEW: Enterprise-level permission matrix
 const checkPermission = (resource, action = "read") => {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     const { role, countryId, branchId } = req.user;
 
     // Define hierarchical permissions
@@ -54,13 +55,16 @@ const checkPermission = (resource, action = "read") => {
         sales: ["read", "write", "delete"],
         order: ["read", "write", "delete"],
         supplier: ["read", "write", "delete"],
+        customer: ["read", "write", "delete"],
         shipment: ["read", "write", "delete"],
         clearingJob: ["read", "write", "delete"],
         invoice: ["read", "write", "delete"],
         stockTransaction: ["read", "write", "delete"],
         category: ["read", "write", "delete"],
+        purchase: ["read", "write", "delete"],
+        ledger: ["read"],
         notification: ["read", "write", "delete"],
-        activityLog: ["read"],
+        activityLog: ["read", "write", "delete"],
         user: ["read", "write", "delete"],
         reports: ["read"],
       },
@@ -72,11 +76,14 @@ const checkPermission = (resource, action = "read") => {
         sales: ["read", "write", "delete"],
         order: ["read", "write", "delete"],
         supplier: ["read", "write", "delete"],
+        customer: ["read", "write", "delete"],
         shipment: ["read", "write", "delete"],
         clearingJob: ["read", "write", "delete"],
         invoice: ["read", "write", "delete"],
         stockTransaction: ["read", "write", "delete"],
         category: ["read", "write", "delete"],
+        purchase: ["read", "write", "delete"],
+        ledger: ["read"],
         notification: ["read", "write"],
         activityLog: ["read"],
         user: ["read", "write", "delete"], // Within their country
@@ -89,11 +96,14 @@ const checkPermission = (resource, action = "read") => {
         sales: ["read", "write", "delete"],
         order: ["read", "write", "delete"],
         supplier: ["read", "write", "delete"],
+        customer: ["read", "write", "delete"],
         shipment: ["read", "write", "delete"],
         clearingJob: ["read", "write", "delete"],
         invoice: ["read", "write", "delete"],
         stockTransaction: ["read", "write", "delete"],
         category: ["read", "write"],
+        purchase: ["read", "write", "delete"],
+        ledger: ["read"],
         notification: ["read"],
         activityLog: ["read"],
         user: ["read", "write"], // Staff and agents only
@@ -106,11 +116,14 @@ const checkPermission = (resource, action = "read") => {
         sales: ["read", "write", "delete"],
         order: ["read", "write", "delete"],
         supplier: ["read"],
+        customer: ["read", "write"],
         shipment: ["read", "write"],
         invoice: ["read", "write"],
         stockTransaction: ["read", "write"],
         notification: ["read"],
         activityLog: ["read"],
+        purchase: ["read", "write"],
+        ledger: ["read"],
       },
       agent: {
         // Clearing agent - very limited
@@ -127,6 +140,15 @@ const checkPermission = (resource, action = "read") => {
         message: `Access denied. You don't have ${action} permission for ${resource}`,
         hasReadOnly: userPermissions?.includes("read") && action !== "read",
       });
+    }
+
+    if (role === "staff" && ["write", "delete"].includes(action)) {
+      const dbUser = await User.findById(req.user.userId);
+      if (!dbUser?.staffCanEdit) {
+        return res.status(403).json({
+          message: "Staff does not have edit permission",
+        });
+      }
     }
 
     // Attach permission info to request

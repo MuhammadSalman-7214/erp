@@ -26,4 +26,6 @@ export const userAPI = {
   deleteUser: (userId) => apiClient.delete(`/auth/removeuser/${userId}`),
   toggleUserStatus: (userId) =>
     apiClient.patch(`/auth/toggleUserStatus/${userId}`),
+  updateStaffPermissions: (userId, staffCanEdit) =>
+    apiClient.patch(`/auth/users/${userId}/permissions`, { staffCanEdit }),
 };

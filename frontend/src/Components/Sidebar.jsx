@@ -14,6 +14,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../features/authSlice";
 import toast from "react-hot-toast";
 import { LuUsers } from "react-icons/lu";
+import { RiFileList2Line } from "react-icons/ri";
 const navItemClass = (isActive) =>
   `flex items-center space-x-3 cursor-pointer p-2 rounded-md transition
    ${
@@ -251,6 +252,12 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
               label="Supplier"
               sidebarOpen={sidebarOpen}
             />
+            <NavItem
+              to="/StaffDashboard/customers"
+              icon={<LuUsers />}
+              label="Customers"
+              sidebarOpen={sidebarOpen}
+            />
 
             <NavItem
               to="/StaffDashboard/sales"
@@ -263,6 +270,27 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
               to="/StaffDashboard/order"
               icon={<FiShoppingCart />}
               label="Order"
+              sidebarOpen={sidebarOpen}
+            />
+
+            <NavItem
+              to="/StaffDashboard/invoices"
+              icon={<PiInvoiceBold />}
+              label="Invoices"
+              sidebarOpen={sidebarOpen}
+            />
+
+            <NavItem
+              to="/StaffDashboard/purchase-bills"
+              icon={<PiInvoiceBold />}
+              label="Purchase Bills"
+              sidebarOpen={sidebarOpen}
+            />
+
+            <NavItem
+              to="/StaffDashboard/ledger"
+              icon={<RiFileList2Line />}
+              label="Ledger"
               sidebarOpen={sidebarOpen}
             />
 

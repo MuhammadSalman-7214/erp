@@ -3,6 +3,7 @@ const ActivityLog = require("../models/ActivityLogmodel.js");
 module.exports.createActivityLog = async (req, res) => {
   try {
     const { action, description, entity, entityId, userId } = req.body;
+    const { countryId, branchId } = req.user || {};
 
     if (!action || !description || !entity || !entityId) {
       return res
@@ -20,6 +21,8 @@ module.exports.createActivityLog = async (req, res) => {
       entity,
       entityId,
       ipAddress: req.ip,
+      countryId: countryId || null,
+      branchId: branchId || null,
     });
 
     await newActivity.save();
@@ -40,7 +43,16 @@ module.exports.createActivityLog = async (req, res) => {
 
 module.exports.getAllActivityLogs = async (req, res) => {
   try {
-    const logs = await ActivityLog.find().sort({ createdAt: -1 });
+    const { role, countryId, branchId } = req.user || {};
+    const query = {};
+    if (role === "countryadmin") {
+      query.countryId = countryId;
+    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+      query.countryId = countryId;
+      query.branchId = branchId;
+    }
+
+    const logs = await ActivityLog.find(query).sort({ createdAt: -1 });
 
     res.status(200).json({ success: true, logs });
   } catch (error) {

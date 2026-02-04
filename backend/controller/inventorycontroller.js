@@ -4,14 +4,25 @@ const Product = require("../models/Productmodel.js");
 module.exports.addOrUpdateInventory = async (req, res) => {
   try {
     const { product, quantity } = req.body;
+    const { countryId, branchId } = req.user || {};
 
     if (!product || quantity === undefined) {
       return res
         .status(400)
         .json({ success: false, message: "Product and quantity are required" });
     }
+    if (!branchId || !countryId) {
+      return res.status(400).json({
+        success: false,
+        message: "Branch and country are required for inventory updates",
+      });
+    }
 
-    let inventory = await Inventory.findOne({ product });
+    let inventory = await Inventory.findOne({
+      product,
+      branchId,
+      countryId,
+    });
 
     if (inventory) {
       inventory.quantity = quantity;
@@ -20,6 +31,8 @@ module.exports.addOrUpdateInventory = async (req, res) => {
       inventory = new Inventory({
         product,
         quantity,
+        branchId,
+        countryId,
       });
     }
 
@@ -41,7 +54,16 @@ module.exports.addOrUpdateInventory = async (req, res) => {
 
 module.exports.getAllInventory = async (req, res) => {
   try {
-    const inventories = await Inventory.find().populate("product");
+    const { role, countryId, branchId } = req.user || {};
+    const query = {};
+    if (role === "countryadmin") {
+      query.countryId = countryId;
+    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+      query.branchId = branchId;
+      query.countryId = countryId;
+    }
+
+    const inventories = await Inventory.find(query).populate("product");
 
     res.status(200).json({ success: true, inventories });
   } catch (error) {
@@ -54,10 +76,17 @@ module.exports.getAllInventory = async (req, res) => {
 module.exports.getInventoryByProduct = async (req, res) => {
   try {
     const { productId } = req.params;
+    const { role, countryId, branchId } = req.user || {};
 
-    const inventory = await Inventory.findOne({ product: productId }).populate(
-      "product",
-    );
+    const query = { product: productId };
+    if (role === "countryadmin") {
+      query.countryId = countryId;
+    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+      query.branchId = branchId;
+      query.countryId = countryId;
+    }
+
+    const inventory = await Inventory.findOne(query).populate("product");
 
     if (!inventory) {
       return res
@@ -79,8 +108,16 @@ module.exports.getInventoryByProduct = async (req, res) => {
 module.exports.deleteInventory = async (req, res) => {
   try {
     const { productId } = req.params;
+    const { role, countryId, branchId } = req.user || {};
 
-    const inventory = await Inventory.findOneAndDelete({ product: productId });
+    const query = { product: productId };
+    if (role === "countryadmin") {
+      query.countryId = countryId;
+    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+      query.branchId = branchId;
+      query.countryId = countryId;
+    }
+    const inventory = await Inventory.findOneAndDelete(query);
 
     if (!inventory) {
       return res

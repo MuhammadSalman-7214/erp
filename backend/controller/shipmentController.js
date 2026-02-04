@@ -1,16 +1,22 @@
 // controller/shipmentController.js - Complete Shipment Controller
 
 const Shipment = require("../models/Shipmentmodel.js");
-const Country = require("../models/Countrymodel.js");
 const Branch = require("../models/Branchmodel.js");
 const Product = require("../models/Productmodel.js");
 const logActivity = require("../libs/logger.js");
+const { invalidateReportCache } = require("./reportController.js");
 
 // ==================== CREATE SHIPMENT ====================
 exports.createShipment = async (req, res) => {
   try {
     const currentUser = req.user;
     const shipmentData = req.body;
+    const {
+      userCurrency,
+      userCurrencyExchangeRate,
+      countryId: userCountryId,
+      branchId: userBranchId,
+    } = currentUser || {};
 
     // Validate hierarchy access
     if (!shipmentData.countryId || !shipmentData.branchId) {
@@ -29,23 +35,23 @@ exports.createShipment = async (req, res) => {
 
     // Check user permissions based on hierarchy
     if (currentUser.role === "countryadmin") {
-      if (currentUser.countryId.toString() !== shipmentData.countryId) {
+      if (userCountryId.toString() !== shipmentData.countryId) {
         return res.status(403).json({
           message: "Cannot create shipment in another country",
         });
       }
     } else if (["branchadmin", "staff"].includes(currentUser.role)) {
-      if (currentUser.branchId.toString() !== shipmentData.branchId) {
+      if (userBranchId.toString() !== shipmentData.branchId) {
         return res.status(403).json({
           message: "Cannot create shipment in another branch",
         });
       }
     }
 
-    // Get country for currency and exchange rate
-    const country = await Country.findById(shipmentData.countryId);
-    if (!country) {
-      return res.status(404).json({ message: "Country not found" });
+    if (!userCurrency || !userCurrencyExchangeRate) {
+      return res.status(400).json({
+        message: "Currency configuration is missing for this user",
+      });
     }
 
     // Generate shipment number
@@ -58,17 +64,17 @@ exports.createShipment = async (req, res) => {
     const newShipment = new Shipment({
       ...shipmentData,
       shipmentNumber,
-      currency: country.currency,
-      exchangeRate: country.exchangeRate,
-      createdBy: currentUser._id,
-      lastUpdatedBy: currentUser._id,
+      currency: userCurrency,
+      exchangeRate: userCurrencyExchangeRate,
+      createdBy: currentUser.userId,
+      lastUpdatedBy: currentUser.userId,
     });
 
     // Add initial status to history
     newShipment.statusHistory.push({
       status: shipmentData.status || "Booking",
       note: "Shipment created",
-      updatedBy: currentUser._id,
+      updatedBy: currentUser.userId,
       updatedAt: new Date(),
     });
 
@@ -88,10 +94,11 @@ exports.createShipment = async (req, res) => {
       description: `Shipment ${shipmentNumber} created`,
       entity: "shipment",
       entityId: newShipment._id,
-      userId: currentUser._id,
+      userId: currentUser.userId,
       ipAddress: req.ip,
     });
 
+    invalidateReportCache();
     res.status(201).json({
       message: "Shipment created successfully",
       shipment: newShipment,
@@ -126,6 +133,7 @@ exports.getAllShipments = async (req, res) => {
       query.countryId = currentUser.countryId;
     } else if (["branchadmin", "staff"].includes(currentUser.role)) {
       query.branchId = currentUser.branchId;
+      query.countryId = currentUser.countryId;
     }
 
     // Apply filters
@@ -250,12 +258,20 @@ exports.updateShipment = async (req, res) => {
 
     // Update fields
     Object.keys(updateData).forEach((key) => {
-      if (key !== "_id" && key !== "shipmentNumber" && key !== "createdBy") {
+      if (
+        key !== "_id" &&
+        key !== "shipmentNumber" &&
+        key !== "createdBy" &&
+        key !== "countryId" &&
+        key !== "branchId" &&
+        key !== "currency" &&
+        key !== "exchangeRate"
+      ) {
         shipment[key] = updateData[key];
       }
     });
 
-    shipment.lastUpdatedBy = currentUser._id;
+    shipment.lastUpdatedBy = currentUser.userId;
 
     await shipment.save();
 
@@ -272,10 +288,11 @@ exports.updateShipment = async (req, res) => {
       description: `Shipment ${shipment.shipmentNumber} updated`,
       entity: "shipment",
       entityId: shipment._id,
-      userId: currentUser._id,
+      userId: currentUser.userId,
       ipAddress: req.ip,
     });
 
+    invalidateReportCache();
     res.status(200).json({
       message: "Shipment updated successfully",
       shipment,
@@ -318,7 +335,7 @@ exports.updateShipmentStatus = async (req, res) => {
     }
 
     // Add status to history
-    shipment.addStatusHistory(status, note, currentUser._id);
+    shipment.addStatusHistory(status, note, currentUser.userId);
 
     // Auto-lock if delivered
     if (status === "Delivered") {
@@ -333,10 +350,11 @@ exports.updateShipmentStatus = async (req, res) => {
       description: `Shipment ${shipment.shipmentNumber} status changed to ${status}`,
       entity: "shipment",
       entityId: shipment._id,
-      userId: currentUser._id,
+      userId: currentUser.userId,
       ipAddress: req.ip,
     });
 
+    invalidateReportCache();
     res.status(200).json({
       message: "Status updated successfully",
       shipment,
@@ -384,11 +402,11 @@ exports.addShipmentDocument = async (req, res) => {
       documentType,
       documentName,
       documentUrl,
-      uploadedBy: currentUser._id,
+      uploadedBy: currentUser.userId,
       uploadedAt: new Date(),
     });
 
-    shipment.lastUpdatedBy = currentUser._id;
+    shipment.lastUpdatedBy = currentUser.userId;
     await shipment.save();
 
     await logActivity({
@@ -396,7 +414,7 @@ exports.addShipmentDocument = async (req, res) => {
       description: `Document ${documentName} added to shipment ${shipment.shipmentNumber}`,
       entity: "shipment",
       entityId: shipment._id,
-      userId: currentUser._id,
+      userId: currentUser.userId,
       ipAddress: req.ip,
     });
 
@@ -439,11 +457,11 @@ exports.addShipmentExpense = async (req, res) => {
 
     shipment.expenses.push({
       ...expenseData,
-      addedBy: currentUser._id,
+      addedBy: currentUser.userId,
       addedAt: new Date(),
     });
 
-    shipment.lastUpdatedBy = currentUser._id;
+    shipment.lastUpdatedBy = currentUser.userId;
     await shipment.save();
 
     await logActivity({
@@ -451,10 +469,11 @@ exports.addShipmentExpense = async (req, res) => {
       description: `Expense ${expenseData.expenseType} added to shipment ${shipment.shipmentNumber}`,
       entity: "shipment",
       entityId: shipment._id,
-      userId: currentUser._id,
+      userId: currentUser.userId,
       ipAddress: req.ip,
     });
 
+    invalidateReportCache();
     res.status(200).json({
       message: "Expense added successfully",
       shipment,
@@ -557,7 +576,7 @@ exports.deleteShipment = async (req, res) => {
 
     // Soft delete
     shipment.isActive = false;
-    shipment.lastUpdatedBy = currentUser._id;
+    shipment.lastUpdatedBy = currentUser.userId;
     await shipment.save();
 
     await logActivity({
@@ -565,10 +584,11 @@ exports.deleteShipment = async (req, res) => {
       description: `Shipment ${shipment.shipmentNumber} deleted`,
       entity: "shipment",
       entityId: shipment._id,
-      userId: currentUser._id,
+      userId: currentUser.userId,
       ipAddress: req.ip,
     });
 
+    invalidateReportCache();
     res.status(200).json({
       message: "Shipment deleted successfully",
     });
@@ -592,6 +612,7 @@ exports.getShipmentStatistics = async (req, res) => {
       matchQuery.countryId = currentUser.countryId;
     } else if (["branchadmin", "staff"].includes(currentUser.role)) {
       matchQuery.branchId = currentUser.branchId;
+      matchQuery.countryId = currentUser.countryId;
     }
 
     const stats = await Shipment.aggregate([

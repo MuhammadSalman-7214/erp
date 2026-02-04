@@ -9,6 +9,10 @@ import orderReducer from "../features/orderSlice"
 import notificationReducer from  "../features/notificationSlice"
 import stocktransactionReducer from '../features/stocktransactionSlice'
 import salesReducer from "../features/salesSlice"
+import reportReducer from "../features/reportSlice"
+import customerReducer from "../features/customerSlice"
+import purchaseBillReducer from "../features/purchaseBillSlice"
+import ledgerReducer from "../features/ledgerSlice"
 
 const store=configureStore({
     reducer:{
@@ -20,7 +24,11 @@ const store=configureStore({
         order:orderReducer,
         notification:notificationReducer,
         stocktransaction:stocktransactionReducer,
-        sales:salesReducer
+        sales:salesReducer,
+        reports:reportReducer,
+        customers:customerReducer,
+        purchaseBills:purchaseBillReducer,
+        ledger:ledgerReducer
     }
 })
 export default store;

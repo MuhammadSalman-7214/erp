@@ -6,12 +6,22 @@ const User = require("../models/Usermodel.js");
 const Country = require("../models/Countrymodel.js");
 const Branch = require("../models/Branchmodel.js");
 const logActivity = require("../libs/logger.js");
+const { invalidateReportCache } = require("./reportController.js");
 
 // ==================== CREATE CLEARING JOB ====================
 exports.createClearingJob = async (req, res) => {
   try {
     const currentUser = req.user;
     const jobData = req.body;
+    console.log({ jobData }, { currentUser });
+
+    const { userCurrency, userCurrencyExchangeRate } = currentUser || {};
+
+    if (currentUser.role === "agent") {
+      return res.status(403).json({
+        message: "Clearing agents can only update assigned jobs.",
+      });
+    }
 
     // Validate required fields
     if (!jobData.shipmentId) {
@@ -42,6 +52,14 @@ exports.createClearingJob = async (req, res) => {
     // Get country for currency
     const country = await Country.findById(shipment.countryId);
     const branch = await Branch.findById(shipment.branchId);
+    if (!country || !branch) {
+      return res.status(404).json({ message: "Country or branch not found" });
+    }
+    if (!userCurrency || !userCurrencyExchangeRate) {
+      return res.status(400).json({
+        message: "Currency configuration is missing for this user",
+      });
+    }
 
     // Generate job number
     const jobCount = await ClearingJob.countDocuments({
@@ -62,17 +80,17 @@ exports.createClearingJob = async (req, res) => {
       jobType,
       countryId: shipment.countryId,
       branchId: shipment.branchId,
-      currency: country.currency,
-      exchangeRate: country.exchangeRate,
-      createdBy: currentUser._id,
-      lastUpdatedBy: currentUser._id,
+      currency: userCurrency,
+      exchangeRate: userCurrencyExchangeRate,
+      createdBy: currentUser.userId,
+      lastUpdatedBy: currentUser.userId,
     });
 
     // Add initial status to history
     newJob.statusHistory.push({
       status: "Pending",
       note: "Clearing job created",
-      updatedBy: currentUser._id,
+      updatedBy: currentUser.userId,
       updatedAt: new Date(),
     });
 
@@ -95,10 +113,11 @@ exports.createClearingJob = async (req, res) => {
       description: `Clearing job ${jobNumber} created for shipment ${shipment.shipmentNumber}`,
       entity: "clearingJob",
       entityId: newJob._id,
-      userId: currentUser._id,
+      userId: currentUser.userId,
       ipAddress: req.ip,
     });
 
+    invalidateReportCache();
     res.status(201).json({
       message: "Clearing job created successfully",
       clearingJob: newJob,
@@ -132,11 +151,12 @@ exports.getAllClearingJobs = async (req, res) => {
 
     if (currentUser.role === "agent") {
       // Agents only see jobs assigned to them
-      query.agentId = currentUser._id;
+      query.agentId = currentUser.userId;
     } else if (currentUser.role === "countryadmin") {
       query.countryId = currentUser.countryId;
     } else if (["branchadmin", "staff"].includes(currentUser.role)) {
       query.branchId = currentUser.branchId;
+      query.countryId = currentUser.countryId;
     }
 
     // Apply filters
@@ -208,7 +228,7 @@ exports.getClearingJobById = async (req, res) => {
     if (currentUser.role === "agent") {
       if (
         !clearingJob.agentId ||
-        clearingJob.agentId._id.toString() !== currentUser._id.toString()
+        clearingJob.agentId._id.toString() !== currentUser.userId.toString()
       ) {
         return res.status(403).json({
           message: "Access denied. This job is not assigned to you.",
@@ -256,7 +276,7 @@ exports.updateClearingJob = async (req, res) => {
     if (currentUser.role === "agent") {
       if (
         !clearingJob.agentId ||
-        clearingJob.agentId.toString() !== currentUser._id.toString()
+        clearingJob.agentId.toString() !== currentUser.userId.toString()
       ) {
         return res.status(403).json({
           message: "Access denied. This job is not assigned to you.",
@@ -312,7 +332,7 @@ exports.updateClearingJob = async (req, res) => {
       });
     }
 
-    clearingJob.lastUpdatedBy = currentUser._id;
+    clearingJob.lastUpdatedBy = currentUser.userId;
     await clearingJob.save();
 
     await clearingJob.populate([
@@ -327,10 +347,11 @@ exports.updateClearingJob = async (req, res) => {
       description: `Clearing job ${clearingJob.jobNumber} updated`,
       entity: "clearingJob",
       entityId: clearingJob._id,
-      userId: currentUser._id,
+      userId: currentUser.userId,
       ipAddress: req.ip,
     });
 
+    invalidateReportCache();
     res.status(200).json({
       message: "Clearing job updated successfully",
       clearingJob,
@@ -365,7 +386,7 @@ exports.updateClearingJobStatus = async (req, res) => {
     if (currentUser.role === "agent") {
       if (
         !clearingJob.agentId ||
-        clearingJob.agentId.toString() !== currentUser._id.toString()
+        clearingJob.agentId.toString() !== currentUser.userId.toString()
       ) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -382,7 +403,7 @@ exports.updateClearingJobStatus = async (req, res) => {
     }
 
     // Update status
-    clearingJob.addStatusHistory(status, note, currentUser._id);
+    clearingJob.addStatusHistory(status, note, currentUser.userId);
 
     await clearingJob.save();
 
@@ -391,10 +412,11 @@ exports.updateClearingJobStatus = async (req, res) => {
       description: `Clearing job ${clearingJob.jobNumber} status changed to ${status}`,
       entity: "clearingJob",
       entityId: clearingJob._id,
-      userId: currentUser._id,
+      userId: currentUser.userId,
       ipAddress: req.ip,
     });
 
+    invalidateReportCache();
     res.status(200).json({
       message: "Status updated successfully",
       clearingJob,
@@ -429,7 +451,7 @@ exports.addClearingJobNote = async (req, res) => {
     if (currentUser.role === "agent") {
       if (
         !clearingJob.agentId ||
-        clearingJob.agentId.toString() !== currentUser._id.toString()
+        clearingJob.agentId.toString() !== currentUser.userId.toString()
       ) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -449,12 +471,13 @@ exports.addClearingJobNote = async (req, res) => {
     const noteIsInternal =
       currentUser.role === "agent" ? false : isInternal || false;
 
-    clearingJob.addNote(message, currentUser._id, noteIsInternal);
+    clearingJob.addNote(message, currentUser.userId, noteIsInternal);
 
     await clearingJob.save();
 
     await clearingJob.populate("notes.addedBy", "name");
 
+    invalidateReportCache();
     res.status(200).json({
       message: "Note added successfully",
       clearingJob,
@@ -463,6 +486,148 @@ exports.addClearingJobNote = async (req, res) => {
     console.error("Error adding note:", error);
     res.status(500).json({
       message: "Error adding note",
+      error: error.message,
+    });
+  }
+};
+
+// ==================== ADD CLEARING JOB DOCUMENT ====================
+exports.addClearingJobDocument = async (req, res) => {
+  try {
+    const currentUser = req.user;
+    const { id } = req.params;
+    const { documentType, documentName, documentUrl } = req.body;
+
+    if (!documentType || !documentName || !documentUrl) {
+      return res.status(400).json({
+        message: "Document type, name, and URL are required",
+      });
+    }
+
+    const clearingJob = await ClearingJob.findById(id);
+    if (!clearingJob) {
+      return res.status(404).json({ message: "Clearing job not found" });
+    }
+
+    // Check permissions
+    if (currentUser.role === "agent") {
+      if (
+        !clearingJob.agentId ||
+        clearingJob.agentId.toString() !== currentUser.userId.toString()
+      ) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+    } else if (currentUser.role === "countryadmin") {
+      if (
+        clearingJob.countryId.toString() !== currentUser.countryId.toString()
+      ) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+    } else if (["branchadmin", "staff"].includes(currentUser.role)) {
+      if (clearingJob.branchId.toString() !== currentUser.branchId.toString()) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+    }
+
+    clearingJob.documents.push({
+      documentType,
+      documentName,
+      documentUrl,
+      uploadedBy: currentUser.userId,
+      uploadedAt: new Date(),
+    });
+
+    clearingJob.lastUpdatedBy = currentUser.userId;
+    await clearingJob.save();
+
+    await logActivity({
+      action: "Clearing Job Document Added",
+      description: `Document ${documentName} added to clearing job ${clearingJob.jobNumber}`,
+      entity: "clearingJob",
+      entityId: clearingJob._id,
+      userId: currentUser.userId,
+      ipAddress: req.ip,
+    });
+
+    invalidateReportCache();
+    res.status(200).json({
+      message: "Document added successfully",
+      clearingJob,
+    });
+  } catch (error) {
+    console.error("Error adding clearing job document:", error);
+    res.status(500).json({
+      message: "Error adding document",
+      error: error.message,
+    });
+  }
+};
+
+// ==================== ADD CLEARING JOB EXPENSE ====================
+exports.addClearingJobExpense = async (req, res) => {
+  try {
+    const currentUser = req.user;
+    const { id } = req.params;
+    const expenseData = req.body;
+
+    if (!expenseData?.expenseType || expenseData.amount == null) {
+      return res.status(400).json({
+        message: "Expense type and amount are required",
+      });
+    }
+
+    const clearingJob = await ClearingJob.findById(id);
+    if (!clearingJob) {
+      return res.status(404).json({ message: "Clearing job not found" });
+    }
+
+    // Check permissions
+    if (currentUser.role === "agent") {
+      if (
+        !clearingJob.agentId ||
+        clearingJob.agentId.toString() !== currentUser.userId.toString()
+      ) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+    } else if (currentUser.role === "countryadmin") {
+      if (
+        clearingJob.countryId.toString() !== currentUser.countryId.toString()
+      ) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+    } else if (["branchadmin", "staff"].includes(currentUser.role)) {
+      if (clearingJob.branchId.toString() !== currentUser.branchId.toString()) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+    }
+
+    clearingJob.expenses.push({
+      ...expenseData,
+      addedBy: currentUser.userId,
+      addedAt: new Date(),
+    });
+
+    clearingJob.lastUpdatedBy = currentUser.userId;
+    await clearingJob.save();
+
+    await logActivity({
+      action: "Clearing Job Expense Added",
+      description: `Expense ${expenseData.expenseType} added to clearing job ${clearingJob.jobNumber}`,
+      entity: "clearingJob",
+      entityId: clearingJob._id,
+      userId: currentUser.userId,
+      ipAddress: req.ip,
+    });
+
+    invalidateReportCache();
+    res.status(200).json({
+      message: "Expense added successfully",
+      clearingJob,
+    });
+  } catch (error) {
+    console.error("Error adding clearing job expense:", error);
+    res.status(500).json({
+      message: "Error adding expense",
       error: error.message,
     });
   }
@@ -528,7 +693,7 @@ exports.assignAgentToClearingJob = async (req, res) => {
       agentId,
       agent.name,
       agent.contact,
-      currentUser._id,
+      currentUser.userId,
     );
 
     await clearingJob.save();
@@ -538,10 +703,11 @@ exports.assignAgentToClearingJob = async (req, res) => {
       description: `Agent ${agent.name} assigned to clearing job ${clearingJob.jobNumber}`,
       entity: "clearingJob",
       entityId: clearingJob._id,
-      userId: currentUser._id,
+      userId: currentUser.userId,
       ipAddress: req.ip,
     });
 
+    invalidateReportCache();
     res.status(200).json({
       message: "Agent assigned successfully",
       clearingJob,
@@ -569,7 +735,7 @@ exports.getMyClearingJobs = async (req, res) => {
     const { status, page = 1, limit = 50 } = req.query;
 
     let query = {
-      agentId: currentUser._id,
+      agentId: currentUser.userId,
       isActive: true,
     };
 
@@ -639,7 +805,7 @@ exports.deleteClearingJob = async (req, res) => {
 
     // Soft delete
     clearingJob.isActive = false;
-    clearingJob.lastUpdatedBy = currentUser._id;
+    clearingJob.lastUpdatedBy = currentUser.userId;
     await clearingJob.save();
 
     await logActivity({
@@ -647,10 +813,11 @@ exports.deleteClearingJob = async (req, res) => {
       description: `Clearing job ${clearingJob.jobNumber} deleted`,
       entity: "clearingJob",
       entityId: clearingJob._id,
-      userId: currentUser._id,
+      userId: currentUser.userId,
       ipAddress: req.ip,
     });
 
+    invalidateReportCache();
     res.status(200).json({
       message: "Clearing job deleted successfully",
     });
@@ -671,11 +838,12 @@ exports.getClearingJobStatistics = async (req, res) => {
     let matchQuery = { isActive: true };
 
     if (currentUser.role === "agent") {
-      matchQuery.agentId = currentUser._id;
+      matchQuery.agentId = currentUser.userId;
     } else if (currentUser.role === "countryadmin") {
       matchQuery.countryId = currentUser.countryId;
     } else if (["branchadmin", "staff"].includes(currentUser.role)) {
       matchQuery.branchId = currentUser.branchId;
+      matchQuery.countryId = currentUser.countryId;
     }
 
     const stats = await ClearingJob.aggregate([

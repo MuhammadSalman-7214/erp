@@ -4,32 +4,39 @@ import axiosInstance from "../lib/axios";
 import { toast } from "react-hot-toast";
 import { IoMdAdd } from "react-icons/io";
 import { MdDelete } from "react-icons/md";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchCustomers } from "../features/customerSlice";
 
 function CreateInvoicePage() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
+  const { customers } = useSelector((state) => state.customers);
 
   const dashboardBasePath = (() => {
     switch (user?.role) {
-      case "admin":
-        return "/AdminDashboard";
-      case "manager":
-        return "/ManagerDashboard";
+      case "superadmin":
+        return "/SuperAdminDashboard";
+      case "countryadmin":
+        return "/CountryAdminDashboard";
+      case "branchadmin":
+        return "/BranchAdminDashboard";
       case "staff":
         return "/StaffDashboard";
+      case "agent":
+        return "/AgentDashboard";
       default:
         return "/";
     }
   })();
 
-  const [invoiceNumber, setInvoiceNumber] = useState("");
   const [client, setClient] = useState({
     name: "",
     email: "",
     phone: "",
     address: "",
   });
+  const [customerId, setCustomerId] = useState("");
   const [items, setItems] = useState([
     { name: "", description: "", quantity: 1, unitPrice: 0, total: 0 },
   ]);
@@ -42,8 +49,9 @@ function CreateInvoicePage() {
   const [taxAmount, setTaxAmount] = useState(0);
   const [totalAmount, setTotalAmount] = useState(0);
 
-  // Generate invoice number
-  useEffect(() => setInvoiceNumber(`INV-${Date.now()}`), []);
+  useEffect(() => {
+    dispatch(fetchCustomers());
+  }, [dispatch]);
 
   // Recalculate totals
   useEffect(() => {
@@ -75,6 +83,19 @@ function CreateInvoicePage() {
 
   const removeItem = (index) => setItems(items.filter((_, i) => i !== index));
 
+  const handleCustomerSelect = (id) => {
+    setCustomerId(id);
+    if (!id) return;
+    const selected = (customers || []).find((c) => c._id === id);
+    if (!selected) return;
+    setClient({
+      name: selected.name || "",
+      email: selected.contactInfo?.email || "",
+      phone: selected.contactInfo?.phone || "",
+      address: selected.contactInfo?.address || "",
+    });
+  };
+
   const handleSubmit = async () => {
     if (!client.name.trim()) return toast.error("Client name is required");
     if (items.length === 0)
@@ -82,8 +103,8 @@ function CreateInvoicePage() {
 
     try {
       await axiosInstance.post("invoice", {
-        invoiceNumber,
         client,
+        customerId: customerId || null,
         items: items.map(({ name, description, quantity, unitPrice }) => ({
           name,
           description,
@@ -95,7 +116,6 @@ function CreateInvoicePage() {
         dueDate,
         paymentMethod,
         notes,
-        currency: "USD",
       });
       toast.success("Invoice created successfully");
       navigate(`${dashboardBasePath}/invoices`);
@@ -117,17 +137,6 @@ function CreateInvoicePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
               <label className="block mb-2 text-gray-700 font-medium">
-                Invoice Number
-              </label>
-              <input
-                value={invoiceNumber}
-                disabled
-                className="w-full border border-gray-300 p-3 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            </div>
-
-            <div>
-              <label className="block mb-2 text-gray-700 font-medium">
                 Due Date
               </label>
               <input
@@ -141,6 +150,23 @@ function CreateInvoicePage() {
 
           {/* Client */}
           <h2 className="text-lg font-semibold text-gray-800 mb-3">Client</h2>
+          <div className="mb-4">
+            <label className="block mb-2 text-gray-700 font-medium">
+              Select Customer (Optional)
+            </label>
+            <select
+              value={customerId}
+              onChange={(e) => handleCustomerSelect(e.target.value)}
+              className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+              <option value="">-- Select Customer --</option>
+              {(customers || []).map((customer) => (
+                <option key={customer._id} value={customer._id}>
+                  {customer.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <input
               placeholder="Client Name"

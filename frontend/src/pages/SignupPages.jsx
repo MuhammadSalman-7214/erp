@@ -10,6 +10,7 @@ import axiosInstance from "../lib/axios";
 
 function SignupPage() {
   const { user, isUserSignup } = useSelector((state) => state.auth);
+  // debugger;
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -183,9 +184,9 @@ function SignupPage() {
       }
 
       const userManagementPath = {
-        superadmin: "/SuperAdminDashboard/users",
-        countryadmin: "/CountryAdminDashboard/users",
-        branchadmin: "/BranchAdminDashboard/users",
+        superadmin: "/SuperAdminDashboard/user-management",
+        countryadmin: "/CountryAdminDashboard/user-management",
+        branchadmin: "/BranchAdminDashboard/user-management",
       };
 
       navigate(userManagementPath[user?.role] || "/");
@@ -338,8 +339,8 @@ function SignupPage() {
                 >
                   <option value="">Select Country</option>
                   {countries.map((country) => (
-                    <option key={country._id} value={country._id}>
-                      {country.name} ({country.code})
+                    <option key={country?._id} value={country?._id}>
+                      {country?.name} ({country?.code})
                     </option>
                   ))}
                 </select>

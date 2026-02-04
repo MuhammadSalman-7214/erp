@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const {
   authmiddleware,
-  checkRole,
+  checkPermission,
 } = require("../middleware/Authmiddleware.js");
 
 const stockController = require("../controller/stocktransaction.js");
@@ -11,31 +11,31 @@ const stockController = require("../controller/stocktransaction.js");
 router.get(
   "/",
   authmiddleware,
-  checkRole("admin", "manager"),
+  checkPermission("stockTransaction", "read"),
   stockController.getAllStockTransactions,
 );
 router.post(
   "/",
   authmiddleware,
-  checkRole("admin", "manager"),
+  checkPermission("stockTransaction", "write"),
   stockController.createStockTransaction,
 );
 router.get(
   "/searchstocks",
   authmiddleware,
-  checkRole("admin", "manager"),
+  checkPermission("stockTransaction", "read"),
   stockController.searchStocks,
 );
 router.get(
   "/product/:productId",
   authmiddleware,
-  checkRole("admin", "manager"),
+  checkPermission("stockTransaction", "read"),
   stockController.getStockTransactionsByProduct,
 );
 router.get(
   "/supplier/:supplierId",
   authmiddleware,
-  checkRole("admin", "manager"),
+  checkPermission("stockTransaction", "read"),
   stockController.getStockTransactionsBySupplier,
 );
 

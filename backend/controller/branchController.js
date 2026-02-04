@@ -10,6 +10,13 @@ exports.createBranch = async (req, res) => {
   try {
     const { name, branchCode, countryId, city, address, settings } = req.body;
     const creatorId = req.user._id;
+    const { role, countryId: userCountryId } = req.user || {};
+
+    if (role === "countryadmin" && countryId !== userCountryId?.toString()) {
+      return res.status(403).json({
+        message: "Access denied. You can only create branches in your country.",
+      });
+    }
 
     const country = await Country.findById(countryId);
     if (!country) {
@@ -65,8 +72,8 @@ exports.getAllBranches = async (req, res) => {
       query.countryId = currentUser.countryId;
     }
 
-    // Branch admin sees only their branch
-    if (currentUser.role === "branchadmin") {
+    // Branch admin/staff/agent see only their branch
+    if (["branchadmin", "staff", "agent"].includes(currentUser.role)) {
       query._id = currentUser.branchId;
     }
 
@@ -88,6 +95,24 @@ exports.getAllBranches = async (req, res) => {
 exports.getBranchesByCountry = async (req, res) => {
   try {
     const { countryId } = req.params;
+    const { role, branchId, countryId: userCountryId } = req.user || {};
+
+    if (role === "countryadmin" && countryId !== userCountryId?.toString()) {
+      return res.status(403).json({
+        message: "Access denied. You can only view branches in your country.",
+      });
+    }
+    if (["branchadmin", "staff", "agent"].includes(role)) {
+      if (countryId !== userCountryId?.toString()) {
+        return res.status(403).json({
+          message: "Access denied. You can only view your country branches.",
+        });
+      }
+      const branch = await Branch.find({ _id: branchId, isActive: true })
+        .populate("branchAdminId", "name email")
+        .sort({ city: 1 });
+      return res.status(200).json(branch);
+    }
 
     const branches = await Branch.find({ countryId, isActive: true })
       .populate("branchAdminId", "name email")
@@ -106,10 +131,19 @@ exports.getBranchesByCountry = async (req, res) => {
 exports.assignBranchAdmin = async (req, res) => {
   try {
     const { branchId, userId } = req.body;
+    const { role, countryId } = req.user || {};
 
     const branch = await Branch.findById(branchId);
     if (!branch) {
       return res.status(404).json({ message: "Branch not found" });
+    }
+    if (
+      role === "countryadmin" &&
+      branch.countryId?.toString() !== countryId?.toString()
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Access denied for this country." });
     }
 
     const user = await User.findById(userId);
@@ -144,6 +178,20 @@ exports.updateBranch = async (req, res) => {
   try {
     const { branchId } = req.params;
     const updates = req.body;
+    const { role, countryId } = req.user || {};
+
+    const existingBranch = await Branch.findById(branchId);
+    if (!existingBranch) {
+      return res.status(404).json({ message: "Branch not found" });
+    }
+    if (
+      role === "countryadmin" &&
+      existingBranch.countryId?.toString() !== countryId?.toString()
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Access denied for this country." });
+    }
 
     const branch = await Branch.findByIdAndUpdate(
       branchId,
@@ -171,6 +219,20 @@ exports.updateBranch = async (req, res) => {
 exports.deleteBranch = async (req, res) => {
   try {
     const { branchId } = req.params;
+    const { role, countryId } = req.user || {};
+
+    const existingBranch = await Branch.findById(branchId);
+    if (!existingBranch) {
+      return res.status(404).json({ message: "Branch not found" });
+    }
+    if (
+      role === "countryadmin" &&
+      existingBranch.countryId?.toString() !== countryId?.toString()
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Access denied for this country." });
+    }
 
     const branch = await Branch.findByIdAndUpdate(
       branchId,

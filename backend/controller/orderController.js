@@ -2,17 +2,37 @@ const Order = require("../models/Ordermodel");
 const logActivity = require("../libs/logger");
 const ProductModel = require("../models/Productmodel");
 const StockTransaction = require("../models/StockTranscationmodel");
+const Branch = require("../models/Branchmodel.js");
 
 const {
   createStockInTransaction,
   removeStockTransaction,
 } = require("../libs/createstock");
+const { invalidateReportCache } = require("./reportController.js");
 
 const createOrder = async (req, res) => {
   try {
-    const { user, Description, Product, status, supplier } = req.body;
+    const { Description, Product, status, supplier } = req.body;
+    const {
+      userId,
+      branchId,
+      countryId,
+      userCurrency,
+      userCurrencyExchangeRate,
+    } = req.user || {};
 
-    if (!user) return res.status(400).json({ message: "User ID is required" });
+    if (!userId)
+      return res.status(400).json({ message: "User ID is required" });
+    if (!branchId || !countryId) {
+      return res
+        .status(400)
+        .json({ message: "Branch and country are required" });
+    }
+    if (!userCurrency || !userCurrencyExchangeRate) {
+      return res
+        .status(400)
+        .json({ message: "Currency configuration is missing for this user" });
+    }
     if (!Description)
       return res.status(400).json({ message: "Description is required" });
     if (!status) return res.status(400).json({ message: "Status is required" });
@@ -31,20 +51,44 @@ const createOrder = async (req, res) => {
     if (!productRecord) {
       return res.status(404).json({ message: "Product not found" });
     }
+    if (
+      productRecord.countryId?.toString() !== countryId?.toString()
+      // ||productRecord.branchId?.toString() !== branchId?.toString()
+    ) {
+      return res.status(403).json({
+        message: "Product does not belong to your branch/country",
+      });
+    }
 
+    const priceUSD = Number(
+      (totalOrderAmount / userCurrencyExchangeRate).toFixed(2),
+    );
+    const branch = await Branch.findById(branchId);
+    if (!branch) {
+      return res.status(404).json({ message: "Branch not found" });
+    }
+    const orderCount = await Order.countDocuments({ branchId });
+    const orderNumber = `ORD-${branch.branchCode}-${String(orderCount + 1).padStart(5, "0")}`;
     const newOrder = new Order({
-      user,
+      orderNumber,
+      user: userId,
       Description,
       Product,
       supplier,
       totalAmount: totalOrderAmount,
       status,
+      branchId,
+      countryId,
+      currency: userCurrency,
+      exchangeRateUsed: userCurrencyExchangeRate,
+      priceUSD,
     });
 
     await newOrder.save();
     if (status === "delivered") {
       await createStockInTransaction(newOrder);
     }
+    invalidateReportCache();
     res.status(201).json({
       success: true,
       message: "Order created successfully",
@@ -67,11 +111,28 @@ const Removeorder = async (req, res) => {
     const userId = req.user.userId;
     const ipAddress = req.ip;
 
-    const Deletedorder = await Order.findByIdAndDelete(OrdertId);
+    const { role, countryId, branchId } = req.user || {};
+    const Deletedorder = await Order.findById(OrdertId);
 
     if (!Deletedorder) {
       return res.status(404).json({ message: "Order is not found!" });
     }
+    if (
+      role === "countryadmin" &&
+      Deletedorder.countryId?.toString() !== countryId?.toString()
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Access denied for this country" });
+    }
+    if (
+      ["branchadmin", "staff", "agent"].includes(role) &&
+      Deletedorder.branchId?.toString() !== branchId?.toString()
+    ) {
+      return res.status(403).json({ message: "Access denied for this branch" });
+    }
+
+    await Order.findByIdAndDelete(OrdertId);
 
     await logActivity({
       action: "Delete order",
@@ -82,6 +143,7 @@ const Removeorder = async (req, res) => {
       ipAddress: ipAddress,
     });
 
+    invalidateReportCache();
     res.status(200).json({ message: "Order deleted successfully" });
   } catch (error) {
     res
@@ -92,7 +154,16 @@ const Removeorder = async (req, res) => {
 
 const getOrder = async (req, res) => {
   try {
-    const orders = await Order.find({})
+    const { role, countryId, branchId } = req.user || {};
+    const query = {};
+    if (role === "countryadmin") {
+      query.countryId = countryId;
+    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+      query.branchId = branchId;
+      query.countryId = countryId;
+    }
+
+    const orders = await Order.find(query)
       .populate("Product.product", "name ProductModelrice ")
       .populate("user", "name email")
       .populate("supplier", "name");
@@ -113,11 +184,26 @@ const updatestatusOrder = async (req, res) => {
   try {
     const { OrderId } = req.params;
     const updates = req.body;
+    const { role, countryId, branchId } = req.user || {};
 
     // 1️⃣ Get old order
     const oldOrder = await Order.findById(OrderId);
     if (!oldOrder) {
       return res.status(404).json({ message: "Order not found" });
+    }
+    if (
+      role === "countryadmin" &&
+      oldOrder.countryId?.toString() !== countryId?.toString()
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Access denied for this country" });
+    }
+    if (
+      ["branchadmin", "staff", "agent"].includes(role) &&
+      oldOrder.branchId?.toString() !== branchId?.toString()
+    ) {
+      return res.status(403).json({ message: "Access denied for this branch" });
     }
 
     // 2️⃣ Update order
@@ -140,6 +226,7 @@ const updatestatusOrder = async (req, res) => {
       await removeStockTransaction(updatedOrder);
     }
 
+    invalidateReportCache();
     res.status(200).json({
       message: "Order successfully updated",
       order: updatedOrder,
@@ -155,18 +242,28 @@ const updatestatusOrder = async (req, res) => {
 const searchOrder = async (req, res) => {
   try {
     const { query } = req.query;
+    const { role, countryId, branchId } = req.user || {};
 
     if (!query) {
       return res.status(400).json({ message: "Query parameter is required" });
     }
 
-    const searchdata = await Order.find({
+    const searchQuery = {
       $or: [
-        { Desciption: { $regex: query, $options: "i" } },
+        { Description: { $regex: query, $options: "i" } },
         { status: { $regex: query, $options: "i" } },
+        { orderNumber: { $regex: query, $options: "i" } },
         { "user.name": { $regex: query, $options: "i" } },
       ],
-    });
+    };
+    if (role === "countryadmin") {
+      searchQuery.countryId = countryId;
+    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+      searchQuery.branchId = branchId;
+      searchQuery.countryId = countryId;
+    }
+
+    const searchdata = await Order.find(searchQuery);
 
     res.json(searchdata);
   } catch (error) {
@@ -178,7 +275,16 @@ const searchOrder = async (req, res) => {
 
 const getOrderStatistics = async (req, res) => {
   try {
+    const { role, countryId, branchId } = req.user || {};
+    const match = {};
+    if (role === "countryadmin") {
+      match.countryId = countryId;
+    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+      match.branchId = branchId;
+      match.countryId = countryId;
+    }
     const orderStats = await Order.aggregate([
+      { $match: match },
       {
         $group: {
           _id: "$status",

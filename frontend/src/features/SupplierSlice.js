@@ -39,6 +39,8 @@ export const gettingallSupplier = createAsyncThunk(
       const response = await axiosInstance.get("supplier", {
         withCredentials: true,
       });
+      // console.log({ result1111111: response.data });
+
       return response.data;
     } catch (error) {
       return rejectWithValue(
