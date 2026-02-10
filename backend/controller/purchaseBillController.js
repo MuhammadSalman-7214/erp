@@ -4,6 +4,8 @@ const Branch = require("../models/Branchmodel.js");
 const LedgerEntry = require("../models/LedgerEntrymodel.js");
 const logActivity = require("../libs/logger");
 const { invalidateReportCache } = require("./reportController.js");
+const { getCountryCurrencySnapshot } = require("../libs/currency.js");
+const { assertNotLocked } = require("../libs/periodLock.js");
 
 const calculateTotals = (items, taxRate = 0, discount = 0) => {
   const subTotal = items.reduce(
@@ -24,29 +26,33 @@ const generateBillNumber = async (branchId) => {
 
 module.exports.createPurchaseBill = async (req, res) => {
   try {
+    const { role } = req.user || {};
+    if (!["branchadmin", "staff"].includes(role)) {
+      return res
+        .status(403)
+        .json({ message: "Only branch staff can create purchase bills" });
+    }
     const { supplierId, items, taxRate, discount, dueDate, status } = req.body;
-    const {
-      userId,
-      branchId,
-      countryId,
-      userCurrency,
-      userCurrencyExchangeRate,
-    } = req.user || {};
+    const { userId, branchId, countryId } = req.user || {};
 
     if (!supplierId || !items?.length) {
-      return res.status(400).json({ message: "Supplier and items are required" });
-    }
-    if (!branchId || !countryId) {
-      return res.status(400).json({ message: "Branch and country are required" });
-    }
-    if (!userCurrency || !userCurrencyExchangeRate) {
       return res
         .status(400)
-        .json({ message: "Currency configuration is missing for this user" });
+        .json({ message: "Supplier and items are required" });
     }
+    if (!branchId || !countryId) {
+      return res
+        .status(400)
+        .json({ message: "Branch and country are required" });
+    }
+    await assertNotLocked({ countryId, branchId, transactionDate: new Date() });
+    const currencySnapshot = await getCountryCurrencySnapshot(countryId);
+    const userCurrency = currencySnapshot.currency;
+    const userCurrencyExchangeRate = currencySnapshot.exchangeRate;
 
     const supplier = await Supplier.findById(supplierId);
-    if (!supplier) return res.status(404).json({ message: "Supplier not found" });
+    if (!supplier)
+      return res.status(404).json({ message: "Supplier not found" });
     if (
       supplier.countryId?.toString() !== countryId?.toString() ||
       supplier.branchId?.toString() !== branchId?.toString()
@@ -74,6 +80,7 @@ module.exports.createPurchaseBill = async (req, res) => {
       discount,
       dueDate,
       status: status || "draft",
+      workflowStatus: "Draft",
       ...totals,
       branchId,
       countryId,
@@ -111,7 +118,12 @@ module.exports.createPurchaseBill = async (req, res) => {
     invalidateReportCache();
     res.status(201).json({ success: true, bill });
   } catch (error) {
-    res.status(500).json({ message: "Error creating purchase bill", error: error.message });
+    if (error.code === "ACCOUNTING_LOCKED") {
+      return res.status(423).json({ message: error.message });
+    }
+    res
+      .status(500)
+      .json({ message: "Error creating purchase bill", error: error.message });
   }
 };
 
@@ -121,7 +133,7 @@ module.exports.getAllPurchaseBills = async (req, res) => {
     const query = {};
     if (role === "countryadmin") {
       query.countryId = countryId;
-    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+    } else if (["branchadmin", "staff"].includes(role)) {
       query.countryId = countryId;
       query.branchId = branchId;
     }
@@ -130,7 +142,9 @@ module.exports.getAllPurchaseBills = async (req, res) => {
       .sort({ createdAt: -1 });
     res.status(200).json({ success: true, bills });
   } catch (error) {
-    res.status(500).json({ message: "Error fetching purchase bills", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error fetching purchase bills", error: error.message });
   }
 };
 
@@ -142,24 +156,103 @@ module.exports.updatePurchaseBill = async (req, res) => {
       req.user || {};
 
     const bill = await PurchaseBill.findById(id);
-    if (!bill) return res.status(404).json({ message: "Purchase bill not found" });
+    if (!bill)
+      return res.status(404).json({ message: "Purchase bill not found" });
+    await assertNotLocked({
+      countryId: bill.countryId,
+      branchId: bill.branchId,
+      transactionDate: new Date(),
+    });
+    await assertNotLocked({
+      countryId: bill.countryId,
+      branchId: bill.branchId,
+      transactionDate: bill.createdAt,
+    });
+    const originalBill = bill.toObject();
     if (
       role === "countryadmin" &&
       bill.countryId?.toString() !== countryId?.toString()
     ) {
-      return res.status(403).json({ message: "Access denied for this country" });
+      return res
+        .status(403)
+        .json({ message: "Access denied for this country" });
     }
     if (
-      ["branchadmin", "staff", "agent"].includes(role) &&
+      ["branchadmin", "staff"].includes(role) &&
       bill.branchId?.toString() !== branchId?.toString()
     ) {
       return res.status(403).json({ message: "Access denied for this branch" });
     }
-    if (bill.status !== "approved") {
-      return res.status(400).json({ message: "Bill must be approved before payment" });
+    if (
+      req.body.workflowStatus &&
+      Object.keys(req.body).every((key) =>
+        ["workflowStatus", "note", "revisionReason"].includes(key),
+      )
+    ) {
+      const nextStatus = req.body.workflowStatus;
+      const currentStatus = bill.workflowStatus;
+      if (nextStatus === "Submitted" && currentStatus === "Draft") {
+        if (!["branchadmin", "staff"].includes(role)) {
+          return res
+            .status(403)
+            .json({ message: "Only branch staff can submit bills" });
+        }
+        bill.workflowStatus = "Submitted";
+        bill.submittedBy = req.user.userId;
+        bill.submittedAt = new Date();
+      } else if (nextStatus === "Draft" && currentStatus === "Submitted") {
+        if (!["branchadmin", "countryadmin"].includes(role)) {
+          return res
+            .status(403)
+            .json({ message: "Only branch or country admin can reject bills" });
+        }
+        bill.workflowStatus = "Draft";
+      } else if (nextStatus === "Approved" && currentStatus === "Submitted") {
+        if (!["branchadmin", "countryadmin"].includes(role)) {
+          return res.status(403).json({
+            message: "Only branch or country admin can approve bills",
+          });
+        }
+        bill.workflowStatus = "Approved";
+        bill.approvedBy = req.user.userId;
+        bill.approvedAt = new Date();
+      } else if (nextStatus === "Locked" && currentStatus === "Approved") {
+        if (role !== "branchadmin") {
+          return res
+            .status(403)
+            .json({ message: "Only branch admin can lock bills" });
+        }
+        bill.workflowStatus = "Locked";
+        bill.lockedBy = req.user.userId;
+        bill.lockedAt = new Date();
+        bill.isLocked = true;
+      } else {
+        return res.status(400).json({ message: "Invalid workflow transition" });
+      }
+      bill.lastUpdatedBy = req.user.userId;
+      await bill.save();
+      invalidateReportCache();
+      return res.status(200).json({ success: true, bill });
     }
-    if (bill.isLocked || ["approved", "paid", "cancelled"].includes(bill.status)) {
+    if (bill.workflowStatus === "Locked" || bill.isLocked) {
       return res.status(403).json({ message: "Bill is locked" });
+    }
+    if (bill.workflowStatus === "Submitted" && role !== "branchadmin") {
+      return res
+        .status(403)
+        .json({ message: "Only branch admin can edit submitted bills" });
+    }
+    if (bill.workflowStatus === "Approved") {
+      if (role !== "branchadmin") {
+        return res
+          .status(403)
+          .json({ message: "Only branch admin can edit approved bills" });
+      }
+      if (!req.body.revisionReason) {
+        return res.status(400).json({
+          message: "Revision reason is required for approved bill edits",
+        });
+      }
     }
 
     const nextItems = items || bill.items;
@@ -184,12 +277,33 @@ module.exports.updatePurchaseBill = async (req, res) => {
     bill.taxAmount = totals.taxAmount;
     bill.totalAmount = totals.totalAmount;
     bill.priceUSD = priceUSD;
+    bill.lastUpdatedBy = req.user.userId;
 
     await bill.save();
+    if (bill.workflowStatus === "Approved" && req.body.revisionReason) {
+      const changes = Object.keys(req.body)
+        .filter((key) => !["revisionReason", "workflowStatus"].includes(key))
+        .map((key) => ({
+          field: key,
+          from: originalBill[key],
+          to: req.body[key],
+        }));
+      bill.revisions.push({
+        changes,
+        reason: req.body.revisionReason,
+        updatedBy: req.user.userId,
+      });
+      await bill.save();
+    }
     invalidateReportCache();
     res.status(200).json({ success: true, bill });
   } catch (error) {
-    res.status(500).json({ message: "Error updating purchase bill", error: error.message });
+    if (error.code === "ACCOUNTING_LOCKED") {
+      return res.status(423).json({ message: error.message });
+    }
+    res
+      .status(500)
+      .json({ message: "Error updating purchase bill", error: error.message });
   }
 };
 
@@ -198,45 +312,55 @@ module.exports.deletePurchaseBill = async (req, res) => {
     const { id } = req.params;
     const { role, countryId, branchId } = req.user || {};
     const bill = await PurchaseBill.findById(id);
-    if (!bill) return res.status(404).json({ message: "Purchase bill not found" });
-    if (
-      role === "countryadmin" &&
-      bill.countryId?.toString() !== countryId?.toString()
-    ) {
-      return res.status(403).json({ message: "Access denied for this country" });
+    if (!bill)
+      return res.status(404).json({ message: "Purchase bill not found" });
+    if (role !== "branchadmin") {
+      return res.status(403).json({ message: "Access denied" });
     }
-    if (
-      ["branchadmin", "staff", "agent"].includes(role) &&
-      bill.branchId?.toString() !== branchId?.toString()
-    ) {
+    if (bill.branchId?.toString() !== branchId?.toString()) {
       return res.status(403).json({ message: "Access denied for this branch" });
+    }
+    if (bill.workflowStatus !== "Draft") {
+      return res.status(403).json({
+        message: "Only draft bills can be deleted",
+      });
     }
     await PurchaseBill.findByIdAndDelete(id);
     invalidateReportCache();
     res.status(200).json({ success: true, message: "Purchase bill deleted" });
   } catch (error) {
-    res.status(500).json({ message: "Error deleting purchase bill", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error deleting purchase bill", error: error.message });
   }
 };
 
 module.exports.markPurchaseBillPaid = async (req, res) => {
   try {
     const { id } = req.params;
-    const { role, countryId, branchId, userCurrency, userCurrencyExchangeRate, userId } =
+    const { role, countryId, branchId, userCurrencyExchangeRate, userId } =
       req.user || {};
     const bill = await PurchaseBill.findById(id);
-    if (!bill) return res.status(404).json({ message: "Purchase bill not found" });
+    if (!bill)
+      return res.status(404).json({ message: "Purchase bill not found" });
     if (
       role === "countryadmin" &&
       bill.countryId?.toString() !== countryId?.toString()
     ) {
-      return res.status(403).json({ message: "Access denied for this country" });
+      return res
+        .status(403)
+        .json({ message: "Access denied for this country" });
     }
     if (
-      ["branchadmin", "staff", "agent"].includes(role) &&
+      ["branchadmin", "staff"].includes(role) &&
       bill.branchId?.toString() !== branchId?.toString()
     ) {
       return res.status(403).json({ message: "Access denied for this branch" });
+    }
+    if (bill.workflowStatus !== "Approved") {
+      return res
+        .status(400)
+        .json({ message: "Bill must be approved before payment" });
     }
 
     bill.status = "paid";
@@ -253,7 +377,7 @@ module.exports.markPurchaseBillPaid = async (req, res) => {
       entryType: "payment",
       debit: bill.totalAmount,
       credit: 0,
-      currency: userCurrency,
+      currency: bill.currency,
       amountUSD,
       exchangeRateUsed: rate,
       branchId: bill.branchId,
@@ -266,40 +390,56 @@ module.exports.markPurchaseBillPaid = async (req, res) => {
     invalidateReportCache();
     res.status(200).json({ success: true, bill });
   } catch (error) {
-    res.status(500).json({ message: "Error marking bill paid", error: error.message });
+    if (error.code === "ACCOUNTING_LOCKED") {
+      return res.status(423).json({ message: error.message });
+    }
+    res
+      .status(500)
+      .json({ message: "Error marking bill paid", error: error.message });
   }
 };
 
 module.exports.approvePurchaseBill = async (req, res) => {
   try {
     const { role, countryId, branchId, userId } = req.user || {};
-    if (!["superadmin", "countryadmin", "branchadmin"].includes(role)) {
+
+    if (!["countryadmin", "branchadmin"].includes(role)) {
       return res.status(403).json({ message: "Approval requires admin role" });
     }
     const bill = await PurchaseBill.findById(req.params.id);
-    if (!bill) return res.status(404).json({ message: "Purchase bill not found" });
+    if (!bill)
+      return res.status(404).json({ message: "Purchase bill not found" });
     if (
       role === "countryadmin" &&
       bill.countryId?.toString() !== countryId?.toString()
     ) {
-      return res.status(403).json({ message: "Access denied for this country" });
+      return res
+        .status(403)
+        .json({ message: "Access denied for this country" });
     }
     if (
-      ["branchadmin", "staff", "agent"].includes(role) &&
+      ["branchadmin", "staff"].includes(role) &&
       bill.branchId?.toString() !== branchId?.toString()
     ) {
       return res.status(403).json({ message: "Access denied for this branch" });
     }
-    if (bill.status !== "draft") {
-      return res.status(400).json({ message: "Purchase bill cannot be approved" });
+    console.log({ status: bill.workflowStatus });
+
+    if (bill.workflowStatus !== "Submitted") {
+      return res
+        .status(400)
+        .json({ message: "Purchase bill cannot be approved" });
     }
     bill.status = "approved";
+    bill.workflowStatus = "Approved";
     bill.approvedBy = userId;
     bill.approvedAt = new Date();
     await bill.save();
     invalidateReportCache();
     res.status(200).json({ success: true, bill });
   } catch (error) {
-    res.status(500).json({ message: "Error approving bill", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error approving bill", error: error.message });
   }
 };

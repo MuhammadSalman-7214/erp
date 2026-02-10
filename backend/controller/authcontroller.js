@@ -613,7 +613,12 @@ module.exports.login = async (req, res) => {
       .populate("branchId", "name branchCode city");
 
     if (!user) {
-      return res.status(400).json({ message: "No user found" });
+      return res
+        .status(400)
+        .json({
+          message:
+            "The requested account does not exist.Please register to proceed.",
+        });
     }
 
     if (!user.isActive) {

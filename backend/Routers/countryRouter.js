@@ -9,6 +9,7 @@ const {
   assignCountryAdmin,
   updateCountry,
   deleteCountry,
+  updateCountryLock,
 } = require("../controller/countryController.js");
 const {
   authmiddleware,
@@ -34,6 +35,12 @@ router.put(
   authmiddleware,
   checkRole("superadmin"),
   updateCountry,
+);
+router.patch(
+  "/:countryId/lock-period",
+  authmiddleware,
+  checkRole("superadmin", "countryadmin"),
+  updateCountryLock,
 );
 router.delete(
   "/:countryId",

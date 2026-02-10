@@ -152,21 +152,27 @@ function PurchaseBillsPage() {
                   className="border rounded px-2 py-1"
                   placeholder="Description"
                   value={item.description}
-                  onChange={(e) => updateItem(idx, "description", e.target.value)}
+                  onChange={(e) =>
+                    updateItem(idx, "description", e.target.value)
+                  }
                 />
                 <input
                   type="number"
                   className="border rounded px-2 py-1"
                   placeholder="Qty"
                   value={item.quantity}
-                  onChange={(e) => updateItem(idx, "quantity", Number(e.target.value))}
+                  onChange={(e) =>
+                    updateItem(idx, "quantity", Number(e.target.value))
+                  }
                 />
                 <input
                   type="number"
                   className="border rounded px-2 py-1"
                   placeholder="Unit Price"
                   value={item.unitPrice}
-                  onChange={(e) => updateItem(idx, "unitPrice", Number(e.target.value))}
+                  onChange={(e) =>
+                    updateItem(idx, "unitPrice", Number(e.target.value))
+                  }
                 />
                 <button
                   type="button"
@@ -238,7 +244,7 @@ function PurchaseBillsPage() {
                   <th className="px-5 py-4 font-medium">Supplier</th>
                   <th className="px-5 py-4 font-medium">Amount</th>
                   <th className="px-5 py-4 font-medium">Status</th>
-                  <th className="px-5 py-4 font-medium text-right">Actions</th>
+                  <th className="px-5 py-4 font-medium ">Actions</th>
                 </tr>
               </thead>
               <tbody>

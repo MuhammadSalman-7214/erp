@@ -5,18 +5,22 @@ const Branch = require("../models/Branchmodel.js");
 const Product = require("../models/Productmodel.js");
 const logActivity = require("../libs/logger.js");
 const { invalidateReportCache } = require("./reportController.js");
+const { getCountryCurrencySnapshot } = require("../libs/currency.js");
+const { assertNotLocked } = require("../libs/periodLock.js");
 
 // ==================== CREATE SHIPMENT ====================
 exports.createShipment = async (req, res) => {
   try {
     const currentUser = req.user;
     const shipmentData = req.body;
-    const {
-      userCurrency,
-      userCurrencyExchangeRate,
-      countryId: userCountryId,
-      branchId: userBranchId,
-    } = currentUser || {};
+    const { countryId: userCountryId, branchId: userBranchId, role } =
+      currentUser || {};
+
+    if (!["branchadmin", "staff"].includes(role)) {
+      return res.status(403).json({
+        message: "Only branch staff can create shipments",
+      });
+    }
 
     // Validate hierarchy access
     if (!shipmentData.countryId || !shipmentData.branchId) {
@@ -24,6 +28,11 @@ exports.createShipment = async (req, res) => {
         message: "Country ID and Branch ID are required",
       });
     }
+    await assertNotLocked({
+      countryId: shipmentData.countryId,
+      branchId: shipmentData.branchId,
+      transactionDate: new Date(),
+    });
 
     // Verify branch belongs to country
     const branch = await Branch.findById(shipmentData.branchId);
@@ -48,11 +57,11 @@ exports.createShipment = async (req, res) => {
       }
     }
 
-    if (!userCurrency || !userCurrencyExchangeRate) {
-      return res.status(400).json({
-        message: "Currency configuration is missing for this user",
-      });
-    }
+    const currencySnapshot = await getCountryCurrencySnapshot(
+      shipmentData.countryId,
+    );
+    const userCurrency = currencySnapshot.currency;
+    const userCurrencyExchangeRate = currencySnapshot.exchangeRate;
 
     // Generate shipment number
     const shipmentCount = await Shipment.countDocuments({
@@ -68,6 +77,7 @@ exports.createShipment = async (req, res) => {
       exchangeRate: userCurrencyExchangeRate,
       createdBy: currentUser.userId,
       lastUpdatedBy: currentUser.userId,
+      workflowStatus: "Draft",
     });
 
     // Add initial status to history
@@ -104,6 +114,9 @@ exports.createShipment = async (req, res) => {
       shipment: newShipment,
     });
   } catch (error) {
+    if (error.code === "ACCOUNTING_LOCKED") {
+      return res.status(423).json({ message: error.message });
+    }
     console.error("Error creating shipment:", error);
     res.status(500).json({
       message: "Error creating shipment",
@@ -199,6 +212,11 @@ exports.getShipmentById = async (req, res) => {
     if (!shipment) {
       return res.status(404).json({ message: "Shipment not found" });
     }
+    await assertNotLocked({
+      countryId: shipment.countryId,
+      branchId: shipment.branchId,
+      transactionDate: shipment.createdAt,
+    });
 
     // Check access permissions
     if (currentUser.role === "countryadmin") {
@@ -239,22 +257,94 @@ exports.updateShipment = async (req, res) => {
     }
 
     // Check if locked
-    if (shipment.isLocked) {
+    if (shipment.isLocked || shipment.workflowStatus === "Locked") {
       return res.status(403).json({
         message: "Shipment is locked and cannot be edited",
       });
     }
 
     // Check permissions
-    if (currentUser.role === "countryadmin") {
-      if (shipment.countryId.toString() !== currentUser.countryId.toString()) {
-        return res.status(403).json({ message: "Access denied" });
+    if (!["branchadmin", "staff"].includes(currentUser.role)) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+    if (shipment.branchId.toString() !== currentUser.branchId.toString()) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    if (
+      updateData.workflowStatus &&
+      Object.keys(updateData).every((key) =>
+        ["workflowStatus", "note", "revisionReason"].includes(key),
+      )
+    ) {
+      const nextStatus = updateData.workflowStatus;
+      const currentStatus = shipment.workflowStatus;
+      if (nextStatus === "Submitted" && currentStatus === "Draft") {
+        if (!["branchadmin", "staff"].includes(currentUser.role)) {
+          return res.status(403).json({
+            message: "Only branch staff can submit shipments",
+          });
+        }
+        shipment.workflowStatus = "Submitted";
+        shipment.submittedBy = currentUser.userId;
+        shipment.submittedAt = new Date();
+      } else if (nextStatus === "Draft" && currentStatus === "Submitted") {
+        if (!["branchadmin", "countryadmin"].includes(currentUser.role)) {
+          return res.status(403).json({
+            message: "Only branch or country admin can reject shipments",
+          });
+        }
+        shipment.workflowStatus = "Draft";
+      } else if (nextStatus === "Approved" && currentStatus === "Submitted") {
+        if (!["branchadmin", "countryadmin"].includes(currentUser.role)) {
+          return res.status(403).json({
+            message: "Only branch or country admin can approve shipments",
+          });
+        }
+        shipment.workflowStatus = "Approved";
+        shipment.approvedBy = currentUser.userId;
+        shipment.approvedAt = new Date();
+      } else if (nextStatus === "Locked" && currentStatus === "Approved") {
+        if (currentUser.role !== "branchadmin") {
+          return res.status(403).json({
+            message: "Only branch admin can lock shipments",
+          });
+        }
+        shipment.workflowStatus = "Locked";
+        shipment.lockedBy = currentUser.userId;
+        shipment.lockedAt = new Date();
+        shipment.isLocked = true;
+      } else {
+        return res.status(400).json({ message: "Invalid workflow transition" });
       }
-    } else if (["branchadmin", "staff"].includes(currentUser.role)) {
-      if (shipment.branchId.toString() !== currentUser.branchId.toString()) {
-        return res.status(403).json({ message: "Access denied" });
+
+      shipment.lastUpdatedBy = currentUser.userId;
+      await shipment.save();
+      invalidateReportCache();
+      return res.status(200).json({
+        message: "Workflow status updated successfully",
+        shipment,
+      });
+    }
+
+    if (shipment.workflowStatus === "Submitted" && currentUser.role !== "branchadmin") {
+      return res.status(403).json({
+        message: "Only branch admin can edit submitted shipments",
+      });
+    }
+    if (shipment.workflowStatus === "Approved") {
+      if (currentUser.role !== "branchadmin") {
+        return res.status(403).json({
+          message: "Only branch admin can edit approved shipments",
+        });
+      }
+      if (!updateData.revisionReason) {
+        return res.status(400).json({
+          message: "Revision reason is required for approved shipment edits",
+        });
       }
     }
+    const originalShipment = shipment.toObject();
 
     // Update fields
     Object.keys(updateData).forEach((key) => {
@@ -274,6 +364,21 @@ exports.updateShipment = async (req, res) => {
     shipment.lastUpdatedBy = currentUser.userId;
 
     await shipment.save();
+    if (shipment.workflowStatus === "Approved" && updateData.revisionReason) {
+      const changes = Object.keys(updateData)
+        .filter((key) => !["revisionReason", "workflowStatus"].includes(key))
+        .map((key) => ({
+          field: key,
+          from: originalShipment[key],
+          to: updateData[key],
+        }));
+      shipment.revisions.push({
+        changes,
+        reason: updateData.revisionReason,
+        updatedBy: currentUser.userId,
+      });
+      await shipment.save();
+    }
 
     // Populate references
     await shipment.populate([
@@ -298,6 +403,9 @@ exports.updateShipment = async (req, res) => {
       shipment,
     });
   } catch (error) {
+    if (error.code === "ACCOUNTING_LOCKED") {
+      return res.status(423).json({ message: error.message });
+    }
     console.error("Error updating shipment:", error);
     res.status(500).json({
       message: "Error updating shipment",
@@ -322,16 +430,18 @@ exports.updateShipmentStatus = async (req, res) => {
     if (!shipment) {
       return res.status(404).json({ message: "Shipment not found" });
     }
+    if (shipment.workflowStatus === "Locked" || shipment.isLocked) {
+      return res.status(403).json({
+        message: "Shipment is locked and cannot be updated",
+      });
+    }
 
     // Check permissions
-    if (currentUser.role === "countryadmin") {
-      if (shipment.countryId.toString() !== currentUser.countryId.toString()) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-    } else if (["branchadmin", "staff"].includes(currentUser.role)) {
-      if (shipment.branchId.toString() !== currentUser.branchId.toString()) {
-        return res.status(403).json({ message: "Access denied" });
-      }
+    if (!["branchadmin", "staff"].includes(currentUser.role)) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+    if (shipment.branchId.toString() !== currentUser.branchId.toString()) {
+      return res.status(403).json({ message: "Access denied" });
     }
 
     // Add status to history
@@ -386,16 +496,18 @@ exports.addShipmentDocument = async (req, res) => {
     if (!shipment) {
       return res.status(404).json({ message: "Shipment not found" });
     }
+    if (shipment.workflowStatus === "Locked" || shipment.isLocked) {
+      return res.status(403).json({
+        message: "Shipment is locked and cannot be updated",
+      });
+    }
 
     // Check permissions
-    if (currentUser.role === "countryadmin") {
-      if (shipment.countryId.toString() !== currentUser.countryId.toString()) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-    } else if (["branchadmin", "staff"].includes(currentUser.role)) {
-      if (shipment.branchId.toString() !== currentUser.branchId.toString()) {
-        return res.status(403).json({ message: "Access denied" });
-      }
+    if (!["branchadmin", "staff"].includes(currentUser.role)) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+    if (shipment.branchId.toString() !== currentUser.branchId.toString()) {
+      return res.status(403).json({ message: "Access denied" });
     }
 
     shipment.documents.push({
@@ -442,6 +554,11 @@ exports.addShipmentExpense = async (req, res) => {
 
     if (!shipment) {
       return res.status(404).json({ message: "Shipment not found" });
+    }
+    if (shipment.workflowStatus === "Locked" || shipment.isLocked) {
+      return res.status(403).json({
+        message: "Shipment is locked and cannot be updated",
+      });
     }
 
     // Check permissions
@@ -556,22 +673,19 @@ exports.deleteShipment = async (req, res) => {
       return res.status(404).json({ message: "Shipment not found" });
     }
 
-    // Only superadmin, countryadmin, and branchadmin can delete
-    if (
-      !["superadmin", "countryadmin", "branchadmin"].includes(currentUser.role)
-    ) {
+    // Only branch admin can delete branch operational data
+    if (!["branchadmin"].includes(currentUser.role)) {
       return res.status(403).json({ message: "Access denied" });
     }
 
     // Check hierarchy permissions
-    if (currentUser.role === "countryadmin") {
-      if (shipment.countryId.toString() !== currentUser.countryId.toString()) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-    } else if (currentUser.role === "branchadmin") {
-      if (shipment.branchId.toString() !== currentUser.branchId.toString()) {
-        return res.status(403).json({ message: "Access denied" });
-      }
+    if (shipment.branchId.toString() !== currentUser.branchId.toString()) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+    if (shipment.workflowStatus !== "Draft") {
+      return res.status(403).json({
+        message: "Only draft shipments can be deleted",
+      });
     }
 
     // Soft delete

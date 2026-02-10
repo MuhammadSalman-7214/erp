@@ -367,89 +367,192 @@ function Orderpage() {
       )}
 
       {/* Orders Table */}
-      <div className="mt-4 bg-white rounded-2xl shadow-sm border overflow-x-auto">
-        {Array.isArray(displayOrder) && displayOrder.length > 0 ? (
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b">
-              <tr className="text-left text-slate-500">
-                <th className="px-5 py-4 font-medium">#</th>
-                <th className="px-5 py-4 font-medium">Order No</th>
-                <th className="px-5 py-4 font-medium">Product</th>
-                <th className="px-5 py-4 font-medium">Quantity</th>
-                <th className="px-5 py-4 font-medium">Total Amount</th>
-                <th className="px-5 py-4 font-medium">Description</th>
-                <th className="px-5 py-4 font-medium">Status</th>
-                <th className="px-5 py-4 font-medium">Created By</th>
-                <th className="px-5 py-4 font-medium">Timestamp</th>
-                <th className="px-5 py-4 font-medium">Actions</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {displayOrder.map((order, index) => (
-                <tr
-                  key={order._id}
-                  className="border-b last:border-b-0 hover:bg-slate-50 transition"
-                >
-                  <td className="px-5 py-4">{index + 1}</td>
-                  <td className="px-5 py-4">{order.orderNumber || "-"}</td>
-                  <td className="px-5 py-4">
-                    {order.Product?.product?.name || "N/A"}
-                  </td>
-                  <td className="px-5 py-4">{order.Product?.quantity}</td>
-                  <td className="px-5 py-4">${order.Product?.price}</td>
-                  <td className="px-5 py-4">{order.Description}</td>
-                  <td className="px-5 py-4">
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium capitalize 
-    ${getStatusBadge(order.status)}`}
-                    >
-                      {order.status}
-                    </span>
-                  </td>
-
-                  <td className="px-5 py-4 ">
-                    <span className="px-3 py-1 rounded-full text-sm font-medium capitalize bg-blue-50 text-blue-700">
-                      {order.user?.name || "N/A"}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4">
-                    <FormattedTime timestamp={order.createdAt} />
-                  </td>
-                  <td className="px-5 py-4 flex gap-2">
-                    <button
-                      onClick={() => handleRemove(order._id)}
-                      className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition"
-                      title="Delete"
-                    >
-                      <MdDelete size={18} />
-                    </button>
-                    <button
-                      disabled={order.status === "delivered"}
-                      onClick={() => handleEditClick(order)}
-                      className={`p-2 rounded 
-    ${
-      order.status === "delivered"
-        ? "bg-gray-300 text-gray-500  cursor-not-allowed"
-        : "bg-blue-50 text-blue-500 hover:bg-blue-100"
-    }
-  `}
-                    >
-                      <MdEdit size={18} />
-                    </button>
-                  </td>
+      <div className="mt-4 bg-white rounded-2xl shadow-sm border">
+        {/* Scrollable Container */}
+        <div className="overflow-auto max-h-[600px]">
+          {Array.isArray(displayOrder) && displayOrder.length > 0 ? (
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 border-b sticky top-0 z-10">
+                <tr className="text-left text-slate-500">
+                  <th className="px-4 py-3 font-medium whitespace-nowrap w-12">
+                    #
+                  </th>
+                  <th
+                    className="px-4 py-3 font-medium whitespace-nowrap"
+                    style={{ minWidth: "180px" }}
+                  >
+                    Order No
+                  </th>
+                  <th
+                    className="px-4 py-3 font-medium whitespace-nowrap"
+                    style={{ minWidth: "150px" }}
+                  >
+                    Product
+                  </th>
+                  <th
+                    className="px-4 py-3 font-medium whitespace-nowrap text-center"
+                    style={{ minWidth: "100px" }}
+                  >
+                    Qty
+                  </th>
+                  <th
+                    className="px-4 py-3 font-medium whitespace-nowrap"
+                    style={{ minWidth: "120px" }}
+                  >
+                    Amount
+                  </th>
+                  <th
+                    className="px-4 py-3 font-medium whitespace-nowrap"
+                    style={{ minWidth: "250px" }}
+                  >
+                    Description
+                  </th>
+                  <th
+                    className="px-4 py-3 font-medium whitespace-nowrap"
+                    style={{ minWidth: "120px" }}
+                  >
+                    Status
+                  </th>
+                  <th
+                    className="px-4 py-3 font-medium whitespace-nowrap"
+                    style={{ minWidth: "140px" }}
+                  >
+                    Created By
+                  </th>
+                  <th
+                    className="px-4 py-3 font-medium whitespace-nowrap"
+                    style={{ minWidth: "150px" }}
+                  >
+                    Date
+                  </th>
+                  <th
+                    className="px-4 py-3 font-medium whitespace-nowrap sticky right-0 bg-slate-50"
+                    style={{ minWidth: "100px" }}
+                  >
+                    Actions
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <div className="p-10">
-            <NoData
-              title="No Orders Found"
-              description="Try adjusting filters or add a new order to get started."
-            />
+              </thead>
+
+              <tbody>
+                {displayOrder.map((order, index) => (
+                  <tr
+                    key={order._id}
+                    className="border-b last:border-b-0 hover:bg-slate-50 transition"
+                  >
+                    <td className="px-4 py-3 whitespace-nowrap text-slate-500">
+                      {index + 1}
+                    </td>
+
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className="font-mono text-xs font-semibold text-slate-700">
+                        {order.orderNumber || "-"}
+                      </span>
+                    </td>
+
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span
+                        className="inline-block max-w-[150px] truncate align-middle"
+                        title={order.Product?.product?.name || "N/A"}
+                      >
+                        {order.Product?.product?.name || "N/A"}
+                      </span>
+                    </td>
+
+                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                      <span className="inline-flex items-center justify-center px-2 py-1 bg-slate-100 rounded text-xs font-medium">
+                        {order.Product?.quantity}
+                      </span>
+                    </td>
+
+                    <td className="px-4 py-3 whitespace-nowrap font-semibold text-slate-800">
+                      ${order.Product?.price?.toLocaleString()}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      <span
+                        className="inline-block max-w-[250px] truncate align-middle text-slate-600"
+                        title={order.Description}
+                      >
+                        {order.Description || "No description"}
+                      </span>
+                    </td>
+
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium capitalize
+                    ${getStatusBadge(order.status)}`}
+                      >
+                        {order.status}
+                      </span>
+                    </td>
+
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        {/* <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-semibold">
+                          {order.user?.name?.charAt(0)?.toUpperCase() || "?"}
+                        </div> */}
+                        <span
+                          className="text-xs font-medium text-slate-700 truncate max-w-[100px]"
+                          title={order.user?.name}
+                        >
+                          {order.user?.name || "N/A"}
+                        </span>
+                      </div>
+                    </td>
+
+                    <td className="px-4 py-3 whitespace-nowrap text-xs text-slate-600">
+                      <FormattedTime timestamp={order.createdAt} />
+                    </td>
+
+                    <td className="px-4 py-3 whitespace-nowrap sticky right-0 bg-white">
+                      <div className="flex gap-1.5">
+                        <button
+                          onClick={() => handleRemove(order._id)}
+                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition"
+                          title="Delete Order"
+                        >
+                          <MdDelete size={16} />
+                        </button>
+                        <button
+                          disabled={order.status === "delivered"}
+                          onClick={() => handleEditClick(order)}
+                          className={`p-1.5 rounded-lg transition
+                      ${
+                        order.status === "delivered"
+                          ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                          : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+                      }
+                    `}
+                          title={
+                            order.status === "delivered"
+                              ? "Cannot edit delivered order"
+                              : "Edit Order"
+                          }
+                        >
+                          <MdEdit size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="p-10">
+              <NoData
+                title="No Orders Found"
+                description="Try adjusting filters or add a new order to get started."
+              />
+            </div>
+          )}
+        </div>
+
+        {/* {displayOrder.length > 0 && (
+          <div className="px-4 py-2 border-t bg-slate-50 text-xs text-slate-500 text-center">
+            Scroll horizontally to view all columns →
           </div>
-        )}
+        )} */}
       </div>
     </div>
   );

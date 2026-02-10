@@ -1,17 +1,20 @@
 const Product = require("../models/Productmodel");
 const StockTransaction = require("../models/StockTranscationmodel");
+const { getCountryCurrencySnapshot } = require("../libs/currency.js");
+const { assertNotLocked } = require("../libs/periodLock.js");
 
 // Create a stock transaction
 module.exports.createStockTransaction = async (req, res) => {
   try {
     const { product, type, quantity, supplier } = req.body;
-    const {
-      role,
-      countryId,
-      branchId,
-      userCurrency,
-      userCurrencyExchangeRate,
-    } = req.user || {};
+    const { role, countryId, branchId } = req.user || {};
+
+    if (!["branchadmin", "staff"].includes(role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Only branch staff can create stock transactions.",
+      });
+    }
 
     if (!product || !type || !quantity) {
       return res.status(400).json({
@@ -25,12 +28,10 @@ module.exports.createStockTransaction = async (req, res) => {
         message: "Branch and country are required for stock transactions.",
       });
     }
-    if (!userCurrency || !userCurrencyExchangeRate) {
-      return res.status(400).json({
-        success: false,
-        message: "Currency configuration is missing for this user",
-      });
-    }
+    await assertNotLocked({ countryId, branchId, transactionDate: new Date() });
+    const currencySnapshot = await getCountryCurrencySnapshot(countryId);
+    const userCurrency = currencySnapshot.currency;
+    const userCurrencyExchangeRate = currencySnapshot.exchangeRate;
 
     const productToUpdate = await Product.findById(product);
 
@@ -50,7 +51,7 @@ module.exports.createStockTransaction = async (req, res) => {
       });
     }
     if (
-      ["branchadmin", "staff", "agent"].includes(role) &&
+      ["branchadmin", "staff"].includes(role) &&
       productToUpdate.branchId?.toString() !== branchId?.toString()
     ) {
       return res.status(403).json({
@@ -101,6 +102,12 @@ module.exports.createStockTransaction = async (req, res) => {
       transaction: populatedTransaction,
     });
   } catch (error) {
+    if (error.code === "ACCOUNTING_LOCKED") {
+      return res.status(423).json({
+        success: false,
+        message: error.message,
+      });
+    }
     res.status(500).json({
       success: false,
       message: "Error creating stock transaction",
@@ -116,7 +123,7 @@ module.exports.getAllStockTransactions = async (req, res) => {
     const query = {};
     if (role === "countryadmin") {
       query.countryId = countryId;
-    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+    } else if (["branchadmin", "staff"].includes(role)) {
       query.branchId = branchId;
       query.countryId = countryId;
     }
@@ -144,7 +151,7 @@ module.exports.getStockTransactionsByProduct = async (req, res) => {
     const query = { product: productId };
     if (role === "countryadmin") {
       query.countryId = countryId;
-    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+    } else if (["branchadmin", "staff"].includes(role)) {
       query.branchId = branchId;
       query.countryId = countryId;
     }
@@ -179,7 +186,7 @@ module.exports.getStockTransactionsBySupplier = async (req, res) => {
     const query = { supplier: supplierId };
     if (role === "countryadmin") {
       query.countryId = countryId;
-    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+    } else if (["branchadmin", "staff"].includes(role)) {
       query.branchId = branchId;
       query.countryId = countryId;
     }
@@ -218,7 +225,7 @@ module.exports.searchStocks = async (req, res) => {
     const scope = {};
     if (role === "countryadmin") {
       scope.countryId = countryId;
-    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+    } else if (["branchadmin", "staff"].includes(role)) {
       scope.branchId = branchId;
       scope.countryId = countryId;
     }

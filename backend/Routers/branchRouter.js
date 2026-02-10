@@ -9,6 +9,7 @@ const {
   assignBranchAdmin,
   updateBranch,
   deleteBranch,
+  updateBranchLock,
 } = require("../controller/branchController.js");
 const {
   authmiddleware,
@@ -45,6 +46,12 @@ router.delete(
   authmiddleware,
   checkRole("superadmin", "countryadmin"),
   deleteBranch,
+);
+router.patch(
+  "/:branchId/lock-period",
+  authmiddleware,
+  checkRole("superadmin", "countryadmin", "branchadmin"),
+  updateBranchLock,
 );
 
 module.exports = router;

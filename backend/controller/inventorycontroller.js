@@ -1,8 +1,16 @@
 const Inventory = require("../models/Inventorymodel");
 const Product = require("../models/Productmodel.js");
+const { assertNotLocked } = require("../libs/periodLock.js");
 
 module.exports.addOrUpdateInventory = async (req, res) => {
   try {
+    const { role } = req.user || {};
+    if (!["branchadmin", "staff"].includes(role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Only branch staff can update inventory",
+      });
+    }
     const { product, quantity } = req.body;
     const { countryId, branchId } = req.user || {};
 
@@ -17,6 +25,7 @@ module.exports.addOrUpdateInventory = async (req, res) => {
         message: "Branch and country are required for inventory updates",
       });
     }
+    await assertNotLocked({ countryId, branchId, transactionDate: new Date() });
 
     let inventory = await Inventory.findOne({
       product,
@@ -46,6 +55,9 @@ module.exports.addOrUpdateInventory = async (req, res) => {
         inventory,
       });
   } catch (error) {
+    if (error.code === "ACCOUNTING_LOCKED") {
+      return res.status(423).json({ success: false, message: error.message });
+    }
     res
       .status(500)
       .json({ success: false, message: "Error updating inventory", error });
@@ -58,7 +70,7 @@ module.exports.getAllInventory = async (req, res) => {
     const query = {};
     if (role === "countryadmin") {
       query.countryId = countryId;
-    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+    } else if (["branchadmin", "staff"].includes(role)) {
       query.branchId = branchId;
       query.countryId = countryId;
     }
@@ -81,7 +93,7 @@ module.exports.getInventoryByProduct = async (req, res) => {
     const query = { product: productId };
     if (role === "countryadmin") {
       query.countryId = countryId;
-    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+    } else if (["branchadmin", "staff"].includes(role)) {
       query.branchId = branchId;
       query.countryId = countryId;
     }
@@ -111,12 +123,14 @@ module.exports.deleteInventory = async (req, res) => {
     const { role, countryId, branchId } = req.user || {};
 
     const query = { product: productId };
-    if (role === "countryadmin") {
-      query.countryId = countryId;
-    } else if (["branchadmin", "staff", "agent"].includes(role)) {
-      query.branchId = branchId;
-      query.countryId = countryId;
+    if (role !== "branchadmin") {
+      return res.status(403).json({
+        success: false,
+        message: "Only branch admin can delete inventory records",
+      });
     }
+    query.branchId = branchId;
+    query.countryId = countryId;
     const inventory = await Inventory.findOneAndDelete(query);
 
     if (!inventory) {

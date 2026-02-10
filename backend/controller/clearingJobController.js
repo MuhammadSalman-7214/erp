@@ -7,6 +7,8 @@ const Country = require("../models/Countrymodel.js");
 const Branch = require("../models/Branchmodel.js");
 const logActivity = require("../libs/logger.js");
 const { invalidateReportCache } = require("./reportController.js");
+const { getCountryCurrencySnapshot } = require("../libs/currency.js");
+const { assertNotLocked } = require("../libs/periodLock.js");
 
 // ==================== CREATE CLEARING JOB ====================
 exports.createClearingJob = async (req, res) => {
@@ -15,11 +17,14 @@ exports.createClearingJob = async (req, res) => {
     const jobData = req.body;
     console.log({ jobData }, { currentUser });
 
-    const { userCurrency, userCurrencyExchangeRate } = currentUser || {};
-
     if (currentUser.role === "agent") {
       return res.status(403).json({
         message: "Clearing agents can only update assigned jobs.",
+      });
+    }
+    if (currentUser.role !== "branchadmin") {
+      return res.status(403).json({
+        message: "Only branch admins can create clearing jobs",
       });
     }
 
@@ -33,6 +38,11 @@ exports.createClearingJob = async (req, res) => {
     if (!shipment) {
       return res.status(404).json({ message: "Shipment not found" });
     }
+    await assertNotLocked({
+      countryId: shipment.countryId,
+      branchId: shipment.branchId,
+      transactionDate: new Date(),
+    });
 
     // Check permissions
     if (currentUser.role === "countryadmin") {
@@ -55,11 +65,11 @@ exports.createClearingJob = async (req, res) => {
     if (!country || !branch) {
       return res.status(404).json({ message: "Country or branch not found" });
     }
-    if (!userCurrency || !userCurrencyExchangeRate) {
-      return res.status(400).json({
-        message: "Currency configuration is missing for this user",
-      });
-    }
+    const currencySnapshot = await getCountryCurrencySnapshot(
+      shipment.countryId,
+    );
+    const userCurrency = currencySnapshot.currency;
+    const userCurrencyExchangeRate = currencySnapshot.exchangeRate;
 
     // Generate job number
     const jobCount = await ClearingJob.countDocuments({
@@ -84,6 +94,7 @@ exports.createClearingJob = async (req, res) => {
       exchangeRate: userCurrencyExchangeRate,
       createdBy: currentUser.userId,
       lastUpdatedBy: currentUser.userId,
+      workflowStatus: "Draft",
     });
 
     // Add initial status to history
@@ -123,6 +134,9 @@ exports.createClearingJob = async (req, res) => {
       clearingJob: newJob,
     });
   } catch (error) {
+    if (error.code === "ACCOUNTING_LOCKED") {
+      return res.status(423).json({ message: error.message });
+    }
     console.error("Error creating clearing job:", error);
     res.status(500).json({
       message: "Error creating clearing job",
@@ -271,6 +285,71 @@ exports.updateClearingJob = async (req, res) => {
     if (!clearingJob) {
       return res.status(404).json({ message: "Clearing job not found" });
     }
+    await assertNotLocked({
+      countryId: clearingJob.countryId,
+      branchId: clearingJob.branchId,
+      transactionDate: clearingJob.createdAt,
+    });
+    if (clearingJob.isLocked || clearingJob.workflowStatus === "Locked") {
+      return res.status(403).json({
+        message: "Clearing job is locked and cannot be edited",
+      });
+    }
+
+    if (
+      updateData.workflowStatus &&
+      Object.keys(updateData).every((key) =>
+        ["workflowStatus", "note", "revisionReason"].includes(key),
+      )
+    ) {
+      const nextStatus = updateData.workflowStatus;
+      const currentStatus = clearingJob.workflowStatus;
+      if (nextStatus === "Submitted" && currentStatus === "Draft") {
+        if (!["branchadmin", "staff"].includes(currentUser.role)) {
+          return res.status(403).json({
+            message: "Only branch staff can submit clearing jobs",
+          });
+        }
+        clearingJob.workflowStatus = "Submitted";
+        clearingJob.submittedBy = currentUser.userId;
+        clearingJob.submittedAt = new Date();
+      } else if (nextStatus === "Draft" && currentStatus === "Submitted") {
+        if (!["branchadmin", "countryadmin"].includes(currentUser.role)) {
+          return res.status(403).json({
+            message: "Only branch or country admin can reject clearing jobs",
+          });
+        }
+        clearingJob.workflowStatus = "Draft";
+      } else if (nextStatus === "Approved" && currentStatus === "Submitted") {
+        if (!["branchadmin", "countryadmin"].includes(currentUser.role)) {
+          return res.status(403).json({
+            message: "Only branch or country admin can approve clearing jobs",
+          });
+        }
+        clearingJob.workflowStatus = "Approved";
+        clearingJob.approvedBy = currentUser.userId;
+        clearingJob.approvedAt = new Date();
+      } else if (nextStatus === "Locked" && currentStatus === "Approved") {
+        if (currentUser.role !== "branchadmin") {
+          return res.status(403).json({
+            message: "Only branch admin can lock clearing jobs",
+          });
+        }
+        clearingJob.workflowStatus = "Locked";
+        clearingJob.lockedBy = currentUser.userId;
+        clearingJob.lockedAt = new Date();
+        clearingJob.isLocked = true;
+      } else {
+        return res.status(400).json({ message: "Invalid workflow transition" });
+      }
+      clearingJob.lastUpdatedBy = currentUser.userId;
+      await clearingJob.save();
+      invalidateReportCache();
+      return res.status(200).json({
+        message: "Workflow status updated successfully",
+        clearingJob,
+      });
+    }
 
     // Agents can only update specific fields
     if (currentUser.role === "agent") {
@@ -324,12 +403,50 @@ exports.updateClearingJob = async (req, res) => {
         }
       }
 
+      if (
+        clearingJob.workflowStatus === "Submitted" &&
+        currentUser.role !== "branchadmin"
+      ) {
+        return res.status(403).json({
+          message: "Only branch admin can edit submitted clearing jobs",
+        });
+      }
+      if (clearingJob.workflowStatus === "Approved") {
+        if (currentUser.role !== "branchadmin") {
+          return res.status(403).json({
+            message: "Only branch admin can edit approved clearing jobs",
+          });
+        }
+        if (!updateData.revisionReason) {
+          return res.status(400).json({
+            message:
+              "Revision reason is required for approved clearing job edits",
+          });
+        }
+      }
+      const originalJob = clearingJob.toObject();
+
       // Update all fields for non-agent users
       Object.keys(updateData).forEach((key) => {
         if (key !== "_id" && key !== "jobNumber" && key !== "createdBy") {
           clearingJob[key] = updateData[key];
         }
       });
+
+      if (clearingJob.workflowStatus === "Approved" && updateData.revisionReason) {
+        const changes = Object.keys(updateData)
+          .filter((key) => !["revisionReason", "workflowStatus"].includes(key))
+          .map((key) => ({
+            field: key,
+            from: originalJob[key],
+            to: updateData[key],
+          }));
+        clearingJob.revisions.push({
+          changes,
+          reason: updateData.revisionReason,
+          updatedBy: currentUser.userId,
+        });
+      }
     }
 
     clearingJob.lastUpdatedBy = currentUser.userId;
@@ -357,6 +474,9 @@ exports.updateClearingJob = async (req, res) => {
       clearingJob,
     });
   } catch (error) {
+    if (error.code === "ACCOUNTING_LOCKED") {
+      return res.status(423).json({ message: error.message });
+    }
     console.error("Error updating clearing job:", error);
     res.status(500).json({
       message: "Error updating clearing job",
@@ -381,25 +501,14 @@ exports.updateClearingJobStatus = async (req, res) => {
     if (!clearingJob) {
       return res.status(404).json({ message: "Clearing job not found" });
     }
+    if (clearingJob.workflowStatus === "Locked" || clearingJob.isLocked) {
+      return res.status(403).json({
+        message: "Clearing job is locked and cannot be updated",
+      });
+    }
 
-    // Check permissions
-    if (currentUser.role === "agent") {
-      if (
-        !clearingJob.agentId ||
-        clearingJob.agentId.toString() !== currentUser.userId.toString()
-      ) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-    } else if (currentUser.role === "countryadmin") {
-      if (
-        clearingJob.countryId.toString() !== currentUser.countryId.toString()
-      ) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-    } else if (["branchadmin", "staff"].includes(currentUser.role)) {
-      if (clearingJob.branchId.toString() !== currentUser.branchId.toString()) {
-        return res.status(403).json({ message: "Access denied" });
-      }
+    if (clearingJob.branchId.toString() !== currentUser.branchId.toString()) {
+      return res.status(403).json({ message: "Access denied" });
     }
 
     // Update status
@@ -455,16 +564,12 @@ exports.addClearingJobNote = async (req, res) => {
       ) {
         return res.status(403).json({ message: "Access denied" });
       }
-    } else if (currentUser.role === "countryadmin") {
-      if (
-        clearingJob.countryId.toString() !== currentUser.countryId.toString()
-      ) {
-        return res.status(403).json({ message: "Access denied" });
-      }
     } else if (["branchadmin", "staff"].includes(currentUser.role)) {
       if (clearingJob.branchId.toString() !== currentUser.branchId.toString()) {
         return res.status(403).json({ message: "Access denied" });
       }
+    } else {
+      return res.status(403).json({ message: "Access denied" });
     }
 
     // Agents cannot add internal notes
@@ -508,6 +613,11 @@ exports.addClearingJobDocument = async (req, res) => {
     if (!clearingJob) {
       return res.status(404).json({ message: "Clearing job not found" });
     }
+    if (clearingJob.workflowStatus === "Locked" || clearingJob.isLocked) {
+      return res.status(403).json({
+        message: "Clearing job is locked and cannot be updated",
+      });
+    }
 
     // Check permissions
     if (currentUser.role === "agent") {
@@ -517,16 +627,12 @@ exports.addClearingJobDocument = async (req, res) => {
       ) {
         return res.status(403).json({ message: "Access denied" });
       }
-    } else if (currentUser.role === "countryadmin") {
-      if (
-        clearingJob.countryId.toString() !== currentUser.countryId.toString()
-      ) {
-        return res.status(403).json({ message: "Access denied" });
-      }
     } else if (["branchadmin", "staff"].includes(currentUser.role)) {
       if (clearingJob.branchId.toString() !== currentUser.branchId.toString()) {
         return res.status(403).json({ message: "Access denied" });
       }
+    } else {
+      return res.status(403).json({ message: "Access denied" });
     }
 
     clearingJob.documents.push({
@@ -579,6 +685,16 @@ exports.addClearingJobExpense = async (req, res) => {
     const clearingJob = await ClearingJob.findById(id);
     if (!clearingJob) {
       return res.status(404).json({ message: "Clearing job not found" });
+    }
+    if (!["branchadmin"].includes(currentUser.role)) {
+      return res.status(403).json({
+        message: "Only branch admins can post clearing expenses",
+      });
+    }
+    if (clearingJob.workflowStatus === "Locked" || clearingJob.isLocked) {
+      return res.status(403).json({
+        message: "Clearing job is locked and cannot be updated",
+      });
     }
 
     // Check permissions
@@ -641,9 +757,7 @@ exports.assignAgentToClearingJob = async (req, res) => {
     const { agentId } = req.body;
 
     // Only admin roles can assign agents
-    if (
-      !["superadmin", "countryadmin", "branchadmin"].includes(currentUser.role)
-    ) {
+    if (currentUser.role !== "branchadmin") {
       return res.status(403).json({
         message: "Only admins can assign agents to clearing jobs",
       });
@@ -665,27 +779,13 @@ exports.assignAgentToClearingJob = async (req, res) => {
       return res.status(400).json({ message: "Invalid agent" });
     }
 
-    // Check hierarchy permissions
-    if (currentUser.role === "countryadmin") {
-      if (
-        clearingJob.countryId.toString() !== currentUser.countryId.toString()
-      ) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-      if (agent.countryId.toString() !== currentUser.countryId.toString()) {
-        return res.status(400).json({
-          message: "Agent must be from the same country",
-        });
-      }
-    } else if (currentUser.role === "branchadmin") {
-      if (clearingJob.branchId.toString() !== currentUser.branchId.toString()) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-      if (agent.branchId.toString() !== currentUser.branchId.toString()) {
-        return res.status(400).json({
-          message: "Agent must be from the same branch",
-        });
-      }
+    if (clearingJob.branchId.toString() !== currentUser.branchId.toString()) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+    if (agent.branchId.toString() !== currentUser.branchId.toString()) {
+      return res.status(400).json({
+        message: "Agent must be from the same branch",
+      });
     }
 
     // Assign agent
@@ -778,9 +878,7 @@ exports.deleteClearingJob = async (req, res) => {
     const { id } = req.params;
 
     // Only admins can delete
-    if (
-      !["superadmin", "countryadmin", "branchadmin"].includes(currentUser.role)
-    ) {
+    if (currentUser.role !== "branchadmin") {
       return res.status(403).json({ message: "Access denied" });
     }
 
@@ -791,16 +889,13 @@ exports.deleteClearingJob = async (req, res) => {
     }
 
     // Check permissions
-    if (currentUser.role === "countryadmin") {
-      if (
-        clearingJob.countryId.toString() !== currentUser.countryId.toString()
-      ) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-    } else if (currentUser.role === "branchadmin") {
-      if (clearingJob.branchId.toString() !== currentUser.branchId.toString()) {
-        return res.status(403).json({ message: "Access denied" });
-      }
+    if (clearingJob.branchId.toString() !== currentUser.branchId.toString()) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+    if (clearingJob.workflowStatus !== "Draft") {
+      return res.status(403).json({
+        message: "Only draft clearing jobs can be deleted",
+      });
     }
 
     // Soft delete

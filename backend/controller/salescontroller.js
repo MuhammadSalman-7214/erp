@@ -4,12 +4,21 @@ const Customer = require("../models/Customermodel.js");
 const LedgerEntry = require("../models/LedgerEntrymodel.js");
 const Branch = require("../models/Branchmodel.js");
 const { invalidateReportCache } = require("./reportController.js");
+const { getCountryCurrencySnapshot } = require("../libs/currency.js");
+const { assertNotLocked } = require("../libs/periodLock.js");
 
 // Create Sale
 // controller/salescontroller.js
 
 module.exports.createSale = async (req, res) => {
   try {
+    const { role } = req.user || {};
+    if (!["branchadmin", "staff"].includes(role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Only branch staff can create sales invoices",
+      });
+    }
     const {
       customerName,
       customerId,
@@ -19,12 +28,7 @@ module.exports.createSale = async (req, res) => {
       status,
     } =
       req.body;
-    const {
-      branchId,
-      countryId,
-      userCurrency,
-      userCurrencyExchangeRate,
-    } = req.user || {};
+    const { branchId, countryId, userId } = req.user || {};
 
     if (!branchId || !countryId) {
       return res.status(400).json({
@@ -32,12 +36,10 @@ module.exports.createSale = async (req, res) => {
         message: "Branch and country are required for sale creation",
       });
     }
-    if (!userCurrency || !userCurrencyExchangeRate) {
-      return res.status(400).json({
-        success: false,
-        message: "Currency configuration is missing for this user",
-      });
-    }
+    await assertNotLocked({ countryId, branchId, transactionDate: new Date() });
+    const currencySnapshot = await getCountryCurrencySnapshot(countryId);
+    const userCurrency = currencySnapshot.currency;
+    const userCurrencyExchangeRate = currencySnapshot.exchangeRate;
 
     const branch = await Branch.findById(branchId);
     if (!branch) {
@@ -139,6 +141,9 @@ module.exports.createSale = async (req, res) => {
       priceUSD,
       branchId,
       countryId,
+      workflowStatus: "Draft",
+      createdBy: userId,
+      lastUpdatedBy: userId,
     });
     if (customerId) {
       await LedgerEntry.create({
@@ -184,6 +189,12 @@ module.exports.createSale = async (req, res) => {
       sale: populatedSale,
     });
   } catch (error) {
+    if (error.code === "ACCOUNTING_LOCKED") {
+      return res.status(423).json({
+        success: false,
+        message: error.message,
+      });
+    }
     console.error("Create Sale Error:", error);
     res.status(500).json({
       success: false,
@@ -200,7 +211,7 @@ module.exports.getAllSales = async (req, res) => {
     const query = {};
     if (role === "countryadmin") {
       query.countryId = countryId;
-    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+    } else if (["branchadmin", "staff"].includes(role)) {
       query.branchId = branchId;
       query.countryId = countryId;
     }
@@ -235,7 +246,7 @@ module.exports.getSaleById = async (req, res) => {
       return res.status(403).json({ success: false, message: "Access denied" });
     }
     if (
-      ["branchadmin", "staff", "agent"].includes(role) &&
+      ["branchadmin", "staff"].includes(role) &&
       sale.branchId?.toString() !== branchId?.toString()
     ) {
       return res.status(403).json({ success: false, message: "Access denied" });
@@ -258,19 +269,23 @@ module.exports.updateSale = async (req, res) => {
     const { role, countryId, branchId, userCurrencyExchangeRate } =
       req.user || {};
 
-    if (!updatedData.products || !updatedData.products.length) {
-      return res.status(400).json({
-        success: false,
-        message: "Products are required.",
-      });
-    }
-
     // 1️⃣ Fetch existing sale
     const existingSale = await Sale.findById(id);
     if (!existingSale) {
       return res.status(404).json({
         success: false,
         message: "Sale not found",
+      });
+    }
+    await assertNotLocked({
+      countryId: existingSale.countryId,
+      branchId: existingSale.branchId,
+      transactionDate: existingSale.createdAt,
+    });
+    if (existingSale.workflowStatus === "Locked") {
+      return res.status(403).json({
+        success: false,
+        message: "Sale is locked and cannot be edited",
       });
     }
     if (
@@ -280,10 +295,104 @@ module.exports.updateSale = async (req, res) => {
       return res.status(403).json({ success: false, message: "Access denied" });
     }
     if (
-      ["branchadmin", "staff", "agent"].includes(role) &&
+      ["branchadmin", "staff"].includes(role) &&
       existingSale.branchId?.toString() !== branchId?.toString()
     ) {
       return res.status(403).json({ success: false, message: "Access denied" });
+    }
+
+    const workflowOnly =
+      updatedData.workflowStatus &&
+      !updatedData.products &&
+      Object.keys(updatedData).every((key) =>
+        ["workflowStatus", "note", "revisionReason"].includes(key),
+      );
+
+    if (workflowOnly) {
+      const nextStatus = updatedData.workflowStatus;
+      const currentStatus = existingSale.workflowStatus;
+
+      if (nextStatus === "Submitted" && currentStatus === "Draft") {
+        if (!["branchadmin", "staff"].includes(role)) {
+          return res.status(403).json({
+            success: false,
+            message: "Only branch staff can submit sales",
+          });
+        }
+        existingSale.workflowStatus = "Submitted";
+        existingSale.submittedBy = req.user.userId;
+        existingSale.submittedAt = new Date();
+      } else if (nextStatus === "Draft" && currentStatus === "Submitted") {
+        if (!["branchadmin", "countryadmin"].includes(role)) {
+          return res.status(403).json({
+            success: false,
+            message: "Only branch or country admin can reject submissions",
+          });
+        }
+        existingSale.workflowStatus = "Draft";
+      } else if (nextStatus === "Approved" && currentStatus === "Submitted") {
+        if (!["branchadmin", "countryadmin"].includes(role)) {
+          return res.status(403).json({
+            success: false,
+            message: "Only branch or country admin can approve sales",
+          });
+        }
+        existingSale.workflowStatus = "Approved";
+        existingSale.approvedBy = req.user.userId;
+        existingSale.approvedAt = new Date();
+      } else if (nextStatus === "Locked" && currentStatus === "Approved") {
+        if (role !== "branchadmin") {
+          return res.status(403).json({
+            success: false,
+            message: "Only branch admin can lock sales",
+          });
+        }
+        existingSale.workflowStatus = "Locked";
+        existingSale.lockedBy = req.user.userId;
+        existingSale.lockedAt = new Date();
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid workflow transition",
+        });
+      }
+
+      existingSale.lastUpdatedBy = req.user.userId;
+      await existingSale.save();
+      invalidateReportCache();
+      return res.status(200).json({
+        success: true,
+        message: "Workflow status updated",
+        sale: existingSale,
+      });
+    }
+
+    if (!updatedData.products || !updatedData.products.length) {
+      return res.status(400).json({
+        success: false,
+        message: "Products are required.",
+      });
+    }
+
+    if (existingSale.workflowStatus === "Submitted" && role !== "branchadmin") {
+      return res.status(403).json({
+        success: false,
+        message: "Only branch admin can edit submitted sales",
+      });
+    }
+    if (existingSale.workflowStatus === "Approved") {
+      if (role !== "branchadmin") {
+        return res.status(403).json({
+          success: false,
+          message: "Only branch admin can edit approved sales",
+        });
+      }
+      if (!updatedData.revisionReason) {
+        return res.status(400).json({
+          success: false,
+          message: "Revision reason is required for approved sales edits",
+        });
+      }
     }
 
     // 2️⃣ Rollback OLD stock
@@ -339,12 +448,33 @@ module.exports.updateSale = async (req, res) => {
     const priceUSD = Number((updatedTotalAmount / rate).toFixed(2));
     const updatedSale = await Sale.findByIdAndUpdate(
       id,
-      { ...updatedData, totalAmount: updatedTotalAmount, priceUSD },
+      {
+        ...updatedData,
+        totalAmount: updatedTotalAmount,
+        priceUSD,
+        lastUpdatedBy: req.user.userId,
+      },
       { new: true },
     );
 
     // 6️⃣ Populate for frontend
     const populatedSale = await Sale.findById(id).populate("products.product");
+
+    if (existingSale.workflowStatus === "Approved" && updatedData.revisionReason) {
+      const changes = Object.keys(updatedData)
+        .filter((key) => !["revisionReason", "workflowStatus"].includes(key))
+        .map((key) => ({
+          field: key,
+          from: existingSale[key],
+          to: updatedSale[key],
+        }));
+      updatedSale.revisions.push({
+        changes,
+        reason: updatedData.revisionReason,
+        updatedBy: req.user.userId,
+      });
+      await updatedSale.save();
+    }
 
     // Ledger adjustment if customer linked
     if (updatedSale?.customerId) {
@@ -396,6 +526,12 @@ module.exports.updateSale = async (req, res) => {
       sale: populatedSale,
     });
   } catch (error) {
+    if (error.code === "ACCOUNTING_LOCKED") {
+      return res.status(423).json({
+        success: false,
+        message: error.message,
+      });
+    }
     console.error("Update Sale Error:", error);
     res.status(500).json({
       success: false,
@@ -415,7 +551,7 @@ module.exports.SearchSales = async (req, res) => {
       const allQuery = {};
       if (role === "countryadmin") {
         allQuery.countryId = countryId;
-      } else if (["branchadmin", "staff", "agent"].includes(role)) {
+      } else if (["branchadmin", "staff"].includes(role)) {
         allQuery.branchId = branchId;
         allQuery.countryId = countryId;
       }
@@ -432,7 +568,7 @@ module.exports.SearchSales = async (req, res) => {
     };
     if (role === "countryadmin") {
       searchQuery.countryId = countryId;
-    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+    } else if (["branchadmin", "staff"].includes(role)) {
       searchQuery.branchId = branchId;
       searchQuery.countryId = countryId;
     }

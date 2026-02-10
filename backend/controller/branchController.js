@@ -72,8 +72,11 @@ exports.getAllBranches = async (req, res) => {
       query.countryId = currentUser.countryId;
     }
 
-    // Branch admin/staff/agent see only their branch
-    if (["branchadmin", "staff", "agent"].includes(currentUser.role)) {
+    // Branch admin/staff see only their branch
+    if (currentUser.role === "agent") {
+      return res.status(403).json({ message: "Access denied" });
+    }
+    if (["branchadmin", "staff"].includes(currentUser.role)) {
       query._id = currentUser.branchId;
     }
 
@@ -102,7 +105,12 @@ exports.getBranchesByCountry = async (req, res) => {
         message: "Access denied. You can only view branches in your country.",
       });
     }
-    if (["branchadmin", "staff", "agent"].includes(role)) {
+    if (role === "agent") {
+      return res.status(403).json({
+        message: "Access denied. Agents cannot view branches.",
+      });
+    }
+    if (["branchadmin", "staff"].includes(role)) {
       if (countryId !== userCountryId?.toString()) {
         return res.status(403).json({
           message: "Access denied. You can only view your country branches.",
@@ -209,6 +217,59 @@ exports.updateBranch = async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating branch:", error);
+    res
+      .status(500)
+      .json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
+// Update Branch Accounting Lock (Branch Admin or higher)
+exports.updateBranchLock = async (req, res) => {
+  try {
+    const { branchId } = req.params;
+    const { accountingLockUntil } = req.body;
+    const { role, countryId, branchId: userBranchId } = req.user || {};
+
+    const branch = await Branch.findById(branchId);
+    if (!branch) {
+      return res.status(404).json({ message: "Branch not found" });
+    }
+
+    if (role === "branchadmin" && branchId !== userBranchId?.toString()) {
+      return res.status(403).json({
+        message: "Access denied. You can only lock your own branch.",
+      });
+    }
+    if (
+      role === "countryadmin" &&
+      branch.countryId?.toString() !== countryId?.toString()
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Access denied for this country." });
+    }
+    if (!["branchadmin", "countryadmin", "superadmin"].includes(role)) {
+      return res.status(403).json({ message: "Access denied." });
+    }
+
+    branch.accountingLockUntil = accountingLockUntil;
+    await branch.save();
+
+    await logActivity({
+      action: "Branch Accounting Lock Updated",
+      description: `Branch accounting lock updated to ${accountingLockUntil}`,
+      entity: "branch",
+      entityId: branch._id,
+      userId: req.user.userId,
+      ipAddress: req.ip,
+    });
+
+    res.status(200).json({
+      message: "Branch accounting lock updated successfully",
+      branch,
+    });
+  } catch (error) {
+    console.error("Error updating branch lock:", error);
     res
       .status(500)
       .json({ message: "Internal Server Error", error: error.message });

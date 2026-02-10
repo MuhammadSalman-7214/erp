@@ -23,6 +23,7 @@ const reportrouter = require("./Routers/reportRouter.js");
 const customerrouter = require("./Routers/customerRouter.js");
 const purchasebillrouter = require("./Routers/purchaseBillRouter.js");
 const ledgerrouter = require("./Routers/ledgerRouter.js");
+const systemsettingsrouter = require("./Routers/systemSettingsRouter.js");
 require("dotenv").config();
 const PORT = process.env.PORT || 3003;
 console.log("🚀 ~ PORT:", PORT);
@@ -52,7 +53,7 @@ app.use(
         return callback(new Error("Not allowed by CORS"));
       }
     },
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
   }),
 );
@@ -88,6 +89,7 @@ app.use("/api/reports", reportrouter);
 app.use("/api/customer", customerrouter);
 app.use("/api/purchase-bill", purchasebillrouter);
 app.use("/api/ledger", ledgerrouter);
+app.use("/api/system-settings", systemsettingsrouter);
 
 server.listen(PORT, () => {
   MongoDBconfig();

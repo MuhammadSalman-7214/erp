@@ -43,9 +43,16 @@ export const approvePurchaseBill = createAsyncThunk(
   "purchaseBills/approve",
   async (id, { rejectWithValue }) => {
     try {
-      const res = await axiosInstance.patch(`purchase-bill/${id}/approve`, null, {
-        withCredentials: true,
-      });
+      console.log("i am called");
+      const res = await axiosInstance.patch(
+        `purchase-bill/${id}/approve`,
+        null,
+        {
+          withCredentials: true,
+        },
+      );
+      console.log("result");
+
       return res.data.bill;
     } catch (error) {
       return rejectWithValue(

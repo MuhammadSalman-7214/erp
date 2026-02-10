@@ -1,5 +1,21 @@
 const mongoose = require("mongoose");
 
+const RevisionSchema = new mongoose.Schema(
+  {
+    changes: [
+      {
+        field: String,
+        from: mongoose.Schema.Types.Mixed,
+        to: mongoose.Schema.Types.Mixed,
+      },
+    ],
+    reason: String,
+    updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    updatedAt: { type: Date, default: Date.now },
+  },
+  { _id: false },
+);
+
 const InvoiceItemSchema = new mongoose.Schema(
   {
     name: {
@@ -108,6 +124,23 @@ const InvoiceSchema = new mongoose.Schema(
       enum: ["draft", "sent", "approved", "paid", "overdue", "cancelled"],
       default: "draft",
     },
+    workflowStatus: {
+      type: String,
+      enum: ["Draft", "Submitted", "Approved", "Locked"],
+      default: "Draft",
+    },
+    submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    submittedAt: { type: Date },
+    approvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    approvedAt: {
+      type: Date,
+    },
+    lockedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    lockedAt: { type: Date },
+    revisions: [RevisionSchema],
 
     issueDate: {
       type: Date,
@@ -127,14 +160,6 @@ const InvoiceSchema = new mongoose.Schema(
     paidAt: {
       type: Date,
     },
-    approvedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    },
-    approvedAt: {
-      type: Date,
-    },
-
     notes: {
       type: String,
       trim: true,
@@ -143,6 +168,8 @@ const InvoiceSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    lastUpdatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     branchId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Branch",

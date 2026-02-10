@@ -1,4 +1,21 @@
 const mongoose = require("mongoose");
+
+const RevisionSchema = new mongoose.Schema(
+  {
+    changes: [
+      {
+        field: String,
+        from: mongoose.Schema.Types.Mixed,
+        to: mongoose.Schema.Types.Mixed,
+      },
+    ],
+    reason: String,
+    updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    updatedAt: { type: Date, default: Date.now },
+  },
+  { _id: false },
+);
+
 const SaleSchema = new mongoose.Schema(
   {
     saleNumber: { type: String, required: true, unique: true, trim: true },
@@ -35,6 +52,20 @@ const SaleSchema = new mongoose.Schema(
       enum: ["pending", "completed", "cancelled"],
       default: "pending",
     },
+    workflowStatus: {
+      type: String,
+      enum: ["Draft", "Submitted", "Approved", "Locked"],
+      default: "Draft",
+    },
+    submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    submittedAt: { type: Date },
+    approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    approvedAt: { type: Date },
+    lockedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    lockedAt: { type: Date },
+    revisions: [RevisionSchema],
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    lastUpdatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     branchId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Branch",

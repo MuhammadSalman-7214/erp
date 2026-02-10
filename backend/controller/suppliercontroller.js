@@ -1,10 +1,17 @@
 const Supplier = require("../models/Suppliermodel.js");
+const { getCountryCurrencySnapshot } = require("../libs/currency.js");
 
 module.exports.createSupplier = async (req, res) => {
   try {
+    const { role } = req.user || {};
+    if (!["branchadmin", "staff"].includes(role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Only branch staff can create suppliers.",
+      });
+    }
     const { name, contactInfo, productsSupplied } = req.body;
-    const { branchId, countryId, userCurrency, userCurrencyExchangeRate } =
-      req.user || {};
+    const { branchId, countryId } = req.user || {};
 
     if (!name || !contactInfo || !contactInfo.email || !contactInfo.phone) {
       return res.status(400).json({
@@ -18,12 +25,9 @@ module.exports.createSupplier = async (req, res) => {
         message: "Branch and country are required for supplier creation.",
       });
     }
-    if (!userCurrency || !userCurrencyExchangeRate) {
-      return res.status(400).json({
-        success: false,
-        message: "Currency configuration is missing for this user.",
-      });
-    }
+    const currencySnapshot = await getCountryCurrencySnapshot(countryId);
+    const userCurrency = currencySnapshot.currency;
+    const userCurrencyExchangeRate = currencySnapshot.exchangeRate;
 
     const newSupplier = new Supplier({
       name,
@@ -66,7 +70,7 @@ module.exports.getAllSuppliers = async (req, res) => {
       query.countryId = countryId;
     }
 
-    if (["branchadmin", "staff", "agent"].includes(role)) {
+    if (["branchadmin", "staff"].includes(role)) {
       query.countryId = countryId;
 
       if (branchId) {
@@ -119,7 +123,7 @@ module.exports.getSupplierById = async (req, res) => {
         .json({ success: false, message: "Access denied for this country." });
     }
     if (
-      ["branchadmin", "staff", "agent"].includes(role) &&
+      ["branchadmin", "staff"].includes(role) &&
       supplier.branchId?.toString() !== branchId?.toString()
     ) {
       return res
@@ -154,7 +158,7 @@ module.exports.editSupplier = async (req, res) => {
         .json({ message: "Access denied for this country." });
     }
     if (
-      ["branchadmin", "staff", "agent"].includes(role) &&
+      ["branchadmin", "staff"].includes(role) &&
       supplier.branchId?.toString() !== branchId?.toString()
     ) {
       return res
@@ -203,10 +207,12 @@ module.exports.deleteSupplier = async (req, res) => {
         .status(403)
         .json({ success: false, message: "Access denied for this country." });
     }
-    if (
-      ["branchadmin", "staff", "agent"].includes(role) &&
-      supplier.branchId?.toString() !== branchId?.toString()
-    ) {
+    if (role !== "branchadmin") {
+      return res
+        .status(403)
+        .json({ success: false, message: "Access denied." });
+    }
+    if (supplier.branchId?.toString() !== branchId?.toString()) {
       return res
         .status(403)
         .json({ success: false, message: "Access denied for this branch." });
@@ -240,7 +246,7 @@ module.exports.searchSupplier = async (req, res) => {
     };
     if (role === "countryadmin") {
       searchQuery.countryId = countryId;
-    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+    } else if (["branchadmin", "staff"].includes(role)) {
       searchQuery.branchId = branchId;
       searchQuery.countryId = countryId;
     }

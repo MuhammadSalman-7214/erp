@@ -39,6 +39,10 @@ const CountrySchema = new mongoose.Schema(
         },
       },
     ],
+    accountingLockUntil: {
+      type: Date,
+      default: null,
+    },
     countryAdminId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

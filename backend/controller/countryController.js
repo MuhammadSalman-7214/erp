@@ -190,6 +190,49 @@ exports.updateCountry = async (req, res) => {
   }
 };
 
+// Update Country Accounting Lock (Super Admin or Country Admin)
+exports.updateCountryLock = async (req, res) => {
+  try {
+    const { countryId } = req.params;
+    const { accountingLockUntil } = req.body;
+    const { role, countryId: userCountryId } = req.user || {};
+
+    if (role === "countryadmin" && countryId !== userCountryId?.toString()) {
+      return res.status(403).json({
+        message: "Access denied. You can only lock your own country.",
+      });
+    }
+
+    const country = await Country.findByIdAndUpdate(
+      countryId,
+      { accountingLockUntil },
+      { new: true },
+    );
+    if (!country) {
+      return res.status(404).json({ message: "Country not found" });
+    }
+
+    await logActivity({
+      action: "Country Accounting Lock Updated",
+      description: `Country accounting lock updated to ${accountingLockUntil}`,
+      entity: "country",
+      entityId: country._id,
+      userId: req.user.userId,
+      ipAddress: req.ip,
+    });
+
+    res.status(200).json({
+      message: "Country accounting lock updated successfully",
+      country,
+    });
+  } catch (error) {
+    console.error("Error updating country lock:", error);
+    res
+      .status(500)
+      .json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
 // Delete Country (Soft delete)
 exports.deleteCountry = async (req, res) => {
   try {

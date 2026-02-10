@@ -1,8 +1,15 @@
 const Product = require("../models/Productmodel");
 const logActivity = require("../libs/logger");
 const { canOverrideOwner } = require("../middleware/Authmiddleware.js");
+const { getCountryCurrencySnapshot } = require("../libs/currency.js");
 module.exports.createProduct = async (req, res) => {
   try {
+    const { role } = req.user || {};
+    if (!["branchadmin", "staff"].includes(role)) {
+      return res
+        .status(403)
+        .json({ message: "Only branch staff can create products" });
+    }
     const { name, Desciption, Category, Price, quantity, image, supplier } =
       req.body;
 
@@ -12,14 +19,11 @@ module.exports.createProduct = async (req, res) => {
       });
     }
 
-    const {
-      userId,
-      branchId,
-      countryId,
-      userCurrency,
-      usercurrencySymbol,
-      userCurrencyExchangeRate,
-    } = req.user;
+    const { userId, branchId, countryId, usercurrencySymbol } = req.user;
+
+    const currencySnapshot = await getCountryCurrencySnapshot(countryId);
+    const userCurrency = currencySnapshot.currency;
+    const userCurrencyExchangeRate = currencySnapshot.exchangeRate;
 
     // Convert local price to USD using snapshot exchange rate
     const priceUSD = Number((Price / userCurrencyExchangeRate).toFixed(2));

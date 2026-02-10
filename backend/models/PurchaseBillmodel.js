@@ -1,5 +1,21 @@
 const mongoose = require("mongoose");
 
+const RevisionSchema = new mongoose.Schema(
+  {
+    changes: [
+      {
+        field: String,
+        from: mongoose.Schema.Types.Mixed,
+        to: mongoose.Schema.Types.Mixed,
+      },
+    ],
+    reason: String,
+    updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    updatedAt: { type: Date, default: Date.now },
+  },
+  { _id: false },
+);
+
 const PurchaseBillItemSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
@@ -30,13 +46,23 @@ const PurchaseBillSchema = new mongoose.Schema(
       enum: ["draft", "approved", "paid", "cancelled"],
       default: "draft",
     },
-    dueDate: { type: Date },
-    paidAt: { type: Date },
+    workflowStatus: {
+      type: String,
+      enum: ["Draft", "Submitted", "Approved", "Locked"],
+      default: "Draft",
+    },
+    submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    submittedAt: { type: Date },
     approvedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
     approvedAt: { type: Date },
+    lockedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    lockedAt: { type: Date },
+    revisions: [RevisionSchema],
+    dueDate: { type: Date },
+    paidAt: { type: Date },
     branchId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Branch",
@@ -53,6 +79,7 @@ const PurchaseBillSchema = new mongoose.Schema(
     priceUSD: { type: Number, required: true },
     exchangeRateUsed: { type: Number, required: true },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    lastUpdatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     isLocked: { type: Boolean, default: false },
   },
   { timestamps: true },

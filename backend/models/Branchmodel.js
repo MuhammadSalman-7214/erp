@@ -49,6 +49,10 @@ const BranchSchema = new mongoose.Schema(
         default: 0, // Amount limit for auto-approval
       },
     },
+    accountingLockUntil: {
+      type: Date,
+      default: null,
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

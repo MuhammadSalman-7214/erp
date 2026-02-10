@@ -1,10 +1,17 @@
 const Customer = require("../models/Customermodel.js");
 const logActivity = require("../libs/logger");
+const { getCountryCurrencySnapshot } = require("../libs/currency.js");
 
 module.exports.createCustomer = async (req, res) => {
   try {
+    const { role } = req.user || {};
+    if (!["branchadmin", "staff"].includes(role)) {
+      return res
+        .status(403)
+        .json({ message: "Only branch staff can create customers" });
+    }
     const { name, contactInfo } = req.body;
-    const { userId, branchId, countryId, userCurrency, userCurrencyExchangeRate } =
+    const { userId, branchId, countryId } =
       req.user || {};
 
     if (!name) {
@@ -15,11 +22,9 @@ module.exports.createCustomer = async (req, res) => {
         message: "Branch and country are required for customer creation",
       });
     }
-    if (!userCurrency || !userCurrencyExchangeRate) {
-      return res.status(400).json({
-        message: "Currency configuration is missing for this user",
-      });
-    }
+    const currencySnapshot = await getCountryCurrencySnapshot(countryId);
+    const userCurrency = currencySnapshot.currency;
+    const userCurrencyExchangeRate = currencySnapshot.exchangeRate;
 
     const customer = await Customer.create({
       name,
@@ -56,7 +61,7 @@ module.exports.getAllCustomers = async (req, res) => {
     const query = { isActive: true };
     if (role === "countryadmin") {
       query.countryId = countryId;
-    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+    } else if (["branchadmin", "staff"].includes(role)) {
       query.countryId = countryId;
       query.branchId = branchId;
     }
@@ -80,7 +85,7 @@ module.exports.getCustomerById = async (req, res) => {
       return res.status(403).json({ message: "Access denied for this country" });
     }
     if (
-      ["branchadmin", "staff", "agent"].includes(role) &&
+      ["branchadmin", "staff"].includes(role) &&
       customer.branchId?.toString() !== branchId?.toString()
     ) {
       return res.status(403).json({ message: "Access denied for this branch" });
@@ -104,7 +109,7 @@ module.exports.updateCustomer = async (req, res) => {
       return res.status(403).json({ message: "Access denied for this country" });
     }
     if (
-      ["branchadmin", "staff", "agent"].includes(role) &&
+      ["branchadmin", "staff"].includes(role) &&
       existing.branchId?.toString() !== branchId?.toString()
     ) {
       return res.status(403).json({ message: "Access denied for this branch" });
@@ -147,10 +152,10 @@ module.exports.deleteCustomer = async (req, res) => {
     ) {
       return res.status(403).json({ message: "Access denied for this country" });
     }
-    if (
-      ["branchadmin", "staff", "agent"].includes(role) &&
-      existing.branchId?.toString() !== branchId?.toString()
-    ) {
+    if (role !== "branchadmin") {
+      return res.status(403).json({ message: "Access denied" });
+    }
+    if (existing.branchId?.toString() !== branchId?.toString()) {
       return res.status(403).json({ message: "Access denied for this branch" });
     }
     existing.isActive = false;

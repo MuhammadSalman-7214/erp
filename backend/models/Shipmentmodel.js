@@ -2,6 +2,22 @@
 
 const mongoose = require("mongoose");
 
+const RevisionSchema = new mongoose.Schema(
+  {
+    changes: [
+      {
+        field: String,
+        from: mongoose.Schema.Types.Mixed,
+        to: mongoose.Schema.Types.Mixed,
+      },
+    ],
+    reason: String,
+    updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    updatedAt: { type: Date, default: Date.now },
+  },
+  { _id: false },
+);
+
 const shipmentDocumentSchema = new mongoose.Schema({
   documentType: {
     type: String,
@@ -275,6 +291,18 @@ const shipmentSchema = new mongoose.Schema(
         "On Hold",
       ],
     },
+    workflowStatus: {
+      type: String,
+      enum: ["Draft", "Submitted", "Approved", "Locked"],
+      default: "Draft",
+    },
+    submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    submittedAt: { type: Date },
+    approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    approvedAt: { type: Date },
+    lockedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    lockedAt: { type: Date },
+    revisions: [RevisionSchema],
     statusHistory: [shipmentStatusHistorySchema],
 
     // Documents

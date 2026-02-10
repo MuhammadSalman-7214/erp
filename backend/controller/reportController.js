@@ -43,7 +43,7 @@ const buildScopeMatch = (user) => {
   const match = {};
   if (role === "countryadmin") {
     match.countryId = countryId;
-  } else if (["branchadmin", "staff", "agent"].includes(role)) {
+  } else if (["branchadmin", "staff"].includes(role)) {
     match.countryId = countryId;
     match.branchId = branchId;
   }

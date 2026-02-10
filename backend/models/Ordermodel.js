@@ -1,5 +1,21 @@
 const mongoose = require("mongoose");
 
+const RevisionSchema = new mongoose.Schema(
+  {
+    changes: [
+      {
+        field: String,
+        from: mongoose.Schema.Types.Mixed,
+        to: mongoose.Schema.Types.Mixed,
+      },
+    ],
+    reason: String,
+    updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    updatedAt: { type: Date, default: Date.now },
+  },
+  { _id: false },
+);
+
 const OrderSchema = new mongoose.Schema(
   {
     orderNumber: { type: String, required: true, unique: true, trim: true },
@@ -36,6 +52,19 @@ const OrderSchema = new mongoose.Schema(
       type: String,
       enum: ["pending", "shipped", "delivered"],
     },
+    workflowStatus: {
+      type: String,
+      enum: ["Draft", "Submitted", "Approved", "Locked"],
+      default: "Draft",
+    },
+    submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    submittedAt: { type: Date },
+    approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    approvedAt: { type: Date },
+    lockedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    lockedAt: { type: Date },
+    isLocked: { type: Boolean, default: false },
+    revisions: [RevisionSchema],
 
     invoiceUrl: {
       type: String,
@@ -64,6 +93,8 @@ const OrderSchema = new mongoose.Schema(
       type: Number,
       required: true, // Snapshot of exchange rate at creation
     },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    lastUpdatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true },
 );

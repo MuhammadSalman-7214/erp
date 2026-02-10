@@ -2,6 +2,22 @@
 
 const mongoose = require("mongoose");
 
+const RevisionSchema = new mongoose.Schema(
+  {
+    changes: [
+      {
+        field: String,
+        from: mongoose.Schema.Types.Mixed,
+        to: mongoose.Schema.Types.Mixed,
+      },
+    ],
+    reason: String,
+    updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    updatedAt: { type: Date, default: Date.now },
+  },
+  { _id: false },
+);
+
 const clearingJobNoteSchema = new mongoose.Schema({
   message: {
     type: String,
@@ -240,6 +256,18 @@ const clearingJobSchema = new mongoose.Schema(
         "Cancelled",
       ],
     },
+    workflowStatus: {
+      type: String,
+      enum: ["Draft", "Submitted", "Approved", "Locked"],
+      default: "Draft",
+    },
+    submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    submittedAt: { type: Date },
+    approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    approvedAt: { type: Date },
+    lockedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    lockedAt: { type: Date },
+    revisions: [RevisionSchema],
     statusHistory: [clearingJobStatusHistorySchema],
 
     // Important Dates
@@ -269,6 +297,10 @@ const clearingJobSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    isLocked: {
+      type: Boolean,
+      default: false,
     },
     isCompleted: {
       type: Boolean,

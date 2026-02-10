@@ -12,7 +12,7 @@ module.exports.getLedgerByParty = async (req, res) => {
     const query = { partyType, partyId };
     if (role === "countryadmin") {
       query.countryId = countryId;
-    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+    } else if (["branchadmin", "staff"].includes(role)) {
       query.countryId = countryId;
       query.branchId = branchId;
     }
@@ -45,7 +45,7 @@ module.exports.getOutstandingByParty = async (req, res) => {
     const match = { partyType };
     if (role === "countryadmin") {
       match.countryId = countryId;
-    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+    } else if (["branchadmin", "staff"].includes(role)) {
       match.countryId = countryId;
       match.branchId = branchId;
     }

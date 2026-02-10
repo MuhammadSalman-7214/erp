@@ -9,17 +9,19 @@ const {
   removeStockTransaction,
 } = require("../libs/createstock");
 const { invalidateReportCache } = require("./reportController.js");
+const { getCountryCurrencySnapshot } = require("../libs/currency.js");
+const { assertNotLocked } = require("../libs/periodLock.js");
 
 const createOrder = async (req, res) => {
   try {
+    const { role } = req.user || {};
+    if (!["branchadmin", "staff"].includes(role)) {
+      return res
+        .status(403)
+        .json({ message: "Only branch staff can create orders" });
+    }
     const { Description, Product, status, supplier } = req.body;
-    const {
-      userId,
-      branchId,
-      countryId,
-      userCurrency,
-      userCurrencyExchangeRate,
-    } = req.user || {};
+    const { userId, branchId, countryId } = req.user || {};
 
     if (!userId)
       return res.status(400).json({ message: "User ID is required" });
@@ -28,11 +30,10 @@ const createOrder = async (req, res) => {
         .status(400)
         .json({ message: "Branch and country are required" });
     }
-    if (!userCurrency || !userCurrencyExchangeRate) {
-      return res
-        .status(400)
-        .json({ message: "Currency configuration is missing for this user" });
-    }
+    await assertNotLocked({ countryId, branchId, transactionDate: new Date() });
+    const currencySnapshot = await getCountryCurrencySnapshot(countryId);
+    const userCurrency = currencySnapshot.currency;
+    const userCurrencyExchangeRate = currencySnapshot.exchangeRate;
     if (!Description)
       return res.status(400).json({ message: "Description is required" });
     if (!status) return res.status(400).json({ message: "Status is required" });
@@ -82,6 +83,8 @@ const createOrder = async (req, res) => {
       currency: userCurrency,
       exchangeRateUsed: userCurrencyExchangeRate,
       priceUSD,
+      workflowStatus: "Draft",
+      createdBy: userId,
     });
 
     await newOrder.save();
@@ -95,6 +98,9 @@ const createOrder = async (req, res) => {
       order: newOrder,
     });
   } catch (error) {
+    if (error.code === "ACCOUNTING_LOCKED") {
+      return res.status(423).json({ message: error.message });
+    }
     console.error("Error creating order:", error);
     res.status(500).json({
       success: false,
@@ -117,19 +123,18 @@ const Removeorder = async (req, res) => {
     if (!Deletedorder) {
       return res.status(404).json({ message: "Order is not found!" });
     }
-    if (
-      role === "countryadmin" &&
-      Deletedorder.countryId?.toString() !== countryId?.toString()
-    ) {
-      return res
-        .status(403)
-        .json({ message: "Access denied for this country" });
+    if (role !== "branchadmin") {
+      return res.status(403).json({ message: "Access denied" });
     }
     if (
-      ["branchadmin", "staff", "agent"].includes(role) &&
       Deletedorder.branchId?.toString() !== branchId?.toString()
     ) {
       return res.status(403).json({ message: "Access denied for this branch" });
+    }
+    if (Deletedorder.workflowStatus !== "Draft") {
+      return res
+        .status(403)
+        .json({ message: "Only draft orders can be deleted" });
     }
 
     await Order.findByIdAndDelete(OrdertId);
@@ -158,7 +163,7 @@ const getOrder = async (req, res) => {
     const query = {};
     if (role === "countryadmin") {
       query.countryId = countryId;
-    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+    } else if (["branchadmin", "staff"].includes(role)) {
       query.branchId = branchId;
       query.countryId = countryId;
     }
@@ -191,6 +196,11 @@ const updatestatusOrder = async (req, res) => {
     if (!oldOrder) {
       return res.status(404).json({ message: "Order not found" });
     }
+    await assertNotLocked({
+      countryId: oldOrder.countryId,
+      branchId: oldOrder.branchId,
+      transactionDate: oldOrder.createdAt,
+    });
     if (
       role === "countryadmin" &&
       oldOrder.countryId?.toString() !== countryId?.toString()
@@ -200,16 +210,102 @@ const updatestatusOrder = async (req, res) => {
         .json({ message: "Access denied for this country" });
     }
     if (
-      ["branchadmin", "staff", "agent"].includes(role) &&
+      ["branchadmin", "staff"].includes(role) &&
       oldOrder.branchId?.toString() !== branchId?.toString()
     ) {
       return res.status(403).json({ message: "Access denied for this branch" });
     }
+    if (oldOrder.workflowStatus === "Locked" || oldOrder.isLocked) {
+      return res.status(403).json({ message: "Order is locked" });
+    }
+    if (
+      updates.workflowStatus &&
+      Object.keys(updates).every((key) =>
+        ["workflowStatus", "note", "revisionReason"].includes(key),
+      )
+    ) {
+      const nextStatus = updates.workflowStatus;
+      const currentStatus = oldOrder.workflowStatus;
+      if (nextStatus === "Submitted" && currentStatus === "Draft") {
+        if (!["branchadmin", "staff"].includes(role)) {
+          return res
+            .status(403)
+            .json({ message: "Only branch staff can submit orders" });
+        }
+        oldOrder.workflowStatus = "Submitted";
+        oldOrder.submittedBy = req.user.userId;
+        oldOrder.submittedAt = new Date();
+      } else if (nextStatus === "Draft" && currentStatus === "Submitted") {
+        if (!["branchadmin", "countryadmin"].includes(role)) {
+          return res.status(403).json({
+            message: "Only branch or country admin can reject orders",
+          });
+        }
+        oldOrder.workflowStatus = "Draft";
+      } else if (nextStatus === "Approved" && currentStatus === "Submitted") {
+        if (!["branchadmin", "countryadmin"].includes(role)) {
+          return res.status(403).json({
+            message: "Only branch or country admin can approve orders",
+          });
+        }
+        oldOrder.workflowStatus = "Approved";
+        oldOrder.approvedBy = req.user.userId;
+        oldOrder.approvedAt = new Date();
+      } else if (nextStatus === "Locked" && currentStatus === "Approved") {
+        if (role !== "branchadmin") {
+          return res
+            .status(403)
+            .json({ message: "Only branch admin can lock orders" });
+        }
+        oldOrder.workflowStatus = "Locked";
+        oldOrder.lockedBy = req.user.userId;
+        oldOrder.lockedAt = new Date();
+        oldOrder.isLocked = true;
+      } else {
+        return res.status(400).json({ message: "Invalid workflow transition" });
+      }
+      await oldOrder.save();
+      invalidateReportCache();
+      return res.status(200).json(oldOrder);
+    }
+    if (oldOrder.workflowStatus === "Submitted" && role !== "branchadmin") {
+      return res.status(403).json({
+        message: "Only branch admin can edit submitted orders",
+      });
+    }
+    if (oldOrder.workflowStatus === "Approved") {
+      if (role !== "branchadmin") {
+        return res.status(403).json({
+          message: "Only branch admin can edit approved orders",
+        });
+      }
+      if (!updates.revisionReason) {
+        return res.status(400).json({
+          message: "Revision reason is required for approved order edits",
+        });
+      }
+    }
+    const originalOrder = oldOrder.toObject();
 
     // 2️⃣ Update order
     const updatedOrder = await Order.findByIdAndUpdate(OrderId, updates, {
       new: true,
     });
+    if (oldOrder.workflowStatus === "Approved" && updates.revisionReason) {
+      const changes = Object.keys(updates)
+        .filter((key) => !["revisionReason", "workflowStatus"].includes(key))
+        .map((key) => ({
+          field: key,
+          from: originalOrder[key],
+          to: updates[key],
+        }));
+      updatedOrder.revisions.push({
+        changes,
+        reason: updates.revisionReason,
+        updatedBy: req.user.userId,
+      });
+      await updatedOrder.save();
+    }
 
     // 3️⃣ Stock logic
     if (
@@ -232,6 +328,9 @@ const updatestatusOrder = async (req, res) => {
       order: updatedOrder,
     });
   } catch (error) {
+    if (error.code === "ACCOUNTING_LOCKED") {
+      return res.status(423).json({ message: error.message });
+    }
     res.status(500).json({
       message: "Error updating order",
       error: error.message,
@@ -258,7 +357,7 @@ const searchOrder = async (req, res) => {
     };
     if (role === "countryadmin") {
       searchQuery.countryId = countryId;
-    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+    } else if (["branchadmin", "staff"].includes(role)) {
       searchQuery.branchId = branchId;
       searchQuery.countryId = countryId;
     }
@@ -279,7 +378,7 @@ const getOrderStatistics = async (req, res) => {
     const match = {};
     if (role === "countryadmin") {
       match.countryId = countryId;
-    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+    } else if (["branchadmin", "staff"].includes(role)) {
       match.branchId = branchId;
       match.countryId = countryId;
     }

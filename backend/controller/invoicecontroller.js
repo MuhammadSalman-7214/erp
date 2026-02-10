@@ -3,6 +3,8 @@ const Branch = require("../models/Branchmodel.js");
 const Customer = require("../models/Customermodel.js");
 const LedgerEntry = require("../models/LedgerEntrymodel.js");
 const { invalidateReportCache } = require("./reportController.js");
+const { getCountryCurrencySnapshot } = require("../libs/currency.js");
+const { assertNotLocked } = require("../libs/periodLock.js");
 
 /**
  * Utility: Calculate invoice totals
@@ -25,6 +27,12 @@ const calculateTotals = (items, taxRate = 0, discount = 0) => {
 
 module.exports.createInvoice = async (req, res) => {
   try {
+    const { role } = req.user || {};
+    if (!["branchadmin", "staff"].includes(role)) {
+      return res
+        .status(403)
+        .json({ message: "Only branch staff can create invoices" });
+    }
     const {
       invoiceNumber,
       customerId,
@@ -40,22 +48,16 @@ module.exports.createInvoice = async (req, res) => {
     if (!items || items.length === 0) {
       return res.status(400).json({ message: "Invoice must have items" });
     }
-    const {
-      branchId,
-      countryId,
-      userCurrency,
-      userCurrencyExchangeRate,
-    } = req.user || {};
+    const { branchId, countryId, userId } = req.user || {};
     if (!branchId || !countryId) {
       return res.status(400).json({
         message: "Branch and country are required for invoice creation",
       });
     }
-    if (!userCurrency || !userCurrencyExchangeRate) {
-      return res
-        .status(400)
-        .json({ message: "Currency configuration is missing for this user" });
-    }
+    await assertNotLocked({ countryId, branchId, transactionDate: new Date() });
+    const currencySnapshot = await getCountryCurrencySnapshot(countryId);
+    const userCurrency = currencySnapshot.currency;
+    const userCurrencyExchangeRate = currencySnapshot.exchangeRate;
 
     const totals = calculateTotals(items, taxRate, discount);
     const priceUSD = Number(
@@ -92,6 +94,9 @@ module.exports.createInvoice = async (req, res) => {
       exchangeRateUsed: userCurrencyExchangeRate,
       branchId,
       countryId,
+      workflowStatus: "Draft",
+      createdBy: userId,
+      lastUpdatedBy: userId,
     });
 
     if (customerId) {
@@ -134,7 +139,7 @@ module.exports.getAllInvoices = async (req, res) => {
     const query = {};
     if (role === "countryadmin") {
       query.countryId = countryId;
-    } else if (["branchadmin", "staff", "agent"].includes(role)) {
+    } else if (["branchadmin", "staff"].includes(role)) {
       query.branchId = branchId;
       query.countryId = countryId;
     }
@@ -171,13 +176,10 @@ module.exports.getInvoiceById = async (req, res) => {
       return res.status(403).json({ message: "Access denied for this country" });
     }
     if (
-      ["branchadmin", "staff", "agent"].includes(role) &&
+      ["branchadmin", "staff"].includes(role) &&
       invoice.branchId?.toString() !== branchId?.toString()
     ) {
       return res.status(403).json({ message: "Access denied for this branch" });
-    }
-    if (invoice.status !== "approved") {
-      return res.status(400).json({ message: "Invoice must be approved before payment" });
     }
 
     res.status(200).json({
@@ -199,7 +201,12 @@ module.exports.updateInvoice = async (req, res) => {
     if (!invoice) {
       return res.status(404).json({ message: "Invoice not found" });
     }
-    if (invoice.isLocked || ["approved", "paid", "cancelled"].includes(invoice.status)) {
+    await assertNotLocked({
+      countryId: invoice.countryId,
+      branchId: invoice.branchId,
+      transactionDate: invoice.createdAt,
+    });
+    if (invoice.workflowStatus === "Locked" || invoice.isLocked) {
       return res.status(403).json({
         message: "Invoice is locked or approved and cannot be edited",
       });
@@ -213,11 +220,82 @@ module.exports.updateInvoice = async (req, res) => {
       return res.status(403).json({ message: "Access denied for this country" });
     }
     if (
-      ["branchadmin", "staff", "agent"].includes(role) &&
+      ["branchadmin", "staff"].includes(role) &&
       invoice.branchId?.toString() !== branchId?.toString()
     ) {
       return res.status(403).json({ message: "Access denied for this branch" });
     }
+    if (
+      req.body.workflowStatus &&
+      Object.keys(req.body).every((key) =>
+        ["workflowStatus", "note", "revisionReason"].includes(key),
+      )
+    ) {
+      const nextStatus = req.body.workflowStatus;
+      const currentStatus = invoice.workflowStatus;
+      if (nextStatus === "Submitted" && currentStatus === "Draft") {
+        if (!["branchadmin", "staff"].includes(role)) {
+          return res
+            .status(403)
+            .json({ message: "Only branch staff can submit invoices" });
+        }
+        invoice.workflowStatus = "Submitted";
+        invoice.submittedBy = req.user.userId;
+        invoice.submittedAt = new Date();
+      } else if (nextStatus === "Draft" && currentStatus === "Submitted") {
+        if (!["branchadmin", "countryadmin"].includes(role)) {
+          return res.status(403).json({
+            message: "Only branch or country admin can reject invoices",
+          });
+        }
+        invoice.workflowStatus = "Draft";
+      } else if (nextStatus === "Approved" && currentStatus === "Submitted") {
+        if (!["branchadmin", "countryadmin"].includes(role)) {
+          return res.status(403).json({
+            message: "Only branch or country admin can approve invoices",
+          });
+        }
+        invoice.workflowStatus = "Approved";
+        invoice.status = "approved";
+        invoice.approvedBy = req.user.userId;
+        invoice.approvedAt = new Date();
+      } else if (nextStatus === "Locked" && currentStatus === "Approved") {
+        if (role !== "branchadmin") {
+          return res
+            .status(403)
+            .json({ message: "Only branch admin can lock invoices" });
+        }
+        invoice.workflowStatus = "Locked";
+        invoice.lockedBy = req.user.userId;
+        invoice.lockedAt = new Date();
+        invoice.isLocked = true;
+      } else {
+        return res.status(400).json({ message: "Invalid workflow transition" });
+      }
+      invoice.lastUpdatedBy = req.user.userId;
+      await invoice.save();
+      invalidateReportCache();
+      return res.status(200).json({ success: true, data: invoice });
+    }
+
+    if (invoice.workflowStatus === "Submitted" && role !== "branchadmin") {
+      return res.status(403).json({
+        message: "Only branch admin can edit submitted invoices",
+      });
+    }
+    if (invoice.workflowStatus === "Approved") {
+      if (role !== "branchadmin") {
+        return res.status(403).json({
+          message: "Only branch admin can edit approved invoices",
+        });
+      }
+      if (!req.body.revisionReason) {
+        return res.status(400).json({
+          message: "Revision reason is required for approved invoice edits",
+        });
+      }
+    }
+    const originalInvoice = invoice.toObject();
 
     const items = req.body.items || invoice.items;
     const taxRate = req.body.taxRate ?? invoice.taxRate;
@@ -240,9 +318,26 @@ module.exports.updateInvoice = async (req, res) => {
         })),
         ...totals,
         priceUSD,
+        lastUpdatedBy: req.user.userId,
       },
       { new: true, runValidators: true },
     );
+
+    if (invoice.workflowStatus === "Approved" && req.body.revisionReason) {
+      const changes = Object.keys(req.body)
+        .filter((key) => !["revisionReason", "workflowStatus"].includes(key))
+        .map((key) => ({
+          field: key,
+          from: originalInvoice[key],
+          to: req.body[key],
+        }));
+      invoice.revisions.push({
+        changes,
+        reason: req.body.revisionReason,
+        updatedBy: req.user.userId,
+      });
+      await invoice.save();
+    }
 
     invalidateReportCache();
     res.status(200).json({
@@ -265,6 +360,11 @@ module.exports.deleteInvoice = async (req, res) => {
     if (!invoice) {
       return res.status(404).json({ message: "Invoice not found" });
     }
+    await assertNotLocked({
+      countryId: invoice.countryId,
+      branchId: invoice.branchId,
+      transactionDate: new Date(),
+    });
     if (
       role === "countryadmin" &&
       invoice.countryId?.toString() !== countryId?.toString()
@@ -272,10 +372,15 @@ module.exports.deleteInvoice = async (req, res) => {
       return res.status(403).json({ message: "Access denied for this country" });
     }
     if (
-      ["branchadmin", "staff", "agent"].includes(role) &&
+      ["branchadmin", "staff"].includes(role) &&
       invoice.branchId?.toString() !== branchId?.toString()
     ) {
       return res.status(403).json({ message: "Access denied for this branch" });
+    }
+    if (invoice.workflowStatus !== "Draft") {
+      return res.status(403).json({
+        message: "Only draft invoices can be deleted",
+      });
     }
 
     await Invoice.findByIdAndDelete(req.params.id);
@@ -286,6 +391,9 @@ module.exports.deleteInvoice = async (req, res) => {
       message: "Invoice deleted successfully",
     });
   } catch (error) {
+    if (error.code === "ACCOUNTING_LOCKED") {
+      return res.status(423).json({ message: error.message });
+    }
     res.status(500).json({
       success: false,
       message: error.message,
@@ -308,10 +416,15 @@ module.exports.markInvoiceAsPaid = async (req, res) => {
       return res.status(403).json({ message: "Access denied for this country" });
     }
     if (
-      ["branchadmin", "staff", "agent"].includes(role) &&
+      ["branchadmin", "staff"].includes(role) &&
       invoice.branchId?.toString() !== branchId?.toString()
     ) {
       return res.status(403).json({ message: "Access denied for this branch" });
+    }
+    if (invoice.workflowStatus !== "Approved") {
+      return res.status(400).json({
+        message: "Invoice must be approved before payment",
+      });
     }
 
     invoice.status = "paid";
@@ -345,6 +458,9 @@ module.exports.markInvoiceAsPaid = async (req, res) => {
       data: invoice,
     });
   } catch (error) {
+    if (error.code === "ACCOUNTING_LOCKED") {
+      return res.status(423).json({ message: error.message });
+    }
     res.status(500).json({
       success: false,
       message: error.message,
@@ -355,7 +471,7 @@ module.exports.markInvoiceAsPaid = async (req, res) => {
 module.exports.approveInvoice = async (req, res) => {
   try {
     const { role, countryId, branchId, userId } = req.user || {};
-    if (!["superadmin", "countryadmin", "branchadmin"].includes(role)) {
+    if (!["countryadmin", "branchadmin"].includes(role)) {
       return res.status(403).json({ message: "Approval requires admin role" });
     }
     const invoice = await Invoice.findById(req.params.id);
@@ -369,16 +485,17 @@ module.exports.approveInvoice = async (req, res) => {
       return res.status(403).json({ message: "Access denied for this country" });
     }
     if (
-      ["branchadmin", "staff", "agent"].includes(role) &&
+      ["branchadmin", "staff"].includes(role) &&
       invoice.branchId?.toString() !== branchId?.toString()
     ) {
       return res.status(403).json({ message: "Access denied for this branch" });
     }
-    if (invoice.status !== "draft" && invoice.status !== "sent") {
+    if (invoice.workflowStatus !== "Submitted") {
       return res.status(400).json({ message: "Invoice cannot be approved" });
     }
 
     invoice.status = "approved";
+    invoice.workflowStatus = "Approved";
     invoice.approvedBy = userId;
     invoice.approvedAt = new Date();
     await invoice.save();
@@ -386,6 +503,9 @@ module.exports.approveInvoice = async (req, res) => {
     invalidateReportCache();
     res.status(200).json({ success: true, data: invoice });
   } catch (error) {
+    if (error.code === "ACCOUNTING_LOCKED") {
+      return res.status(423).json({ message: error.message });
+    }
     res.status(500).json({
       success: false,
       message: error.message,
