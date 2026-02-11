@@ -110,6 +110,12 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
               label="Vendor"
               sidebarOpen={sidebarOpen}
             />
+            <NavItem
+              to="/ManagerDashboard/customer"
+              icon={<LuUsers />}
+              label="Customer"
+              sidebarOpen={sidebarOpen}
+            />
 
             <NavItem
               to="/ManagerDashboard/sales"
@@ -191,6 +197,12 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
               label="Vendor"
               sidebarOpen={sidebarOpen}
             />
+            <NavItem
+              to="/AdminDashboard/customer"
+              icon={<LuUsers />}
+              label="Customer"
+              sidebarOpen={sidebarOpen}
+            />
 
             <NavItem
               to="/AdminDashboard/sales"
@@ -263,6 +275,12 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
               to="/StaffDashboard/supplier"
               icon={<TfiSupport />}
               label="Vendor"
+              sidebarOpen={sidebarOpen}
+            />
+            <NavItem
+              to="/StaffDashboard/customer"
+              icon={<LuUsers />}
+              label="Customer"
               sidebarOpen={sidebarOpen}
             />
 

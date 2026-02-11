@@ -1,6 +1,7 @@
 const Sale = require("../models/Salesmodel.js");
 const ProductModel = require("../models/Productmodel.js");
 const Invoice = require("../models/Invoicemodel");
+const Customer = require("../models/Customermodel");
 const { getNextInvoiceNumber } = require("../libs/invoiceNumber");
 
 // Create Sale
@@ -9,13 +10,30 @@ const { getNextInvoiceNumber } = require("../libs/invoiceNumber");
 module.exports.createSale = async (req, res) => {
   try {
     const {
-      customerName,
-      customerCode,
+      customerId,
       products,
       paymentMethod,
       paymentStatus,
       status,
     } = req.body;
+
+    if (!customerId) {
+      return res.status(400).json({
+        success: false,
+        message: "Customer is required",
+      });
+    }
+
+    const customer = await Customer.findById(customerId);
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: "Customer not found",
+      });
+    }
+
+    const customerName = customer.name;
+    const customerCode = customer.customerCode || "";
 
     // Validation: Make sure products array is provided and has at least one item
     if (!products || !Array.isArray(products) || products.length === 0) {
@@ -75,6 +93,7 @@ module.exports.createSale = async (req, res) => {
 
     // Create sale
     const sale = await Sale.create({
+      customer: customer._id,
       customerName,
       customerCode,
       products: resolvedProducts,
@@ -112,9 +131,13 @@ module.exports.createSale = async (req, res) => {
     const invoice = await Invoice.create({
       invoiceNumber,
       invoiceType: "sales",
+      customerId: customer._id,
       customer: {
         code: customerCode,
         name: customerName,
+        email: customer.contactInfo?.email || "",
+        phone: customer.contactInfo?.phone || "",
+        address: customer.contactInfo?.address || "",
       },
       items: invoiceItems,
       taxRate: 0,
@@ -130,9 +153,9 @@ module.exports.createSale = async (req, res) => {
 
     sale.invoice = invoice._id;
     await sale.save();
-    const populatedSale = await Sale.findById(sale._id).populate(
-      "products.product",
-    );
+    const populatedSale = await Sale.findById(sale._id)
+      .populate("products.product")
+      .populate("customer");
     res.status(201).json({
       success: true,
       message: "Sale created successfully",
@@ -153,6 +176,7 @@ module.exports.getAllSales = async (req, res) => {
   try {
     const sales = await Sale.find()
       .populate("products.product")
+      .populate("customer")
       .sort({ createdAt: -1 });
     res.status(200).json({ success: true, sales });
   } catch (error) {
@@ -168,7 +192,9 @@ module.exports.getAllSales = async (req, res) => {
 module.exports.getSaleById = async (req, res) => {
   try {
     const { id } = req.params;
-    const sale = await Sale.findById(id).populate("products.product");
+    const sale = await Sale.findById(id)
+      .populate("products.product")
+      .populate("customer");
     if (!sale)
       return res
         .status(404)
@@ -188,6 +214,21 @@ module.exports.updateSale = async (req, res) => {
   try {
     const { id } = req.params;
     const updatedData = req.body;
+
+    if (!updatedData.customerId) {
+      return res.status(400).json({
+        success: false,
+        message: "Customer is required",
+      });
+    }
+
+    const customer = await Customer.findById(updatedData.customerId);
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: "Customer not found",
+      });
+    }
 
     if (!updatedData.products || !updatedData.products.length) {
       return res.status(400).json({
@@ -263,7 +304,14 @@ module.exports.updateSale = async (req, res) => {
     // 5️⃣ Update sale
     await Sale.findByIdAndUpdate(
       id,
-      { ...updatedData, products: resolvedProducts, totalAmount: updatedTotalAmount },
+      {
+        ...updatedData,
+        customer: customer._id,
+        customerName: customer.name,
+        customerCode: customer.customerCode || "",
+        products: resolvedProducts,
+        totalAmount: updatedTotalAmount,
+      },
       { new: true },
     );
 
@@ -281,6 +329,14 @@ module.exports.updateSale = async (req, res) => {
       }
 
       await Invoice.findByIdAndUpdate(existingSale.invoice, {
+        customerId: customer._id,
+        customer: {
+          code: customer.customerCode || "",
+          name: customer.name,
+          email: customer.contactInfo?.email || "",
+          phone: customer.contactInfo?.phone || "",
+          address: customer.contactInfo?.address || "",
+        },
         items: invoiceItems,
         subTotal: updatedTotalAmount,
         totalAmount: updatedTotalAmount,
@@ -288,7 +344,9 @@ module.exports.updateSale = async (req, res) => {
     }
 
     // 6️⃣ Populate for frontend
-    const populatedSale = await Sale.findById(id).populate("products.product");
+    const populatedSale = await Sale.findById(id)
+      .populate("products.product")
+      .populate("customer");
 
     res.status(200).json({
       success: true,
@@ -311,7 +369,9 @@ module.exports.SearchSales = async (req, res) => {
     const { query } = req.query;
 
     if (!query || query.trim() === "") {
-      const allSales = await Sale.find().populate("products.product");
+      const allSales = await Sale.find()
+        .populate("products.product")
+        .populate("customer");
       return res.status(200).json({ success: true, sales: allSales });
     }
 
@@ -320,7 +380,9 @@ module.exports.SearchSales = async (req, res) => {
         { customerName: { $regex: query, $options: "i" } },
         { paymentMethod: { $regex: query, $options: "i" } },
       ],
-    }).populate("products.product");
+    })
+      .populate("products.product")
+      .populate("customer");
 
     res.status(200).json({ success: true, sales: searchdata });
   } catch (error) {

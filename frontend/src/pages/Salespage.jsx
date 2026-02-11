@@ -17,7 +17,7 @@ import { gettingallCategory } from "../features/categorySlice";
 import { gettingallproducts } from "../features/productSlice";
 import { PiInvoiceBold } from "react-icons/pi";
 import NoData from "../Components/NoData";
-import axiosInstance from "../lib/axios";
+import { getAllCustomers } from "../features/customerSlice";
 
 function Salespage() {
   const { getallsales, searchdata } = useSelector((state) => state.sales);
@@ -28,8 +28,7 @@ function Salespage() {
   const [query, setquery] = useState("");
   const [formErrors, setFormErrors] = useState({});
 
-  const [name, setName] = useState("");
-  const [customerCode, setCustomerCode] = useState("");
+  const [customerId, setCustomerId] = useState("");
   const [Product, setProduct] = useState("");
   const [Payment, setPayment] = useState("");
   const [Price, setPrice] = useState("");
@@ -42,21 +41,12 @@ function Salespage() {
 
   const [selectedSales, setselectedSales] = useState(null);
   const { getallCategory } = useSelector((state) => state.category);
-  const [customerBalances, setCustomerBalances] = useState([]);
-
-  const fetchCustomerBalances = async () => {
-    try {
-      const response = await axiosInstance.get("/payment/summary");
-      setCustomerBalances(response.data?.customers || []);
-    } catch (error) {
-      console.error("Failed to load customer balances:", error);
-    }
-  };
+  const { getAllCustomer } = useSelector((state) => state.customer);
 
   useEffect(() => {
     dispatch(gettingallCategory());
     dispatch(gettingallproducts()); // fetch products for the dropdown
-    fetchCustomerBalances();
+    dispatch(getAllCustomers());
   }, [dispatch]);
 
   useEffect(() => {
@@ -79,8 +69,7 @@ function Salespage() {
     if (!selectedSales) return;
 
     const updatedData = {
-      customerName: name,
-      customerCode,
+      customerId,
       products: [{ product: Product, quantity: Number(quantity) }],
       paymentMethod: Payment,
       paymentStatus,
@@ -94,7 +83,6 @@ function Salespage() {
         setIsFormVisible(false);
         setselectedSales(null);
         resetForm();
-        fetchCustomerBalances();
       })
       .catch((error) => {
         console.error("Error updating sale:", error);
@@ -106,8 +94,7 @@ function Salespage() {
     event.preventDefault();
 
     const salesData = {
-      customerName: name,
-      customerCode,
+      customerId,
       products: [{ product: Product, quantity: Number(quantity) }],
       paymentMethod: Payment,
       paymentStatus,
@@ -117,7 +104,7 @@ function Salespage() {
     try {
       await dispatch(CreateSales(salesData)).unwrap();
       toast.success("Sale created successfully");
-      fetchCustomerBalances();
+      closeForm();
     } catch (error) {
       if (error?.available && error?.requested) {
         setFormErrors({
@@ -127,8 +114,7 @@ function Salespage() {
     }
   };
   const resetForm = () => {
-    setName("");
-    setCustomerCode("");
+    setCustomerId("");
     setProduct("");
     setPayment("");
     setPrice("");
@@ -143,8 +129,7 @@ function Salespage() {
   };
   const handleEditClick = (sales) => {
     setselectedSales(sales);
-    setName(sales.customerName);
-    setCustomerCode(sales.customerCode || "");
+    setCustomerId(sales.customer?._id || sales.customer || "");
 
     if (sales.products && sales.products.length > 0) {
       const firstProduct = sales.products[0];
@@ -177,51 +162,10 @@ function Salespage() {
   }, [Category]);
 
   const displaySales = query.trim() !== "" ? searchdata : getallsales;
-  const currency = (value) => `Rs ${Number(value || 0).toLocaleString()}`;
-  const displayCustomerBalances = customerBalances.filter((customer) => {
-    if (!query.trim()) return true;
-    const q = query.toLowerCase();
-    return (
-      String(customer.customerName || "")
-        .toLowerCase()
-        .includes(q) ||
-      String(customer.customerCode || "")
-        .toLowerCase()
-        .includes(q)
-    );
-  });
-
-  const totals = customerBalances.reduce(
-    (acc, item) => {
-      acc.total += Number(item.totalAmount || 0);
-      acc.paid += Number(item.paidAmount || 0);
-      acc.remaining += Number(item.remainingAmount || 0);
-      return acc;
-    },
-    { total: 0, paid: 0, remaining: 0 },
-  );
 
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
       <SalesChart />
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-4">
-        <div className="bg-white rounded-2xl border p-4 shadow-sm">
-          <div className="text-sm text-slate-500">Customer Total Sales</div>
-          <div className="text-xl font-bold mt-1">{currency(totals.total)}</div>
-        </div>
-        <div className="bg-white rounded-2xl border p-4 shadow-sm">
-          <div className="text-sm text-slate-500">Collected</div>
-          <div className="text-xl font-bold mt-1 text-emerald-700">
-            {currency(totals.paid)}
-          </div>
-        </div>
-        <div className="bg-white rounded-2xl border p-4 shadow-sm">
-          <div className="text-sm text-slate-500">Remaining to Collect</div>
-          <div className="text-xl font-bold mt-1 text-red-700">
-            {currency(totals.remaining)}
-          </div>
-        </div>
-      </div>
 
       <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">
         <input
@@ -270,29 +214,21 @@ function Salespage() {
               className="flex-1 flex flex-col gap-4 overflow-y-auto"
             >
               <div className="flex flex-col gap-1">
-                <label className="text-gray-700 font-medium">
-                  Customer Name
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter customer name"
+                <label className="text-gray-700 font-medium">Customer</label>
+                <select
+                  value={customerId}
+                  onChange={(e) => setCustomerId(e.target.value)}
                   className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
                   required
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-gray-700 font-medium">
-                  Customer Code
-                </label>
-                <input
-                  type="text"
-                  value={customerCode}
-                  onChange={(e) => setCustomerCode(e.target.value)}
-                  placeholder="Optional unique code"
-                  className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
-                />
+                >
+                  <option value="">Select customer</option>
+                  {getAllCustomer?.map((customer) => (
+                    <option key={customer._id} value={customer._id}>
+                      {customer.name}
+                      {customer.customerCode ? ` (${customer.customerCode})` : ""}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="mb-4">
                 <label>Category</label>
@@ -452,53 +388,6 @@ function Salespage() {
       )}
 
       {/* TABLE */}
-      <div className="mt-4 bg-white rounded-2xl shadow-sm border overflow-hidden">
-        <div className="px-5 py-4 border-b bg-slate-50">
-          <h3 className="font-semibold text-slate-700">Customer Balances</h3>
-        </div>
-        {!displayCustomerBalances.length ? (
-          <div className="p-5 text-slate-500 text-sm">
-            No customer balance records found.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-b">
-                <tr className="text-left text-slate-500">
-                  <th className="px-5 py-4 font-medium">Customer</th>
-                  <th className="px-5 py-4 font-medium">Code</th>
-                  <th className="px-5 py-4 font-medium">Total</th>
-                  <th className="px-5 py-4 font-medium">Paid</th>
-                  <th className="px-5 py-4 font-medium">Remaining</th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayCustomerBalances.map((customer) => (
-                  <tr
-                    key={customer.customerKey}
-                    className="border-b last:border-b-0 hover:bg-slate-50 transition"
-                  >
-                    <td className="px-5 py-4">{customer.customerName}</td>
-                    <td className="px-5 py-4">
-                      {customer.customerCode || "-"}
-                    </td>
-                    <td className="px-5 py-4 font-medium">
-                      {currency(customer.totalAmount)}
-                    </td>
-                    <td className="px-5 py-4 text-emerald-700 font-medium">
-                      {currency(customer.paidAmount)}
-                    </td>
-                    <td className="px-5 py-4 text-red-700 font-medium">
-                      {currency(customer.remainingAmount)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
       <div className="mt-4 bg-white rounded-2xl shadow-sm border overflow-hidden">
         {!displaySales || displaySales.length === 0 ? (
           <div className="p-10 text-center">

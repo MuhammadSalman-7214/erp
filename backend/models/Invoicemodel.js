@@ -68,6 +68,10 @@ const InvoiceSchema = new mongoose.Schema(
         trim: true,
       },
     },
+    customerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Customer",
+    },
 
     vendor: {
       type: mongoose.Schema.Types.ObjectId,

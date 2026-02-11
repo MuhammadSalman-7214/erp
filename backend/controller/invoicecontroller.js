@@ -1,4 +1,5 @@
 const Invoice = require("../models/Invoicemodel");
+const Customer = require("../models/Customermodel");
 const { getNextInvoiceNumber } = require("../libs/invoiceNumber");
 
 /**
@@ -20,12 +21,47 @@ const calculateTotals = (items, taxRate = 0, discount = 0) => {
   };
 };
 
+const resolveCustomerPayload = async ({ invoiceType, customerId, customer }) => {
+  if (invoiceType !== "sales") {
+    return {
+      resolvedCustomerId: undefined,
+      resolvedCustomerSnapshot: undefined,
+    };
+  }
+
+  if (customerId) {
+    const customerDoc = await Customer.findById(customerId);
+    if (!customerDoc) {
+      const error = new Error("Customer not found");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    return {
+      resolvedCustomerId: customerDoc._id,
+      resolvedCustomerSnapshot: {
+        code: customerDoc.customerCode || "",
+        name: customerDoc.name,
+        email: customerDoc.contactInfo?.email || "",
+        phone: customerDoc.contactInfo?.phone || "",
+        address: customerDoc.contactInfo?.address || "",
+      },
+    };
+  }
+
+  return {
+    resolvedCustomerId: undefined,
+    resolvedCustomerSnapshot: customer,
+  };
+};
+
 module.exports.createInvoice = async (req, res) => {
   try {
     const {
       invoiceNumber,
       invoiceType,
       customer,
+      customerId,
       client,
       vendor,
       items,
@@ -53,10 +89,18 @@ module.exports.createInvoice = async (req, res) => {
         ? await getNextInvoiceNumber("SI")
         : await getNextInvoiceNumber("PI"));
 
+    const { resolvedCustomerId, resolvedCustomerSnapshot } =
+      await resolveCustomerPayload({
+        invoiceType,
+        customerId,
+        customer: customer || client,
+      });
+
     const invoice = await Invoice.create({
       invoiceNumber: resolvedInvoiceNumber,
       invoiceType,
-      customer: customer || client,
+      customerId: resolvedCustomerId,
+      customer: resolvedCustomerSnapshot,
       vendor,
       items: items.map((item) => ({
         name: item.name,
@@ -80,7 +124,8 @@ module.exports.createInvoice = async (req, res) => {
       data: invoice,
     });
   } catch (error) {
-    res.status(500).json({
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({
       success: false,
       message: error.message,
     });
@@ -89,9 +134,12 @@ module.exports.createInvoice = async (req, res) => {
 
 module.exports.getAllInvoices = async (req, res) => {
   try {
-    const invoices = await Invoice.find().populate("vendor").sort({
-      createdAt: -1,
-    });
+    const invoices = await Invoice.find()
+      .populate("vendor")
+      .populate("customerId")
+      .sort({
+        createdAt: -1,
+      });
 
     res.status(200).json({
       success: true,
@@ -110,7 +158,9 @@ module.exports.getInvoiceById = async (req, res) => {
   try {
     const invoice = await Invoice.findOne({
       _id: req.params.id,
-    }).populate("vendor");
+    })
+      .populate("vendor")
+      .populate("customerId");
 
     if (!invoice) {
       return res.status(404).json({ message: "Invoice not found" });
@@ -144,10 +194,19 @@ module.exports.updateInvoice = async (req, res) => {
 
     const totals = calculateTotals(items, taxRate, discount);
 
+    const { resolvedCustomerId, resolvedCustomerSnapshot } =
+      await resolveCustomerPayload({
+        invoiceType: req.body.invoiceType || invoice.invoiceType,
+        customerId: req.body.customerId || invoice.customerId,
+        customer: req.body.customer || invoice.customer,
+      });
+
     invoice = await Invoice.findByIdAndUpdate(
       req.params.id,
       {
         ...req.body,
+        customerId: resolvedCustomerId,
+        customer: resolvedCustomerSnapshot,
         items: items.map((item) => ({
           name: item.name,
           description: item.description,
@@ -165,7 +224,8 @@ module.exports.updateInvoice = async (req, res) => {
       data: invoice,
     });
   } catch (error) {
-    res.status(500).json({
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({
       success: false,
       message: error.message,
     });

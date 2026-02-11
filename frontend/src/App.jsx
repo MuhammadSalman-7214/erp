@@ -26,6 +26,7 @@ import InvoiceEditPage from "./pages/InvoiceEditPage";
 import CreateInvoicePage from "./pages/CreateInvoicePage";
 import NotFoundPage from "./pages/NotFoundPage";
 import PaymentsPage from "./pages/PaymentsPage";
+import Customerpage from "./pages/Customerpage";
 
 function App() {
   return (
@@ -83,6 +84,7 @@ function App() {
 
             {/* Supplier - Manager */}
             <Route path="supplier" element={<Supplierpage />} />
+            <Route path="customer" element={<Customerpage />} />
 
             {/* User Status - Manager */}
             <Route path="Userstatus" element={<Userstatus />} />
@@ -129,6 +131,7 @@ function App() {
 
             {/* Supplier - Admin */}
             <Route path="supplier" element={<Supplierpage />} />
+            <Route path="customer" element={<Customerpage />} />
 
             {/* Activity Log - Admin Only */}
             <Route path="activity-log" element={<Activitylogpage />} />
@@ -171,6 +174,7 @@ function App() {
 
             {/* Supplier - Staff (read-only) */}
             <Route path="supplier" element={<Supplierpage readOnly />} />
+            <Route path="customer" element={<Customerpage readOnly />} />
           </Route>
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

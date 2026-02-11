@@ -66,12 +66,20 @@ function InvoiceDetailPage() {
     doc.text("Bill To:", 40, 125);
     doc.setFontSize(12);
     const isPurchase = invoice.invoiceType === "purchase";
-    const party = isPurchase ? invoice.vendor : invoice.customer;
+    const party = isPurchase
+      ? invoice.vendor
+      : invoice.customerId || invoice.customer;
     const partyLines = [
       party?.name,
-      isPurchase ? party?.contactInfo?.email : party?.email,
-      isPurchase ? party?.contactInfo?.phone : party?.phone,
-      isPurchase ? party?.contactInfo?.address : party?.address,
+      isPurchase
+        ? party?.contactInfo?.email
+        : party?.contactInfo?.email || party?.email,
+      isPurchase
+        ? party?.contactInfo?.phone
+        : party?.contactInfo?.phone || party?.phone,
+      isPurchase
+        ? party?.contactInfo?.address
+        : party?.contactInfo?.address || party?.address,
     ].filter(Boolean);
     partyLines.forEach((line, i) => doc.text(line, 40, 140 + i * 15));
 
@@ -175,27 +183,33 @@ function InvoiceDetailPage() {
                 </span>{" "}
                 {invoice.invoiceType === "purchase"
                   ? invoice.vendor?.name || "-"
-                  : invoice.customer?.name || "-"}
+                  : invoice.customerId?.name || invoice.customer?.name || "-"}
               </p>
               {invoice.invoiceType !== "purchase" &&
-                invoice.customer?.email && (
+                (invoice.customerId?.contactInfo?.email ||
+                  invoice.customer?.email) && (
                   <p>
                     <span className="font-semibold">Email:</span>{" "}
-                    {invoice.customer.email}
+                    {invoice.customerId?.contactInfo?.email ||
+                      invoice.customer?.email}
                   </p>
                 )}
               {invoice.invoiceType !== "purchase" &&
-                invoice.customer?.phone && (
+                (invoice.customerId?.contactInfo?.phone ||
+                  invoice.customer?.phone) && (
                   <p>
                     <span className="font-semibold">Phone:</span>{" "}
-                    {invoice.customer.phone}
+                    {invoice.customerId?.contactInfo?.phone ||
+                      invoice.customer?.phone}
                   </p>
                 )}
               {invoice.invoiceType !== "purchase" &&
-                invoice.customer?.address && (
+                (invoice.customerId?.contactInfo?.address ||
+                  invoice.customer?.address) && (
                   <p>
                     <span className="font-semibold">Address:</span>{" "}
-                    {invoice.customer.address}
+                    {invoice.customerId?.contactInfo?.address ||
+                      invoice.customer?.address}
                   </p>
                 )}
               <p>

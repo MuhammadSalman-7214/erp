@@ -70,7 +70,10 @@ function InvoicesPage() {
     const lower = query.toLowerCase();
     return (
       (inv.invoiceNumber && inv.invoiceNumber.toLowerCase().includes(lower)) ||
-      (inv.customer?.name && inv.customer.name.toLowerCase().includes(lower)) ||
+      ((inv.customerId?.name || inv.customer?.name) &&
+        (inv.customerId?.name || inv.customer?.name)
+          .toLowerCase()
+          .includes(lower)) ||
       (inv.vendor?.name && inv.vendor.name.toLowerCase().includes(lower)) ||
       (inv.status && inv.status.toLowerCase().includes(lower))
     );
@@ -144,7 +147,7 @@ function InvoicesPage() {
                     <td className="px-5 py-4 text-slate-700">
                       {inv.invoiceType === "purchase"
                         ? inv.vendor?.name || "-"
-                        : inv.customer?.name || "-"}
+                        : inv.customerId?.name || inv.customer?.name || "-"}
                     </td>
 
                     <td className="px-5 py-4 font-semibold text-slate-800">

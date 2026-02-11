@@ -1,6 +1,20 @@
 const Payment = require("../models/Paymentmodel");
 const Invoice = require("../models/Invoicemodel");
 const Vendor = require("../models/Suppliermodel");
+const Customer = require("../models/Customermodel");
+
+const normalizeText = (value = "") => String(value).trim().toLowerCase();
+
+const customerKeyFromFields = ({ code, name }) => {
+  const normalizedCode = normalizeText(code);
+  const normalizedName = normalizeText(name);
+  return normalizedCode || normalizedName ? `${normalizedCode}|${normalizedName}` : "";
+};
+
+const customerSnapshotFromDoc = (customerDoc) => ({
+  code: customerDoc?.customerCode || "",
+  name: customerDoc?.name || "Customer",
+});
 
 const createPayment = async (req, res) => {
   try {
@@ -11,16 +25,20 @@ const createPayment = async (req, res) => {
       invoice,
       partyType,
       customer,
+      customerId,
       vendor,
       paidAt,
       notes,
     } = req.body;
 
     if (!type || amount === undefined || !partyType) {
-      return res.status(400).json({ message: "Type, amount, and party are required" });
+      return res
+        .status(400)
+        .json({ message: "Type, amount, and party are required" });
     }
 
     let invoiceType;
+    let resolvedCustomerId = customerId;
     let resolvedCustomer = customer;
     let resolvedVendor = vendor;
 
@@ -29,12 +47,39 @@ const createPayment = async (req, res) => {
       if (!invoiceDoc) {
         return res.status(404).json({ message: "Invoice not found" });
       }
+
       invoiceType = invoiceDoc.invoiceType;
-      if (invoiceDoc.customer?.name && !resolvedCustomer) {
-        resolvedCustomer = invoiceDoc.customer;
+
+      if (invoiceDoc.customerId && !resolvedCustomerId) {
+        resolvedCustomerId = String(invoiceDoc.customerId);
       }
+
+      if (invoiceDoc.customer?.name && !resolvedCustomer) {
+        resolvedCustomer = {
+          code: invoiceDoc.customer.code || "",
+          name: invoiceDoc.customer.name || "Customer",
+        };
+      }
+
       if (invoiceDoc.vendor && !resolvedVendor) {
         resolvedVendor = invoiceDoc.vendor;
+      }
+    }
+
+    if (partyType === "customer") {
+      if (resolvedCustomerId) {
+        const customerDoc = await Customer.findById(resolvedCustomerId);
+        if (!customerDoc) {
+          return res.status(404).json({ message: "Customer not found" });
+        }
+        resolvedCustomerId = customerDoc._id;
+        resolvedCustomer = customerSnapshotFromDoc(customerDoc);
+      }
+
+      if (!resolvedCustomerId && !resolvedCustomer?.name) {
+        return res.status(400).json({
+          message: "Customer is required for customer payments",
+        });
       }
     }
 
@@ -45,6 +90,7 @@ const createPayment = async (req, res) => {
       invoice,
       invoiceType,
       partyType,
+      customerId: resolvedCustomerId || undefined,
       customer: resolvedCustomer,
       vendor: resolvedVendor,
       paidAt: paidAt || Date.now(),
@@ -78,6 +124,7 @@ const getPayments = async (req, res) => {
     const payments = await Payment.find()
       .populate("invoice")
       .populate("vendor")
+      .populate("customerId")
       .sort({ createdAt: -1 });
     res.status(200).json({ success: true, payments });
   } catch (error) {
@@ -85,28 +132,29 @@ const getPayments = async (req, res) => {
   }
 };
 
-const normalizeText = (value = "") => String(value).trim().toLowerCase();
-
-const customerKeyFromFields = ({ code, name }) => {
-  const normalizedCode = normalizeText(code);
-  const normalizedName = normalizeText(name);
-  return normalizedCode || normalizedName ? `${normalizedCode}|${normalizedName}` : "";
-};
-
 const getPartyBalances = async (req, res) => {
   try {
-    const [vendors, purchaseInvoices, salesInvoices, vendorPayments, customerPayments] =
-      await Promise.all([
-        Vendor.find().select("_id name openingBalance"),
-        Invoice.find({ invoiceType: "purchase" }).select("_id vendor totalAmount status"),
-        Invoice.find({ invoiceType: "sales" }).select("_id customer totalAmount status"),
-        Payment.find({ partyType: "vendor", type: "paid" }).select(
-          "_id vendor amount invoice",
-        ),
-        Payment.find({ partyType: "customer", type: "received" }).select(
-          "_id customer amount invoice",
-        ),
-      ]);
+    const [
+      vendors,
+      customers,
+      purchaseInvoices,
+      salesInvoices,
+      vendorPayments,
+      customerPayments,
+    ] = await Promise.all([
+      Vendor.find().select("_id name openingBalance"),
+      Customer.find().select("_id name customerCode openingBalance"),
+      Invoice.find({ invoiceType: "purchase" }).select("_id vendor totalAmount status"),
+      Invoice.find({ invoiceType: "sales" }).select(
+        "_id customerId customer totalAmount status",
+      ),
+      Payment.find({ partyType: "vendor", type: "paid" }).select(
+        "_id vendor amount invoice",
+      ),
+      Payment.find({ partyType: "customer", type: "received" }).select(
+        "_id customerId customer amount invoice",
+      ),
+    ]);
 
     const vendorMap = new Map();
     for (const vendor of vendors) {
@@ -174,19 +222,51 @@ const getPartyBalances = async (req, res) => {
     }
 
     const customerMap = new Map();
+    const customerLookup = new Map();
     const salesInvoiceIdsWithPayments = new Set();
 
-    for (const payment of customerPayments) {
-      const key = customerKeyFromFields({
-        code: payment.customer?.code,
-        name: payment.customer?.name,
+    for (const customer of customers) {
+      const customerId = String(customer._id);
+      customerMap.set(customerId, {
+        customerId: String(customer._id),
+        customerCode: customer.customerCode || "",
+        customerName: customer.name || "Customer",
+        openingBalance: Number(customer.openingBalance) || 0,
+        totalAmount: Number(customer.openingBalance) || 0,
+        paidAmount: 0,
+        remainingAmount: Number(customer.openingBalance) || 0,
+        invoiceCount: 0,
+        paymentCount: 0,
       });
-      if (!key) continue;
+      const codeKey = normalizeText(customer.customerCode);
+      const nameKey = normalizeText(customer.name);
+      if (codeKey) customerLookup.set(`code:${codeKey}`, customerId);
+      if (nameKey) customerLookup.set(`name:${nameKey}`, customerId);
+      if (codeKey || nameKey) {
+        customerLookup.set(`combo:${codeKey}|${nameKey}`, customerId);
+      }
+    }
+
+    const ensureLegacyCustomer = (details) => {
+      const code = normalizeText(details?.code);
+      const name = normalizeText(details?.name);
+      const matchedCustomerId =
+        customerLookup.get(`combo:${code}|${name}`) ||
+        customerLookup.get(`code:${code}`) ||
+        customerLookup.get(`name:${name}`);
+      if (matchedCustomerId) return matchedCustomerId;
+
+      const key = customerKeyFromFields({
+        code: details?.code,
+        name: details?.name,
+      });
+      if (!key) return null;
       if (!customerMap.has(key)) {
         customerMap.set(key, {
-          customerKey: key,
-          customerCode: payment.customer?.code || "",
-          customerName: payment.customer?.name || "Customer",
+          customerId: "",
+          customerCode: details?.code || "",
+          customerName: details?.name || "Customer",
+          openingBalance: 0,
           totalAmount: 0,
           paidAmount: 0,
           remainingAmount: 0,
@@ -194,7 +274,15 @@ const getPartyBalances = async (req, res) => {
           paymentCount: 0,
         });
       }
-      const current = customerMap.get(key);
+      return key;
+    };
+
+    for (const payment of customerPayments) {
+      const customerId = payment.customerId ? String(payment.customerId) : "";
+      const customerKey = customerId || ensureLegacyCustomer(payment.customer);
+      if (!customerKey) continue;
+
+      const current = customerMap.get(customerKey);
       current.paidAmount += Number(payment.amount) || 0;
       current.paymentCount += 1;
       if (payment.invoice) {
@@ -203,24 +291,11 @@ const getPartyBalances = async (req, res) => {
     }
 
     for (const invoice of salesInvoices) {
-      const key = customerKeyFromFields({
-        code: invoice.customer?.code,
-        name: invoice.customer?.name,
-      });
-      if (!key) continue;
-      if (!customerMap.has(key)) {
-        customerMap.set(key, {
-          customerKey: key,
-          customerCode: invoice.customer?.code || "",
-          customerName: invoice.customer?.name || "Customer",
-          totalAmount: 0,
-          paidAmount: 0,
-          remainingAmount: 0,
-          invoiceCount: 0,
-          paymentCount: 0,
-        });
-      }
-      const current = customerMap.get(key);
+      const customerId = invoice.customerId ? String(invoice.customerId) : "";
+      const customerKey = customerId || ensureLegacyCustomer(invoice.customer);
+      if (!customerKey) continue;
+
+      const current = customerMap.get(customerKey);
       current.totalAmount += Number(invoice.totalAmount) || 0;
       current.invoiceCount += 1;
       if (

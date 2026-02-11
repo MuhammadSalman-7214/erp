@@ -6,12 +6,12 @@ import NoData from "../Components/NoData";
 function PaymentsPage() {
   const [payments, setPayments] = useState([]);
   const [vendors, setVendors] = useState([]);
+  const [customers, setCustomers] = useState([]);
   const [type, setType] = useState("received");
   const [partyType, setPartyType] = useState("customer");
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("cash");
-  const [customerName, setCustomerName] = useState("");
-  const [customerCode, setCustomerCode] = useState("");
+  const [customerId, setCustomerId] = useState("");
   const [vendorId, setVendorId] = useState("");
   const [invoiceId, setInvoiceId] = useState("");
 
@@ -25,10 +25,14 @@ function PaymentsPage() {
     }
   };
 
-  const fetchVendors = async () => {
+  const fetchDropdownData = async () => {
     try {
-      const res = await axiosInstance.get("/supplier");
-      setVendors(res.data || []);
+      const [vendorsRes, customersRes] = await Promise.all([
+        axiosInstance.get("/supplier"),
+        axiosInstance.get("/customer"),
+      ]);
+      setVendors(vendorsRes.data || []);
+      setCustomers(customersRes.data || []);
     } catch (error) {
       console.error(error);
     }
@@ -36,7 +40,7 @@ function PaymentsPage() {
 
   useEffect(() => {
     fetchPayments();
-    fetchVendors();
+    fetchDropdownData();
   }, []);
 
   useEffect(() => {
@@ -55,6 +59,11 @@ function PaymentsPage() {
       return;
     }
 
+    if (partyType === "customer" && !customerId) {
+      toast.error("Customer is required");
+      return;
+    }
+
     const payload = {
       type,
       amount: Number(amount),
@@ -63,12 +72,7 @@ function PaymentsPage() {
       invoice: invoiceId || undefined,
     };
 
-    if (partyType === "customer") {
-      payload.customer = {
-        name: customerName,
-        code: customerCode,
-      };
-    }
+    if (partyType === "customer") payload.customerId = customerId;
 
     if (partyType === "vendor") {
       payload.vendor = vendorId || undefined;
@@ -78,8 +82,7 @@ function PaymentsPage() {
       await axiosInstance.post("/payment", payload);
       toast.success("Payment recorded");
       setAmount("");
-      setCustomerName("");
-      setCustomerCode("");
+      setCustomerId("");
       setVendorId("");
       setInvoiceId("");
       fetchPayments();
@@ -150,22 +153,20 @@ function PaymentsPage() {
           {partyType === "customer" ? (
             <>
               <div>
-                <label className="text-sm font-medium">Customer Name</label>
-                <input
-                  type="text"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
+                <label className="text-sm font-medium">Customer</label>
+                <select
+                  value={customerId}
+                  onChange={(e) => setCustomerId(e.target.value)}
                   className="w-full h-10 px-3 border rounded-xl mt-1"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Customer Code</label>
-                <input
-                  type="text"
-                  value={customerCode}
-                  onChange={(e) => setCustomerCode(e.target.value)}
-                  className="w-full h-10 px-3 border rounded-xl mt-1"
-                />
+                >
+                  <option value="">Select Customer</option>
+                  {customers.map((customer) => (
+                    <option key={customer._id} value={customer._id}>
+                      {customer.name}
+                      {customer.customerCode ? ` (${customer.customerCode})` : ""}
+                    </option>
+                  ))}
+                </select>
               </div>
             </>
           ) : (
@@ -226,7 +227,9 @@ function PaymentsPage() {
                     <td className="px-4 py-3">
                       {payment.partyType === "vendor"
                         ? payment.vendor?.name || "Vendor"
-                        : payment.customer?.name || "Customer"}
+                        : payment.customerId?.name ||
+                          payment.customer?.name ||
+                          "Customer"}
                     </td>
                     <td className="px-4 py-3 capitalize">{payment.method}</td>
                     <td className="px-4 py-3">

@@ -13,7 +13,8 @@ function InvoiceEditPage() {
   const [invoice, setInvoice] = useState(null);
 
   const [invoiceType, setInvoiceType] = useState("sales");
-  const [customer, setCustomer] = useState({ name: "" });
+  const [customers, setCustomers] = useState([]);
+  const [customerId, setCustomerId] = useState("");
   const [vendorName, setVendorName] = useState("");
   const [items, setItems] = useState([]);
   const [taxRate, setTaxRate] = useState(0);
@@ -26,12 +27,16 @@ function InvoiceEditPage() {
   useEffect(() => {
     const fetchInvoice = async () => {
       try {
-        const res = await axiosInstance.get(`/invoice/${id}`);
-        const inv = res.data.data;
+        const [invoiceRes, customersRes] = await Promise.all([
+          axiosInstance.get(`/invoice/${id}`),
+          axiosInstance.get("/customer"),
+        ]);
+        const inv = invoiceRes.data.data;
 
         setInvoice(inv);
+        setCustomers(customersRes.data || []);
         setInvoiceType(inv.invoiceType || "sales");
-        setCustomer(inv.customer || { name: "" });
+        setCustomerId(inv.customerId?._id || inv.customerId || "");
         setVendorName(inv.vendor?.name || "");
         setItems(inv.items);
         setTaxRate(inv.taxRate);
@@ -69,8 +74,8 @@ function InvoiceEditPage() {
 
   /* ================= UPDATE INVOICE ================= */
   const handleUpdate = async () => {
-    if (invoiceType === "sales" && !customer.name.trim()) {
-      toast.error("Customer name is required");
+    if (invoiceType === "sales" && !customerId) {
+      toast.error("Customer is required");
       return;
     }
 
@@ -81,7 +86,7 @@ function InvoiceEditPage() {
 
     try {
       await axiosInstance.put(`/invoice/${id}`, {
-        customer: invoiceType === "sales" ? customer : undefined,
+        customerId: invoiceType === "sales" ? customerId : undefined,
         items,
         taxRate,
         discount,
@@ -129,14 +134,19 @@ function InvoiceEditPage() {
                 className="w-full border border-gray-300 p-3 rounded-lg bg-gray-100"
               />
             ) : (
-              <input
-                value={customer.name}
-                onChange={(e) =>
-                  setCustomer({ ...customer, name: e.target.value })
-                }
+              <select
+                value={customerId}
+                onChange={(e) => setCustomerId(e.target.value)}
                 className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                placeholder="Customer Name"
-              />
+              >
+                <option value="">Select Customer</option>
+                {customers.map((customer) => (
+                  <option key={customer._id} value={customer._id}>
+                    {customer.name}
+                    {customer.customerCode ? ` (${customer.customerCode})` : ""}
+                  </option>
+                ))}
+              </select>
             )}
           </div>
 

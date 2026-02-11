@@ -34,6 +34,10 @@ const PaymentSchema = new mongoose.Schema(
       code: { type: String, trim: true },
       name: { type: String, trim: true },
     },
+    customerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Customer",
+    },
     vendor: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Vendor",

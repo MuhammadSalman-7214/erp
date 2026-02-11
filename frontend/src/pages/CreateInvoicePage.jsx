@@ -24,12 +24,8 @@ function CreateInvoicePage() {
   })();
 
   const [invoiceType, setInvoiceType] = useState("sales");
-  const [customer, setCustomer] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    address: "",
-  });
+  const [customers, setCustomers] = useState([]);
+  const [customerId, setCustomerId] = useState("");
   const [vendors, setVendors] = useState([]);
   const [vendorId, setVendorId] = useState("");
   const [items, setItems] = useState([
@@ -45,16 +41,20 @@ function CreateInvoicePage() {
   const [totalAmount, setTotalAmount] = useState(0);
 
   useEffect(() => {
-    const fetchVendors = async () => {
+    const fetchDropdowns = async () => {
       try {
-        const res = await axiosInstance.get("/supplier");
-        setVendors(res.data || []);
+        const [vendorsRes, customersRes] = await Promise.all([
+          axiosInstance.get("/supplier"),
+          axiosInstance.get("/customer"),
+        ]);
+        setVendors(vendorsRes.data || []);
+        setCustomers(customersRes.data || []);
       } catch (error) {
-        console.error("Failed to load vendors", error);
+        console.error("Failed to load dropdown data", error);
       }
     };
 
-    fetchVendors();
+    fetchDropdowns();
   }, []);
 
   // Recalculate totals
@@ -88,8 +88,8 @@ function CreateInvoicePage() {
   const removeItem = (index) => setItems(items.filter((_, i) => i !== index));
 
   const handleSubmit = async () => {
-    if (invoiceType === "sales" && !customer.name.trim()) {
-      return toast.error("Customer name is required");
+    if (invoiceType === "sales" && !customerId) {
+      return toast.error("Customer is required");
     }
     if (invoiceType === "purchase" && !vendorId) {
       return toast.error("Vendor is required");
@@ -100,7 +100,7 @@ function CreateInvoicePage() {
     try {
       await axiosInstance.post("invoice", {
         invoiceType,
-        customer: invoiceType === "sales" ? customer : undefined,
+        customerId: invoiceType === "sales" ? customerId : undefined,
         vendor: invoiceType === "purchase" ? vendorId : undefined,
         items: items.map(({ name, description, quantity, unitPrice }) => ({
           name,
@@ -179,38 +179,19 @@ function CreateInvoicePage() {
                 Customer
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <input
-                  placeholder="Customer Name"
-                  value={customer.name}
-                  onChange={(e) =>
-                    setCustomer({ ...customer, name: e.target.value })
-                  }
-                  className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-                <input
-                  placeholder="Customer Email"
-                  value={customer.email}
-                  onChange={(e) =>
-                    setCustomer({ ...customer, email: e.target.value })
-                  }
-                  className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-                <input
-                  placeholder="Customer Phone"
-                  value={customer.phone}
-                  onChange={(e) =>
-                    setCustomer({ ...customer, phone: e.target.value })
-                  }
-                  className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-                <input
-                  placeholder="Customer Address"
-                  value={customer.address}
-                  onChange={(e) =>
-                    setCustomer({ ...customer, address: e.target.value })
-                  }
-                  className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
+                <select
+                  value={customerId}
+                  onChange={(e) => setCustomerId(e.target.value)}
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 md:col-span-2"
+                >
+                  <option value="">Select Customer</option>
+                  {customers.map((customer) => (
+                    <option key={customer._id} value={customer._id}>
+                      {customer.name}
+                      {customer.customerCode ? ` (${customer.customerCode})` : ""}
+                    </option>
+                  ))}
+                </select>
               </div>
             </>
           ) : (
