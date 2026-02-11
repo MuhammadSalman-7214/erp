@@ -89,11 +89,9 @@ module.exports.createInvoice = async (req, res) => {
 
 module.exports.getAllInvoices = async (req, res) => {
   try {
-    const invoices = await Invoice.find()
-      .populate("vendor")
-      .sort({
-        createdAt: -1,
-      });
+    const invoices = await Invoice.find().populate("vendor").sort({
+      createdAt: -1,
+    });
 
     res.status(200).json({
       success: true,
