@@ -18,6 +18,7 @@ import { AiOutlineProduct } from "react-icons/ai";
 import { TfiSupport } from "react-icons/tfi";
 import NoData from "../Components/NoData";
 import { Popconfirm } from "antd";
+import axiosInstance from "../lib/axios";
 
 function Supplierpage({ readOnly = false }) {
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
@@ -43,11 +44,28 @@ function Supplierpage({ readOnly = false }) {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState(null);
   const [product, setProduct] = useState("");
+  const [vendorBalances, setVendorBalances] = useState({});
 
   const { getallproduct } = useSelector((state) => state.product);
+
+  const fetchVendorBalances = async () => {
+    try {
+      const response = await axiosInstance.get("/payment/summary");
+      const vendors = response.data?.vendors || [];
+      const balancesById = vendors.reduce((acc, vendor) => {
+        acc[vendor.vendorId] = vendor;
+        return acc;
+      }, {});
+      setVendorBalances(balancesById);
+    } catch (error) {
+      console.error("Failed to fetch vendor balances:", error);
+    }
+  };
+
   useEffect(() => {
     dispatch(gettingallSupplier());
     dispatch(gettingallproducts());
+    fetchVendorBalances();
   }, [dispatch]);
 
   useEffect(() => {
@@ -71,6 +89,7 @@ function Supplierpage({ readOnly = false }) {
       .unwrap()
       .then(() => {
         toast.success("Supplier removed successfully");
+        fetchVendorBalances();
       })
       .catch((error) => {
         toast.error(error || "Failed to remove supplier");
@@ -112,6 +131,7 @@ function Supplierpage({ readOnly = false }) {
         setIsFormVisible(false);
         setSelectedSupplier(null);
         resetForm();
+        fetchVendorBalances();
       })
       .catch(() => {
         toast.error("Failed to update supplier");
@@ -149,6 +169,7 @@ function Supplierpage({ readOnly = false }) {
         setIsFormVisible(false);
         resetForm();
         setSelectedSupplier(null);
+        fetchVendorBalances();
       })
       .catch(() => toast.error("Vendor add unsuccessful"));
   };
@@ -181,11 +202,24 @@ function Supplierpage({ readOnly = false }) {
   };
 
   const displaySuppliers = query.trim() !== "" ? searchdata : getallSupplier;
+  const currency = (value) => `Rs ${Number(value || 0).toLocaleString()}`;
+  const summaryTotals = Array.isArray(getallSupplier)
+    ? getallSupplier.reduce(
+        (acc, supplier) => {
+          const vendorSummary = vendorBalances[supplier._id] || {};
+          acc.total += Number(vendorSummary.totalAmount || 0);
+          acc.paid += Number(vendorSummary.paidAmount || 0);
+          acc.remaining += Number(vendorSummary.remainingAmount || 0);
+          return acc;
+        },
+        { total: 0, paid: 0, remaining: 0 },
+      )
+    : { total: 0, paid: 0, remaining: 0 };
 
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
       {/* KPI CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
         <div className="bg-white border rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition">
           <div className="flex items-center gap-3">
             <span className="rounded-xl bg-orange-500 text-white text-lg sm:text-xl p-2">
@@ -216,6 +250,18 @@ function Supplierpage({ readOnly = false }) {
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
             Products Linked
           </p>
+        </div>
+        <div className="bg-white border rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition">
+          <div className="text-sm text-slate-500">Vendor Total Owed</div>
+          <div className="text-xl font-bold text-slate-800 mt-1">
+            {currency(summaryTotals.total)}
+          </div>
+          <div className="text-xs text-emerald-600 mt-2">
+            Paid: {currency(summaryTotals.paid)}
+          </div>
+          <div className="text-xs text-red-600 mt-1">
+            Remaining: {currency(summaryTotals.remaining)}
+          </div>
         </div>
 
         {/* <div className="bg-white border rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition">
@@ -399,6 +445,9 @@ function Supplierpage({ readOnly = false }) {
                     <th className="px-5 py-4 font-medium">Email</th>
                     <th className="px-5 py-4 font-medium">Address</th>
                     <th className="px-5 py-4 font-medium">Opening</th>
+                    <th className="px-5 py-4 font-medium">Total Owed</th>
+                    <th className="px-5 py-4 font-medium">Paid</th>
+                    <th className="px-5 py-4 font-medium">Remaining</th>
                     <th className="px-5 py-4 font-medium">Terms</th>
                     <th className="px-5 py-4 font-medium">Date</th>
                     {!isReadOnlyMode && (
@@ -408,7 +457,9 @@ function Supplierpage({ readOnly = false }) {
                 </thead>
 
                 <tbody>
-                  {displaySuppliers.map((supplier, index) => (
+                  {displaySuppliers.map((supplier, index) => {
+                    const vendorSummary = vendorBalances[supplier._id] || {};
+                    return (
                     <tr
                       key={supplier._id}
                       className="border-b last:border-b-0 hover:bg-slate-50 transition"
@@ -432,6 +483,15 @@ function Supplierpage({ readOnly = false }) {
 
                       <td className="px-5 py-4 text-slate-600">
                         {supplier.openingBalance ?? 0}
+                      </td>
+                      <td className="px-5 py-4 text-slate-600 font-medium">
+                        {currency(vendorSummary.totalAmount)}
+                      </td>
+                      <td className="px-5 py-4 text-emerald-700 font-medium">
+                        {currency(vendorSummary.paidAmount)}
+                      </td>
+                      <td className="px-5 py-4 text-red-700 font-medium">
+                        {currency(vendorSummary.remainingAmount)}
                       </td>
 
                       <td className="px-5 py-4 text-slate-600">
@@ -499,7 +559,8 @@ function Supplierpage({ readOnly = false }) {
                         </td>
                       )}
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

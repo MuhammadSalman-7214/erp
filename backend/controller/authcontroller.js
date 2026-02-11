@@ -67,7 +67,7 @@ module.exports.login = async (req, res) => {
 
     if (!duplicatedUser) {
       return res.status(400).json({
-        message: "No account found. Please sign up to create a new account.",
+        message: "Account not found. Please sign up to create a new account.",
       });
     }
 

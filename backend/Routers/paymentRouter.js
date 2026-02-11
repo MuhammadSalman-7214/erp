@@ -4,8 +4,18 @@ const {
   authmiddleware,
   checkPermission,
 } = require("../middleware/Authmiddleware");
-const { createPayment, getPayments } = require("../controller/paymentController");
+const {
+  createPayment,
+  getPayments,
+  getPartyBalances,
+} = require("../controller/paymentController");
 
+router.get(
+  "/summary",
+  authmiddleware,
+  checkPermission("payment", "read"),
+  getPartyBalances,
+);
 router.get("/", authmiddleware, checkPermission("payment", "read"), getPayments);
 router.post("/", authmiddleware, checkPermission("payment", "write"), createPayment);
 

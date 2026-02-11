@@ -16,6 +16,7 @@ import { gettingallproducts } from "../features/productSlice";
 import { gettingallCategory } from "../features/categorySlice";
 import NoData from "../Components/NoData";
 import { Popconfirm } from "antd";
+import { gettingallSupplier } from "../features/SupplierSlice";
 function Orderpage() {
   const {
     getorder,
@@ -60,6 +61,7 @@ function Orderpage() {
     dispatch(gettingallOrder());
     dispatch(gettingallproducts());
     dispatch(gettingallCategory());
+    dispatch(gettingallSupplier());
   }, [dispatch, user]);
 
   useEffect(() => {
@@ -421,7 +423,7 @@ function Orderpage() {
                   <td className="px-5 py-4">Rs {order?.totalAmount}</td>
                   <td className="px-5 py-4">{order.Description}</td>
                   <td className="px-5 py-4">{order.status}</td>
-                  <td className="px-5 py-4">{order.user?.name || "N/A"}</td>
+                  <td className="px-5 py-4">{order.vendor?.name || "N/A"}</td>
                   <td className="px-5 py-4">
                     <FormattedTime timestamp={order.createdAt} />
                   </td>
