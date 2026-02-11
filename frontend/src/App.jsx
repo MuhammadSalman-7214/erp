@@ -25,6 +25,7 @@ import InvoiceDetailPage from "./pages/InvoiceDetailPage";
 import InvoiceEditPage from "./pages/InvoiceEditPage";
 import CreateInvoicePage from "./pages/CreateInvoicePage";
 import NotFoundPage from "./pages/NotFoundPage";
+import PaymentsPage from "./pages/PaymentsPage";
 
 function App() {
   return (
@@ -69,6 +70,7 @@ function App() {
             <Route path="createInvoice" element={<CreateInvoicePage />} />
             <Route path="invoice/:id" element={<InvoiceDetailPage />} />
             <Route path="editInvoice/:id" element={<InvoiceEditPage />} />
+            <Route path="payments" element={<PaymentsPage />} />
 
             {/* Notifications (Read) - Manager */}
             <Route
@@ -117,6 +119,7 @@ function App() {
             <Route path="createInvoice" element={<CreateInvoicePage />} />
             <Route path="invoice/:id" element={<InvoiceDetailPage />} />
             <Route path="editInvoice/:id" element={<InvoiceEditPage />} />
+            <Route path="payments" element={<PaymentsPage />} />
 
             {/* Notifications (Create) - Admin */}
             <Route path="notifications" element={<Notificationpage />} />
@@ -154,6 +157,8 @@ function App() {
 
             {/* Sales - Staff */}
             <Route path="sales" element={<Salespage />} />
+
+            <Route path="payments" element={<PaymentsPage />} />
 
             {/* Notifications (Read) - Staff */}
             <Route

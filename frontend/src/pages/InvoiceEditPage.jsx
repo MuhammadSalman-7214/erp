@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import TopNavbar from "../Components/TopNavbar";
 import axiosInstance from "../lib/axios";
 import { toast } from "react-hot-toast";
 import { IoMdAdd } from "react-icons/io";
@@ -13,7 +12,9 @@ function InvoiceEditPage() {
   const [loading, setLoading] = useState(true);
   const [invoice, setInvoice] = useState(null);
 
-  const [client, setClient] = useState({ name: "" });
+  const [invoiceType, setInvoiceType] = useState("sales");
+  const [customer, setCustomer] = useState({ name: "" });
+  const [vendorName, setVendorName] = useState("");
   const [items, setItems] = useState([]);
   const [taxRate, setTaxRate] = useState(0);
   const [discount, setDiscount] = useState(0);
@@ -29,7 +30,9 @@ function InvoiceEditPage() {
         const inv = res.data.data;
 
         setInvoice(inv);
-        setClient(inv.client);
+        setInvoiceType(inv.invoiceType || "sales");
+        setCustomer(inv.customer || { name: "" });
+        setVendorName(inv.vendor?.name || "");
         setItems(inv.items);
         setTaxRate(inv.taxRate);
         setDiscount(inv.discount);
@@ -66,8 +69,8 @@ function InvoiceEditPage() {
 
   /* ================= UPDATE INVOICE ================= */
   const handleUpdate = async () => {
-    if (!client.name.trim()) {
-      toast.error("Client name is required");
+    if (invoiceType === "sales" && !customer.name.trim()) {
+      toast.error("Customer name is required");
       return;
     }
 
@@ -78,7 +81,7 @@ function InvoiceEditPage() {
 
     try {
       await axiosInstance.put(`/invoice/${id}`, {
-        client,
+        customer: invoiceType === "sales" ? customer : undefined,
         items,
         taxRate,
         discount,
@@ -114,17 +117,27 @@ function InvoiceEditPage() {
             <strong>Invoice No:</strong> {invoice.invoiceNumber}
           </p>
 
-          {/* Client */}
+          {/* Party */}
           <div className="mb-6">
             <label className="block text-gray-700 font-semibold mb-2">
-              Client Name
+              {invoiceType === "purchase" ? "Vendor Name" : "Customer Name"}
             </label>
-            <input
-              value={client.name}
-              onChange={(e) => setClient({ ...client, name: e.target.value })}
-              className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="Client Name"
-            />
+            {invoiceType === "purchase" ? (
+              <input
+                value={vendorName}
+                readOnly
+                className="w-full border border-gray-300 p-3 rounded-lg bg-gray-100"
+              />
+            ) : (
+              <input
+                value={customer.name}
+                onChange={(e) =>
+                  setCustomer({ ...customer, name: e.target.value })
+                }
+                className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                placeholder="Customer Name"
+              />
+            )}
           </div>
 
           {/* Items */}
@@ -135,7 +148,7 @@ function InvoiceEditPage() {
               {items.map((item, index) => (
                 <div
                   key={index}
-                  className="grid grid-cols-12 gap-2 items-center bg-gray-50 p-3 rounded-lg"
+                  className="relative grid grid-cols-12 gap-2 items-center bg-gray-50 p-3 rounded-lg"
                 >
                   <input
                     type="text"
@@ -172,11 +185,25 @@ function InvoiceEditPage() {
                   <span className="col-span-1 text-gray-700 font-semibold">
                     ${item.total.toLocaleString()}
                   </span>
+
                   <button
                     onClick={() => removeItem(index)}
-                    className="col-span-1 p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center justify-center"
+                    className="
+      absolute -top-3 -right-3
+      w-7 h-7
+      flex items-center justify-center
+      rounded-full
+      text-red-600
+      hover:text-red-600
+      hover:bg-red-50
+      transition-all duration-200
+      p-1
+      border-red-500 border-2
+      bg-red-100
+    "
+                    title="Remove"
                   >
-                    <MdDelete />
+                    <MdDelete size={16} />
                   </button>
                 </div>
               ))}

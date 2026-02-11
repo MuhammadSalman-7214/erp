@@ -14,9 +14,11 @@ import {
   CreateCategory,
   RemoveCategory,
   SearchCategory,
+  UpdateCategory,
 } from "../features/categorySlice";
 import toast from "react-hot-toast";
 import NoData from "../Components/NoData";
+import { Popconfirm } from "antd";
 
 function Categorypage() {
   const { getallCategory, iscreatedCategory, searchdata } = useSelector(
@@ -60,17 +62,32 @@ function Categorypage() {
     event.preventDefault();
     const CategoryData = { name, description };
 
-    dispatch(CreateCategory(CategoryData))
-      .unwrap()
-      .then((data) => {
-        console.log("Category created:", data); // <-- see what is returned
-        toast.success("CategoryData added successfully");
-        resetForm();
-      })
-      .catch((err) => {
-        console.error("Error adding category:", err);
-        toast.error(err?.message || "Category add unsuccessful");
-      });
+    if (selectedProduct) {
+      // Update existing category
+      dispatch(UpdateCategory({ id: selectedProduct._id, data: CategoryData }))
+        .unwrap()
+        .then(() => {
+          toast.success("Category updated successfully");
+          setIsFormVisible(false);
+          resetForm();
+          setSelectedProduct(null);
+        })
+        .catch((err) => {
+          toast.error(err?.message || "Update failed");
+        });
+    } else {
+      // Create new category
+      dispatch(CreateCategory(CategoryData))
+        .unwrap()
+        .then(() => {
+          toast.success("Category added successfully");
+          setIsFormVisible(false);
+          resetForm();
+        })
+        .catch((err) => {
+          toast.error(err?.message || "Category add unsuccessful");
+        });
+    }
   };
 
   const resetForm = () => {
@@ -226,15 +243,53 @@ function Categorypage() {
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => handleremove(Category._id)}
-                            className="p-2 rounded-xl bg-slate-100 hover:bg-red-100 text-red-600 transition"
-                            title="Delete"
+                          <Popconfirm
+                            title={
+                              <div className="flex flex-col gap-1 max-w-xs">
+                                <span className="font-semibold text-red-600 text-sm">
+                                  Confirm Category Deletion
+                                </span>
+                                <span className="text-xs text-gray-600 leading-snug">
+                                  This action will permanently remove this
+                                  category. Products linked to this category may
+                                  be affected. This operation cannot be undone.
+                                </span>
+                              </div>
+                            }
+                            okText="Yes, Delete"
+                            cancelText="Cancel"
+                            okButtonProps={{
+                              danger: true,
+                              className: "font-semibold",
+                            }}
+                            cancelButtonProps={{
+                              className: "font-medium",
+                            }}
+                            placement="topRight"
+                            onConfirm={() => handleremove(Category._id)}
                           >
-                            <MdDelete size={18} />
-                          </button>
+                            <button
+                              className="
+      p-2 rounded-xl
+      bg-slate-100
+      hover:bg-red-100
+      text-red-600
+      transition-all duration-200
+      hover:shadow-sm
+    "
+                              title="Delete Category"
+                            >
+                              <MdDelete size={18} />
+                            </button>
+                          </Popconfirm>
 
                           <button
+                            onClick={() => {
+                              setSelectedProduct(Category); // set the category to edit
+                              setname(Category.name);
+                              setdescription(Category.description);
+                              setIsFormVisible(true); // open drawer
+                            }}
                             className="p-2 rounded-xl bg-slate-100 hover:bg-teal-100 text-blue-600 transition"
                             title="Edit"
                           >

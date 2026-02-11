@@ -22,6 +22,7 @@ import toast from "react-hot-toast";
 import { useRolePermissions } from "../hooks/useRolePermissions";
 import { AiOutlineProduct } from "react-icons/ai";
 import NoData from "../Components/NoData";
+import { Popconfirm } from "antd";
 
 function Productpage({ readOnly = false }) {
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
@@ -39,14 +40,19 @@ function Productpage({ readOnly = false }) {
   const dispatch = useDispatch();
 
   const [query, setQuery] = useState("");
+  const [productCode, setProductCode] = useState("");
   const [name, setName] = useState("");
+  const [brand, setBrand] = useState("");
+  const [grade, setGrade] = useState("");
   const [Category, setCategory] = useState("");
-  const [Price, setPrice] = useState("");
+  const [purchasePrice, setPurchasePrice] = useState("");
+  const [salesPrice, setSalesPrice] = useState("");
   const [quantity, setQuantity] = useState("");
   const [Desciption, setDesciption] = useState("");
   const [dateAdded, setDateAdded] = useState(
     new Date().toISOString().split("T")[0],
   );
+  const [productCodeQuery, setProductCodeQuery] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
@@ -56,15 +62,15 @@ function Productpage({ readOnly = false }) {
   }, [dispatch, editedProduct, isproductadd]);
 
   useEffect(() => {
-    if (query.trim() !== "") {
-      const repeatTimeout = setTimeout(() => {
-        dispatch(Searchproduct(query));
-      }, 500);
-      return () => clearTimeout(repeatTimeout);
+    if (productCodeQuery.trim() !== "") {
+      const debounce = setTimeout(() => {
+        dispatch(Searchproduct(productCodeQuery));
+      }, 500); // debounce for 0.5s
+      return () => clearTimeout(debounce);
     } else {
       dispatch(gettingallproducts());
     }
-  }, [query, dispatch]);
+  }, [productCodeQuery, dispatch]);
 
   const handleremove = async (productId) => {
     if (!canDelete) {
@@ -89,9 +95,13 @@ function Productpage({ readOnly = false }) {
     if (!selectedProduct) return;
 
     const updatedData = {
+      productCode,
       name,
+      brand,
+      grade,
       Category,
-      Price,
+      purchasePrice,
+      salesPrice,
       quantity,
       Desciption,
       dateAdded: selectedProduct.dateAdded || new Date().toISOString(),
@@ -114,10 +124,14 @@ function Productpage({ readOnly = false }) {
     }
 
     const productData = {
+      productCode,
       name,
+      brand,
+      grade,
       Desciption,
       Category,
-      Price,
+      purchasePrice,
+      salesPrice,
       dateAdded: new Date(dateAdded).toISOString(),
     };
 
@@ -131,9 +145,13 @@ function Productpage({ readOnly = false }) {
   };
 
   const resetForm = () => {
+    setProductCode("");
     setName("");
+    setBrand("");
+    setGrade("");
     setCategory("");
-    setPrice("");
+    setPurchasePrice("");
+    setSalesPrice("");
     setQuantity("");
     setDesciption("");
   };
@@ -151,16 +169,20 @@ function Productpage({ readOnly = false }) {
     }
 
     setSelectedProduct(product);
+    setProductCode(product.productCode || "");
     setName(product.name);
+    setBrand(product.brand || "");
+    setGrade(product.grade || "");
     setCategory(product.Category?._id || "");
-    setPrice(product.Price);
+    setPurchasePrice(product.pricing?.currentPurchasePrice ?? "");
+    setSalesPrice(product.pricing?.currentSalesPrice ?? product.Price ?? "");
     setQuantity(product.quantity);
     setDesciption(product.Desciption);
     setIsFormVisible(true);
   };
 
-  const displayProducts = query.trim() !== "" ? searchdata : getallproduct;
-
+  const displayProducts =
+    productCodeQuery.trim() !== "" ? searchdata || [] : getallproduct;
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
       {/* KPI CARDS */}
@@ -189,7 +211,14 @@ function Productpage({ readOnly = false }) {
             </span>
 
             <h2 className="text-2xl sm:text-3xl font-bold">
-              ${getallproduct?.reduce((total, p) => total + p.Price, 0) || 0}
+              Rs{" "}
+              {getallproduct?.reduce(
+                (total, p) =>
+                  total +
+                  (p.pricing?.currentSalesPrice ?? p.Price ?? 0) *
+                    (p.quantity || 0),
+                0,
+              ) || 0}
             </h2>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
@@ -218,10 +247,10 @@ function Productpage({ readOnly = false }) {
       <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">
         <input
           type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          value={productCodeQuery}
+          onChange={(e) => setProductCodeQuery(e.target.value)}
           className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
-          placeholder="Search product..."
+          placeholder="Search product by code..."
         />
 
         {canWrite && (
@@ -262,11 +291,15 @@ function Productpage({ readOnly = false }) {
                 <thead className="bg-slate-50 border-b">
                   <tr className="text-left text-slate-500">
                     <th className="px-5 py-4 font-medium">#</th>
+                    <th className="px-5 py-4 font-medium">Code</th>
                     <th className="px-5 py-4 font-medium">Product</th>
+                    <th className="px-5 py-4 font-medium">Brand</th>
+                    <th className="px-5 py-4 font-medium">Grade</th>
                     <th className="px-5 py-4 font-medium">Category</th>
                     <th className="px-5 py-4 font-medium">Description</th>
                     <th className="px-5 py-4 font-medium">Qty</th>
-                    <th className="px-5 py-4 font-medium">Price</th>
+                    <th className="px-5 py-4 font-medium">Purchase</th>
+                    <th className="px-5 py-4 font-medium">Sales</th>
                     <th className="px-5 py-4 font-medium">Date</th>
                     {!isReadOnlyMode && (
                       <th className="px-5 py-4 font-medium">Actions</th>
@@ -282,10 +315,21 @@ function Productpage({ readOnly = false }) {
                     >
                       <td className="px-5 py-4 text-slate-500">{index + 1}</td>
 
+                      <td className="px-5 py-4 text-slate-700">
+                        {product.productCode || "-"}
+                      </td>
+
                       <td className="px-5 py-4">
                         <div className="font-medium text-slate-800">
                           {product.name}
                         </div>
+                      </td>
+
+                      <td className="px-5 py-4 text-slate-700">
+                        {product.brand || "-"}
+                      </td>
+                      <td className="px-5 py-4 text-slate-700">
+                        {product.grade || "-"}
                       </td>
 
                       <td className="px-5 py-4 text-slate-700">
@@ -301,7 +345,19 @@ function Productpage({ readOnly = false }) {
                       </td>
 
                       <td className="px-5 py-4 font-semibold text-slate-800">
-                        ${product.Price?.toLocaleString()}
+                        Rs{" "}
+                        {(
+                          product.pricing?.currentPurchasePrice ?? 0
+                        ).toLocaleString()}
+                      </td>
+
+                      <td className="px-5 py-4 font-semibold text-slate-800">
+                        Rs{" "}
+                        {(
+                          product.pricing?.currentSalesPrice ??
+                          product.Price ??
+                          0
+                        ).toLocaleString()}
                       </td>
 
                       <td className="px-5 py-4 text-slate-600">
@@ -312,13 +368,38 @@ function Productpage({ readOnly = false }) {
                         <td className="px-5 py-4">
                           <div className="flex gap-2">
                             {canDelete && (
-                              <button
-                                onClick={() => handleremove(product._id)}
-                                className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition"
-                                title="Delete"
+                              <Popconfirm
+                                title={
+                                  <div className="flex flex-col gap-1 max-w-xs">
+                                    <span className="font-semibold text-red-600 text-sm">
+                                      Confirm Product Deletion
+                                    </span>
+                                    <span className="text-xs text-gray-600 leading-snug">
+                                      This action will permanently remove this
+                                      product from inventory. This operation
+                                      cannot be undone.
+                                    </span>
+                                  </div>
+                                }
+                                okText="Yes, Delete"
+                                cancelText="Cancel"
+                                okButtonProps={{
+                                  danger: true,
+                                  className: "font-semibold",
+                                }}
+                                cancelButtonProps={{
+                                  className: "font-medium",
+                                }}
+                                placement="topRight"
+                                onConfirm={() => handleremove(product._id)}
                               >
-                                <MdDelete size={18} />
-                              </button>
+                                <button
+                                  className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition-all duration-200 hover:shadow-sm"
+                                  title="Delete Product"
+                                >
+                                  <MdDelete size={18} />
+                                </button>
+                              </Popconfirm>
                             )}
                             {canWrite && (
                               <button
@@ -364,9 +445,13 @@ function Productpage({ readOnly = false }) {
             className="space-y-4"
           >
             {[
+              ["Product Code", productCode, setProductCode, "text"],
               ["Name", name, setName, "text"],
+              ["Brand", brand, setBrand, "text"],
+              ["Grade", grade, setGrade, "text"],
               ["Description", Desciption, setDesciption, "text"],
-              ["Price", Price, setPrice, "number"],
+              ["Purchase Price", purchasePrice, setPurchasePrice, "number"],
+              ["Sales Price", salesPrice, setSalesPrice, "number"],
               // ["Quantity", quantity, setQuantity, "number"],
             ].map(([label, val, setter, type]) => (
               <div key={label}>

@@ -15,7 +15,6 @@ import SalesChart from "../lib/Salesgraph";
 import toast from "react-hot-toast";
 import { gettingallCategory } from "../features/categorySlice";
 import { gettingallproducts } from "../features/productSlice";
-import axiosInstance from "../lib/axios";
 import { PiInvoiceBold } from "react-icons/pi";
 import NoData from "../Components/NoData";
 
@@ -67,9 +66,7 @@ function Salespage() {
 
     const updatedData = {
       customerName: name,
-      products: [
-        { product: Product, quantity: Number(quantity), price: Number(Price) },
-      ],
+      products: [{ product: Product, quantity: Number(quantity) }],
       paymentMethod: Payment,
       paymentStatus,
       status: Status,
@@ -94,9 +91,7 @@ function Salespage() {
 
     const salesData = {
       customerName: name,
-      products: [
-        { product: Product, quantity: Number(quantity), price: Number(Price) },
-      ],
+      products: [{ product: Product, quantity: Number(quantity) }],
       paymentMethod: Payment,
       paymentStatus,
       status: Status,
@@ -141,7 +136,9 @@ function Salespage() {
       );
 
       if (productObj) {
-        setUnitPrice(productObj.Price);
+        setUnitPrice(
+          productObj.pricing?.currentSalesPrice ?? productObj.Price ?? 0,
+        );
       }
     } else {
       setProduct("");
@@ -160,60 +157,6 @@ function Salespage() {
   }, [Category]);
 
   const displaySales = query.trim() !== "" ? searchdata : getallsales;
-
-  const createInvoice = async (sale) => {
-    if (!sale) return;
-
-    // Safely extract product(s)
-    const productsArray = Array.isArray(sale.products)
-      ? sale.products
-      : [sale.products]; // wrap single product for future-proofing
-
-    // Map items for invoice
-    const items = productsArray.map((p) => ({
-      description: p.product.Desciption,
-      name: p.product.name,
-      quantity: p.quantity,
-      unitPrice: p.price,
-      total: p.quantity * p.price,
-    }));
-
-    // Calculate totals
-    const subTotal = items.reduce((sum, i) => sum + i.total, 0);
-    const taxRate = 0; // add if needed
-    const discount = 0; // add if needed
-    const taxAmount = (subTotal * taxRate) / 100;
-    const totalAmount = subTotal + taxAmount - discount;
-
-    // Prepare payload matching Invoice model
-    const payload = {
-      invoiceNumber: `INV-${Date.now()}`, // you can replace with backend-generated
-      client: {
-        name: sale.customerName,
-        // add email, phone, address if available
-      },
-      items,
-      subTotal,
-      taxRate,
-      taxAmount,
-      discount,
-      totalAmount,
-      currency: "USD",
-      status: sale.paymentStatus === "paid" ? "paid" : "sent",
-      paymentMethod: sale.paymentMethod,
-      issueDate: new Date(),
-      dueDate: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000),
-    };
-
-    try {
-      await axiosInstance.post("/invoice", payload);
-
-      toast.success("Invoice Created!");
-    } catch (err) {
-      console.error("Invoice creation failed:", err);
-      toast.error("Invoice creation failed");
-    }
-  };
 
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
@@ -305,10 +248,12 @@ function Salespage() {
                   );
 
                   if (selectedProduct) {
-                    setUnitPrice(selectedProduct.Price);
-                    setPrice(
-                      quantity ? selectedProduct.Price * Number(quantity) : "",
-                    );
+                    const resolvedPrice =
+                      selectedProduct.pricing?.currentSalesPrice ??
+                      selectedProduct.Price ??
+                      0;
+                    setUnitPrice(resolvedPrice);
+                    setPrice(quantity ? resolvedPrice * Number(quantity) : "");
                   }
                 }}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2"
@@ -357,7 +302,7 @@ function Salespage() {
               <p className="text-red-600 text-sm mt-1">{formErrors.quantity}</p>
             )}
             <div className="flex flex-col gap-1">
-              <label className="text-gray-700 font-medium">Price</label>
+              <label className="text-gray-700 font-medium">Total</label>
               <input
                 type="number"
                 value={Price}
@@ -467,7 +412,7 @@ function Salespage() {
                       {sale.products?.[0]?.quantity || "-"}{" "}
                     </td>
                     <td className="px-5 py-4 font-semibold text-slate-800">
-                      ${sale.totalAmount || 0}
+                      Rs {sale.totalAmount || 0}
                     </td>
                     <td className="px-5 py-4">{sale.status}</td>
                     <td className="px-5 py-4 text-slate-600">
@@ -483,12 +428,12 @@ function Salespage() {
                         >
                           <MdEdit size={18} />
                         </button>
-                        <button
-                          onClick={() => createInvoice(sale)}
-                          className="p-2 rounded-lg bg-slate-100 hover:bg-yellow-100 text-yellow-600 transition"
+                        <div
+                          className="p-2 rounded-lg bg-slate-50 text-slate-300"
+                          title="Invoice auto-generated"
                         >
                           <PiInvoiceBold size={18} />
-                        </button>
+                        </div>
                       </div>
                     </td>
                   </tr>

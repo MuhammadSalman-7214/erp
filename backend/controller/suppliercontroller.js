@@ -1,23 +1,31 @@
-const Supplier = require("../models/Suppliermodel.js");
+const Vendor = require("../models/Suppliermodel.js");
 
 module.exports.createSupplier = async (req, res) => {
   try {
-    const { name, contactInfo, productsSupplied } = req.body;
+    const {
+      name,
+      contactInfo,
+      productsSupplied,
+      openingBalance,
+      paymentTerms,
+    } = req.body;
 
     if (!name || !contactInfo || !contactInfo.email || !contactInfo.phone) {
       return res.status(400).json({
         success: false,
-        message: "Name, phone and email are required.",
+        message: " name, phone and email are required.",
       });
     }
 
-    const newSupplier = new Supplier({
+    const newSupplier = new Vendor({
       name,
       contactInfo: {
         phone: contactInfo.phone,
         email: contactInfo.email,
         address: contactInfo.address || "",
       },
+      openingBalance: Number(openingBalance) || 0,
+      paymentTerms: paymentTerms || "",
       productsSupplied: productsSupplied || [],
     });
 
@@ -25,13 +33,13 @@ module.exports.createSupplier = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Supplier created successfully",
-      newSupplier,
+      message: "Vendor created successfully",
+      vendor: newSupplier,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Error creating supplier",
+      message: "Error creating vendor",
       error,
     });
   }
@@ -39,7 +47,7 @@ module.exports.createSupplier = async (req, res) => {
 
 module.exports.getAllSuppliers = async (req, res) => {
   try {
-    const Suppliers = await Supplier.find().populate("productsSupplied");
+    const Suppliers = await Vendor.find().populate("productsSupplied");
 
     res.status(200).json(Suppliers);
   } catch (error) {
@@ -54,7 +62,7 @@ module.exports.getSupplierById = async (req, res) => {
     const { supplierId } = req.params;
 
     const supplier =
-      await Supplier.findById(supplierId).populate("productsSupplied");
+      await Vendor.findById(supplierId).populate("productsSupplied");
 
     if (!supplier) {
       return res
@@ -72,10 +80,11 @@ module.exports.getSupplierById = async (req, res) => {
 
 module.exports.editSupplier = async (req, res) => {
   const { id } = req.params;
-  const { name, contactInfo, productsSupplied } = req.body;
+  const { name, contactInfo, productsSupplied, openingBalance, paymentTerms } =
+    req.body;
 
   try {
-    const supplier = await Supplier.findById(id);
+    const supplier = await Vendor.findById(id);
     if (!supplier) {
       return res.status(404).json({ message: "Supplier not found" });
     }
@@ -86,6 +95,11 @@ module.exports.editSupplier = async (req, res) => {
       email: contactInfo?.email || supplier.contactInfo.email,
       address: contactInfo?.address || supplier.contactInfo.address,
     };
+    supplier.openingBalance =
+      openingBalance !== undefined
+        ? Number(openingBalance)
+        : supplier.openingBalance;
+    supplier.paymentTerms = paymentTerms ?? supplier.paymentTerms;
 
     supplier.productsSupplied = Array.isArray(productsSupplied)
       ? productsSupplied
@@ -94,8 +108,8 @@ module.exports.editSupplier = async (req, res) => {
     const updatedSupplier = await supplier.save();
 
     res.status(200).json({
-      message: "Supplier updated successfully",
-      supplier: updatedSupplier,
+      message: "Vendor updated successfully",
+      vendor: updatedSupplier,
     });
   } catch (error) {
     res.status(500).json({ message: "Error updating supplier", error });
@@ -105,7 +119,7 @@ module.exports.editSupplier = async (req, res) => {
 module.exports.deleteSupplier = async (req, res) => {
   try {
     const { supplierId } = req.params; // <-- use req.params
-    const supplier = await Supplier.findByIdAndDelete(supplierId);
+    const supplier = await Vendor.findByIdAndDelete(supplierId);
 
     if (!supplier) {
       return res
@@ -134,7 +148,7 @@ module.exports.searchSupplier = async (req, res) => {
         .json({ success: false, message: "Query parameter is required" });
     }
 
-    const suppliers = await Supplier.find({
+    const suppliers = await Vendor.find({
       name: { $regex: new RegExp(query, "i") },
     });
 

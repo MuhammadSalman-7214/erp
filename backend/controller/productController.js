@@ -5,19 +5,52 @@ module.exports.Addproduct = async (req, res) => {
   const ipAddress = req.ip;
 
   try {
-    const { name, Desciption, Category, Price } = req.body;
+    const {
+      productCode,
+      name,
+      brand,
+      grade,
+      Desciption,
+      Category,
+      purchasePrice,
+      salesPrice,
+      Price,
+    } = req.body;
 
-    if (!name || !Category || !Desciption || !Price) {
+    const resolvedSalesPrice = Number(salesPrice ?? Price);
+    const resolvedPurchasePrice = Number(purchasePrice);
+
+    if (
+      !productCode ||
+      !name ||
+      !brand ||
+      !grade ||
+      !Category ||
+      !Desciption ||
+      Number.isNaN(resolvedSalesPrice) ||
+      Number.isNaN(resolvedPurchasePrice)
+    ) {
       return res
         .status(400)
         .json({ error: "Please provide all product details." });
     }
 
     const createdProduct = new Product({
+      productCode,
       name,
+      brand,
+      grade,
       Desciption,
       Category,
-      Price,
+      pricing: {
+        currentPurchasePrice: resolvedPurchasePrice,
+        currentSalesPrice: resolvedSalesPrice,
+      },
+      priceHistory: [
+        { type: "purchase", price: resolvedPurchasePrice },
+        { type: "sales", price: resolvedSalesPrice },
+      ],
+      Price: resolvedSalesPrice,
       // sku will be auto-generated
     });
 
@@ -86,20 +119,88 @@ module.exports.RemoveProduct = async (req, res) => {
 
 module.exports.EditProduct = async (req, res) => {
   try {
-    const { name, Category, Price, quantity, Desciption, dateAdded } = req.body;
+    const {
+      productCode,
+      name,
+      brand,
+      grade,
+      Category,
+      purchasePrice,
+      salesPrice,
+      Price,
+      quantity,
+      Desciption,
+      dateAdded,
+    } = req.body;
     const { id } = req.params;
     const userId = req.user.userId; // or _id if that's how your token stores it
     const ipAddress = req.ip;
     // No need to check updatedData, instead check fields if needed
-    if (!name || !Category || !Price) {
+    if (!name || !Category) {
       return res.status(400).json({ message: "Required fields missing" });
     }
 
-    const updatedProduct = await Product.findByIdAndUpdate(
-      id,
-      { name, Category, Price, quantity, Desciption, dateAdded },
-      { new: true },
-    );
+    const existingProduct = await Product.findById(id);
+    if (!existingProduct) {
+      return res.status(404).json({ message: "Product not found." });
+    }
+
+    const resolvedSalesPrice =
+      salesPrice !== undefined ? Number(salesPrice) : Number(Price);
+    const resolvedPurchasePrice =
+      purchasePrice !== undefined
+        ? Number(purchasePrice)
+        : existingProduct.pricing?.currentPurchasePrice;
+
+    const updates = {
+      productCode: productCode || existingProduct.productCode,
+      name,
+      brand: brand || existingProduct.brand,
+      grade: grade || existingProduct.grade,
+      Category,
+      Desciption,
+      quantity,
+      dateAdded,
+    };
+
+    if (!Number.isNaN(resolvedSalesPrice)) {
+      updates.pricing = {
+        ...existingProduct.pricing,
+        currentSalesPrice: resolvedSalesPrice,
+      };
+      updates.Price = resolvedSalesPrice;
+    }
+
+    if (!Number.isNaN(resolvedPurchasePrice)) {
+      updates.pricing = {
+        ...updates.pricing,
+        currentPurchasePrice: resolvedPurchasePrice,
+      };
+    }
+
+    if (
+      resolvedSalesPrice !== undefined &&
+      resolvedSalesPrice !== existingProduct.pricing?.currentSalesPrice
+    ) {
+      updates.priceHistory = [
+        ...(existingProduct.priceHistory || []),
+        { type: "sales", price: resolvedSalesPrice },
+      ];
+    }
+
+    if (
+      resolvedPurchasePrice !== undefined &&
+      resolvedPurchasePrice !== existingProduct.pricing?.currentPurchasePrice
+    ) {
+      updates.priceHistory = [
+        ...(updates.priceHistory || existingProduct.priceHistory || []),
+        { type: "purchase", price: resolvedPurchasePrice },
+      ];
+    }
+
+    const updatedProduct = await Product.findByIdAndUpdate(id, updates, {
+      new: true,
+    });
 
     if (!updatedProduct) {
       return res.status(404).json({ message: "Product not found." });
@@ -126,21 +227,19 @@ module.exports.EditProduct = async (req, res) => {
 module.exports.SearchProduct = async (req, res) => {
   try {
     const { query } = req.query;
+
     if (!query) {
       return res.status(400).json({ message: "Query parameter is required" });
     }
 
+    // Search by productCode only
     const products = await Product.find({
-      $or: [
-        { name: { $regex: query, $options: "i" } },
-        { Description: { $regex: query, $options: "i" } },
-
-        { "Category.name": { $regex: query, $options: "i" } },
-      ],
-    });
+      productCode: { $regex: query, $options: "i" },
+    }).populate("Category"); // populate Category if needed
 
     res.json(products);
   } catch (error) {
+    console.error(error);
     res
       .status(500)
       .json({ message: "Error finding product", error: error.message });

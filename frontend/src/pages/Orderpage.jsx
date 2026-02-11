@@ -15,7 +15,7 @@ import {
 import { gettingallproducts } from "../features/productSlice";
 import { gettingallCategory } from "../features/categorySlice";
 import NoData from "../Components/NoData";
-
+import { Popconfirm } from "antd";
 function Orderpage() {
   const {
     getorder,
@@ -183,7 +183,10 @@ function Orderpage() {
       (p) => p._id === order.Product.product?._id,
     );
 
-    if (productObj) setUnitPrice(productObj.Price || 0);
+    if (productObj)
+      setUnitPrice(
+        productObj.pricing?.currentPurchasePrice ?? productObj.Price ?? 0,
+      );
     setQuantity(order.Product?.quantity || "");
     setstatus(order.status || "");
     setDescription(order.Description || "");
@@ -267,10 +270,12 @@ function Orderpage() {
                   );
 
                   if (selectedProduct) {
-                    setUnitPrice(selectedProduct.Price); // store unit price
-                    setPrice(
-                      quantity ? selectedProduct.Price * Number(quantity) : "",
-                    ); // update total price
+                    const resolvedPrice =
+                      selectedProduct.pricing?.currentPurchasePrice ??
+                      selectedProduct.Price ??
+                      0;
+                    setUnitPrice(resolvedPrice); // store unit price
+                    setPrice(resolvedPrice); // keep unit price
                   } else {
                     setUnitPrice(0);
                     setPrice("");
@@ -311,7 +316,7 @@ function Orderpage() {
                   setQuantity(qty);
 
                   if (unitPrice) {
-                    setPrice(unitPrice * qty); // auto-calculate total price
+                    setPrice(unitPrice); // keep unit price
                   }
 
                   setFormErrors((prev) => ({ ...prev, quantity: "" }));
@@ -327,23 +332,32 @@ function Orderpage() {
               )}
             </div>
             <div className="mb-4">
-              <label>Price</label>
+              <label>Unit Price</label>
               <input
                 type="number"
                 value={Price}
                 readOnly
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-gray-100 cursor-not-allowed"
-                placeholder="Price auto-calculated"
+                placeholder="Unit price"
               />
             </div>
             <div className="mb-4">
-              <label>Supplier</label>
+              <label>Total</label>
+              <input
+                type="number"
+                value={Number(Price || 0) * Number(quantity || 0)}
+                readOnly
+                className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-gray-100 cursor-not-allowed"
+              />
+            </div>
+            <div className="mb-4">
+              <label>Vendor</label>
               <select
                 value={supplier}
                 onChange={(e) => setsupplier(e.target.value)}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2"
               >
-                <option value="">Select a Supplier</option>
+                <option value="">Select a Vendor</option>
                 {getallSupplier?.map((supplier) => (
                   <option key={supplier._id} value={supplier._id}>
                     {supplier.name}
@@ -404,7 +418,7 @@ function Orderpage() {
                     {order.Product?.product?.name || "N/A"}
                   </td>
                   <td className="px-5 py-4">{order.Product?.quantity}</td>
-                  <td className="px-5 py-4">${order.Product?.price}</td>
+                  <td className="px-5 py-4">Rs {order?.totalAmount}</td>
                   <td className="px-5 py-4">{order.Description}</td>
                   <td className="px-5 py-4">{order.status}</td>
                   <td className="px-5 py-4">{order.user?.name || "N/A"}</td>
@@ -412,13 +426,45 @@ function Orderpage() {
                     <FormattedTime timestamp={order.createdAt} />
                   </td>
                   <td className="px-5 py-4 flex gap-2">
-                    <button
-                      onClick={() => handleRemove(order._id)}
-                      className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition"
-                      title="Delete"
+                    <Popconfirm
+                      title={
+                        <div className="flex flex-col gap-1 max-w-xs">
+                          <span className="font-semibold text-red-600 text-sm">
+                            Confirm Permanent Deletion
+                          </span>
+                          <span className="text-xs text-gray-600 leading-snug">
+                            This action will permanently delete this order and
+                            all related transaction records. This operation
+                            cannot be undone.
+                          </span>
+                        </div>
+                      }
+                      okText="Yes, Delete"
+                      cancelText="Cancel"
+                      okButtonProps={{
+                        danger: true,
+                        className: "font-semibold",
+                      }}
+                      cancelButtonProps={{
+                        className: "font-medium",
+                      }}
+                      placement="topRight"
+                      onConfirm={() => handleRemove(order._id)}
                     >
-                      <MdDelete size={18} />
-                    </button>
+                      <button
+                        className="
+      p-2 rounded-lg
+      bg-slate-100
+      hover:bg-red-100
+      text-red-600
+      transition-all duration-200
+      hover:shadow-sm
+    "
+                        title="Delete Order"
+                      >
+                        <MdDelete size={18} />
+                      </button>
+                    </Popconfirm>
                     <button
                       onClick={() => handleEditClick(order)}
                       className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"

@@ -17,6 +17,7 @@ import { gettingallproducts } from "../features/productSlice";
 import { AiOutlineProduct } from "react-icons/ai";
 import { TfiSupport } from "react-icons/tfi";
 import NoData from "../Components/NoData";
+import { Popconfirm } from "antd";
 
 function Supplierpage({ readOnly = false }) {
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
@@ -31,11 +32,14 @@ function Supplierpage({ readOnly = false }) {
   const dispatch = useDispatch();
 
   const [query, setQuery] = useState("");
+  const [vendorCode, setVendorCode] = useState("");
   const [name, setName] = useState("");
   // const [contactInfo, setContactInfo] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [openingBalance, setOpeningBalance] = useState("");
+  const [paymentTerms, setPaymentTerms] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState(null);
   const [product, setProduct] = useState("");
@@ -81,19 +85,22 @@ function Supplierpage({ readOnly = false }) {
       return;
     }
     if (!name || !phone || !email) {
-      toast.error("Name, phone and email are required");
+      toast.error("name, phone and email are required");
       return;
     }
 
     if (!selectedSupplier) return;
 
     const updatedData = {
+      vendorCode,
       name,
       contactInfo: {
         phone,
         email,
         address,
       },
+      openingBalance,
+      paymentTerms,
       // optionally keep productsSupplied if needed
       productsSupplied: product ? [product] : [],
     };
@@ -101,7 +108,7 @@ function Supplierpage({ readOnly = false }) {
     dispatch(EditSupplier({ supplierId: selectedSupplier._id, updatedData }))
       .unwrap()
       .then(() => {
-        toast.success("Supplier updated successfully");
+        toast.success("Vendor updated successfully");
         setIsFormVisible(false);
         setSelectedSupplier(null);
         resetForm();
@@ -119,30 +126,41 @@ function Supplierpage({ readOnly = false }) {
       return;
     }
     if (!name || !phone || !email) {
-      toast.error("Name, phone and email are required");
+      toast.error("name, phone and email are required");
       return;
     }
 
     const supplierData = {
+      vendorCode,
       name,
       contactInfo: {
         phone,
         email,
         address,
       },
-      // optionally include productsSupplied if any
+      openingBalance,
+      paymentTerms,
       productsSupplied: product ? [product] : [],
     };
     dispatch(CreateSupplier(supplierData))
       .unwrap()
-      .then(() => toast.success("Supplier added successfully"))
-      .catch(() => toast.error("Supplier add unsuccessful"));
+      .then(() => {
+        toast.success("Vendor added successfully");
+        setIsFormVisible(false);
+        resetForm();
+        setSelectedSupplier(null);
+      })
+      .catch(() => toast.error("Vendor add unsuccessful"));
   };
 
   const resetForm = () => {
+    setVendorCode("");
     setName("");
     setPhone("");
     setEmail("");
+    setAddress("");
+    setOpeningBalance("");
+    setPaymentTerms("");
   };
 
   const handleEditClick = (supplier) => {
@@ -152,10 +170,13 @@ function Supplierpage({ readOnly = false }) {
     }
 
     setSelectedSupplier(supplier);
+    setVendorCode(supplier.vendorCode || "");
     setName(supplier.name || "");
     setPhone(supplier.contactInfo?.phone || "");
     setEmail(supplier.contactInfo?.email || "");
     setAddress(supplier.contactInfo?.address || "");
+    setOpeningBalance(supplier.openingBalance ?? "");
+    setPaymentTerms(supplier.paymentTerms ?? "");
     setIsFormVisible(true);
   };
 
@@ -177,7 +198,7 @@ function Supplierpage({ readOnly = false }) {
           </div>
 
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Total Suppliers
+            Total Vendors
           </p>
         </div>
 
@@ -211,7 +232,7 @@ function Supplierpage({ readOnly = false }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
-          placeholder="Search supplier..."
+          placeholder="Search vendor..."
         />
 
         {canWrite && (
@@ -223,7 +244,7 @@ function Supplierpage({ readOnly = false }) {
             }}
             className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
           >
-            <IoMdAdd className="text-xl mr-2" /> Add Supplier
+            <IoMdAdd className="text-xl mr-2" /> Add Vendor
           </button>
         )}
         {isReadOnlyMode && (
@@ -245,7 +266,7 @@ function Supplierpage({ readOnly = false }) {
         <div className="fixed top-0 right-0 w-full sm:w-[420px] h-full bg-white p-6 border-l shadow-2xl z-50">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">
-              {selectedSupplier ? "Edit Supplier" : "Add Supplier"}
+              {selectedSupplier ? "Edit Vendor" : "Add Vendor"}
             </h2>
             <MdKeyboardDoubleArrowLeft
               onClick={() => setIsFormVisible(false)}
@@ -254,11 +275,22 @@ function Supplierpage({ readOnly = false }) {
           </div>
 
           <form onSubmit={selectedSupplier ? handleEditSubmit : submitSupplier}>
+            {/* <div className="mb-4">
+              <label>Vendor Code</label>
+              <input
+                value={vendorCode}
+                placeholder="VND-0001"
+                onChange={(e) => setVendorCode(e.target.value)}
+                type="text"
+                className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
+              />
+            </div> */}
+
             <div className="mb-4">
               <label>Name</label>
               <input
                 value={name}
-                placeholder="Enter Supplier name"
+                placeholder="Enter Vendor name"
                 onChange={(e) => setName(e.target.value)}
                 type="text"
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
@@ -270,7 +302,7 @@ function Supplierpage({ readOnly = false }) {
               <input
                 value={phone}
                 type="number"
-                placeholder="Enter Supplier Phone"
+                placeholder="Enter Vendor Phone"
                 onChange={(e) => setPhone(e.target.value)}
                 // type="text"
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
@@ -292,9 +324,31 @@ function Supplierpage({ readOnly = false }) {
               <label>Address</label>
               <input
                 type="text"
-                placeholder="Enter Supplier Address"
+                placeholder="Enter Vendor Address"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
+                className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
+              />
+            </div>
+
+            <div className="mb-4">
+              <label>Opening Balance</label>
+              <input
+                type="number"
+                placeholder="0"
+                value={openingBalance}
+                onChange={(e) => setOpeningBalance(e.target.value)}
+                className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
+              />
+            </div>
+
+            <div className="mb-4">
+              <label>Payment Terms</label>
+              <input
+                type="text"
+                placeholder="Net 30"
+                value={paymentTerms}
+                onChange={(e) => setPaymentTerms(e.target.value)}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
               />
             </div>
@@ -319,7 +373,7 @@ function Supplierpage({ readOnly = false }) {
               type="submit"
               className="bg-teal-800 text-white w-full h-12 rounded-lg hover:bg-teal-700 mt-4"
             >
-              {selectedSupplier ? "Update Supplier" : "Add Supplier"}
+              {selectedSupplier ? "Update Vendor" : "Add Vendor"}
             </button>
           </form>
         </div>
@@ -330,8 +384,8 @@ function Supplierpage({ readOnly = false }) {
           {!Array.isArray(displaySuppliers) || displaySuppliers.length === 0 ? (
             <div className="p-10 text-center">
               <NoData
-                title="No Supplier Found"
-                description="Try adjusting filters or add a new supplier to get started."
+                title="No Vendor Found"
+                description="Try adjusting filters or add a new vendor to get started."
               />
             </div>
           ) : (
@@ -344,6 +398,8 @@ function Supplierpage({ readOnly = false }) {
                     <th className="px-5 py-4 font-medium">Phone</th>
                     <th className="px-5 py-4 font-medium">Email</th>
                     <th className="px-5 py-4 font-medium">Address</th>
+                    <th className="px-5 py-4 font-medium">Opening</th>
+                    <th className="px-5 py-4 font-medium">Terms</th>
                     <th className="px-5 py-4 font-medium">Date</th>
                     {!isReadOnlyMode && (
                       <th className="px-5 py-4 font-medium">Actions</th>
@@ -358,7 +414,6 @@ function Supplierpage({ readOnly = false }) {
                       className="border-b last:border-b-0 hover:bg-slate-50 transition"
                     >
                       <td className="px-5 py-4 text-slate-500">{index + 1}</td>
-
                       <td className="px-5 py-4 font-medium text-slate-800">
                         {supplier.name}
                       </td>
@@ -376,6 +431,14 @@ function Supplierpage({ readOnly = false }) {
                       </td>
 
                       <td className="px-5 py-4 text-slate-600">
+                        {supplier.openingBalance ?? 0}
+                      </td>
+
+                      <td className="px-5 py-4 text-slate-600">
+                        {supplier.paymentTerms || "-"}
+                      </td>
+
+                      <td className="px-5 py-4 text-slate-600">
                         <FormattedTime timestamp={supplier.createdAt} />
                       </td>
 
@@ -383,13 +446,45 @@ function Supplierpage({ readOnly = false }) {
                         <td className="px-5 py-4">
                           <div className="flex gap-2">
                             {canDelete && (
-                              <button
-                                onClick={() => handleRemove(supplier._id)}
-                                className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition"
-                                title="Delete"
+                              <Popconfirm
+                                title={
+                                  <div className="flex flex-col gap-1 max-w-xs">
+                                    <span className="font-semibold text-red-600 text-sm">
+                                      Confirm Supplier Deletion
+                                    </span>
+                                    <span className="text-xs text-gray-600 leading-snug">
+                                      This action will permanently remove this
+                                      supplier and may affect linked purchase
+                                      records. This operation cannot be undone.
+                                    </span>
+                                  </div>
+                                }
+                                okText="Yes, Delete"
+                                cancelText="Cancel"
+                                okButtonProps={{
+                                  danger: true,
+                                  className: "font-semibold",
+                                }}
+                                cancelButtonProps={{
+                                  className: "font-medium",
+                                }}
+                                placement="topRight"
+                                onConfirm={() => handleRemove(supplier._id)}
                               >
-                                <MdDelete size={18} />
-                              </button>
+                                <button
+                                  className="
+      p-2 rounded-lg
+      bg-slate-100
+      hover:bg-red-100
+      text-red-600
+      transition-all duration-200
+      hover:shadow-sm
+    "
+                                  title="Delete Supplier"
+                                >
+                                  <MdDelete size={18} />
+                                </button>
+                              </Popconfirm>
                             )}
                             {canWrite && (
                               <button

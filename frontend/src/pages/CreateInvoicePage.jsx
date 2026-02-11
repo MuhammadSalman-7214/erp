@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import TopNavbar from "../Components/TopNavbar";
 import axiosInstance from "../lib/axios";
 import { toast } from "react-hot-toast";
-import { IoMdAdd } from "react-icons/io";
 import { MdDelete } from "react-icons/md";
 import { useSelector } from "react-redux";
+import { IoMdAdd } from "react-icons/io";
 
 function CreateInvoicePage() {
   const navigate = useNavigate();
@@ -24,13 +23,15 @@ function CreateInvoicePage() {
     }
   })();
 
-  const [invoiceNumber, setInvoiceNumber] = useState("");
-  const [client, setClient] = useState({
+  const [invoiceType, setInvoiceType] = useState("sales");
+  const [customer, setCustomer] = useState({
     name: "",
     email: "",
     phone: "",
     address: "",
   });
+  const [vendors, setVendors] = useState([]);
+  const [vendorId, setVendorId] = useState("");
   const [items, setItems] = useState([
     { name: "", description: "", quantity: 1, unitPrice: 0, total: 0 },
   ]);
@@ -43,8 +44,18 @@ function CreateInvoicePage() {
   const [taxAmount, setTaxAmount] = useState(0);
   const [totalAmount, setTotalAmount] = useState(0);
 
-  // Generate invoice number
-  useEffect(() => setInvoiceNumber(`INV-${Date.now()}`), []);
+  useEffect(() => {
+    const fetchVendors = async () => {
+      try {
+        const res = await axiosInstance.get("/supplier");
+        setVendors(res.data || []);
+      } catch (error) {
+        console.error("Failed to load vendors", error);
+      }
+    };
+
+    fetchVendors();
+  }, []);
 
   // Recalculate totals
   useEffect(() => {
@@ -77,14 +88,20 @@ function CreateInvoicePage() {
   const removeItem = (index) => setItems(items.filter((_, i) => i !== index));
 
   const handleSubmit = async () => {
-    if (!client.name.trim()) return toast.error("Client name is required");
+    if (invoiceType === "sales" && !customer.name.trim()) {
+      return toast.error("Customer name is required");
+    }
+    if (invoiceType === "purchase" && !vendorId) {
+      return toast.error("Vendor is required");
+    }
     if (items.length === 0)
       return toast.error("Invoice must have at least one item");
 
     try {
       await axiosInstance.post("invoice", {
-        invoiceNumber,
-        client,
+        invoiceType,
+        customer: invoiceType === "sales" ? customer : undefined,
+        vendor: invoiceType === "purchase" ? vendorId : undefined,
         items: items.map(({ name, description, quantity, unitPrice }) => ({
           name,
           description,
@@ -121,7 +138,7 @@ function CreateInvoicePage() {
                 Invoice Number
               </label>
               <input
-                value={invoiceNumber}
+                value="Auto-generated"
                 disabled
                 className="w-full border border-gray-300 p-3 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
@@ -140,36 +157,83 @@ function CreateInvoicePage() {
             </div>
           </div>
 
-          {/* Client */}
-          <h2 className="text-lg font-semibold text-gray-800 mb-3">Client</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <input
-              placeholder="Client Name"
-              value={client.name}
-              onChange={(e) => setClient({ ...client, name: e.target.value })}
-              className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-            <input
-              placeholder="Client Email"
-              value={client.email}
-              onChange={(e) => setClient({ ...client, email: e.target.value })}
-              className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-            <input
-              placeholder="Client Phone"
-              value={client.phone}
-              onChange={(e) => setClient({ ...client, phone: e.target.value })}
-              className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-            <input
-              placeholder="Client Address"
-              value={client.address}
-              onChange={(e) =>
-                setClient({ ...client, address: e.target.value })
-              }
-              className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
+            <div>
+              <label className="block mb-2 text-gray-700 font-medium">
+                Invoice Type
+              </label>
+              <select
+                value={invoiceType}
+                onChange={(e) => setInvoiceType(e.target.value)}
+                className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              >
+                <option value="sales">Sales</option>
+                <option value="purchase">Purchase</option>
+              </select>
+            </div>
           </div>
+
+          {invoiceType === "sales" ? (
+            <>
+              <h2 className="text-lg font-semibold text-gray-800 mb-3">
+                Customer
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <input
+                  placeholder="Customer Name"
+                  value={customer.name}
+                  onChange={(e) =>
+                    setCustomer({ ...customer, name: e.target.value })
+                  }
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+                <input
+                  placeholder="Customer Email"
+                  value={customer.email}
+                  onChange={(e) =>
+                    setCustomer({ ...customer, email: e.target.value })
+                  }
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+                <input
+                  placeholder="Customer Phone"
+                  value={customer.phone}
+                  onChange={(e) =>
+                    setCustomer({ ...customer, phone: e.target.value })
+                  }
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+                <input
+                  placeholder="Customer Address"
+                  value={customer.address}
+                  onChange={(e) =>
+                    setCustomer({ ...customer, address: e.target.value })
+                  }
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <h2 className="text-lg font-semibold text-gray-800 mb-3">
+                Vendor
+              </h2>
+              <div className="mb-6">
+                <select
+                  value={vendorId}
+                  onChange={(e) => setVendorId(e.target.value)}
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                >
+                  <option value="">Select Vendor</option>
+                  {vendors.map((vendor) => (
+                    <option key={vendor._id} value={vendor._id}>
+                      {vendor.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
 
           {/* Items */}
           <h2 className="text-lg font-semibold text-gray-800 mb-3">Items</h2>
@@ -214,7 +278,7 @@ function CreateInvoicePage() {
                   className="col-span-2 border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
                 <span className="col-span-1 text-gray-700 font-semibold">
-                  ${item.total.toLocaleString()}
+                  Rs {item.total.toLocaleString()}
                 </span>
                 <button
                   onClick={() => removeItem(idx)}
@@ -260,10 +324,10 @@ function CreateInvoicePage() {
           </div>
 
           <div className="text-right mb-6 space-y-1">
-            <p className="text-gray-600">Subtotal: ${subTotal.toFixed(2)}</p>
-            <p className="text-gray-600">Tax: ${taxAmount.toFixed(2)}</p>
+            <p className="text-gray-600">Subtotal: Rs {subTotal.toFixed(2)}</p>
+            <p className="text-gray-600">Tax: Rs {taxAmount.toFixed(2)}</p>
             <p className="text-lg font-semibold">
-              Total: ${totalAmount.toFixed(2)}
+              Total: Rs {totalAmount.toFixed(2)}
             </p>
           </div>
 

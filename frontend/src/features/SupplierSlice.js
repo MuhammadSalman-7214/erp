@@ -19,8 +19,11 @@ export const CreateSupplier = createAsyncThunk(
   async (Supplier, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.post("supplier", {
+        vendorCode: Supplier.vendorCode,
         name: Supplier.name,
         contactInfo: Supplier.contactInfo,
+        openingBalance: Supplier.openingBalance,
+        paymentTerms: Supplier.paymentTerms,
         productsSupplied: Supplier.productsSupplied || [],
       });
       return response.data;
@@ -92,7 +95,6 @@ export const EditSupplier = createAsyncThunk(
         updatedData,
         { withCredentials: true },
       );
-      toast.success("Supplier updated successfully");
       return response.data;
     } catch (error) {
       const errorMessage =
@@ -116,7 +118,6 @@ const supplierSlice = createSlice({
       })
       .addCase(CreateSupplier.fulfilled, (state, action) => {
         state.isSupplieradd = false;
-        toast.success("Supplier created successfully");
       })
       .addCase(CreateSupplier.rejected, (state, action) => {
         state.isSupplieradd = false;
@@ -154,12 +155,12 @@ const supplierSlice = createSlice({
 
       .addCase(SearchSupplier.rejected, (state, action) => {})
       .addCase(EditSupplier.fulfilled, (state, action) => {
-        state.editedsupplier = action.payload.supplier;
+        state.editedsupplier = action.payload.vendor;
         const index = state.getallSupplier.findIndex(
-          (s) => s._id === action.payload.supplier._id,
+          (s) => s._id === action.payload.vendor._id,
         );
         if (index !== -1) {
-          state.getallSupplier[index] = action.payload.supplier;
+          state.getallSupplier[index] = action.payload.vendor;
         }
       })
 

@@ -1,4 +1,5 @@
 const Invoice = require("../models/Invoicemodel");
+const { getNextInvoiceNumber } = require("../libs/invoiceNumber");
 
 /**
  * Utility: Calculate invoice totals
@@ -23,7 +24,10 @@ module.exports.createInvoice = async (req, res) => {
   try {
     const {
       invoiceNumber,
+      invoiceType,
+      customer,
       client,
+      vendor,
       items,
       taxRate,
       discount,
@@ -31,17 +35,29 @@ module.exports.createInvoice = async (req, res) => {
       dueDate,
       notes,
       paymentMethod,
+      status,
     } = req.body;
 
     if (!items || items.length === 0) {
       return res.status(400).json({ message: "Invoice must have items" });
     }
+    if (!invoiceType) {
+      return res.status(400).json({ message: "Invoice type is required" });
+    }
 
     const totals = calculateTotals(items, taxRate, discount);
 
+    const resolvedInvoiceNumber =
+      invoiceNumber ||
+      (invoiceType === "sales"
+        ? await getNextInvoiceNumber("SI")
+        : await getNextInvoiceNumber("PI"));
+
     const invoice = await Invoice.create({
-      invoiceNumber,
-      client,
+      invoiceNumber: resolvedInvoiceNumber,
+      invoiceType,
+      customer: customer || client,
+      vendor,
       items: items.map((item) => ({
         name: item.name,
         description: item.description,
@@ -55,6 +71,7 @@ module.exports.createInvoice = async (req, res) => {
       dueDate,
       notes,
       paymentMethod,
+      status,
       ...totals,
     });
 
@@ -72,9 +89,11 @@ module.exports.createInvoice = async (req, res) => {
 
 module.exports.getAllInvoices = async (req, res) => {
   try {
-    const invoices = await Invoice.find().sort({
-      createdAt: -1,
-    });
+    const invoices = await Invoice.find()
+      .populate("vendor")
+      .sort({
+        createdAt: -1,
+      });
 
     res.status(200).json({
       success: true,
@@ -93,7 +112,7 @@ module.exports.getInvoiceById = async (req, res) => {
   try {
     const invoice = await Invoice.findOne({
       _id: req.params.id,
-    });
+    }).populate("vendor");
 
     if (!invoice) {
       return res.status(404).json({ message: "Invoice not found" });
@@ -182,7 +201,6 @@ module.exports.markInvoiceAsPaid = async (req, res) => {
     const invoice = await Invoice.findOneAndUpdate(
       {
         _id: req.params.id,
-        createdBy: req.user.userId,
       },
       {
         status: "paid",

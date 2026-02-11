@@ -208,7 +208,7 @@ function StockTransaction({ readOnly = false }) {
                 <th className="px-5 py-4 font-medium">Product</th>
                 <th className="px-5 py-4 font-medium">Type</th>
                 <th className="px-5 py-4 font-medium">Quantity</th>
-                <th className="px-5 py-4 font-medium">Supplier</th>
+                <th className="px-5 py-4 font-medium">Vendor</th>
               </tr>
             </thead>
 
@@ -225,7 +225,7 @@ function StockTransaction({ readOnly = false }) {
                   <td className="px-5 py-4">{stock.product?.name || "N/A"}</td>
                   <td className="px-5 py-4">{stock.type}</td>
                   <td className="px-5 py-4">{stock.quantity}</td>
-                  <td className="px-5 py-4">{stock.supplier?.name || "N/A"}</td>
+                  <td className="px-5 py-4">{stock.vendor?.name || "N/A"}</td>
                 </tr>
               ))}
             </tbody>

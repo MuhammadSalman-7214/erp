@@ -66,7 +66,9 @@ module.exports.login = async (req, res) => {
     const duplicatedUser = await User.findOne({ email });
 
     if (!duplicatedUser) {
-      return res.status(400).json({ message: "No user found" });
+      return res.status(400).json({
+        message: "No account found. Please sign up to create a new account.",
+      });
     }
 
     const hasedpassword = await bcrypt.compare(

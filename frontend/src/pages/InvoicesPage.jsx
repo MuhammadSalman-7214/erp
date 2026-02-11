@@ -7,6 +7,7 @@ import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import NoData from "../Components/NoData";
+import { Popconfirm } from "antd";
 
 function InvoicesPage() {
   const [invoices, setInvoices] = useState([]);
@@ -69,7 +70,8 @@ function InvoicesPage() {
     const lower = query.toLowerCase();
     return (
       (inv.invoiceNumber && inv.invoiceNumber.toLowerCase().includes(lower)) ||
-      (inv.client?.name && inv.client.name.toLowerCase().includes(lower)) ||
+      (inv.customer?.name && inv.customer.name.toLowerCase().includes(lower)) ||
+      (inv.vendor?.name && inv.vendor.name.toLowerCase().includes(lower)) ||
       (inv.status && inv.status.toLowerCase().includes(lower))
     );
   });
@@ -81,7 +83,7 @@ function InvoicesPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
-          placeholder="Search supplier..."
+          placeholder="Search invoice..."
         />
 
         <button
@@ -112,7 +114,8 @@ function InvoicesPage() {
                 <tr className="text-left text-slate-500">
                   <th className="px-5 py-4 font-medium">#</th>
                   <th className="px-5 py-4 font-medium">Invoice</th>
-                  <th className="px-5 py-4 font-medium">Client</th>
+                  <th className="px-5 py-4 font-medium">Type</th>
+                  <th className="px-5 py-4 font-medium">Party</th>
                   <th className="px-5 py-4 font-medium">Amount</th>
                   <th className="px-5 py-4 font-medium">Status</th>
                   <th className="px-5 py-4 font-medium">Due Date</th>
@@ -134,12 +137,18 @@ function InvoicesPage() {
                       </div>
                     </td>
 
+                    <td className="px-5 py-4 text-slate-700 capitalize">
+                      {inv.invoiceType || "-"}
+                    </td>
+
                     <td className="px-5 py-4 text-slate-700">
-                      {inv.client?.name || "-"}
+                      {inv.invoiceType === "purchase"
+                        ? inv.vendor?.name || "-"
+                        : inv.customer?.name || "-"}
                     </td>
 
                     <td className="px-5 py-4 font-semibold text-slate-800">
-                      {inv.currency} {inv.totalAmount.toLocaleString()}
+                      Rs {inv.totalAmount.toLocaleString()}
                     </td>
 
                     <td className="px-5 py-4">
@@ -180,14 +189,45 @@ function InvoicesPage() {
                         >
                           <MdEdit size={18} />
                         </button>
-
-                        <button
-                          onClick={() => deleteInvoice(inv._id)}
-                          className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition"
-                          title="Delete"
+                        <Popconfirm
+                          title={
+                            <div className="flex flex-col gap-1 max-w-xs">
+                              <span className="font-semibold text-red-600 text-sm">
+                                Confirm Invoice Deletion
+                              </span>
+                              <span className="text-xs text-gray-600 leading-snug">
+                                This action will permanently delete this invoice
+                                and all related payment and ledger records. This
+                                operation cannot be undone.
+                              </span>
+                            </div>
+                          }
+                          okText="Yes, Delete Invoice"
+                          cancelText="Cancel"
+                          okButtonProps={{
+                            danger: true,
+                            className: "font-semibold",
+                          }}
+                          cancelButtonProps={{
+                            className: "font-medium",
+                          }}
+                          placement="topRight"
+                          onConfirm={() => deleteInvoice(inv._id)}
                         >
-                          <MdDelete size={18} />
-                        </button>
+                          <button
+                            className="
+      p-2 rounded-lg
+      bg-slate-100
+      hover:bg-red-100
+      text-red-600
+      transition-all duration-200
+      hover:shadow-sm
+    "
+                            title="Delete Invoice"
+                          >
+                            <MdDelete size={18} />
+                          </button>
+                        </Popconfirm>
                       </div>
                     </td>
                   </tr>

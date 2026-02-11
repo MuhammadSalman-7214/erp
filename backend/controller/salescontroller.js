@@ -1,13 +1,21 @@
 const Sale = require("../models/Salesmodel.js");
 const ProductModel = require("../models/Productmodel.js");
+const Invoice = require("../models/Invoicemodel");
+const { getNextInvoiceNumber } = require("../libs/invoiceNumber");
 
 // Create Sale
 // controller/salescontroller.js
 
 module.exports.createSale = async (req, res) => {
   try {
-    const { customerName, products, paymentMethod, paymentStatus, status } =
-      req.body;
+    const {
+      customerName,
+      customerCode,
+      products,
+      paymentMethod,
+      paymentStatus,
+      status,
+    } = req.body;
 
     // Validation: Make sure products array is provided and has at least one item
     if (!products || !Array.isArray(products) || products.length === 0) {
@@ -19,20 +27,17 @@ module.exports.createSale = async (req, res) => {
 
     // Validate each product object
     for (const item of products) {
-      if (!item.product || !item.quantity || !item.price) {
+      if (!item.product || !item.quantity) {
         return res.status(400).json({
           success: false,
-          message: "Each product must have product id, quantity, and price",
+          message: "Each product must have product id and quantity",
         });
       }
     }
 
-    // Calculate totalAmount
-    const totalAmount = products.reduce(
-      (total, item) => total + item.price * item.quantity,
-      0,
-    );
     // Before creating the sale
+    const resolvedProducts = [];
+    let totalAmount = 0;
     for (const item of products) {
       const productRecord = await ProductModel.findById(item.product);
       if (!productRecord) {
@@ -50,10 +55,19 @@ module.exports.createSale = async (req, res) => {
           requested: item.quantity,
         });
       }
+
+      const unitPrice =
+        productRecord.pricing?.currentSalesPrice ?? productRecord.Price ?? 0;
+      totalAmount += unitPrice * item.quantity;
+      resolvedProducts.push({
+        product: item.product,
+        quantity: item.quantity,
+        price: unitPrice,
+      });
     }
 
     // After validation, decrement stock
-    for (const item of products) {
+    for (const item of resolvedProducts) {
       const productRecord = await ProductModel.findById(item.product);
       productRecord.quantity -= item.quantity;
       await productRecord.save();
@@ -62,12 +76,60 @@ module.exports.createSale = async (req, res) => {
     // Create sale
     const sale = await Sale.create({
       customerName,
-      products,
+      customerCode,
+      products: resolvedProducts,
       paymentMethod,
       paymentStatus,
       status,
       totalAmount,
     });
+
+    const invoiceItems = resolvedProducts.map((item) => ({
+      name: "",
+      description: "",
+      quantity: item.quantity,
+      unitPrice: item.price,
+      total: item.price * item.quantity,
+    }));
+
+    for (let i = 0; i < resolvedProducts.length; i += 1) {
+      const productRecord = await ProductModel.findById(
+        resolvedProducts[i].product,
+      );
+      invoiceItems[i].name = productRecord?.name || "Product";
+      invoiceItems[i].description = productRecord?.Desciption || "-";
+    }
+
+    const invoiceNumber = await getNextInvoiceNumber("SI");
+    const paymentMethodMap = {
+      creditcard: "card",
+      banktransfer: "bank_transfer",
+      cash: "cash",
+    };
+    const resolvedPaymentMethod =
+      paymentMethodMap[paymentMethod] || paymentMethod || "cash";
+
+    const invoice = await Invoice.create({
+      invoiceNumber,
+      invoiceType: "sales",
+      customer: {
+        code: customerCode,
+        name: customerName,
+      },
+      items: invoiceItems,
+      taxRate: 0,
+      discount: 0,
+      currency: "USD",
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      paymentMethod: resolvedPaymentMethod,
+      status: paymentStatus === "paid" ? "paid" : "sent",
+      subTotal: totalAmount,
+      taxAmount: 0,
+      totalAmount,
+    });
+
+    sale.invoice = invoice._id;
+    await sale.save();
     const populatedSale = await Sale.findById(sale._id).populate(
       "products.product",
     );
@@ -154,12 +216,13 @@ module.exports.updateSale = async (req, res) => {
 
     // 3️⃣ Validate NEW products & availability
     let updatedTotalAmount = 0;
+    const resolvedProducts = [];
 
     for (const item of updatedData.products) {
-      if (!item.product || !item.quantity || !item.price) {
+      if (!item.product || !item.quantity) {
         return res.status(400).json({
           success: false,
-          message: "Each product must have product id, quantity, and price",
+          message: "Each product must have product id and quantity",
         });
       }
 
@@ -180,11 +243,18 @@ module.exports.updateSale = async (req, res) => {
         });
       }
 
-      updatedTotalAmount += item.quantity * item.price;
+      const unitPrice =
+        productRecord.pricing?.currentSalesPrice ?? productRecord.Price ?? 0;
+      updatedTotalAmount += item.quantity * unitPrice;
+      resolvedProducts.push({
+        product: item.product,
+        quantity: item.quantity,
+        price: unitPrice,
+      });
     }
 
     // 4️⃣ Deduct NEW stock
-    for (const item of updatedData.products) {
+    for (const item of resolvedProducts) {
       const product = await ProductModel.findById(item.product);
       product.quantity -= item.quantity;
       await product.save();
@@ -193,9 +263,29 @@ module.exports.updateSale = async (req, res) => {
     // 5️⃣ Update sale
     await Sale.findByIdAndUpdate(
       id,
-      { ...updatedData, totalAmount: updatedTotalAmount },
+      { ...updatedData, products: resolvedProducts, totalAmount: updatedTotalAmount },
       { new: true },
     );
+
+    if (existingSale.invoice) {
+      const invoiceItems = [];
+      for (const item of resolvedProducts) {
+        const productRecord = await ProductModel.findById(item.product);
+        invoiceItems.push({
+          name: productRecord?.name || "Product",
+          description: productRecord?.Desciption || "-",
+          quantity: item.quantity,
+          unitPrice: item.price,
+          total: item.price * item.quantity,
+        });
+      }
+
+      await Invoice.findByIdAndUpdate(existingSale.invoice, {
+        items: invoiceItems,
+        subTotal: updatedTotalAmount,
+        totalAmount: updatedTotalAmount,
+      });
+    }
 
     // 6️⃣ Populate for frontend
     const populatedSale = await Sale.findById(id).populate("products.product");

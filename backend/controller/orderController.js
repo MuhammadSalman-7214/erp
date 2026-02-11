@@ -1,16 +1,14 @@
 const Order = require("../models/Ordermodel");
 const logActivity = require("../libs/logger");
 const ProductModel = require("../models/Productmodel");
-const StockTransaction = require("../models/StockTranscationmodel");
+const Invoice = require("../models/Invoicemodel");
+const { getNextInvoiceNumber } = require("../libs/invoiceNumber");
 
-const {
-  createStockInTransaction,
-  removeStockTransaction,
-} = require("../libs/createstock");
+const { createStockInTransaction } = require("../libs/createstock");
 
 const createOrder = async (req, res) => {
   try {
-    const { user, Description, Product, status, supplier } = req.body;
+    const { user, Description, Product, status, supplier, vendor } = req.body;
 
     if (!user) return res.status(400).json({ message: "User ID is required" });
     if (!Description)
@@ -32,19 +30,49 @@ const createOrder = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
+    const vendorId = vendor || supplier || null;
+
     const newOrder = new Order({
       user,
       Description,
       Product,
+      vendor: vendorId,
       supplier,
       totalAmount: totalOrderAmount,
       status,
     });
 
     await newOrder.save();
-    if (status === "delivered") {
-      await createStockInTransaction(newOrder);
-    }
+
+    await createStockInTransaction(newOrder);
+
+    const invoiceNumber = await getNextInvoiceNumber("PI");
+    const invoice = await Invoice.create({
+      invoiceNumber,
+      invoiceType: "purchase",
+      vendor: vendorId,
+      items: [
+        {
+          name: productRecord.name,
+          description: productRecord.Desciption || "-",
+          quantity,
+          unitPrice: price,
+          total: totalOrderAmount,
+        },
+      ],
+      taxRate: 0,
+      discount: 0,
+      currency: "USD",
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      paymentMethod: "bank_transfer",
+      status: "sent",
+      subTotal: totalOrderAmount,
+      taxAmount: 0,
+      totalAmount: totalOrderAmount,
+    });
+
+    newOrder.invoice = invoice._id;
+    await newOrder.save();
     res.status(201).json({
       success: true,
       message: "Order created successfully",
@@ -93,9 +121,10 @@ const Removeorder = async (req, res) => {
 const getOrder = async (req, res) => {
   try {
     const orders = await Order.find({})
-      .populate("Product.product", "name ProductModelrice ")
+      .populate("Product.product", "name")
       .populate("user", "name email")
-      .populate("supplier", "name");
+      .populate("vendor", "name");
+    // .populate("supplier", "name");
 
     // if (!orders || orders.length === 0) {
     //   return res.status(404).json({ message: "No orders found" });
@@ -114,31 +143,10 @@ const updatestatusOrder = async (req, res) => {
     const { OrderId } = req.params;
     const updates = req.body;
 
-    // 1️⃣ Get old order
-    const oldOrder = await Order.findById(OrderId);
-    if (!oldOrder) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-
-    // 2️⃣ Update order
+    // 1️⃣ Update order
     const updatedOrder = await Order.findByIdAndUpdate(OrderId, updates, {
       new: true,
     });
-
-    // 3️⃣ Stock logic
-    if (
-      oldOrder.status !== "delivered" &&
-      updatedOrder.status === "delivered"
-    ) {
-      // Order became delivered ➜ add stock
-      await createStockInTransaction(updatedOrder);
-    } else if (
-      oldOrder.status === "delivered" &&
-      updatedOrder.status !== "delivered"
-    ) {
-      // Order was delivered but now changed to pending/shipped ➜ remove stock
-      await removeStockTransaction(updatedOrder);
-    }
 
     res.status(200).json({
       message: "Order successfully updated",

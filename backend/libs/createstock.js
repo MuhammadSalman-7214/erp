@@ -19,6 +19,7 @@ const createStockInTransaction = async (order) => {
     product: order.Product.product,
     type: "Stock-in",
     quantity: order.Product.quantity,
+    vendor: order.vendor || order.supplier || null,
     supplier: order.supplier || null,
   });
 
@@ -34,7 +35,10 @@ const removeStockTransaction = async (order) => {
   const stock = await StockTransaction.findOne({
     product: order.Product.product,
     type: "Stock-in",
-    supplier: order.supplier || null,
+    $or: [
+      { vendor: order.vendor || null },
+      { supplier: order.supplier || null },
+    ],
   });
 
   if (!stock) return;

@@ -7,10 +7,14 @@ const OrderSchema = new mongoose.Schema(
       ref: "User",
     },
 
-    supplier: {
+    vendor: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Supplier",
+      ref: "Vendor",
     },
+    // supplier: {
+    //   type: mongoose.Schema.Types.ObjectId,
+    //   ref: "Supplier",
+    // },
     Description: {
       type: String,
       required: true,
@@ -38,6 +42,10 @@ const OrderSchema = new mongoose.Schema(
 
     invoiceUrl: {
       type: String,
+    },
+    invoice: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Invoice",
     },
   },
   { timestamps: true },

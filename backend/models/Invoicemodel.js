@@ -39,10 +39,19 @@ const InvoiceSchema = new mongoose.Schema(
       trim: true,
     },
 
-    client: {
+    invoiceType: {
+      type: String,
+      enum: ["sales", "purchase"],
+      required: true,
+    },
+
+    customer: {
+      code: {
+        type: String,
+        trim: true,
+      },
       name: {
         type: String,
-        required: true,
         trim: true,
       },
       email: {
@@ -58,6 +67,11 @@ const InvoiceSchema = new mongoose.Schema(
         type: String,
         trim: true,
       },
+    },
+
+    vendor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Vendor",
     },
 
     items: {

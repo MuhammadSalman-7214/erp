@@ -15,6 +15,8 @@ const salesrouter = require("./Routers/salesRouter.js");
 const supplierrouter = require("./Routers/supplierrouter.js");
 const invoiceRouter = require("./Routers/invoiceRouter.js");
 const stocktransactionrouter = require("./Routers/stocktransactionrouter.js");
+const paymentRouter = require("./Routers/paymentRouter.js");
+const dashboardRouter = require("./Routers/dashboardRouter.js");
 
 require("dotenv").config();
 const PORT = process.env.PORT || 3003;
@@ -73,6 +75,8 @@ app.use("/api/sales", salesrouter);
 app.use("/api/supplier", supplierrouter);
 app.use("/api/stocktransaction", stocktransactionrouter);
 app.use("/api/invoice", invoiceRouter);
+app.use("/api/payment", paymentRouter);
+app.use("/api/dashboard", dashboardRouter);
 
 server.listen(PORT, () => {
   MongoDBconfig();

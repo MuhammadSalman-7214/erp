@@ -107,7 +107,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
             <NavItem
               to="/ManagerDashboard/supplier"
               icon={<TfiSupport />}
-              label="Supplier"
+              label="Vendor"
               sidebarOpen={sidebarOpen}
             />
 
@@ -122,6 +122,13 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
               to="/ManagerDashboard/invoices"
               icon={<PiInvoiceBold />}
               label="Invoices"
+              sidebarOpen={sidebarOpen}
+            />
+
+            <NavItem
+              to="/ManagerDashboard/payments"
+              icon={<PiInvoiceBold />}
+              label="Payments"
               sidebarOpen={sidebarOpen}
             />
 
@@ -181,7 +188,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
             <NavItem
               to="/AdminDashboard/supplier"
               icon={<TfiSupport />}
-              label="Supplier"
+              label="Vendor"
               sidebarOpen={sidebarOpen}
             />
 
@@ -196,6 +203,13 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
               to="/AdminDashboard/invoices"
               icon={<PiInvoiceBold />}
               label="Invoices"
+              sidebarOpen={sidebarOpen}
+            />
+
+            <NavItem
+              to="/AdminDashboard/payments"
+              icon={<PiInvoiceBold />}
+              label="Payments"
               sidebarOpen={sidebarOpen}
             />
 
@@ -248,7 +262,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
             <NavItem
               to="/StaffDashboard/supplier"
               icon={<TfiSupport />}
-              label="Supplier"
+              label="Vendor"
               sidebarOpen={sidebarOpen}
             />
 
@@ -263,6 +277,13 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
               to="/StaffDashboard/order"
               icon={<FiShoppingCart />}
               label="Order"
+              sidebarOpen={sidebarOpen}
+            />
+
+            <NavItem
+              to="/StaffDashboard/payments"
+              icon={<PiInvoiceBold />}
+              label="Payments"
               sidebarOpen={sidebarOpen}
             />
 

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import TopNavbar from "../Components/TopNavbar";
 import axiosInstance from "../lib/axios";
@@ -65,13 +65,15 @@ function InvoiceDetailPage() {
     doc.setFontSize(14);
     doc.text("Bill To:", 40, 125);
     doc.setFontSize(12);
-    const clientLines = [
-      invoice.client?.name,
-      invoice.client?.email,
-      invoice.client?.phone,
-      invoice.client?.address,
+    const isPurchase = invoice.invoiceType === "purchase";
+    const party = isPurchase ? invoice.vendor : invoice.customer;
+    const partyLines = [
+      party?.name,
+      isPurchase ? party?.contactInfo?.email : party?.email,
+      isPurchase ? party?.contactInfo?.phone : party?.phone,
+      isPurchase ? party?.contactInfo?.address : party?.address,
     ].filter(Boolean);
-    clientLines.forEach((line, i) => doc.text(line, 40, 140 + i * 15));
+    partyLines.forEach((line, i) => doc.text(line, 40, 140 + i * 15));
 
     // Table Items
     const tableData = invoice.items.map((item, idx) => [
@@ -132,7 +134,7 @@ function InvoiceDetailPage() {
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      <TopNavbar />
+      {/* <TopNavbar /> */}
       <div className="p-6 max-w-5xl mx-auto">
         <div className="bg-white rounded-2xl shadow p-6">
           {/* Header */}
@@ -168,27 +170,34 @@ function InvoiceDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 text-gray-700">
             <div className="space-y-1">
               <p>
-                <span className="font-semibold">Client:</span>{" "}
-                {invoice.client?.name || "-"}
+                <span className="font-semibold">
+                  {invoice.invoiceType === "purchase" ? "Vendor" : "Customer"}:
+                </span>{" "}
+                {invoice.invoiceType === "purchase"
+                  ? invoice.vendor?.name || "-"
+                  : invoice.customer?.name || "-"}
               </p>
-              {invoice.client?.email && (
-                <p>
-                  <span className="font-semibold">Email:</span>{" "}
-                  {invoice.client.email}
-                </p>
-              )}
-              {invoice.client?.phone && (
-                <p>
-                  <span className="font-semibold">Phone:</span>{" "}
-                  {invoice.client.phone}
-                </p>
-              )}
-              {invoice.client?.address && (
-                <p>
-                  <span className="font-semibold">Address:</span>{" "}
-                  {invoice.client.address}
-                </p>
-              )}
+              {invoice.invoiceType !== "purchase" &&
+                invoice.customer?.email && (
+                  <p>
+                    <span className="font-semibold">Email:</span>{" "}
+                    {invoice.customer.email}
+                  </p>
+                )}
+              {invoice.invoiceType !== "purchase" &&
+                invoice.customer?.phone && (
+                  <p>
+                    <span className="font-semibold">Phone:</span>{" "}
+                    {invoice.customer.phone}
+                  </p>
+                )}
+              {invoice.invoiceType !== "purchase" &&
+                invoice.customer?.address && (
+                  <p>
+                    <span className="font-semibold">Address:</span>{" "}
+                    {invoice.customer.address}
+                  </p>
+                )}
               <p>
                 <span className="font-semibold">Status:</span> {invoice.status}
               </p>

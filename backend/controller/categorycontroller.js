@@ -98,7 +98,6 @@ module.exports.updateCategory = async (req, res) => {
     const { CategoryId } = req.params;
     const userId = req.user.userId;
     const ipAddress = req.ip;
-
     const updatingCategory = await Category.findByIdAndUpdate(
       CategoryId,
       updatedCategory,
@@ -118,7 +117,7 @@ module.exports.updateCategory = async (req, res) => {
       ipAddress: ipAddress,
     });
 
-    res.status(200).json({ message: "Category successfully updated" });
+    res.status(200).json(updatingCategory);
   } catch (error) {
     res.status(500).json({
       message: "Error in update status Category",

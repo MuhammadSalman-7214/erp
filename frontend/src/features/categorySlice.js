@@ -65,6 +65,24 @@ export const SearchCategory = createAsyncThunk(
   },
 );
 
+export const UpdateCategory = createAsyncThunk(
+  "category/updatecategory",
+  async ({ id, data }, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.put(
+        `category/${id}`,
+        { updatedCategory: data },
+        {
+          withCredentials: true,
+        },
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Update failed");
+    }
+  },
+);
+
 const categorySlice = createSlice({
   name: "category",
   initialState: initialState,
@@ -108,7 +126,13 @@ const categorySlice = createSlice({
           (category) => category._id !== action.meta.arg,
         );
       })
-
+      .addCase(UpdateCategory.fulfilled, (state, action) => {
+        const updatedCategory = action.payload;
+        state.getallCategory = state.getallCategory.map((cat) =>
+          cat._id === updatedCategory._id ? updatedCategory : cat,
+        );
+        state.iscreatedCategory = false; // optional: reset form state flags
+      })
       .addCase(RemoveCategory.rejected, (state, action) => {
         state.iscategoryremove = true;
       })

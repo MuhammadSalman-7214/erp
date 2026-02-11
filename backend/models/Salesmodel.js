@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const SaleSchema = new mongoose.Schema(
   {
     customerName: { type: String, required: true },
+    customerCode: { type: String, trim: true },
     products: [
       {
         product: {
@@ -25,6 +26,7 @@ const SaleSchema = new mongoose.Schema(
       required: true,
     },
     invoiceUrl: { type: String },
+    invoice: { type: mongoose.Schema.Types.ObjectId, ref: "Invoice" },
     status: {
       type: String,
       enum: ["pending", "completed", "cancelled"],

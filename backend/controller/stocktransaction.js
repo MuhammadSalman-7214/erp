@@ -4,7 +4,7 @@ const StockTransaction = require("../models/StockTranscationmodel");
 // Create a stock transaction
 module.exports.createStockTransaction = async (req, res) => {
   try {
-    const { product, type, quantity, supplier } = req.body;
+    const { product, type, quantity, supplier, vendor } = req.body;
 
     if (!product || !type || !quantity) {
       return res.status(400).json({
@@ -43,6 +43,7 @@ module.exports.createStockTransaction = async (req, res) => {
       product,
       type,
       quantity,
+      vendor: vendor || supplier || null,
       supplier,
     });
 
@@ -52,6 +53,7 @@ module.exports.createStockTransaction = async (req, res) => {
       newTransaction._id,
     )
       .populate("product")
+      .populate("vendor")
       .populate("supplier");
 
     res.status(201).json({
@@ -72,6 +74,7 @@ module.exports.getAllStockTransactions = async (req, res) => {
   try {
     const transactions = await StockTransaction.find()
       .populate("product")
+      .populate("vendor")
       .populate("supplier")
       .sort({ transactionDate: -1 });
 
@@ -92,6 +95,7 @@ module.exports.getStockTransactionsByProduct = async (req, res) => {
     const { productId } = req.params;
     const transactions = await StockTransaction.find({ product: productId })
       .populate("product")
+      .populate("vendor")
       .populate("supplier")
       .sort({ transactionDate: -1 });
 
@@ -117,8 +121,11 @@ module.exports.getStockTransactionsByProduct = async (req, res) => {
 module.exports.getStockTransactionsBySupplier = async (req, res) => {
   try {
     const { supplierId } = req.params;
-    const transactions = await StockTransaction.find({ supplier: supplierId })
+    const transactions = await StockTransaction.find({
+      $or: [{ supplier: supplierId }, { vendor: supplierId }],
+    })
       .populate("product")
+      .populate("vendor")
       .populate("supplier")
       .sort({ transactionDate: -1 });
 
@@ -150,6 +157,7 @@ module.exports.searchStocks = async (req, res) => {
 
     const transactions = await StockTransaction.find()
       .populate("product")
+      .populate("vendor")
       .populate("supplier");
 
     const filtered = transactions.filter((t) => {
@@ -160,7 +168,10 @@ module.exports.searchStocks = async (req, res) => {
       const supplierMatch = t.supplier?.name
         ?.toLowerCase()
         .includes(query.toLowerCase());
-      return typeMatch || productMatch || supplierMatch;
+      const vendorMatch = t.vendor?.name
+        ?.toLowerCase()
+        .includes(query.toLowerCase());
+      return typeMatch || productMatch || supplierMatch || vendorMatch;
     });
 
     res.status(200).json({ success: true, transactions: filtered });

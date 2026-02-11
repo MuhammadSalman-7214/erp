@@ -13,11 +13,18 @@ const {
   RemoveProduct,
   EditProduct,
   getTopProductsByQuantity,
+  SearchProduct,
 } = require("../controller/productController.js");
 // Import your product controllers
 // const { getProducts, createProduct, updateProduct, deleteProduct } = require('../controller/productController');
 
 // GET - All roles (Admin, Manager can write; Staff read-only)
+router.get(
+  "/searchproduct",
+  authmiddleware,
+  checkPermission("product", "read"),
+  SearchProduct,
+);
 router.get("/", authmiddleware, checkPermission("product", "read"), getProduct);
 router.get(
   "/getTopProductsByQuantity",
