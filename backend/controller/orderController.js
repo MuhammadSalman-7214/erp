@@ -3,8 +3,10 @@ const logActivity = require("../libs/logger");
 const ProductModel = require("../models/Productmodel");
 const Invoice = require("../models/Invoicemodel");
 const { getNextInvoiceNumber } = require("../libs/invoiceNumber");
-
-const { createStockInTransaction } = require("../libs/createstock");
+const {
+  createOrderDeliveredStockIn,
+  rollbackOrderDeliveredStockIn,
+} = require("../libs/stockLifecycle");
 
 const createOrder = async (req, res) => {
   try {
@@ -44,7 +46,11 @@ const createOrder = async (req, res) => {
 
     await newOrder.save();
 
-    await createStockInTransaction(newOrder);
+    if (newOrder.status === "delivered") {
+      await createOrderDeliveredStockIn(newOrder);
+      newOrder.stockInRecorded = true;
+      await newOrder.save();
+    }
 
     const invoiceNumber = await getNextInvoiceNumber("PI");
     const invoice = await Invoice.create({
@@ -95,11 +101,17 @@ const Removeorder = async (req, res) => {
     const userId = req.user.userId;
     const ipAddress = req.ip;
 
-    const Deletedorder = await Order.findByIdAndDelete(OrdertId);
+    const Deletedorder = await Order.findById(OrdertId);
 
     if (!Deletedorder) {
       return res.status(404).json({ message: "Order is not found!" });
     }
+
+    if (Deletedorder.status === "delivered" || Deletedorder.stockInRecorded) {
+      await rollbackOrderDeliveredStockIn(Deletedorder._id);
+    }
+
+    await Order.findByIdAndDelete(OrdertId);
 
     await logActivity({
       action: "Delete order",
@@ -142,11 +154,31 @@ const updatestatusOrder = async (req, res) => {
   try {
     const { OrderId } = req.params;
     const updates = req.body;
+    const existingOrder = await Order.findById(OrderId);
 
-    // 1️⃣ Update order
+    if (!existingOrder) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    const previousStatus = existingOrder.status;
+    const nextStatus = updates.status || previousStatus;
+
     const updatedOrder = await Order.findByIdAndUpdate(OrderId, updates, {
       new: true,
     });
+
+    if (
+      nextStatus === "delivered" &&
+      (previousStatus !== "delivered" || !existingOrder.stockInRecorded)
+    ) {
+      await createOrderDeliveredStockIn(updatedOrder);
+      await Order.findByIdAndUpdate(OrderId, { stockInRecorded: true });
+    }
+
+    if (previousStatus === "delivered" && nextStatus !== "delivered") {
+      await rollbackOrderDeliveredStockIn(OrderId);
+      await Order.findByIdAndUpdate(OrderId, { stockInRecorded: false });
+    }
 
     res.status(200).json({
       message: "Order successfully updated",

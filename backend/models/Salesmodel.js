@@ -33,6 +33,10 @@ const SaleSchema = new mongoose.Schema(
       enum: ["pending", "completed", "cancelled"],
       default: "pending",
     },
+    stockOutRecorded: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true },
 );

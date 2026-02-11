@@ -39,6 +39,10 @@ const OrderSchema = new mongoose.Schema(
       type: String,
       enum: ["pending", "shipped", "delivered"],
     },
+    stockInRecorded: {
+      type: Boolean,
+      default: false,
+    },
 
     invoiceUrl: {
       type: String,

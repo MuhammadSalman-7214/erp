@@ -27,6 +27,15 @@ const StockTranscationSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Vendor",
     },
+    sourceModel: {
+      type: String,
+      enum: ["manual", "order", "sale"],
+      default: "manual",
+    },
+    sourceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
+    },
   },
   { timestamps: true },
 );

@@ -3,6 +3,11 @@ const ProductModel = require("../models/Productmodel.js");
 const Invoice = require("../models/Invoicemodel");
 const Customer = require("../models/Customermodel");
 const { getNextInvoiceNumber } = require("../libs/invoiceNumber");
+const {
+  validateSaleStockAvailability,
+  createSaleCompletedStockOut,
+  rollbackSaleCompletedStockOut,
+} = require("../libs/stockLifecycle");
 
 // Create Sale
 // controller/salescontroller.js
@@ -65,15 +70,6 @@ module.exports.createSale = async (req, res) => {
         });
       }
 
-      if (productRecord.quantity < item.quantity) {
-        return res.status(400).json({
-          success: false,
-          message: `Only ${productRecord.quantity} items available for ${productRecord.name}. You requested ${item.quantity}.`,
-          available: productRecord.quantity,
-          requested: item.quantity,
-        });
-      }
-
       const unitPrice =
         productRecord.pricing?.currentSalesPrice ?? productRecord.Price ?? 0;
       totalAmount += unitPrice * item.quantity;
@@ -84,11 +80,9 @@ module.exports.createSale = async (req, res) => {
       });
     }
 
-    // After validation, decrement stock
-    for (const item of resolvedProducts) {
-      const productRecord = await ProductModel.findById(item.product);
-      productRecord.quantity -= item.quantity;
-      await productRecord.save();
+    const resolvedSaleStatus = status || "pending";
+    if (resolvedSaleStatus === "completed") {
+      await validateSaleStockAvailability(resolvedProducts);
     }
 
     // Create sale
@@ -99,8 +93,9 @@ module.exports.createSale = async (req, res) => {
       products: resolvedProducts,
       paymentMethod,
       paymentStatus,
-      status,
+      status: resolvedSaleStatus,
       totalAmount,
+      stockOutRecorded: false,
     });
 
     const invoiceItems = resolvedProducts.map((item) => ({
@@ -152,6 +147,10 @@ module.exports.createSale = async (req, res) => {
     });
 
     sale.invoice = invoice._id;
+    if (resolvedSaleStatus === "completed") {
+      await createSaleCompletedStockOut(sale);
+      sale.stockOutRecorded = true;
+    }
     await sale.save();
     const populatedSale = await Sale.findById(sale._id)
       .populate("products.product")
@@ -163,6 +162,14 @@ module.exports.createSale = async (req, res) => {
     });
   } catch (error) {
     console.error("Create Sale Error:", error);
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+        available: error.available,
+        requested: error.requested,
+      });
+    }
     res.status(500).json({
       success: false,
       message: "Error creating sale",
@@ -246,16 +253,9 @@ module.exports.updateSale = async (req, res) => {
       });
     }
 
-    // 2️⃣ Rollback OLD stock
-    for (const oldItem of existingSale.products) {
-      const product = await ProductModel.findById(oldItem.product);
-      if (product) {
-        product.quantity += oldItem.quantity;
-        await product.save();
-      }
-    }
+    const resolvedStatus = updatedData.status || existingSale.status || "pending";
 
-    // 3️⃣ Validate NEW products & availability
+    // 2️⃣ Validate NEW products & availability
     let updatedTotalAmount = 0;
     const resolvedProducts = [];
 
@@ -275,15 +275,6 @@ module.exports.updateSale = async (req, res) => {
         });
       }
 
-      if (productRecord.quantity < item.quantity) {
-        return res.status(400).json({
-          success: false,
-          message: `Only ${productRecord.quantity} items available for ${productRecord.name}. You requested ${item.quantity}.`,
-          available: productRecord.quantity,
-          requested: item.quantity,
-        });
-      }
-
       const unitPrice =
         productRecord.pricing?.currentSalesPrice ?? productRecord.Price ?? 0;
       updatedTotalAmount += item.quantity * unitPrice;
@@ -294,15 +285,19 @@ module.exports.updateSale = async (req, res) => {
       });
     }
 
-    // 4️⃣ Deduct NEW stock
-    for (const item of resolvedProducts) {
-      const product = await ProductModel.findById(item.product);
-      product.quantity -= item.quantity;
-      await product.save();
+    if (resolvedStatus === "completed") {
+      await validateSaleStockAvailability(
+        resolvedProducts,
+        existingSale.status === "completed" ? existingSale.products : [],
+      );
     }
 
-    // 5️⃣ Update sale
-    await Sale.findByIdAndUpdate(
+    if (existingSale.status === "completed") {
+      await rollbackSaleCompletedStockOut(existingSale._id);
+    }
+
+    // 3️⃣ Update sale
+    const updatedSale = await Sale.findByIdAndUpdate(
       id,
       {
         ...updatedData,
@@ -311,6 +306,8 @@ module.exports.updateSale = async (req, res) => {
         customerCode: customer.customerCode || "",
         products: resolvedProducts,
         totalAmount: updatedTotalAmount,
+        status: resolvedStatus,
+        stockOutRecorded: false,
       },
       { new: true },
     );
@@ -343,7 +340,13 @@ module.exports.updateSale = async (req, res) => {
       });
     }
 
-    // 6️⃣ Populate for frontend
+    if (resolvedStatus === "completed") {
+      await createSaleCompletedStockOut(updatedSale);
+      updatedSale.stockOutRecorded = true;
+      await updatedSale.save();
+    }
+
+    // 4️⃣ Populate for frontend
     const populatedSale = await Sale.findById(id)
       .populate("products.product")
       .populate("customer");
@@ -355,6 +358,14 @@ module.exports.updateSale = async (req, res) => {
     });
   } catch (error) {
     console.error("Update Sale Error:", error);
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+        available: error.available,
+        requested: error.requested,
+      });
+    }
     res.status(500).json({
       success: false,
       message: "Error updating sale",
