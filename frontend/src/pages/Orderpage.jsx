@@ -219,7 +219,7 @@ function Orderpage() {
       {/* Overlay */}
       {isFormVisible && (
         <div
-          className="fixed inset-0 bg-black/40 z-40"
+          className="app-modal-overlay"
           onClick={() => {
             setIsFormVisible(false);
             resetForm();
@@ -229,9 +229,9 @@ function Orderpage() {
 
       {/* Form slide-in */}
       {isFormVisible && (
-        <div className="fixed top-0 right-0 w-full sm:w-[420px] h-full bg-white p-6 border-l shadow-2xl z-50 overflow-y-auto">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">
+        <div className="app-modal-drawer app-modal-drawer-md">
+          <div className="app-modal-header">
+            <h2 className="app-modal-title">
               {selectedOrder ? "Edit Order" : "Add Order"}
             </h2>
             <MdKeyboardDoubleArrowLeft
@@ -239,11 +239,14 @@ function Orderpage() {
                 setIsFormVisible(false);
                 resetForm();
               }}
-              className="cursor-pointer text-2xl"
+              className="cursor-pointer text-2xl text-slate-500 hover:text-slate-800"
             />
           </div>
 
-          <form onSubmit={selectedOrder ? handleEditSubmit : submitOrder}>
+          <form
+            onSubmit={selectedOrder ? handleEditSubmit : submitOrder}
+            className="app-modal-body"
+          >
             <div className="mb-4">
               <label>Product</label>
               <select

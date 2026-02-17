@@ -349,25 +349,25 @@ function Productpage({ readOnly = false }) {
 
       {/* OVERLAY */}
       {isFormVisible && (
-        <div className="fixed inset-0 bg-black/40 z-40" onClick={closeForm} />
+        <div className="app-modal-overlay" onClick={closeForm} />
       )}
 
       {/* SLIDE-IN DRAWER */}
       {isFormVisible && (
-        <div className="fixed top-0 right-0 w-full sm:w-[420px] h-full bg-white p-6 border-l shadow-2xl z-50">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">
+        <div className="app-modal-drawer app-modal-drawer-md">
+          <div className="app-modal-header">
+            <h2 className="app-modal-title">
               {selectedProduct ? "Edit Product" : "Create Product"}
             </h2>
             <MdKeyboardDoubleArrowLeft
               onClick={closeForm}
-              className="cursor-pointer text-2xl"
+              className="cursor-pointer text-2xl text-slate-500 hover:text-slate-800"
             />
           </div>
 
           <form
             onSubmit={selectedProduct ? handleEditSubmit : submitProduct}
-            className="space-y-4"
+            className="app-modal-body space-y-4"
           >
             {[
               ["Name", name, setName, "text"],

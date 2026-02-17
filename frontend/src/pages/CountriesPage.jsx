@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { countryAPI } from "../services/api";
 import toast from "react-hot-toast";
-import { Plus, Edit, Trash2, DollarSign, Globe } from "lucide-react";
+import { Plus, Edit, Trash2, DollarSign, Globe, X } from "lucide-react";
+import NoData from "../Components/NoData";
 
 const CountriesPage = () => {
   const [countries, setCountries] = useState([]);
@@ -138,7 +139,7 @@ const CountriesPage = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -251,23 +252,43 @@ const CountriesPage = () => {
 
       {/* Empty State */}
       {countries.length === 0 && (
-        <div className="text-center py-12">
-          <Globe className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600">
-            No countries found. Add your first country to get started.
-          </p>
+        <div className="text-center pt-8">
+          <NoData
+            title="No countries found"
+            description="Create your first country to get started"
+            icon={Globe}
+          />
         </div>
       )}
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h2 className="text-xl font-bold mb-4">
-              {editMode ? "Edit Country" : "Add New Country"}
-            </h2>
+        <>
+          <div
+            className="app-modal-overlay"
+            onClick={() => {
+              setShowModal(false);
+              resetForm();
+            }}
+          />
+          <div className="app-modal-drawer app-modal-drawer-md">
+            <div className="app-modal-header">
+              <h2 className="app-modal-title">
+                {editMode ? "Edit Country" : "Add New Country"}
+              </h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowModal(false);
+                  resetForm();
+                }}
+                className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="app-modal-body space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Country Name
@@ -359,7 +380,7 @@ const CountriesPage = () => {
                 </p>
               </div>
 
-              <div className="flex space-x-3 pt-4">
+              <div className="app-modal-footer -mx-5 -mb-4 mt-3 flex space-x-3">
                 <button
                   type="button"
                   onClick={() => {
@@ -379,7 +400,7 @@ const CountriesPage = () => {
               </div>
             </form>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

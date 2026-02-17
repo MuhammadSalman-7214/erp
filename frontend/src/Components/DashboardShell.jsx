@@ -159,9 +159,7 @@ function DashboardShell({
         </header>
 
         <main className="app-page flex-1 overflow-y-auto">
-          <div className="animate-fade-in-up">
-            <Outlet />
-          </div>
+          <Outlet />
         </main>
       </div>
     </div>

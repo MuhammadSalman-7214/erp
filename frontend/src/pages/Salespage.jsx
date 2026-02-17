@@ -255,29 +255,29 @@ function Salespage() {
       {/* OVERLAY */}
       {isFormVisible && (
         <div
-          className="fixed inset-0 bg-black/40 z-40"
+          className="app-modal-overlay"
           onClick={closeForm} // clicking outside closes the form
         />
       )}
 
       {/* FORM SLIDE-IN */}
       {isFormVisible && (
-        <div className="fixed top-0 right-0 w-full sm:w-[420px] h-full bg-white p-6 border-l shadow-2xl z-50 flex flex-col">
+        <div className="app-modal-drawer app-modal-drawer-md">
           {/* Header */}
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold">
+          <div className="app-modal-header">
+            <h2 className="app-modal-title">
               {selectedSales ? "Edit Sale" : "Add Sale"}
             </h2>
             <MdKeyboardDoubleArrowLeft
               onClick={closeForm}
-              className="cursor-pointer text-2xl text-gray-600 hover:text-gray-800 transition"
+              className="cursor-pointer text-2xl text-slate-500 hover:text-slate-800 transition"
             />
           </div>
 
           {/* Form */}
           <form
             onSubmit={selectedSales ? handleEditSubmit : submitsales}
-            className="flex-1 flex flex-col gap-4 overflow-y-auto"
+            className="app-modal-body flex flex-col gap-4"
           >
             {/* <div className="flex flex-col gap-1">
               <label className="text-gray-700 font-medium">Customer Name</label>

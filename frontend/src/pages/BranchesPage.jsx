@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { branchAPI, countryAPI } from "../services/api";
 import { useSelector } from "react-redux";
 import toast from "react-hot-toast";
-import { Plus, Edit, Trash2, Building2, MapPin } from "lucide-react";
+import { Plus, Edit, Trash2, Building2, MapPin, X } from "lucide-react";
 import NoData from "../Components/NoData";
 
 const BranchesPage = () => {
@@ -153,7 +153,7 @@ const BranchesPage = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -176,7 +176,7 @@ const BranchesPage = () => {
 
       {/* Filter */}
       {user.role === "superadmin" && (
-        <div className="bg-white rounded-lg shadow p-4">
+        <div className="bg-white rounded-lg shadow p-4 my-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Filter by Country
           </label>
@@ -285,13 +285,32 @@ const BranchesPage = () => {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg max-w-2xl w-full p-6 my-8">
-            <h2 className="text-xl font-bold mb-4">
-              {editMode ? "Edit Branch" : "Add New Branch"}
-            </h2>
+        <>
+          <div
+            className="app-modal-overlay"
+            onClick={() => {
+              setShowModal(false);
+              resetForm();
+            }}
+          />
+          <div className="app-modal-drawer app-modal-drawer-lg">
+            <div className="app-modal-header">
+              <h2 className="app-modal-title">
+                {editMode ? "Edit Branch" : "Add New Branch"}
+              </h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowModal(false);
+                  resetForm();
+                }}
+                className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="app-modal-body space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -472,7 +491,7 @@ const BranchesPage = () => {
                 </div>
               </div>
 
-              <div className="flex space-x-3 pt-4">
+              <div className="app-modal-footer -mx-5 -mb-4 mt-3 flex space-x-3">
                 <button
                   type="button"
                   onClick={() => {
@@ -492,7 +511,7 @@ const BranchesPage = () => {
               </div>
             </form>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

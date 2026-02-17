@@ -13,8 +13,12 @@ module.exports = {
           "50%": { transform: "scale(1.03)" },
         },
         fadeInUp: {
-          "0%": { opacity: "0", transform: "translateY(8px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        drawerIn: {
+          "0%": { opacity: "0", transform: "translateX(26px)" },
+          "100%": { opacity: "1", transform: "translateX(0)" },
         },
         glow: {
           "0%, 100%": {
@@ -29,6 +33,7 @@ module.exports = {
         "breath-slow": "breath 2s ease-in-out infinite",
         "glow-slow": "glow 2s ease-in-out infinite",
         "fade-in-up": "fadeInUp 0.5s ease-out both",
+        "drawer-in": "drawerIn 0.26s ease-out both",
       },
     },
   },
