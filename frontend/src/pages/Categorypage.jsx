@@ -13,6 +13,7 @@ import {
   CreateCategory,
   RemoveCategory,
   SearchCategory,
+  UpdateCategory,
 } from "../features/categorySlice";
 import toast from "react-hot-toast";
 import NoData from "../Components/NoData";
@@ -26,8 +27,19 @@ function Categorypage() {
   const [name, setname] = useState("");
   const [description, setdescription] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(null);
 
+  const { iscreatedCategory } = useSelector((state) => state.category);
+
+  const closeForm = () => {
+    setIsFormVisible(false);
+    setSelectedCategory(null);
+    resetForm();
+  };
+
+  useEffect(() => {
+    dispatch(gettingallCategory());
+  }, [dispatch, iscreatedCategory]);
   useEffect(() => {
     dispatch(gettingallCategory());
   }, [dispatch]);
@@ -63,6 +75,7 @@ function Categorypage() {
       .then((data) => {
         toast.success("CategoryData added successfully");
         resetForm();
+        setIsFormVisible(false);
       })
       .catch((err) => {
         console.error("Error adding category:", err);
@@ -76,7 +89,30 @@ function Categorypage() {
   };
 
   const displayCategory = query.trim() !== "" ? searchdata : getallCategory;
+  const handleEditClick = (category) => {
+    setSelectedCategory(category);
+    setname(category.name);
+    setdescription(category.description || "");
+    setIsFormVisible(true);
+  };
+  const updateCategory = (event) => {
+    event.preventDefault();
 
+    if (!selectedCategory) return;
+
+    const updatedData = {
+      name,
+      description,
+    };
+
+    dispatch(UpdateCategory({ id: selectedCategory._id, updatedData }))
+      .unwrap()
+      .then(() => {
+        toast.success("Category updated successfully");
+        closeForm();
+      })
+      .catch((err) => toast.error(err));
+  };
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -107,8 +143,9 @@ function Categorypage() {
         />
         <button
           onClick={() => {
+            setSelectedCategory(null);
+            resetForm();
             setIsFormVisible(true);
-            setSelectedProduct(null);
           }}
           className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
         >
@@ -129,7 +166,7 @@ function Categorypage() {
         <div className="fixed top-0 right-0 w-full sm:w-[420px] h-full bg-white p-6 border-l shadow-2xl z-50">
           <div className="flex justify-between items-center mb-6 border-b pb-3">
             <h2 className="text-xl font-semibold text-slate-800">
-              {selectedProduct ? "Edit Category" : "Add Category"}
+              {selectedCategory ? "Update Category" : "Add Category"}{" "}
             </h2>
 
             <MdKeyboardDoubleArrowLeft
@@ -138,7 +175,10 @@ function Categorypage() {
             />
           </div>
 
-          <form onSubmit={submitCategory} className="space-y-4">
+          <form
+            onSubmit={selectedCategory ? updateCategory : submitCategory}
+            className="space-y-4"
+          >
             {/* Name */}
             <div>
               <label className="text-sm font-medium text-slate-700">
@@ -177,7 +217,7 @@ function Categorypage() {
               className="w-full h-12 bg-teal-700 hover:bg-teal-600
           text-white rounded-xl shadow-md font-medium mt-6 transition"
             >
-              {selectedProduct ? "Update Category" : "Add Category"}
+              {selectedCategory ? "Update Category" : "Add Category"}{" "}
             </button>
           </form>
         </div>
@@ -195,7 +235,7 @@ function Categorypage() {
                     <th className="px-5 py-4 font-medium">Name</th>
                     <th className="px-5 py-4 font-medium">Total Products</th>
                     <th className="px-5 py-4 font-medium">Description</th>
-                    <th className="px-5 py-4 font-medium">Created At</th>
+                    <th className="px-5 py-4 font-medium">Created Date</th>
                     <th className="px-5 py-4 font-medium text-right">
                       Actions
                     </th>
@@ -234,6 +274,9 @@ function Categorypage() {
                           <button
                             className="p-2 rounded-xl bg-slate-100 hover:bg-teal-100 text-blue-600 transition"
                             title="Edit"
+                            onClick={() => {
+                              handleEditClick(Category);
+                            }}
                           >
                             <MdEdit size={18} />
                           </button>

@@ -5,9 +5,11 @@ import { userAPI } from "../services/userAPI";
 import { useSelector } from "react-redux";
 import toast from "react-hot-toast";
 import { MdDelete } from "react-icons/md";
-import { ToggleLeft, ToggleRight } from "lucide-react";
+import { Plus, ToggleLeft, ToggleRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const UserManagement = () => {
+  const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState(null);
@@ -75,7 +77,9 @@ const UserManagement = () => {
       toast.success("Staff permissions updated");
       fetchUsers();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to update permission");
+      toast.error(
+        error.response?.data?.message || "Failed to update permission",
+      );
     }
   };
 
@@ -83,8 +87,9 @@ const UserManagement = () => {
     return <div>Loading...</div>;
   }
 
-  const canManageStaff =
-    ["superadmin", "countryadmin", "branchadmin"].includes(user?.role);
+  const canManageStaff = ["superadmin", "countryadmin", "branchadmin"].includes(
+    user?.role,
+  );
 
   const filteredUsers = showStaffOnly
     ? users.filter((u) => u.role === "staff")
@@ -92,7 +97,20 @@ const UserManagement = () => {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">User Management</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">User Management</h1>
+
+        {/* ADD Create User BUTTON */}
+        {canManageStaff && (
+          <button
+            onClick={() => navigate("/signup")}
+            className="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 transition flex items-center gap-1"
+          >
+            <Plus className="w-6 h-6" strokeWidth={3} />
+            Create User
+          </button>
+        )}
+      </div>
 
       {/* Stats */}
       {stats && (
@@ -152,6 +170,9 @@ const UserManagement = () => {
                 Role
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Country
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Branch
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -174,6 +195,9 @@ const UserManagement = () => {
                   <span className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800">
                     {u.role}
                   </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {u.countryId ? `${u.countryId.code} ` : "-"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {u.branchId ? `${u.branchId.name} (${u.branchId.city})` : "-"}

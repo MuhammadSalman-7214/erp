@@ -63,7 +63,7 @@ const ClearingJobsPage = ({ agentView = false }) => {
             />
             <button
               onClick={createJob}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
             >
               Create Job
             </button>
@@ -92,7 +92,9 @@ const ClearingJobsPage = ({ agentView = false }) => {
                 {jobs.map((j) => (
                   <tr key={j._id} className="border-b last:border-b-0">
                     <td className="px-4 py-3">{j.jobNumber}</td>
-                    <td className="px-4 py-3">{j.shipmentId?.shipmentNumber || "-"}</td>
+                    <td className="px-4 py-3">
+                      {j.shipmentId?.shipmentNumber || "-"}
+                    </td>
                     <td className="px-4 py-3">{j.status}</td>
                     <td className="px-4 py-3">{j.priority}</td>
                     <td className="px-4 py-3 text-right">

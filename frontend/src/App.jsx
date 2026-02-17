@@ -60,10 +60,63 @@ import SetupPage from "./pages/SetupPage";
 import UserManagement from "./pages/UserManagement";
 
 function App() {
+  //   borderLeft: "6px solid #dc2626",
+
   return (
     <Router>
       <div>
-        <Toaster />
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 3000,
+            style: {
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              minWidth: "220px",
+              maxWidth: "420px",
+              padding: "14px 18px",
+              borderRadius: "12px",
+              fontSize: "14px",
+              fontWeight: "500",
+              lineHeight: "1.4",
+              background: "#7d98f1",
+              color: "#000066",
+              borderLeft: "6px solid #0000ff",
+              boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
+              margin: "0",
+            },
+
+            success: {
+              style: {
+                background: "#ccfbf1",
+                color: "#0d261a",
+                borderLeft: "6px solid #14b8a6",
+                boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+                borderTopLeftRadius: "10px",
+                borderBottomLeftRadius: "10px",
+              },
+              iconTheme: {
+                primary: "#14b8a6",
+                secondary: "#ccfbf1",
+              },
+            },
+            error: {
+              style: {
+                background: "#ffcdc7",
+                color: "#970606",
+                borderLeft: "6px solid #db3030",
+                boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+                borderTopLeftRadius: "10px",
+                borderBottomLeftRadius: "10px",
+              },
+              iconTheme: {
+                primary: "#dc2626",
+                secondary: "#ffcdc7",
+              },
+            },
+          }}
+        />
         <Routes>
           {/* ==================== PUBLIC ROUTES ==================== */}
           <Route path="/" element={<HomePage />} />

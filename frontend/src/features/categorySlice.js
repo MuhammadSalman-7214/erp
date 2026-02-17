@@ -63,6 +63,19 @@ export const SearchCategory = createAsyncThunk(
     }
   },
 );
+export const UpdateCategory = createAsyncThunk(
+  "category/updatecategory",
+  async ({ id, updatedData }, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.put(`category/${id}`, {
+        updatedData,
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message);
+    }
+  },
+);
 
 const categorySlice = createSlice({
   name: "category",
@@ -115,7 +128,14 @@ const categorySlice = createSlice({
       .addCase(SearchCategory.fulfilled, (state, action) => {
         state.searchdata = action.payload;
       })
-
+      .addCase(UpdateCategory.fulfilled, (state, action) => {
+        const index = state.getallCategory.findIndex(
+          (c) => c._id === action.payload._id,
+        );
+        if (index !== -1) {
+          state.getallCategory[index] = action.payload;
+        }
+      })
       .addCase(SearchCategory.rejected, (state, action) => {});
   },
 });

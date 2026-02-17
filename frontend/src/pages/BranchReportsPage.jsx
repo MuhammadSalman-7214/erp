@@ -3,7 +3,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { useDispatch } from "react-redux";
-import { fetchSummaryReport, fetchShipmentPnlReport } from "../features/reportSlice";
+import {
+  fetchSummaryReport,
+  fetchShipmentPnlReport,
+} from "../features/reportSlice";
+import { AnimatedNumber } from "../lib/animatedNumber.js";
+import NoData from "../Components/NoData";
 
 const formatNumber = (value) =>
   Number(value || 0).toLocaleString(undefined, {
@@ -61,13 +66,13 @@ const BranchReportsPage = () => {
         />
         <div className="flex gap-2">
           <button
-            className="px-3 py-2 bg-slate-900 text-white rounded"
+            className="px-3 py-2 bg-teal-700 hover:bg-teal-800 transition duration-300 text-white rounded"
             onClick={() => handleExport("csv")}
           >
             Export CSV
           </button>
           <button
-            className="px-3 py-2 bg-slate-900 text-white rounded"
+            className="px-3 py-2 bg-teal-700 hover:bg-teal-800 transition duration-300 text-white rounded"
             onClick={() => handleExport("pdf")}
           >
             Export PDF
@@ -90,9 +95,7 @@ const BranchReportsPage = () => {
                   <p className="text-sm text-slate-600">
                     USD {formatNumber(value.totalUSD)}
                   </p>
-                  <p className="text-xs text-slate-400">
-                    Count: {value.count}
-                  </p>
+                  <p className="text-xs text-slate-400">Count: {value.count}</p>
                 </div>
               ))}
           </div>
@@ -104,9 +107,9 @@ const BranchReportsPage = () => {
           <h2 className="text-lg font-semibold text-gray-900">
             Shipment P&L (Latest 50)
           </h2>
-          <div className="text-xs text-slate-500">
-            Total Profit USD:{" "}
-            {formatNumber(shipmentPnl?.totals?.totalProfitUSD)}
+          <div className="inline-block bg-gradient-to-r from-teal-600 via-teal-400 to-teal-600 text-teal-800 font-extrabold text-lg px-5 py-2 rounded-2xl shadow-lg transform transition duration-500 hover:scale-105 animate-breath-slow animate-glow-slow">
+            <span className="text-sm">TOTAL PROFIT USD: </span>
+            <AnimatedNumber value={shipmentPnl?.totals?.totalProfitUSD} />
           </div>
         </div>
         {isLoadingShipmentPnl ? (
@@ -149,8 +152,14 @@ const BranchReportsPage = () => {
                 ))}
                 {(!shipmentPnl?.data || shipmentPnl.data.length === 0) && (
                   <tr>
-                    <td className="py-3 text-slate-500" colSpan={8}>
-                      No shipments in this range.
+                    <td
+                      className="py-3 text-slate-500 text-center"
+                      colSpan={10}
+                    >
+                      <NoData
+                        title="Shipment"
+                        description="No shipments in this range."
+                      />
                     </td>
                   </tr>
                 )}

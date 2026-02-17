@@ -8,6 +8,7 @@ import {
   fetchShipmentPnlReport,
 } from "../features/reportSlice";
 import NoData from "../Components/NoData";
+import { AnimatedNumber } from "../lib/animatedNumber";
 
 const formatNumber = (value) =>
   Number(value || 0).toLocaleString(undefined, {
@@ -69,25 +70,25 @@ const GlobalReportsPage = () => {
         />
         <div className="flex gap-2">
           <button
-            className="px-3 py-2 bg-slate-900 text-white rounded"
+            className="px-3 py-2 bg-teal-700 hover:bg-teal-800 transition duration-300 text-white rounded"
             onClick={() => handleExport("summary", "csv")}
           >
             Export Summary CSV
           </button>
           <button
-            className="px-3 py-2 bg-slate-900 text-white rounded"
+            className="px-3 py-2 bg-teal-700 hover:bg-teal-800 transition duration-300 text-white rounded"
             onClick={() => handleExport("summary", "pdf")}
           >
             Export Summary PDF
           </button>
           <button
-            className="px-3 py-2 bg-slate-700 text-white rounded"
+            className="px-3 py-2 bg-teal-700 hover:bg-teal-800 transition duration-300 text-white rounded"
             onClick={() => handleExport("by-country", "csv")}
           >
             Export Country CSV
           </button>
           <button
-            className="px-3 py-2 bg-slate-700 text-white rounded"
+            className="px-3 py-2 bg-teal-700 hover:bg-teal-800 transition duration-300 text-white rounded"
             onClick={() => handleExport("by-country", "pdf")}
           >
             Export Country PDF
@@ -119,9 +120,9 @@ const GlobalReportsPage = () => {
           <h2 className="text-lg font-semibold text-gray-900">
             Shipment P&L (Latest 50)
           </h2>
-          <div className="text-xs text-slate-500">
-            Total Profit USD:{" "}
-            {formatNumber(shipmentPnl?.totals?.totalProfitUSD)}
+          <div className="inline-block bg-gradient-to-r from-teal-600 via-teal-400 to-teal-600 text-teal-800 font-extrabold text-lg px-5 py-2 rounded-2xl shadow-sm transform transition duration-500 hover:scale-105 animate-breath-slow animate-glow-slow">
+            <span className="text-sm">TOTAL PROFIT USD: </span>
+            <AnimatedNumber value={shipmentPnl?.totals?.totalProfitUSD} />
           </div>
         </div>
         {isLoadingShipmentPnl ? (

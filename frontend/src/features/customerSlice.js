@@ -11,7 +11,9 @@ export const fetchCustomers = createAsyncThunk(
   "customers/fetchAll",
   async (_, { rejectWithValue }) => {
     try {
-      const res = await axiosInstance.get("customer", { withCredentials: true });
+      const res = await axiosInstance.get("customer", {
+        withCredentials: true,
+      });
       return res.data.customers || [];
     } catch (error) {
       return rejectWithValue(
@@ -95,7 +97,9 @@ const customerSlice = createSlice({
         if (idx !== -1) state.customers[idx] = action.payload;
       })
       .addCase(deleteCustomer.fulfilled, (state, action) => {
-        state.customers = state.customers.filter((c) => c._id !== action.payload);
+        state.customers = state.customers.filter(
+          (c) => c._id !== action.payload,
+        );
       });
   },
 });

@@ -167,7 +167,7 @@ const BranchesPage = () => {
             resetForm();
             setShowModal(true);
           }}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="flex items-center space-x-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
         >
           <Plus className="w-5 h-5" />
           <span>Add Branch</span>
@@ -485,7 +485,7 @@ const BranchesPage = () => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
                 >
                   {editMode ? "Update" : "Create"}
                 </button>

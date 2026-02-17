@@ -154,7 +154,7 @@ const CountriesPage = () => {
             resetForm();
             setShowModal(true);
           }}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="flex items-center space-x-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
         >
           <Plus className="w-5 h-5" />
           <span>Add Country</span>
@@ -170,8 +170,8 @@ const CountriesPage = () => {
           >
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Globe className="w-6 h-6 text-blue-600" />
+                <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center">
+                  <Globe className="w-6 h-6 text-teal-600" />
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">
@@ -372,7 +372,7 @@ const CountriesPage = () => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
                 >
                   {editMode ? "Update" : "Create"}
                 </button>

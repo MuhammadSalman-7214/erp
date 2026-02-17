@@ -7,7 +7,7 @@ function Navbar() {
       <nav className="flex justify-between items-center py-4 px-10">
         <img src={logo1} className="w-56" alt="sample logo"></img>
         <div>
-          <button className="text-white px-6 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none transition duration-300 mr-4">
+          <button className="text-white px-6 py-2 bg-teal-600 rounded-lg hover:bg-teal-700 focus:outline-none transition duration-300 mr-4">
             {" "}
             <Link to="/signup">Get Started</Link>
           </button>

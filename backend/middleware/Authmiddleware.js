@@ -42,8 +42,6 @@ const checkRole = (...allowedRoles) => {
 const checkPermission = (resource, action = "read") => {
   return async (req, res, next) => {
     const { role, countryId, branchId } = req.user;
-
-    // Define hierarchical permissions
     const permissions = {
       superadmin: {
         // Full global access
@@ -55,7 +53,7 @@ const checkPermission = (resource, action = "read") => {
         sales: ["read"],
         order: ["read"],
         supplier: ["read", "write", "delete"],
-        customer: ["read", "write", "delete"],
+        customer: ["read"],
         shipment: ["read"],
         clearingJob: ["read"],
         invoice: ["read"],
@@ -101,7 +99,7 @@ const checkPermission = (resource, action = "read") => {
         clearingJob: ["read", "write", "delete"],
         invoice: ["read", "write", "delete"],
         stockTransaction: ["read", "write", "delete"],
-        category: ["read", "write"],
+        category: ["read", "write", "delete"],
         purchase: ["read", "write", "delete"],
         ledger: ["read"],
         notification: ["read"],
@@ -112,7 +110,8 @@ const checkPermission = (resource, action = "read") => {
       staff: {
         // Limited operational access
         dashboard: ["read"],
-        product: ["read", "write"],
+        product: ["read"],
+        category: ["read"],
         sales: ["read", "write"],
         order: ["read", "write"],
         supplier: ["read"],

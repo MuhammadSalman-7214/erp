@@ -201,7 +201,7 @@ const ClearingJobDetailPage = () => {
               />
               <button
                 onClick={addNote}
-                className="px-4 py-2 bg-blue-600 text-white rounded"
+                className="px-4 py-2 bg-teal-600 text-white rounded"
               >
                 Add Note
               </button>
@@ -246,7 +246,7 @@ const ClearingJobDetailPage = () => {
                 <div>
                   <button
                     onClick={addDocument}
-                    className="px-4 py-2 bg-blue-600 text-white rounded"
+                    className="px-4 py-2 bg-teal-600 text-white rounded"
                   >
                     Add Document
                   </button>
@@ -303,7 +303,7 @@ const ClearingJobDetailPage = () => {
                 <div>
                   <button
                     onClick={addExpense}
-                    className="px-4 py-2 bg-blue-600 text-white rounded"
+                    className="px-4 py-2 bg-teal-600 text-white rounded"
                   >
                     Add Expense
                   </button>

@@ -11,8 +11,7 @@ module.exports.createCustomer = async (req, res) => {
         .json({ message: "Only branch staff can create customers" });
     }
     const { name, contactInfo } = req.body;
-    const { userId, branchId, countryId } =
-      req.user || {};
+    const { userId, branchId, countryId } = req.user || {};
 
     if (!name) {
       return res.status(400).json({ message: "Name is required" });
@@ -51,13 +50,33 @@ module.exports.createCustomer = async (req, res) => {
 
     res.status(201).json({ success: true, customer });
   } catch (error) {
-    res.status(500).json({ message: "Error creating customer", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error creating customer", error: error.message });
   }
 };
+
+// module.exports.getAllCustomers = async (req, res) => {
+//   try {
+//     const { role, countryId, branchId } = req.user || {};
+//     const query = { isActive: true };
+//     if (role === "countryadmin") {
+//       query.countryId = countryId;
+//     } else if (["branchadmin", "staff"].includes(role)) {
+//       query.countryId = countryId;
+//       query.branchId = branchId;
+//     }
+//     const customers = await Customer.find(query).sort({ createdAt: -1 });
+//     res.status(200).json({ success: true, customers });
+//   } catch (error) {
+//     res.status(500).json({ message: "Error fetching customers", error: error.message });
+//   }
+// };
 
 module.exports.getAllCustomers = async (req, res) => {
   try {
     const { role, countryId, branchId } = req.user || {};
+
     const query = { isActive: true };
     if (role === "countryadmin") {
       query.countryId = countryId;
@@ -65,24 +84,50 @@ module.exports.getAllCustomers = async (req, res) => {
       query.countryId = countryId;
       query.branchId = branchId;
     }
-    const customers = await Customer.find(query).sort({ createdAt: -1 });
-    res.status(200).json({ success: true, customers });
+
+    const customers = await Customer.find(query)
+      .populate({
+        path: "countryId",
+        select: "name currencyCode currencySymbol",
+      })
+      .populate({
+        path: "branchId",
+        select: "name location",
+      })
+      .populate({
+        path: "createdBy",
+        select: "name email role",
+      })
+
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      count: customers.length,
+      customers,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Error fetching customers", error: error.message });
+    res.status(500).json({
+      message: "Error fetching customers",
+      error: error.message,
+    });
   }
 };
-
 module.exports.getCustomerById = async (req, res) => {
   try {
     const { id } = req.params;
     const { role, countryId, branchId } = req.user || {};
     const customer = await Customer.findById(id);
-    if (!customer) return res.status(404).json({ message: "Customer not found" });
+    if (!customer)
+      return res.status(404).json({ message: "Customer not found" });
     if (
       role === "countryadmin" &&
       customer.countryId?.toString() !== countryId?.toString()
     ) {
-      return res.status(403).json({ message: "Access denied for this country" });
+      return res
+        .status(403)
+        .json({ message: "Access denied for this country" });
     }
     if (
       ["branchadmin", "staff"].includes(role) &&
@@ -92,7 +137,9 @@ module.exports.getCustomerById = async (req, res) => {
     }
     res.status(200).json({ success: true, customer });
   } catch (error) {
-    res.status(500).json({ message: "Error fetching customer", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error fetching customer", error: error.message });
   }
 };
 
@@ -101,12 +148,15 @@ module.exports.updateCustomer = async (req, res) => {
     const { id } = req.params;
     const { role, countryId, branchId, userId } = req.user || {};
     const existing = await Customer.findById(id);
-    if (!existing) return res.status(404).json({ message: "Customer not found" });
+    if (!existing)
+      return res.status(404).json({ message: "Customer not found" });
     if (
       role === "countryadmin" &&
       existing.countryId?.toString() !== countryId?.toString()
     ) {
-      return res.status(403).json({ message: "Access denied for this country" });
+      return res
+        .status(403)
+        .json({ message: "Access denied for this country" });
     }
     if (
       ["branchadmin", "staff"].includes(role) &&
@@ -136,7 +186,9 @@ module.exports.updateCustomer = async (req, res) => {
 
     res.status(200).json({ success: true, customer: existing });
   } catch (error) {
-    res.status(500).json({ message: "Error updating customer", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error updating customer", error: error.message });
   }
 };
 
@@ -145,12 +197,15 @@ module.exports.deleteCustomer = async (req, res) => {
     const { id } = req.params;
     const { role, countryId, branchId, userId } = req.user || {};
     const existing = await Customer.findById(id);
-    if (!existing) return res.status(404).json({ message: "Customer not found" });
+    if (!existing)
+      return res.status(404).json({ message: "Customer not found" });
     if (
       role === "countryadmin" &&
       existing.countryId?.toString() !== countryId?.toString()
     ) {
-      return res.status(403).json({ message: "Access denied for this country" });
+      return res
+        .status(403)
+        .json({ message: "Access denied for this country" });
     }
     if (role !== "branchadmin") {
       return res.status(403).json({ message: "Access denied" });
@@ -172,6 +227,8 @@ module.exports.deleteCustomer = async (req, res) => {
 
     res.status(200).json({ success: true, message: "Customer deactivated" });
   } catch (error) {
-    res.status(500).json({ message: "Error deleting customer", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error deleting customer", error: error.message });
   }
 };

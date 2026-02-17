@@ -39,7 +39,7 @@ const ShipmentsPage = () => {
         {hasPermission("shipment", "write") && (
           <button
             onClick={() => navigate("../createShipment")}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
           >
             Create Shipment
           </button>

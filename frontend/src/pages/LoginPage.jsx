@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 
 function LoginPage() {
   const { user } = useSelector((state) => state.auth);
+  const { isLoginLoading } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -31,7 +32,6 @@ function LoginPage() {
   const onSubmit = async (data) => {
     try {
       const result = await dispatch(login(data)).unwrap();
-
       // ✅ FIXED: Updated role redirects to match new hierarchy
       const roleRedirects = {
         superadmin: "/SuperAdminDashboard",
@@ -127,9 +127,37 @@ function LoginPage() {
 
             <button
               type="submit"
-              className="w-full bg-teal-600 text-white p-3 rounded-md hover:bg-teal-700 transition duration-300"
+              disabled={isLoginLoading} // disable while loading
+              className={`w-full p-3 rounded-md text-white transition duration-300 
+    ${isLoginLoading ? "bg-teal-600 cursor-not-allowed" : "bg-teal-600 hover:bg-teal-700"}`}
             >
-              Sign in
+              {isLoginLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg
+                    className="animate-spin h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z"
+                    ></path>
+                  </svg>
+                  Signing in...
+                </span>
+              ) : (
+                "Sign in"
+              )}
             </button>
           </form>
 

@@ -26,8 +26,7 @@ module.exports.createSale = async (req, res) => {
       paymentMethod,
       paymentStatus,
       status,
-    } =
-      req.body;
+    } = req.body;
     const { branchId, countryId, userId } = req.user || {};
 
     if (!branchId || !countryId) {
@@ -443,8 +442,7 @@ module.exports.updateSale = async (req, res) => {
     }
 
     // 5️⃣ Update sale
-    const rate =
-      existingSale.exchangeRateUsed || userCurrencyExchangeRate || 1;
+    const rate = existingSale.exchangeRateUsed || userCurrencyExchangeRate || 1;
     const priceUSD = Number((updatedTotalAmount / rate).toFixed(2));
     const updatedSale = await Sale.findByIdAndUpdate(
       id,
@@ -460,7 +458,10 @@ module.exports.updateSale = async (req, res) => {
     // 6️⃣ Populate for frontend
     const populatedSale = await Sale.findById(id).populate("products.product");
 
-    if (existingSale.workflowStatus === "Approved" && updatedData.revisionReason) {
+    if (
+      existingSale.workflowStatus === "Approved" &&
+      updatedData.revisionReason
+    ) {
       const changes = Object.keys(updatedData)
         .filter((key) => !["revisionReason", "workflowStatus"].includes(key))
         .map((key) => ({
@@ -573,9 +574,8 @@ module.exports.SearchSales = async (req, res) => {
       searchQuery.countryId = countryId;
     }
 
-    const searchdata = await Sale.find(searchQuery).populate(
-      "products.product",
-    );
+    const searchdata =
+      await Sale.find(searchQuery).populate("products.product");
 
     res.status(200).json({ success: true, sales: searchdata });
   } catch (error) {

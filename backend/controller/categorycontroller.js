@@ -50,6 +50,7 @@ module.exports.createCategory = async (req, res) => {
 module.exports.RemoveCategory = async (req, res) => {
   try {
     const { CategoryId } = req.params;
+
     const userId = req.user.userId;
     const ipAddress = req.ip;
     const { role, countryId, branchId } = req.user;
@@ -58,6 +59,7 @@ module.exports.RemoveCategory = async (req, res) => {
     if (!existingCategory) {
       return res.status(404).json({ message: "Category is not found!" });
     }
+
     if (
       role === "countryadmin" &&
       existingCategory.countryId?.toString() !== countryId?.toString()
@@ -158,7 +160,7 @@ module.exports.getCategory = async (req, res) => {
 
 module.exports.updateCategory = async (req, res) => {
   try {
-    const { updatedCategory } = req.body;
+    const { updatedData } = req.body;
     const { CategoryId } = req.params;
     const userId = req.user.userId;
     const ipAddress = req.ip;
@@ -185,7 +187,7 @@ module.exports.updateCategory = async (req, res) => {
         .json({ message: "Access denied for this branch." });
     }
 
-    if (updatedCategory?.countryId || updatedCategory?.branchId) {
+    if (updatedData?.countryId || updatedData?.branchId) {
       return res.status(400).json({
         message: "Country and branch cannot be changed for a category.",
       });
@@ -193,7 +195,7 @@ module.exports.updateCategory = async (req, res) => {
 
     const updatingCategory = await Category.findByIdAndUpdate(
       CategoryId,
-      updatedCategory,
+      updatedData,
       { new: true },
     );
 
@@ -210,7 +212,7 @@ module.exports.updateCategory = async (req, res) => {
       ipAddress: ipAddress,
     });
 
-    res.status(200).json({ message: "Category successfully updated" });
+    res.status(200).json(updatingCategory);
   } catch (error) {
     res.status(500).json({
       message: "Error in update status Category",

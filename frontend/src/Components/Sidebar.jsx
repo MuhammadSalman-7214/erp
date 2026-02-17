@@ -83,85 +83,11 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
 
       <nav className="space-y-1 p-2">
         <NavItem
-          to="/ManagerDashboard"
+          to="/StaffDashboard"
           icon={<RiDashboard3Fill />}
           label="Dashboard"
           sidebarOpen={sidebarOpen}
         />
-
-        {user?.role === "manager" && (
-          <>
-            <NavItem
-              to="/ManagerDashboard/product"
-              icon={<AiOutlineProduct />}
-              label="Product"
-              sidebarOpen={sidebarOpen}
-            />
-            {/* 
-            <NavItem
-              to="/ManagerDashboard/activity-log"
-              icon={<RxActivityLog />}
-              label="Activity Log"
-              sidebarOpen={sidebarOpen}
-            /> */}
-
-            <NavItem
-              to="/ManagerDashboard/supplier"
-              icon={<TfiSupport />}
-              label="Supplier"
-              sidebarOpen={sidebarOpen}
-            />
-
-            <NavItem
-              to="/ManagerDashboard/sales"
-              icon={<MdPointOfSale />}
-              label="Sales"
-              sidebarOpen={sidebarOpen}
-            />
-
-            <NavItem
-              to="/ManagerDashboard/invoices"
-              icon={<PiInvoiceBold />}
-              label="Invoices"
-              sidebarOpen={sidebarOpen}
-            />
-
-            <NavItem
-              to="/ManagerDashboard/order"
-              icon={<FiShoppingCart />}
-              label="Order"
-              sidebarOpen={sidebarOpen}
-            />
-
-            <NavItem
-              to="/ManagerDashboard/stock-transaction"
-              icon={<RiStockLine />}
-              label="Stock Transaction"
-              sidebarOpen={sidebarOpen}
-            />
-
-            <NavItem
-              to="/ManagerDashboard/NotificationPageRead"
-              icon={<IoNotificationsOutline />}
-              label="Notifications"
-              sidebarOpen={sidebarOpen}
-            />
-
-            <NavItem
-              to="/ManagerDashboard/category"
-              icon={<MdOutlineCategory />}
-              label="Category"
-              sidebarOpen={sidebarOpen}
-            />
-
-            <NavItem
-              to="/ManagerDashboard/Userstatus"
-              icon={<LuUsers />}
-              label="Users"
-              sidebarOpen={sidebarOpen}
-            />
-          </>
-        )}
 
         {user?.role === "admin" && (
           <>

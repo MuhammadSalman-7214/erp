@@ -27,8 +27,6 @@ function Supplierpage({ readOnly = false }) {
 
   const { getallSupplier, editedsupplier, iscreatedsupplier, searchdata } =
     useSelector((state) => state.supplier);
-  console.log({ getallSupplier });
-
   const dispatch = useDispatch();
 
   const [query, setQuery] = useState("");

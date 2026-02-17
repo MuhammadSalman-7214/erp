@@ -35,6 +35,7 @@ function Productpage({ readOnly = false }) {
     useSelector((state) => state.product);
 
   const { getallCategory } = useSelector((state) => state.category);
+  const { user } = useSelector((state) => state.auth);
 
   const dispatch = useDispatch();
 
@@ -188,8 +189,13 @@ function Productpage({ readOnly = false }) {
               <FaMoneyBill1Wave />
             </span>
 
-            <h2 className="text-2xl sm:text-3xl font-bold">
-              ${getallproduct?.reduce((total, p) => total + p.Price, 0) || 0}
+            <h2 className="flex items-center ext-2xl sm:text-3xl font-bold">
+              <span className=" ml-1">{user?.country?.currencySymbol}</span>
+              <span className=" ml-1">
+                {new Intl.NumberFormat().format(
+                  getallproduct?.reduce((total, p) => total + p.Price, 0) || 0,
+                )}
+              </span>
             </h2>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">

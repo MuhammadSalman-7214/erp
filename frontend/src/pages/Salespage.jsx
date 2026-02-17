@@ -43,6 +43,7 @@ function Salespage() {
   const [selectedSales, setselectedSales] = useState(null);
   const { getallCategory } = useSelector((state) => state.category);
   const { customers } = useSelector((state) => state.customers);
+
   useEffect(() => {
     dispatch(gettingallCategory());
     dispatch(gettingallproducts()); // fetch products for the dropdown
@@ -72,7 +73,11 @@ function Salespage() {
       customerName: name,
       customerId: customerId || null,
       products: [
-        { product: Product, quantity: Number(quantity), price: Number(Price) },
+        {
+          product: Product,
+          quantity: Number(quantity),
+          price: Number(unitPrice),
+        },
       ],
       paymentMethod: Payment,
       paymentStatus,
@@ -100,7 +105,11 @@ function Salespage() {
       customerName: name,
       customerId: customerId || null,
       products: [
-        { product: Product, quantity: Number(quantity), price: Number(Price) },
+        {
+          product: Product,
+          quantity: Number(quantity),
+          price: Number(unitPrice),
+        },
       ],
       paymentMethod: Payment,
       paymentStatus,
@@ -270,7 +279,7 @@ function Salespage() {
             onSubmit={selectedSales ? handleEditSubmit : submitsales}
             className="flex-1 flex flex-col gap-4 overflow-y-auto"
           >
-            <div className="flex flex-col gap-1">
+            {/* <div className="flex flex-col gap-1">
               <label className="text-gray-700 font-medium">Customer Name</label>
               <input
                 type="text"
@@ -280,23 +289,30 @@ function Salespage() {
                 className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
                 required
               />
-            </div>
+            </div> */}
             <div className="flex flex-col gap-1">
               <label className="text-gray-700 font-medium">Customer</label>
+
               <select
                 value={customerId}
                 onChange={(e) => {
                   const id = e.target.value;
                   setCustomerId(id);
-                  const customer = customers?.find((c) => c._id === id);
-                  if (customer) setName(customer.name);
+
+                  const selectedCustomer = customers.find((c) => c._id === id);
+
+                  if (selectedCustomer) {
+                    // auto-fill name field
+                    setName(selectedCustomer.name);
+                  }
                 }}
                 className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
               >
-                <option value="">Select customer (optional)</option>
-                {customers?.map((c) => (
+                <option value="">Select Customer</option>
+
+                {customers.map((c) => (
                   <option key={c._id} value={c._id}>
-                    {c.name}
+                    {c.name} — {c.branchId?.name} ({c.countryId?.name})
                   </option>
                 ))}
               </select>
@@ -331,9 +347,7 @@ function Salespage() {
 
                   if (selectedProduct) {
                     setUnitPrice(selectedProduct.Price);
-                    setPrice(
-                      quantity ? selectedProduct.Price * Number(quantity) : "",
-                    );
+                    setPrice(selectedProduct.Price);
                   }
                 }}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2"
@@ -359,11 +373,10 @@ function Salespage() {
                   const qty = Number(e.target.value);
                   setQuantity(qty);
 
-                  if (unitPrice) {
-                    setPrice(unitPrice * qty);
-                  }
+                  // Keep Price as unit price
+                  setPrice(unitPrice);
 
-                  // Optional: client-side check if you have product stock loaded
+                  // Optional: client-side check for stock
                   const productObj = getallproduct.find(
                     (p) => p._id === Product,
                   );
@@ -382,14 +395,12 @@ function Salespage() {
               <p className="text-red-600 text-sm mt-1">{formErrors.quantity}</p>
             )}
             <div className="flex flex-col gap-1">
-              <label className="text-gray-700 font-medium">Price</label>
+              <label className="text-gray-700 font-medium">Line Total</label>
               <input
                 type="number"
-                value={Price}
+                value={unitPrice * quantity}
                 readOnly
-                // placeholder="Enter price"
                 className="w-full h-11 px-3 border rounded-xl bg-gray-100 cursor-not-allowed"
-                required
               />
             </div>
 
@@ -494,7 +505,7 @@ function Salespage() {
                       {sale.products?.[0]?.quantity || "-"}{" "}
                     </td>
                     <td className="px-5 py-4 font-semibold text-slate-800">
-                      ${sale.totalAmount || 0}
+                      {`${sale?.currency} ${sale.totalAmount || 0}`}
                     </td>
                     <td className="px-5 py-4">{sale.status}</td>
                     <td className="px-5 py-4 text-slate-600">

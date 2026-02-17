@@ -25,7 +25,7 @@ function StaffDashboard() {
           />
         </div>
 
-        <main className="pt-[8vh] h-full overflow-y-auto">
+        <main className="pt-[8vh] h-full overflow-y-auto mt-6">
           <Outlet />
         </main>
       </div>

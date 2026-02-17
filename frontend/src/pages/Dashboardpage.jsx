@@ -54,7 +54,7 @@ function Dashboardpage() {
             USER STATS
         ================================ */}
         {canViewUsers && userStats && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             {userStats.staff > 0 && (
               <StatCard title="Staff" count={userStats.staff} color="blue" />
             )}
@@ -84,7 +84,7 @@ function Dashboardpage() {
         {/* ===============================
             CHARTS
         ================================ */}
-        <div className="mt-16 flex justify-between w-full gap-6">
+        <div className="flex justify-between w-full gap-6">
           <SalesChart />
           <Gettopproduct />
         </div>
@@ -105,7 +105,7 @@ function Dashboardpage() {
                   className="bg-white shadow-lg rounded-lg p-6 hover:shadow-xl transition"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="p-3 bg-blue-100 rounded-full">
+                    <div className="p-3 bg-teal-100 rounded-full">
                       <LuActivity className="text-blue-500 text-2xl" />
                     </div>
                     <div>

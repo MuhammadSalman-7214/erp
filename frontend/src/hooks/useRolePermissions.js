@@ -11,7 +11,7 @@ const ROLE_PERMISSIONS = {
     stockTransaction: { read: true, write: true, delete: true },
     category: { read: true, write: true, delete: true },
     supplier: { read: true, write: true, delete: true },
-    customer: { read: true, write: true, delete: true },
+    customer: { read: true, write: false, delete: false },
     invoice: { read: true, write: true, delete: true },
     invoiceApprove: { read: true, write: true, delete: false },
     purchase: { read: true, write: true, delete: true },
