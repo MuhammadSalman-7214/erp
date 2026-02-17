@@ -2,3 +2,106 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
+
+@layer base {
+  :root {
+    --app-bg: #f4f7fb;
+    --app-surface: #ffffff;
+    --app-surface-soft: #f8fbff;
+    --app-text: #0f172a;
+    --app-text-muted: #64748b;
+    --app-border: #d6e1ef;
+    --app-primary: #0d9488;
+    --app-primary-strong: #0f766e;
+    --app-accent: #0ea5e9;
+    --app-danger: #dc2626;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body {
+    font-family:
+      "Manrope",
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      sans-serif;
+    background:
+      radial-gradient(circle at 10% 0%, #eef2f1 0%, transparent 30%),
+      radial-gradient(circle at 90% 10%, #cdd4dd 0%, transparent 35%),
+      linear-gradient(180deg, #f8fbff 0%, var(--app-bg) 100%);
+    color: var(--app-text);
+    @apply antialiased;
+  }
+}
+
+@layer components {
+  .app-page {
+    @apply p-4 md:p-6 lg:p-8 space-y-6;
+  }
+
+  .app-card {
+    background: var(--app-surface);
+    /* border: 1px solid var(--app-border); */
+    box-shadow: 0 10px 35px rgba(15, 23, 42, 0.08);
+    @apply rounded-2xl;
+  }
+
+  .app-card-soft {
+    background: var(--app-surface-soft);
+    border: 1px solid #dbe7f5;
+    @apply rounded-2xl;
+  }
+
+  .app-input {
+    border: 1px solid var(--app-border);
+    background: #ffffff;
+    color: var(--app-text);
+    @apply w-full rounded-xl px-3 py-2.5 text-sm transition duration-200 focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500;
+  }
+
+  .app-button {
+    background: linear-gradient(
+      120deg,
+      var(--app-primary-strong),
+      var(--app-primary)
+    );
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition duration-200 hover:brightness-110 active:scale-[0.99];
+  }
+
+  .app-button-secondary {
+    border: 1px solid #bfd7ee;
+    color: #0f3f66;
+    background: #eef6ff;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition duration-200 hover:bg-[#e1effe];
+  }
+
+  .app-metric-card {
+    @apply app-card-soft p-4;
+  }
+
+  .app-table-wrap {
+    @apply overflow-x-auto rounded-xl border border-slate-200;
+  }
+
+  .app-table {
+    @apply min-w-full text-sm;
+  }
+
+  .app-table thead tr {
+    @apply bg-slate-50 text-slate-600;
+  }
+
+  .app-table th {
+    @apply px-3 py-3 text-left font-semibold whitespace-nowrap;
+  }
+
+  .app-table td {
+    @apply px-3 py-3 whitespace-nowrap text-slate-700 border-t border-slate-100;
+  }
+}

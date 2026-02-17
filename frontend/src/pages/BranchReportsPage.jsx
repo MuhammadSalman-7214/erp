@@ -45,115 +45,135 @@ const BranchReportsPage = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Branch Reports</h1>
-      <p className="text-gray-600">
-        Reports for {user?.branch?.name || "all branches"}
-      </p>
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-2xl font-extrabold text-slate-900">
+          Branch Reports
+        </h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Financial and shipment insights for{" "}
+          {user?.branch?.name || "all branches"}
+        </p>
+      </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <input
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-          className="border rounded px-3 py-2"
-        />
-        <input
-          type="date"
-          value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
-          className="border rounded px-3 py-2"
-        />
-        <div className="flex gap-2">
-          <button
-            className="px-3 py-2 bg-teal-700 hover:bg-teal-800 transition duration-300 text-white rounded"
-            onClick={() => handleExport("csv")}
-          >
-            Export CSV
-          </button>
-          <button
-            className="px-3 py-2 bg-teal-700 hover:bg-teal-800 transition duration-300 text-white rounded"
-            onClick={() => handleExport("pdf")}
-          >
-            Export PDF
-          </button>
+      <div className="app-card p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Start Date
+              </span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="app-input"
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                End Date
+              </span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="app-input"
+              />
+            </label>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              className="app-button-secondary"
+              onClick={() => handleExport("csv")}
+            >
+              Export CSV
+            </button>
+            <button className="app-button" onClick={() => handleExport("pdf")}>
+              Export PDF
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="app-card p-5">
         {isLoadingSummary ? (
-          <p className="text-gray-600">Loading summary...</p>
+          <p className="text-sm text-slate-500">Loading summary...</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {summary?.totals &&
               Object.entries(summary.totals).map(([key, value]) => (
-                <div key={key} className="border rounded p-4">
-                  <p className="text-sm text-slate-500 uppercase">{key}</p>
-                  <p className="text-lg font-semibold">
+                <div key={key} className="app-metric-card">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    {key}
+                  </p>
+                  <p className="mt-1 text-lg font-extrabold text-slate-900">
                     Local {formatNumber(value.totalLocal)}
                   </p>
                   <p className="text-sm text-slate-600">
                     USD {formatNumber(value.totalUSD)}
                   </p>
-                  <p className="text-xs text-slate-400">Count: {value.count}</p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Count: {value.count}
+                  </p>
                 </div>
               ))}
           </div>
         )}
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="app-card p-5">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">
+          <h2 className="text-lg font-bold text-slate-900">
             Shipment P&L (Latest 50)
           </h2>
-          <div className="inline-block bg-gradient-to-r from-teal-600 via-teal-400 to-teal-600 text-teal-800 font-extrabold text-lg px-5 py-2 rounded-2xl shadow-lg transform transition duration-500 hover:scale-105 animate-breath-slow animate-glow-slow">
-            <span className="text-sm">TOTAL PROFIT USD: </span>
+          <div className="rounded-xl bg-emerald-50 px-4 py-2 text-right ring-1 ring-emerald-200 ">
+            <span className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+              Total Profit USD:{" "}
+            </span>
             <AnimatedNumber value={shipmentPnl?.totals?.totalProfitUSD} />
           </div>
         </div>
         {isLoadingShipmentPnl ? (
-          <p className="text-gray-600">Loading shipment P&L...</p>
+          <p className="text-sm text-slate-500">Loading shipment P&L...</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
+          <div className="app-table-wrap">
+            <table className="app-table">
               <thead>
-                <tr className="text-left text-slate-500">
-                  <th className="py-2">Shipment</th>
-                  <th className="py-2">Type</th>
-                  <th className="py-2">Mode</th>
-                  <th className="py-2">Revenue</th>
-                  <th className="py-2">Cost</th>
-                  <th className="py-2">Profit</th>
-                  <th className="py-2">Profit USD</th>
-                  <th className="py-2">Status</th>
+                <tr>
+                  <th>Shipment</th>
+                  <th>Type</th>
+                  <th>Mode</th>
+                  <th>Revenue</th>
+                  <th>Cost</th>
+                  <th>Profit</th>
+                  <th>Profit USD</th>
+                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {(shipmentPnl?.data || []).map((row) => (
-                  <tr key={row._id} className="border-t">
-                    <td className="py-2">{row.shipmentNumber}</td>
-                    <td className="py-2">{row.shipmentType}</td>
-                    <td className="py-2">{row.transportMode}</td>
-                    <td className="py-2">
+                  <tr key={row._id}>
+                    <td>{row.shipmentNumber}</td>
+                    <td>{row.shipmentType}</td>
+                    <td>{row.transportMode}</td>
+                    <td>
                       {row.currency} {formatNumber(row.sellingPrice)}
                     </td>
-                    <td className="py-2">
+                    <td>
                       {row.currency} {formatNumber(row.totalCost)}
                     </td>
-                    <td className="py-2">
+                    <td>
                       {row.currency} {formatNumber(row.profitLoss)}
                     </td>
-                    <td className="py-2">
-                      USD {formatNumber(row.profitLossUSD)}
-                    </td>
-                    <td className="py-2">{row.status}</td>
+                    <td>USD {formatNumber(row.profitLossUSD)}</td>
+                    <td>{row.status}</td>
                   </tr>
                 ))}
                 {(!shipmentPnl?.data || shipmentPnl.data.length === 0) && (
                   <tr>
                     <td
-                      className="py-3 text-slate-500 text-center"
+                      className="px-2 py-4 text-center text-slate-500"
                       colSpan={10}
                     >
                       <NoData

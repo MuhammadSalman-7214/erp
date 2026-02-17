@@ -99,10 +99,17 @@ function HomePage() {
 export default HomePage;
 
 function Feature({ icon, title, desc, color }) {
+  const colorClasses = {
+    teal: "bg-teal-50 text-teal-700",
+    blue: "bg-sky-50 text-sky-700",
+    emerald: "bg-emerald-50 text-emerald-700",
+    purple: "bg-indigo-50 text-indigo-700",
+  };
+
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-5 sm:p-6 shadow-sm hover:shadow-md transition">
+    <div className="app-card rounded-xl p-5 sm:p-6 shadow-sm hover:shadow-md transition">
       <div className="flex items-center gap-4 mb-3">
-        <div className={`p-3 rounded-lg bg-${color}-50 text-${color}-700`}>
+        <div className={`rounded-lg p-3 ${colorClasses[color] || colorClasses.teal}`}>
           {icon}
         </div>
         <h3 className="font-semibold text-slate-800">{title}</h3>

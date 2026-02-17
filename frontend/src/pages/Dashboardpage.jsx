@@ -48,8 +48,8 @@ function Dashboardpage() {
   const logsToShow = canViewActivity ? recentLogs : myLogs?.slice(0, 6);
 
   return (
-    <div className="bg-base-100">
-      <div className="bg-gray-50 p-4">
+    <div className="">
+      <div className="p-4">
         {/* ===============================
             USER STATS
         ================================ */}
@@ -94,7 +94,7 @@ function Dashboardpage() {
           ACTIVITY LOGS
       ================================ */}
       {logsToShow && (
-        <div className="p-4 bg-gray-50">
+        <div className="p-4">
           <h1 className="text-2xl font-bold mb-6">Recent Activity</h1>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
