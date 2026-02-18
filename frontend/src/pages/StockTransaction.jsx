@@ -82,7 +82,7 @@ function StockTransaction({ readOnly = false }) {
 
   const displaystock = query.trim() !== "" ? searchdata : getallStocks;
   return (
-    <div className="min-h-[92vh] bg-gray-100 p-4">
+    <div className="min-h-[92vh] p-4">
       <Stocktanscationgraph />
 
       <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">

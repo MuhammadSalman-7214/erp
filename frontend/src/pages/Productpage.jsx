@@ -163,7 +163,7 @@ function Productpage({ readOnly = false }) {
   const displayProducts = query.trim() !== "" ? searchdata : getallproduct;
 
   return (
-    <div className="min-h-[92vh] bg-gray-100 p-4">
+    <div className="min-h-[92vh] p-4">
       {/* KPI CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
         {/* Total Products */}

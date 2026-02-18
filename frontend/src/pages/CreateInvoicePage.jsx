@@ -126,7 +126,7 @@ function CreateInvoicePage() {
   };
 
   return (
-    <div className="min-h-[92vh] bg-gray-100 p-4">
+    <div className="min-h-[92vh] p-4">
       <div className="p-6 max-w-6xl mx-auto">
         <div className="bg-white rounded-2xl shadow p-6">
           <h1 className="text-2xl font-bold mb-6 text-gray-800">

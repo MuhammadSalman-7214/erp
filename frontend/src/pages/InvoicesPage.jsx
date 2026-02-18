@@ -102,7 +102,7 @@ function InvoicesPage() {
     );
   });
   return (
-    <div className="min-h-[92vh] bg-gray-100 p-4">
+    <div className="min-h-[92vh] p-4">
       <div className="flex flex-col md:flex-row md:items-center gap-2">
         <input
           type="text"

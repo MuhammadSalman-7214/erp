@@ -105,8 +105,8 @@ function App() {
               style: {
                 background: "#fff1f1",
                 color: "#7f1d1d",
-                borderLeft: "6px solid #db3030",
-                borderColor: "#fecaca",
+                borderLeft: "6px solid #240202",
+                borderColor: "#dc2626",
                 boxShadow: "0 10px 25px rgba(220,38,38,0.15)",
               },
               iconTheme: {

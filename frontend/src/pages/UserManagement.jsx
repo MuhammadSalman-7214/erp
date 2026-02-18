@@ -5,21 +5,194 @@ import { userAPI } from "../services/userAPI";
 import { useSelector } from "react-redux";
 import toast from "react-hot-toast";
 import { MdDelete } from "react-icons/md";
-import { Plus, ToggleLeft, ToggleRight } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Plus, ToggleLeft, ToggleRight, X } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+import { authAPI, branchAPI, countryAPI } from "../services/api";
+
+const createUserSchema = yup.object().shape({
+  name: yup.string().required("Name is required"),
+  email: yup.string().email("Invalid email").required("Email is required"),
+  password: yup
+    .string()
+    .min(6, "Password must be at least 6 characters")
+    .required("Password is required"),
+  role: yup.string().required("Role is required"),
+  countryId: yup.string().when("role", {
+    is: (role) => ["countryadmin", "branchadmin", "staff", "agent"].includes(role),
+    then: (schema) => schema.required("Country is required for this role"),
+    otherwise: (schema) => schema.notRequired(),
+  }),
+  branchId: yup.string().when("role", {
+    is: (role) => ["branchadmin", "staff", "agent"].includes(role),
+    then: (schema) => schema.required("Branch is required for this role"),
+    otherwise: (schema) => schema.notRequired(),
+  }),
+});
+
+const roleOptionsByCreator = {
+  superadmin: [
+    { value: "staff", label: "Staff" },
+    { value: "agent", label: "Clearing Agent" },
+    { value: "branchadmin", label: "Branch Admin" },
+    { value: "countryadmin", label: "Country Admin" },
+    { value: "superadmin", label: "Super Admin" },
+  ],
+  countryadmin: [
+    { value: "staff", label: "Staff" },
+    { value: "agent", label: "Clearing Agent" },
+    { value: "branchadmin", label: "Branch Admin" },
+  ],
+  branchadmin: [
+    { value: "staff", label: "Staff" },
+    { value: "agent", label: "Clearing Agent" },
+  ],
+};
 
 const UserManagement = () => {
-  const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showStaffOnly, setShowStaffOnly] = useState(false);
+  const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [countries, setCountries] = useState([]);
+  const [branches, setBranches] = useState([]);
+
+  const creatorRoleOptions = roleOptionsByCreator[user?.role] || [];
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    reset,
+    setValue,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(createUserSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      role: "staff",
+      countryId: "",
+      branchId: "",
+    },
+  });
+
+  const selectedRole = watch("role", "staff");
+  const selectedCountryId = watch("countryId");
 
   useEffect(() => {
     fetchUsers();
     fetchStats();
   }, []);
+
+  useEffect(() => {
+    if (!isCreateUserOpen) return;
+
+    const loadCountries = async () => {
+      try {
+        if (user?.role === "superadmin") {
+          const response = await countryAPI.getAll();
+          setCountries(response.data || []);
+          return;
+        }
+
+        if (user?.countryId?._id) {
+          setCountries([
+            {
+              _id: user.countryId._id,
+              name: user.countryId.name || user.country?.name || "Country",
+              code: user.countryId.code || user.country?.code || "",
+            },
+          ]);
+          setValue("countryId", user.countryId._id);
+        } else if (user?.country?._id) {
+          setCountries([user.country]);
+          setValue("countryId", user.country._id);
+        }
+      } catch (error) {
+        toast.error("Failed to load countries");
+      }
+    };
+
+    loadCountries();
+  }, [isCreateUserOpen, user, setValue]);
+
+  useEffect(() => {
+    if (!isCreateUserOpen) return;
+
+    if (!selectedCountryId) {
+      setBranches([]);
+      setValue("branchId", "");
+      return;
+    }
+
+    if (user?.role === "branchadmin" && user?.branch?._id) {
+      setBranches([user.branch]);
+      setValue("branchId", user.branch._id);
+      return;
+    }
+
+    const loadBranches = async () => {
+      try {
+        const countryIdString = selectedCountryId?._id
+          ? selectedCountryId._id
+          : selectedCountryId;
+        const response = await branchAPI.getByCountry(countryIdString);
+        setBranches(response.data || []);
+      } catch (error) {
+        toast.error("Failed to load branches");
+      }
+    };
+
+    loadBranches();
+  }, [selectedCountryId, isCreateUserOpen, user, setValue]);
+
+  const closeCreateUserModal = () => {
+    setIsCreateUserOpen(false);
+    setBranches([]);
+    reset({
+      name: "",
+      email: "",
+      password: "",
+      role: "staff",
+      countryId:
+        user?.role === "countryadmin" || user?.role === "branchadmin"
+          ? user?.countryId?._id || ""
+          : "",
+      branchId: user?.role === "branchadmin" ? user?.branch?._id || "" : "",
+    });
+  };
+
+  const handleCreateUser = async (formData) => {
+    try {
+      setIsCreatingUser(true);
+
+      const payload = { ...formData };
+      if (user?.role === "countryadmin") {
+        payload.countryId = user.countryId?._id;
+      }
+      if (user?.role === "branchadmin") {
+        payload.countryId = user.countryId?._id;
+        payload.branchId = user.branch?._id;
+      }
+
+      await authAPI.signup(payload);
+      toast.success(`User ${payload.name} created successfully!`);
+
+      closeCreateUserModal();
+      await fetchUsers();
+      await fetchStats();
+    } catch (error) {
+      toast.error(error || "Failed to create user. Please try again.");
+    } finally {
+      setIsCreatingUser(false);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -103,7 +276,7 @@ const UserManagement = () => {
         {/* ADD Create User BUTTON */}
         {canManageStaff && (
           <button
-            onClick={() => navigate("/signup")}
+            onClick={() => setIsCreateUserOpen(true)}
             className="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 transition flex items-center gap-1"
           >
             <Plus className="w-6 h-6" strokeWidth={3} />
@@ -254,6 +427,162 @@ const UserManagement = () => {
           </tbody>
         </table>
       </div>
+
+      {isCreateUserOpen && (
+        <>
+          <div className="app-modal-overlay" onClick={closeCreateUserModal} />
+          <div className="app-modal-drawer app-modal-drawer-md">
+            <div className="app-modal-header">
+              <h2 className="app-modal-title">Create User</h2>
+              <button
+                type="button"
+                onClick={closeCreateUserModal}
+                className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={handleSubmit(handleCreateUser)}
+              className="app-modal-body space-y-4"
+            >
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  {...register("name")}
+                  className="app-input"
+                  placeholder="Enter full name"
+                />
+                {errors.name && (
+                  <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  {...register("email")}
+                  className="app-input"
+                  placeholder="user@example.com"
+                />
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  {...register("password")}
+                  className="app-input"
+                  placeholder="Minimum 6 characters"
+                />
+                {errors.password && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.password.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Role
+                </label>
+                <select {...register("role")} className="app-input">
+                  {creatorRoleOptions.map((roleOption) => (
+                    <option key={roleOption.value} value={roleOption.value}>
+                      {roleOption.label}
+                    </option>
+                  ))}
+                </select>
+                {errors.role && (
+                  <p className="mt-1 text-sm text-red-600">{errors.role.message}</p>
+                )}
+              </div>
+
+              {["countryadmin", "branchadmin", "staff", "agent"].includes(
+                selectedRole,
+              ) && (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">
+                    Country
+                  </label>
+                  <select
+                    {...register("countryId")}
+                    className="app-input"
+                    disabled={user?.role !== "superadmin"}
+                  >
+                    <option value="">Select Country</option>
+                    {countries.map((country) => (
+                      <option key={country?._id} value={country?._id}>
+                        {country?.name} {country?.code ? `(${country.code})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.countryId && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.countryId.message}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {["branchadmin", "staff", "agent"].includes(selectedRole) && (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">
+                    Branch
+                  </label>
+                  <select
+                    {...register("branchId")}
+                    className="app-input"
+                    disabled={user?.role === "branchadmin"}
+                  >
+                    <option value="">Select Branch</option>
+                    {branches.map((branch) => (
+                      <option key={branch?._id} value={branch?._id}>
+                        {branch?.name} {branch?.city ? `(${branch.city})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.branchId && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.branchId.message}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="app-modal-footer -mx-5 -mb-4 mt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={closeCreateUserModal}
+                  className="app-button-secondary flex-1"
+                  disabled={isCreatingUser}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="app-button flex-1 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isCreatingUser}
+                >
+                  {isCreatingUser ? "Creating..." : "Create User"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </>
+      )}
     </div>
   );
 };

@@ -51,7 +51,7 @@ function Activitylogpage() {
   const totalPages = Math.ceil(logs.length / logsPerPage);
 
   return (
-    <div className="min-h-[92vh] bg-gray-100 p-4">
+    <div className="min-h-[92vh] p-4">
       <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
         {currentLogs.length === 0 ? (
           <div className="p-10 text-center">

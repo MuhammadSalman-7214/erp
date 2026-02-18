@@ -11,7 +11,9 @@ const formatNumber = (value) =>
 
 function LedgerPage() {
   const dispatch = useDispatch();
-  const { outstanding, entries, balance } = useSelector((state) => state.ledger);
+  const { outstanding, entries, balance } = useSelector(
+    (state) => state.ledger,
+  );
   const { hasPermission } = useRolePermissions();
   const [partyType, setPartyType] = useState("customer");
   const [selectedParty, setSelectedParty] = useState(null);
@@ -28,7 +30,7 @@ function LedgerPage() {
   };
 
   return (
-    <div className="min-h-[92vh] bg-gray-100 p-4">
+    <div className="min-h-[92vh] p-4">
       <div className="flex gap-2 mb-4">
         <button
           onClick={() => setPartyType("customer")}
@@ -57,7 +59,9 @@ function LedgerPage() {
                 key={o.partyId}
                 onClick={() => loadLedger(o.partyId)}
                 className={`w-full text-left px-3 py-2 rounded border ${
-                  selectedParty === o.partyId ? "border-teal-500" : "border-gray-200"
+                  selectedParty === o.partyId
+                    ? "border-teal-500"
+                    : "border-gray-200"
                 }`}
               >
                 <div className="text-sm text-slate-600">Party ID</div>
@@ -77,7 +81,8 @@ function LedgerPage() {
           ) : (
             <>
               <div className="mb-3 text-slate-600">
-                Running Balance: <span className="font-semibold">{formatNumber(balance)}</span>
+                Running Balance:{" "}
+                <span className="font-semibold">{formatNumber(balance)}</span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -97,8 +102,12 @@ function LedgerPage() {
                           {new Date(e.createdAt).toLocaleDateString()}
                         </td>
                         <td className="px-3 py-2">{e.entryType}</td>
-                        <td className="px-3 py-2 text-right">{formatNumber(e.debit)}</td>
-                        <td className="px-3 py-2 text-right">{formatNumber(e.credit)}</td>
+                        <td className="px-3 py-2 text-right">
+                          {formatNumber(e.debit)}
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          {formatNumber(e.credit)}
+                        </td>
                         <td className="px-3 py-2 text-right">
                           {formatNumber(e.runningBalance)}
                         </td>

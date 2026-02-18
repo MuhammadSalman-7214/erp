@@ -87,7 +87,7 @@ function ProfilePage() {
     }
   }, [userRole, activityLogs, myLogs]);
   return (
-    <div className="min-h-[80vh] bg-gray-100 p-4">
+    <div className="min-h-[80vh] p-4">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* LEFT: PROFILE INFO (AUTO HEIGHT) */}
         <div className="lg:col-span-3">

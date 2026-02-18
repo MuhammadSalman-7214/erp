@@ -1,6 +1,12 @@
 import React, { useMemo, useState } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
-import { Menu, PanelLeftClose, PanelLeftOpen, LogOut, Settings } from "lucide-react";
+import {
+  Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
+  LogOut,
+  Settings,
+} from "lucide-react";
 import image from "../images/user.png";
 
 const linkBaseClass =
@@ -26,7 +32,7 @@ function DashboardShell({
         month: "long",
         year: "numeric",
       }),
-    []
+    [],
   );
 
   const renderNav = () => (
@@ -43,6 +49,7 @@ function DashboardShell({
                 <li key={itemIdx}>
                   <NavLink
                     to={item.path}
+                    end={item.path.split("/").filter(Boolean).length === 1}
                     onClick={() => setMobileOpen(false)}
                     className={({ isActive }) =>
                       `${linkBaseClass} ${
@@ -84,7 +91,9 @@ function DashboardShell({
           <div className="flex items-center justify-between">
             {(sidebarOpen || mobileOpen) && (
               <div>
-                <h1 className="text-lg font-extrabold text-slate-900">{title}</h1>
+                <h1 className="text-lg font-extrabold text-slate-900">
+                  {title}
+                </h1>
                 <p className="text-xs text-slate-500">{subtitle}</p>
               </div>
             )}
@@ -102,7 +111,9 @@ function DashboardShell({
           </div>
         </div>
 
-        <div className="h-[calc(100vh-170px)] overflow-y-auto">{renderNav()}</div>
+        <div className="h-[calc(100vh-170px)] overflow-y-auto">
+          {renderNav()}
+        </div>
 
         <div className="border-t border-slate-200/80 p-3">
           <button
