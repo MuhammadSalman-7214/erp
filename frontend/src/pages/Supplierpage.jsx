@@ -134,7 +134,9 @@ function Supplierpage({ readOnly = false }) {
     };
     dispatch(CreateSupplier(supplierData))
       .unwrap()
-      .then(() => toast.success("Supplier added successfully"))
+      .then(() => {
+        setIsFormVisible(false);
+      })
       .catch(() => toast.error("Supplier add unsuccessful"));
   };
 

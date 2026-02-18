@@ -127,8 +127,8 @@ const CountryReportsPage = () => {
           <h2 className="text-lg font-bold text-slate-900">
             Shipment P&L (Latest 50)
           </h2>
-          <div className="rounded-xl bg-emerald-50 px-4 py-2 text-right ring-1 ring-emerald-200">
-            <span className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+          <div className="rounded-xl bg-[#fdf4f4] px-4 py-2 text-right ring-1 ring-[#520505]">
+            <span className="text-xs font-semibold uppercase tracking-wide text-[#520505]">
               Total Profit USD:{" "}
             </span>
             <AnimatedNumber value={shipmentPnl?.totals?.totalProfitUSD} />

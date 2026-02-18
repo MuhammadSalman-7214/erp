@@ -116,7 +116,6 @@ function Categorypage() {
   return (
     <div className="min-h-[92vh] p-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-        {/* Total Products */}
         <div className="bg-white border rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition">
           <div className="flex items-center gap-3">
             <span className="rounded-xl bg-orange-500 text-white text-lg sm:text-xl p-2">

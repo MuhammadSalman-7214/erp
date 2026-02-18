@@ -3,6 +3,21 @@ module.exports = {
   content: ["./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
+      colors: {
+        teal: {
+          50: "#f9f0f0",
+          100: "#f3e0e0",
+          200: "#e8c1c1",
+          300: "#d79a9a",
+          400: "#bf6a6a",
+          500: "#8a2f2f",
+          600: "#6d1010",
+          700: "#4d0000",
+          800: "#3b0000",
+          900: "#2a0000",
+          950: "#160000",
+        },
+      },
       fontFamily: {
         sans: ["Manrope", "ui-sans-serif", "system-ui", "sans-serif"],
       },
@@ -22,10 +37,10 @@ module.exports = {
         },
         glow: {
           "0%, 100%": {
-            textShadow: "0 0 5px #00bfa5, 0 0 10px #00bfa5, 0 0 15px #00bfa5",
+            textShadow: "0 0 5px #6d1010, 0 0 10px #6d1010, 0 0 15px #6d1010",
           },
           "50%": {
-            textShadow: "0 0 10px #00fff0, 0 0 20px #00fff0, 0 0 30px #00fff0",
+            textShadow: "0 0 10px #8a2f2f, 0 0 20px #8a2f2f, 0 0 30px #8a2f2f",
           },
         },
       },

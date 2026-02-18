@@ -12,8 +12,8 @@
     --app-text: #0f172a;
     --app-text-muted: #64748b;
     --app-border: #d6e1ef;
-    --app-primary: #0d9488;
-    --app-primary-strong: #0f766e;
+    --app-primary: #6d1010;
+    --app-primary-strong: #4d0000;
     --app-accent: #0ea5e9;
     --app-danger: #dc2626;
   }
@@ -32,8 +32,8 @@
       -apple-system,
       sans-serif;
     background:
-      radial-gradient(circle at 10% 0%, #eef2f1 0%, transparent 30%),
-      radial-gradient(circle at 90% 10%, #cdd4dd 0%, transparent 35%),
+      radial-gradient(circle at 10% 0%, #fdf4f4 0%, transparent 30%),
+      radial-gradient(circle at 90% 10%, #fdf4f4 0%, transparent 35%),
       linear-gradient(180deg, #f8fbff 0%, var(--app-bg) 100%);
     color: var(--app-text);
     @apply antialiased;

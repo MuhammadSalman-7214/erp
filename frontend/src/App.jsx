@@ -83,7 +83,7 @@ function App() {
               background: "#f8fbff",
               color: "#0f172a",
               border: "1px solid #cbdff5",
-              borderLeft: "6px solid #0d9488",
+              borderLeft: "6px solid #4d0000",
               boxShadow: "0 10px 28px rgba(15,23,42,0.14)",
               margin: "0",
             },
@@ -92,9 +92,8 @@ function App() {
               style: {
                 background: "#e8faf5",
                 color: "#134e4a",
-                borderLeft: "6px solid #14b8a6",
-                borderColor: "#99f6e4",
-                boxShadow: "0 10px 25px rgba(20,184,166,0.15)",
+                borderLeft: "6px solid rgb(3, 58, 52)",
+                boxShadow: "0 10px 25px rgba(3, 58, 52,0.15)",
               },
               iconTheme: {
                 primary: "#14b8a6",

@@ -10,6 +10,7 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { authAPI, branchAPI, countryAPI } from "../services/api";
+import StatCard from "../Components/StatCard";
 
 const createUserSchema = yup.object().shape({
   name: yup.string().required("Name is required"),
@@ -20,7 +21,8 @@ const createUserSchema = yup.object().shape({
     .required("Password is required"),
   role: yup.string().required("Role is required"),
   countryId: yup.string().when("role", {
-    is: (role) => ["countryadmin", "branchadmin", "staff", "agent"].includes(role),
+    is: (role) =>
+      ["countryadmin", "branchadmin", "staff", "agent"].includes(role),
     then: (schema) => schema.required("Country is required for this role"),
     otherwise: (schema) => schema.notRequired(),
   }),
@@ -287,29 +289,43 @@ const UserManagement = () => {
 
       {/* Stats */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-5 mb-6">
           {user.role === "superadmin" && (
-            <div className="bg-blue-100 p-4 rounded-lg">
-              <div className="text-sm text-gray-600">Super Admins</div>
-              <div className="text-2xl font-bold">{stats.superadmin}</div>
-            </div>
+            <StatCard
+              title="Super Admins"
+              value={stats.superadmin}
+              accent="bg-blue-500"
+              icon="👑"
+            />
           )}
-          <div className="bg-green-100 p-4 rounded-lg">
-            <div className="text-sm text-gray-600">Country Admins</div>
-            <div className="text-2xl font-bold">{stats.countryadmin}</div>
-          </div>
-          <div className="bg-purple-100 p-4 rounded-lg">
-            <div className="text-sm text-gray-600">Branch Admins</div>
-            <div className="text-2xl font-bold">{stats.branchadmin}</div>
-          </div>
-          <div className="bg-yellow-100 p-4 rounded-lg">
-            <div className="text-sm text-gray-600">Staff</div>
-            <div className="text-2xl font-bold">{stats.staff}</div>
-          </div>
-          <div className="bg-orange-100 p-4 rounded-lg">
-            <div className="text-sm text-gray-600">Agents</div>
-            <div className="text-2xl font-bold">{stats.agent}</div>
-          </div>
+
+          <StatCard
+            title="Country Admins"
+            value={stats.countryadmin}
+            accent="bg-emerald-500"
+            icon="🌍"
+          />
+
+          <StatCard
+            title="Branch Admins"
+            value={stats.branchadmin}
+            accent="bg-violet-500"
+            icon="🏢"
+          />
+
+          <StatCard
+            title="Staff"
+            value={stats.staff}
+            accent="bg-amber-500"
+            icon="🧑‍💼"
+          />
+
+          <StatCard
+            title="Agents"
+            value={stats.agent}
+            accent="bg-orange-500"
+            icon="📦"
+          />
         </div>
       )}
 
@@ -458,7 +474,9 @@ const UserManagement = () => {
                   placeholder="Enter full name"
                 />
                 {errors.name && (
-                  <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.name.message}
+                  </p>
                 )}
               </div>
 
@@ -473,7 +491,9 @@ const UserManagement = () => {
                   placeholder="user@example.com"
                 />
                 {errors.email && (
-                  <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.email.message}
+                  </p>
                 )}
               </div>
 
@@ -506,7 +526,9 @@ const UserManagement = () => {
                   ))}
                 </select>
                 {errors.role && (
-                  <p className="mt-1 text-sm text-red-600">{errors.role.message}</p>
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.role.message}
+                  </p>
                 )}
               </div>
 
@@ -525,7 +547,8 @@ const UserManagement = () => {
                     <option value="">Select Country</option>
                     {countries.map((country) => (
                       <option key={country?._id} value={country?._id}>
-                        {country?.name} {country?.code ? `(${country.code})` : ""}
+                        {country?.name}{" "}
+                        {country?.code ? `(${country.code})` : ""}
                       </option>
                     ))}
                   </select>
