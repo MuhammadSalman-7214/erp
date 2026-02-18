@@ -87,9 +87,7 @@ function Orderpage() {
       .unwrap()
       .then(() => {
         toast.success("Order updated successfully");
-        setIsFormVisible(false);
-        setselectedOrder(null);
-        resetForm();
+        closeForm();
       })
       .catch((error) => {
         // handleOrderError(error);
@@ -148,8 +146,7 @@ function Orderpage() {
     try {
       await dispatch(createdOrder(orderData)).unwrap();
       toast.success("Order created successfully");
-      resetForm();
-      setFormErrors({});
+      closeForm();
     } catch (error) {
       // handleOrderError(error);
     }
@@ -161,7 +158,14 @@ function Orderpage() {
     setQuantity("");
     setDescription("");
     setstatus("");
+    setsupplier("");
     setselectedOrder(null);
+  };
+
+  const closeForm = () => {
+    setIsFormVisible(false);
+    resetForm();
+    setFormErrors({});
   };
 
   const handleEditClick = (order) => {
@@ -209,7 +213,10 @@ function Orderpage() {
         />
 
         <button
-          onClick={() => setIsFormVisible(true)}
+          onClick={() => {
+            setIsFormVisible(true);
+            resetForm();
+          }}
           className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
         >
           <IoMdAdd className="text-xl mr-2" /> Add Order
@@ -218,13 +225,7 @@ function Orderpage() {
 
       {/* Overlay */}
       {isFormVisible && (
-        <div
-          className="app-modal-overlay"
-          onClick={() => {
-            setIsFormVisible(false);
-            resetForm();
-          }}
-        />
+        <div className="app-modal-overlay" onClick={closeForm} />
       )}
 
       {/* Form slide-in */}
@@ -235,10 +236,7 @@ function Orderpage() {
               {selectedOrder ? "Edit Order" : "Add Order"}
             </h2>
             <MdKeyboardDoubleArrowLeft
-              onClick={() => {
-                setIsFormVisible(false);
-                resetForm();
-              }}
+              onClick={closeForm}
               className="cursor-pointer text-2xl text-slate-500 hover:text-slate-800"
             />
           </div>
@@ -370,7 +368,8 @@ function Orderpage() {
       )}
 
       {/* Orders Table */}
-      <div className="mt-4 bg-white rounded-2xl shadow-sm border">
+      <div className="mt-4 bg-white rounded-2xl shadow-sm border overflow-hidden">
+        {" "}
         {/* Scrollable Container */}
         <div className="overflow-auto max-h-[600px]">
           {Array.isArray(displayOrder) && displayOrder.length > 0 ? (
@@ -469,7 +468,7 @@ function Orderpage() {
                     </td>
 
                     <td className="px-4 py-3 whitespace-nowrap font-semibold text-slate-800">
-                      ${order.Product?.price?.toLocaleString()}
+                      {`${order?.currency} ${order.Product?.price?.toLocaleString()}`}
                     </td>
 
                     <td className="px-4 py-3">
@@ -550,7 +549,6 @@ function Orderpage() {
             </div>
           )}
         </div>
-
         {/* {displayOrder.length > 0 && (
           <div className="px-4 py-2 border-t bg-slate-50 text-xs text-slate-500 text-center">
             Scroll horizontally to view all columns →

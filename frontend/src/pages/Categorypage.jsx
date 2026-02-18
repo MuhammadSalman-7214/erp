@@ -17,6 +17,7 @@ import {
 } from "../features/categorySlice";
 import toast from "react-hot-toast";
 import NoData from "../Components/NoData";
+import InfoStatCard from "../Components/InfoStatCard";
 
 function Categorypage() {
   const { getallCategory, searchdata } = useSelector((state) => state.category);
@@ -74,8 +75,7 @@ function Categorypage() {
       .unwrap()
       .then((data) => {
         toast.success("CategoryData added successfully");
-        resetForm();
-        setIsFormVisible(false);
+        closeForm();
       })
       .catch((err) => {
         console.error("Error adding category:", err);
@@ -116,20 +116,14 @@ function Categorypage() {
   return (
     <div className="min-h-[92vh] p-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-        <div className="bg-white border rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition">
-          <div className="flex items-center gap-3">
-            <span className="rounded-xl bg-orange-500 text-white text-lg sm:text-xl p-2">
-              <MdOutlineCategory />
-            </span>
-
-            <h2 className="text-2xl sm:text-3xl font-bold">
-              {getallCategory?.length || "0"}
-            </h2>
-          </div>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Total Category
-          </p>
-        </div>
+        <InfoStatCard
+          title="Total Categories"
+          value={getallCategory?.length || "0"}
+          subtitle="Configured product categories"
+          icon={<MdOutlineCategory />}
+          accentClass="bg-orange-500"
+          iconShellClass="bg-orange-50 text-orange-700"
+        />
       </div>
 
       <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">
@@ -154,10 +148,7 @@ function Categorypage() {
       </div>
       {/* OVERLAY */}
       {isFormVisible && (
-        <div
-          className="app-modal-overlay"
-          onClick={() => setIsFormVisible(false)}
-        />
+        <div className="app-modal-overlay" onClick={closeForm} />
       )}
 
       {/* SLIDE-IN DRAWER */}
@@ -169,7 +160,7 @@ function Categorypage() {
             </h2>
 
             <MdKeyboardDoubleArrowLeft
-              onClick={() => setIsFormVisible(false)}
+              onClick={closeForm}
               className="cursor-pointer text-2xl text-slate-500 hover:text-slate-800"
             />
           </div>

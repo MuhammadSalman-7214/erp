@@ -12,6 +12,7 @@ import { gettingallSupplier } from "../features/SupplierSlice";
 import { toast } from "react-hot-toast";
 import { IoMdAdd } from "react-icons/io";
 import { MdDelete } from "react-icons/md";
+import NoData from "../Components/NoData";
 
 const emptyItem = { name: "", description: "", quantity: 1, unitPrice: 0 };
 
@@ -300,7 +301,10 @@ function PurchaseBillsPage() {
             </table>
             {display.length === 0 && (
               <div className="p-6 text-center text-slate-500">
-                No purchase bills found.
+                <NoData
+                  title="No purchase bills found."
+                  description="Try adjusting filters or add a new branch to get started"
+                />
               </div>
             )}
           </div>

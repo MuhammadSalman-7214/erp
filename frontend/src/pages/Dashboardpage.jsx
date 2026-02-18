@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { LuUsers, LuActivity } from "react-icons/lu";
+import InfoStatCard from "../Components/InfoStatCard";
 
 import SalesChart from "../lib/Salesgraph";
 import Gettopproduct from "../lib/Gettopproduct";
@@ -56,27 +57,47 @@ function Dashboardpage() {
         {canViewUsers && userStats && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             {userStats.staff > 0 && (
-              <StatCard title="Staff" count={userStats.staff} color="blue" />
+              <InfoStatCard
+                title="Staff"
+                value={userStats.staff}
+                subtitle="Total staff accounts"
+                icon={<LuUsers />}
+                accentClass="bg-sky-600"
+                iconShellClass="bg-sky-50 text-sky-700"
+              />
             )}
 
             {userStats.branchadmin > 0 && (
-              <StatCard
+              <InfoStatCard
                 title="Branch Admins"
-                count={userStats.branchadmin}
-                color="teal"
+                value={userStats.branchadmin}
+                subtitle="Branch-level admins"
+                icon={<LuUsers />}
+                accentClass="bg-teal-700"
+                iconShellClass="bg-teal-50 text-teal-700"
               />
             )}
 
             {userStats.countryadmin > 0 && (
-              <StatCard
+              <InfoStatCard
                 title="Country Admins"
-                count={userStats.countryadmin}
-                color="red"
+                value={userStats.countryadmin}
+                subtitle="Country-level admins"
+                icon={<LuUsers />}
+                accentClass="bg-rose-600"
+                iconShellClass="bg-rose-50 text-rose-700"
               />
             )}
 
             {userStats.agent > 0 && (
-              <StatCard title="Agents" count={userStats.agent} color="purple" />
+              <InfoStatCard
+                title="Agents"
+                value={userStats.agent}
+                subtitle="Clearing agents"
+                icon={<LuUsers />}
+                accentClass="bg-violet-600"
+                iconShellClass="bg-violet-50 text-violet-700"
+              />
             )}
           </div>
         )}
@@ -100,13 +121,10 @@ function Dashboardpage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {logsToShow.length > 0 ? (
               logsToShow.map((log) => (
-                <div
-                  key={log._id}
-                  className="bg-white shadow-lg rounded-lg p-6 hover:shadow-xl transition"
-                >
+                <div key={log._id} className="app-info-card p-6">
                   <div className="flex items-center gap-4">
-                    <div className="p-3 bg-teal-100 rounded-full">
-                      <LuActivity className="text-blue-500 text-2xl" />
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
+                      <LuActivity className="text-2xl" />
                     </div>
                     <div>
                       <h2 className="font-semibold text-lg">{log.action}</h2>
@@ -139,32 +157,6 @@ function Dashboardpage() {
           </p>
         </div>
       )}
-    </div>
-  );
-}
-
-/* ===============================
-   REUSABLE STAT CARD
-================================ */
-function StatCard({ title, count, color }) {
-  const colors = {
-    blue: "bg-blue-100 text-blue-600",
-    teal: "bg-teal-100 text-teal-600",
-    red: "bg-red-100 text-red-600",
-    purple: "bg-purple-100 text-purple-600",
-  };
-
-  return (
-    <div className="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition">
-      <div className="flex items-center gap-4">
-        <div className={`p-4 rounded-xl ${colors[color]}`}>
-          <LuUsers className="text-3xl" />
-        </div>
-        <div>
-          <p className="text-2xl font-bold text-gray-800">{count}</p>
-          <p className="text-gray-500 text-sm">{title}</p>
-        </div>
-      </div>
     </div>
   );
 }

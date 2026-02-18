@@ -82,7 +82,16 @@
   }
 
   .app-metric-card {
-    @apply app-card-soft p-4;
+    @apply relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg;
+  }
+
+  .app-info-card {
+    @apply relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg;
+  }
+
+  .app-info-card::before {
+    content: "";
+    @apply absolute left-0 top-0 h-full w-1 bg-teal-600;
   }
 
   .app-table-wrap {
@@ -106,11 +115,15 @@
   }
 
   .app-modal-overlay {
+    animation: app-fade-in 180ms ease-out both;
     @apply fixed inset-0 z-[70] bg-slate-950/45 backdrop-blur-[2px];
   }
 
   .app-modal-drawer {
-    @apply fixed top-0 right-0 z-[80] h-screen w-[92vw] bg-white shadow-2xl border-l border-slate-200 flex flex-col animate-drawer-in;
+    animation:
+      drawerIn 260ms ease-out both,
+      app-fade-in 160ms ease-out both;
+    @apply fixed top-0 right-0 z-[80] h-screen w-[92vw] bg-white shadow-2xl border-l border-slate-200 flex flex-col;
   }
 
   .app-modal-drawer-md {
@@ -135,5 +148,14 @@
 
   .app-modal-footer {
     @apply border-t border-slate-200 px-5 py-4 bg-white;
+  }
+}
+
+@keyframes app-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }

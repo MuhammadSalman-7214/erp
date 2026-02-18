@@ -16,6 +16,7 @@ import { gettingallproducts } from "../features/productSlice";
 import { AiOutlineProduct } from "react-icons/ai";
 import { TfiSupport } from "react-icons/tfi";
 import NoData from "../Components/NoData";
+import InfoStatCard from "../Components/InfoStatCard";
 
 function Supplierpage({ readOnly = false }) {
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
@@ -101,9 +102,7 @@ function Supplierpage({ readOnly = false }) {
       .unwrap()
       .then(() => {
         toast.success("Supplier updated successfully");
-        setIsFormVisible(false);
-        setSelectedSupplier(null);
-        resetForm();
+        closeForm();
       })
       .catch(() => {
         toast.error("Failed to update supplier");
@@ -135,7 +134,8 @@ function Supplierpage({ readOnly = false }) {
     dispatch(CreateSupplier(supplierData))
       .unwrap()
       .then(() => {
-        setIsFormVisible(false);
+        toast.success("Supplier added successfully");
+        closeForm();
       })
       .catch(() => toast.error("Supplier add unsuccessful"));
   };
@@ -144,6 +144,14 @@ function Supplierpage({ readOnly = false }) {
     setName("");
     setPhone("");
     setEmail("");
+    setAddress("");
+    setProduct("");
+  };
+
+  const closeForm = () => {
+    setIsFormVisible(false);
+    setSelectedSupplier(null);
+    resetForm();
   };
 
   const handleEditClick = (supplier) => {
@@ -166,37 +174,23 @@ function Supplierpage({ readOnly = false }) {
     <div className="min-h-[92vh] p-4">
       {/* KPI CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-2">
-        <div className="bg-white border rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition">
-          <div className="flex items-center gap-3">
-            <span className="rounded-xl bg-orange-500 text-white text-lg sm:text-xl p-2">
-              <TfiSupport />
-            </span>
+        <InfoStatCard
+          title="Total Suppliers"
+          value={getallSupplier?.length || 0}
+          subtitle="Suppliers in current scope"
+          icon={<TfiSupport />}
+          accentClass="bg-orange-500"
+          iconShellClass="bg-orange-50 text-orange-700"
+        />
 
-            <h2 className="text-2xl sm:text-3xl font-bold">
-              {getallSupplier?.length || 0}
-            </h2>
-          </div>
-
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Total Suppliers
-          </p>
-        </div>
-
-        <div className="bg-white border rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition">
-          <div className="flex items-center gap-3">
-            <span className="rounded-xl bg-purple-500 text-white text-lg sm:text-xl p-2">
-              <AiOutlineProduct />
-            </span>
-
-            <h2 className="text-2xl sm:text-3xl font-bold">
-              {getallproduct?.length || 0}
-            </h2>
-          </div>
-
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Products Linked
-          </p>
-        </div>
+        <InfoStatCard
+          title="Products Linked"
+          value={getallproduct?.length || 0}
+          subtitle="Products associated with suppliers"
+          icon={<AiOutlineProduct />}
+          accentClass="bg-violet-500"
+          iconShellClass="bg-violet-50 text-violet-700"
+        />
 
         {/* <div className="bg-white border rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition">
           <h2 className="text-2xl sm:text-3xl font-bold">Active</h2>
@@ -235,10 +229,7 @@ function Supplierpage({ readOnly = false }) {
       </div>
       {/* OVERLAY */}
       {isFormVisible && (
-        <div
-          className="app-modal-overlay"
-          onClick={() => setIsFormVisible(false)}
-        />
+        <div className="app-modal-overlay" onClick={closeForm} />
       )}
 
       {/* SLIDE-IN DRAWER */}
@@ -249,7 +240,7 @@ function Supplierpage({ readOnly = false }) {
               {selectedSupplier ? "Edit Supplier" : "Add Supplier"}
             </h2>
             <MdKeyboardDoubleArrowLeft
-              onClick={() => setIsFormVisible(false)}
+              onClick={closeForm}
               className="cursor-pointer text-2xl text-slate-500 hover:text-slate-800"
             />
           </div>

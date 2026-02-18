@@ -1,6 +1,6 @@
 // pages/UserManagement.jsx
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { userAPI } from "../services/userAPI";
 import { useSelector } from "react-redux";
 import toast from "react-hot-toast";
@@ -87,10 +87,53 @@ const UserManagement = () => {
   const selectedRole = watch("role", "staff");
   const selectedCountryId = watch("countryId");
 
+  const activeCountryId = user?.countryId?._id || user?.country?._id || "";
+  const activeBranchId = user?.branch?._id || user?.branchId?._id || "";
+
+  const normalizeUsersPayload = (payload) => {
+    if (Array.isArray(payload?.users)) return payload.users;
+    if (Array.isArray(payload?.data)) return payload.data;
+    if (Array.isArray(payload)) return payload;
+    return [];
+  };
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      let response;
+      if (user?.role === "branchadmin" && activeBranchId) {
+        response = await userAPI.getUsersByBranch(activeBranchId);
+      } else if (user?.role === "countryadmin" && activeCountryId) {
+        response = await userAPI.getUsersByCountry(activeCountryId);
+      } else {
+        response = await userAPI.getAllUsers();
+      }
+
+      setUsers(normalizeUsersPayload(response?.data));
+    } catch (error) {
+      toast.error("Failed to fetch users");
+      console.error(error);
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.role, activeBranchId, activeCountryId]);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const response = await userAPI.getUserStats();
+      setStats(response.data);
+    } catch (error) {
+      console.error("Failed to fetch stats:", error);
+    }
+  }, []);
+
   useEffect(() => {
+    if (!user?.role) return;
     fetchUsers();
     fetchStats();
-  }, []);
+  }, [user?.role, activeCountryId, activeBranchId, fetchUsers, fetchStats]);
 
   useEffect(() => {
     if (!isCreateUserOpen) return;
@@ -173,6 +216,7 @@ const UserManagement = () => {
   const handleCreateUser = async (formData) => {
     try {
       setIsCreatingUser(true);
+      const currentToken = localStorage.getItem("token");
 
       const payload = { ...formData };
       if (user?.role === "countryadmin") {
@@ -184,40 +228,21 @@ const UserManagement = () => {
       }
 
       await authAPI.signup(payload);
+      if (currentToken) {
+        localStorage.setItem("token", currentToken);
+      }
       toast.success(`User ${payload.name} created successfully!`);
 
       closeCreateUserModal();
-      await fetchUsers();
-      await fetchStats();
+      await Promise.all([fetchUsers(), fetchStats()]);
     } catch (error) {
-      toast.error(error || "Failed to create user. Please try again.");
+      toast.error(
+        error?.response?.data?.message ||
+          error ||
+          "Failed to create user. Please try again.",
+      );
     } finally {
       setIsCreatingUser(false);
-    }
-  };
-
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-
-      // Fetch all users with hierarchy filtering applied automatically
-      const response = await userAPI.getAllUsers();
-      setUsers(response.data.users);
-    } catch (error) {
-      toast.error("Failed to fetch users");
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchStats = async () => {
-    try {
-      const response = await userAPI.getUserStats();
-
-      setStats(response.data);
-    } catch (error) {
-      console.error("Failed to fetch stats:", error);
     }
   };
 
@@ -225,7 +250,7 @@ const UserManagement = () => {
     try {
       await userAPI.toggleUserStatus(userId);
       toast.success("User status updated");
-      fetchUsers();
+      await Promise.all([fetchUsers(), fetchStats()]);
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to update user");
     }
@@ -239,7 +264,7 @@ const UserManagement = () => {
     try {
       await userAPI.deleteUser(userId);
       toast.success("User deactivated successfully");
-      fetchUsers();
+      await Promise.all([fetchUsers(), fetchStats()]);
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to delete user");
     }
@@ -250,7 +275,7 @@ const UserManagement = () => {
       const nextValue = !targetUser.staffCanEdit;
       await userAPI.updateStaffPermissions(targetUser._id, nextValue);
       toast.success("Staff permissions updated");
-      fetchUsers();
+      await Promise.all([fetchUsers(), fetchStats()]);
     } catch (error) {
       toast.error(
         error.response?.data?.message || "Failed to update permission",

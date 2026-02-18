@@ -119,6 +119,7 @@ function Salespage() {
     try {
       await dispatch(CreateSales(salesData)).unwrap();
       toast.success("Sale created successfully");
+      closeForm();
     } catch (error) {
       if (error?.available && error?.requested) {
         setFormErrors({
@@ -245,6 +246,7 @@ function Salespage() {
           onClick={() => {
             setIsFormVisible(true);
             setselectedSales(null);
+            resetForm();
           }}
           className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
         >

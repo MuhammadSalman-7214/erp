@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import axiosInstance from "../lib/axios";
 import { useRolePermissions } from "../hooks/useRolePermissions";
 import { toast } from "react-hot-toast";
+import NoData from "../Components/NoData";
 
 const ClearingJobsPage = ({ agentView = false }) => {
   const navigate = useNavigate();
@@ -75,7 +76,10 @@ const ClearingJobsPage = ({ agentView = false }) => {
         {loading ? (
           <p className="text-gray-600">Loading clearing jobs...</p>
         ) : jobs.length === 0 ? (
-          <p className="text-gray-600">No clearing jobs found.</p>
+          <NoData
+            title="No clearing jobs"
+            description="Try adjusting filters or add a new Job to get started."
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

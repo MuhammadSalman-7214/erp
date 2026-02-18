@@ -31,8 +31,11 @@ apiClient.interceptors.request.use(
 // In response interceptor, add:
 apiClient.interceptors.response.use(
   (response) => {
+    const requestUrl = response.config?.url || "";
+    const isSignupRequest = requestUrl.includes("/auth/signup");
+
     // If response includes updated token, refresh it
-    if (response.data?.token) {
+    if (response.data?.token && !isSignupRequest) {
       localStorage.setItem("token", response.data.token);
     }
     return response;

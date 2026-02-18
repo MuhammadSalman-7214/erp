@@ -75,6 +75,11 @@ function NotificationPage() {
     setType("");
   };
 
+  const closeForm = () => {
+    setIsFormVisible(false);
+    resetForm();
+  };
+
   const submitNotification = async (e) => {
     e.preventDefault();
     if (!name || !type) return toast.error("Title and description required");
@@ -83,8 +88,7 @@ function NotificationPage() {
       .unwrap()
       .then(() => {
         toast.success("Notification added successfully");
-        resetForm();
-        setIsFormVisible(false);
+        closeForm();
       })
       .catch(() => toast.error("Failed to add notification"));
   };
@@ -102,10 +106,7 @@ function NotificationPage() {
 
       {/* Overlay */}
       {isFormVisible && (
-        <div
-          className="app-modal-overlay"
-          onClick={() => setIsFormVisible(false)}
-        />
+        <div className="app-modal-overlay" onClick={closeForm} />
       )}
 
       {/* Slide-in Drawer Form */}
@@ -114,7 +115,7 @@ function NotificationPage() {
           <div className="app-modal-header">
             <h2 className="app-modal-title">Add Notification</h2>
             <MdKeyboardDoubleArrowLeft
-              onClick={() => setIsFormVisible(false)}
+              onClick={closeForm}
               className="cursor-pointer text-2xl text-slate-500 hover:text-slate-800"
             />
           </div>

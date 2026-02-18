@@ -22,6 +22,7 @@ import toast from "react-hot-toast";
 import { useRolePermissions } from "../hooks/useRolePermissions";
 import { AiOutlineProduct } from "react-icons/ai";
 import NoData from "../Components/NoData";
+import InfoStatCard from "../Components/InfoStatCard";
 
 function Productpage({ readOnly = false }) {
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
@@ -167,57 +168,43 @@ function Productpage({ readOnly = false }) {
       {/* KPI CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
         {/* Total Products */}
-        <div className="bg-white border rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition">
-          <div className="flex items-center gap-3">
-            <span className="rounded-xl bg-orange-500 text-white text-lg sm:text-xl p-2">
-              <AiOutlineProduct />
-            </span>
-
-            <h2 className="text-2xl sm:text-3xl font-bold">
-              {getallproduct?.length || 0}
-            </h2>
-          </div>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Total Products
-          </p>
-        </div>
+        <InfoStatCard
+          title="Total Products"
+          value={getallproduct?.length || 0}
+          subtitle="Products currently listed"
+          icon={<AiOutlineProduct />}
+          accentClass="bg-orange-500"
+          iconShellClass="bg-orange-50 text-orange-700"
+        />
 
         {/* Total Store Value */}
-        <div className="bg-white border rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition">
-          <div className="flex items-center gap-3">
-            <span className="rounded-xl bg-purple-500 text-white text-lg sm:text-xl p-2">
-              <FaMoneyBill1Wave />
-            </span>
-
-            <h2 className="flex items-center ext-2xl sm:text-3xl font-bold">
-              <span className=" ml-1">{user?.country?.currencySymbol}</span>
-              <span className=" ml-1">
+        <InfoStatCard
+          title="Total Store Value"
+          value={
+            <span className="flex items-center text-2xl sm:text-3xl">
+              <span className="mr-1">{user?.country?.currencySymbol}</span>
+              <span>
                 {new Intl.NumberFormat().format(
                   getallproduct?.reduce((total, p) => total + p.Price, 0) || 0,
                 )}
               </span>
-            </h2>
-          </div>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Total Store Value
-          </p>
-        </div>
+            </span>
+          }
+          subtitle="Inventory value across products"
+          icon={<FaMoneyBill1Wave />}
+          accentClass="bg-violet-500"
+          iconShellClass="bg-violet-50 text-violet-700"
+        />
 
         {/* Total Categories */}
-        <div className="bg-white border rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition">
-          <div className="flex items-center gap-3">
-            <span className="rounded-xl bg-red-500 text-white text-lg sm:text-xl p-2">
-              <MdOutlineCategory />
-            </span>
-
-            <h2 className="text-2xl sm:text-3xl font-bold">
-              {getallCategory?.length || 0}
-            </h2>
-          </div>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Total Categories
-          </p>
-        </div>
+        <InfoStatCard
+          title="Total Categories"
+          value={getallCategory?.length || 0}
+          subtitle="Product categories configured"
+          icon={<MdOutlineCategory />}
+          accentClass="bg-rose-500"
+          iconShellClass="bg-rose-50 text-rose-700"
+        />
       </div>
 
       {/* SEARCH + ADD */}

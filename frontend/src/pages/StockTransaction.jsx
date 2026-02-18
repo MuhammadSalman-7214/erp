@@ -59,6 +59,12 @@ function StockTransaction({ readOnly = false }) {
     setsupplier("");
   };
 
+  const closeForm = () => {
+    setIsFormVisible(false);
+    setSelectedProduct(null);
+    resetForm();
+  };
+
   const submitstocktranscation = async (event) => {
     event.preventDefault();
 
@@ -72,7 +78,7 @@ function StockTransaction({ readOnly = false }) {
       .unwrap()
       .then(() => {
         toast.success("Stock added successfully");
-        resetForm();
+        closeForm();
       })
       .catch((err) => {
         console.error("Error creating stock:", err);
@@ -113,17 +119,14 @@ function StockTransaction({ readOnly = false }) {
       </div>
       {/* Overlay */}
       {isFormVisible && (
-        <div
-          className="app-modal-overlay"
-          onClick={() => setIsFormVisible(false)}
-        />
+        <div className="app-modal-overlay" onClick={closeForm} />
       )}
       {isFormVisible && (
         <div className="app-modal-drawer app-modal-drawer-md">
           <div className="app-modal-header">
             <h2 className="app-modal-title">Add Stock</h2>
             <MdKeyboardDoubleArrowLeft
-              onClick={() => setIsFormVisible(false)}
+              onClick={closeForm}
               className="cursor-pointer text-2xl text-slate-500 hover:text-slate-800"
             />
           </div>

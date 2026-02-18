@@ -167,7 +167,7 @@ const CountriesPage = () => {
         {countries.map((country) => (
           <div
             key={country._id}
-            className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow"
+            className="app-info-card p-6"
           >
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-3">

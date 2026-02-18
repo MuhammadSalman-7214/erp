@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import axiosInstance from "../lib/axios";
 import { useRolePermissions } from "../hooks/useRolePermissions";
 import { toast } from "react-hot-toast";
+import NoData from "../Components/NoData";
 
 const ShipmentsPage = () => {
   const [shipments, setShipments] = useState([]);
@@ -50,7 +51,10 @@ const ShipmentsPage = () => {
         {loading ? (
           <p className="text-gray-600">Loading shipments...</p>
         ) : shipments.length === 0 ? (
-          <p className="text-gray-600">No shipments found.</p>
+          <NoData
+            title="No shipments found."
+            description="Try adjusting filters or add a new Shipment to get started."
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
