@@ -141,7 +141,7 @@ const CountriesPage = () => {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between pb-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
             Countries Management
@@ -165,10 +165,7 @@ const CountriesPage = () => {
       {/* Countries Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {countries.map((country) => (
-          <div
-            key={country._id}
-            className="app-info-card p-6"
-          >
+          <div key={country._id} className="app-info-card p-6">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center">

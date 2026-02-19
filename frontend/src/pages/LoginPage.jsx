@@ -176,7 +176,7 @@ function LoginPage() {
       </div>
 
       {/* RIGHT SIDE – Professional Info Panel with Dark Teal BG */}
-      <div className="hidden sm:flex w-1/2 bg-teal-900 px-12 py-16 items-center mx-auto justify-center">
+      <div className="hidden sm:flex w-1/2 bg-teal-700 px-12 py-16 items-center mx-auto justify-center">
         <div className="max-w-md space-y-8">
           <div>
             <h2 className="text-3xl font-bold text-white mb-3">

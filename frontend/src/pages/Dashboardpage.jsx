@@ -15,7 +15,6 @@ import {
   PackagePlus,
   UserPlus,
   BarChart3,
-  TrendingUp,
   CircleAlert,
 } from "lucide-react";
 import { LuActivity } from "react-icons/lu";
@@ -61,6 +60,7 @@ ChartJS.register(
    CONSTANTS
 ================================ */
 const LOW_STOCK_THRESHOLD = 5;
+const cn = (...classes) => classes.filter(Boolean).join(" ");
 
 /* ===============================
    HELPERS
@@ -169,25 +169,74 @@ const TONES = {
     badge: "rgba(239,68,68,0.1)",
     badgeText: "#b91c1c",
   },
+  violet: {
+    orb: "rgba(139,92,246,0.22)",
+    orb2: "rgba(167,139,250,0.16)",
+    accent: "#8b5cf6",
+    accentSoft: "rgba(139,92,246,0.1)",
+    iconBg: "rgba(139,92,246,0.1)",
+    iconColor: "#7c3aed",
+    ring: "rgba(139,92,246,0.22)",
+    badge: "rgba(139,92,246,0.1)",
+    badgeText: "#6d28d9",
+  },
+  cyan: {
+    orb: "rgba(6,182,212,0.22)",
+    orb2: "rgba(34,211,238,0.16)",
+    accent: "#06b6d4",
+    accentSoft: "rgba(6,182,212,0.1)",
+    iconBg: "rgba(6,182,212,0.1)",
+    iconColor: "#0891b2",
+    ring: "rgba(6,182,212,0.22)",
+    badge: "rgba(6,182,212,0.1)",
+    badgeText: "#0e7490",
+  },
+  fuchsia: {
+    orb: "rgba(217,70,239,0.22)",
+    orb2: "rgba(232,121,249,0.16)",
+    accent: "#d946ef",
+    accentSoft: "rgba(217,70,239,0.1)",
+    iconBg: "rgba(217,70,239,0.1)",
+    iconColor: "#c026d3",
+    ring: "rgba(217,70,239,0.22)",
+    badge: "rgba(217,70,239,0.1)",
+    badgeText: "#a21caf",
+  },
+  slate: {
+    orb: "rgba(71,85,105,0.18)",
+    orb2: "rgba(100,116,139,0.16)",
+    accent: "#475569",
+    accentSoft: "rgba(71,85,105,0.1)",
+    iconBg: "rgba(100,116,139,0.12)",
+    iconColor: "#334155",
+    ring: "rgba(100,116,139,0.2)",
+    badge: "rgba(100,116,139,0.1)",
+    badgeText: "#334155",
+  },
 };
 /* ===============================
-   UI: PRIMARY KPI CARD
+   UI: DASHBOARD SURFACE
 ================================ */
-function MetricCard({
-  title = "Total Revenue",
-  value = 84320,
-  subtitle = "Compared to last month",
-  icon,
+function DashboardCardSurface({
+  children,
   tone = "teal",
-  isCurrency = false,
-  badge,
+  className,
+  contentClassName,
+  padding = "1.5rem",
+  tilt = false,
+  interactive = true,
+  as = "div",
+  onClick,
+  parent = "",
 }) {
   const [hovered, setHovered] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 });
   const cardRef = useRef(null);
   const t = TONES[tone] || TONES.teal;
+  const Component = as;
 
   const handleMouseMove = (e) => {
+    if (!interactive) return;
     const rect = cardRef.current?.getBoundingClientRect();
     if (!rect) return;
     setMousePos({
@@ -196,17 +245,23 @@ function MetricCard({
     });
   };
 
+  const resolvedChildren =
+    typeof children === "function" ? children({ hovered, tone: t }) : children;
+
   return (
-    <div
+    <Component
       ref={cardRef}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={() => interactive && setHovered(true)}
+      onMouseLeave={() => interactive && setHovered(false)}
       onMouseMove={handleMouseMove}
+      onClick={onClick}
+      type={Component === "button" ? "button" : undefined}
+      className={cn("relative overflow-hidden rounded-[20px]", className)}
       style={{
         position: "relative",
-        borderRadius: "20px",
-        padding: "1.5rem",
-        cursor: "default",
+        borderRadius: "7px",
+        padding,
+        cursor: onClick ? "pointer" : "default",
         overflow: "hidden",
         background:
           "linear-gradient(145deg, rgba(255,255,255,0.92) 0%, rgba(248,250,252,0.88) 100%)",
@@ -216,12 +271,15 @@ function MetricCard({
         boxShadow: hovered
           ? `0 20px 60px rgba(15,23,42,0.12), 0 8px 24px rgba(15,23,42,0.08), inset 0 1px 0 rgba(255,255,255,0.9), 0 0 0 1px ${t.ring}`
           : "0 4px 16px rgba(15,23,42,0.06), 0 1px 4px rgba(15,23,42,0.04), inset 0 1px 0 rgba(255,255,255,0.9)",
-        transform: hovered
-          ? `translateY(-4px) perspective(800px) rotateX(${(mousePos.y - 0.5) * -4}deg) rotateY(${(mousePos.x - 0.5) * 4}deg)`
-          : "translateY(0) perspective(800px) rotateX(0) rotateY(0)",
+        transform:
+          interactive && tilt && hovered
+            ? `translateY(-4px) perspective(800px) rotateX(${(mousePos.y - 0.5) * -4}deg) rotateY(${(mousePos.x - 0.5) * 4}deg)`
+            : interactive && hovered
+              ? "translateY(-2px)"
+              : "translateY(0)",
         transition:
           "transform 0.35s cubic-bezier(0.23,1,0.32,1), box-shadow 0.35s ease, border-color 0.35s ease",
-        willChange: "transform",
+        willChange: interactive ? "transform" : "auto",
         fontFamily: "'DM Sans', 'Plus Jakarta Sans', system-ui, sans-serif",
       }}
     >
@@ -286,7 +344,9 @@ function MetricCard({
           pointerEvents: "none",
         }}
       />
-
+      {parent === "quickAction" && (
+        <div className="absolute left-0 top-0 h-full w-1 rounded-l-2xl bg-teal-500"></div>
+      )}
       {/* ── Accent bottom bar ── */}
       <div
         style={{
@@ -304,157 +364,175 @@ function MetricCard({
       />
 
       {/* ─────────────── Content ─────────────── */}
-      <div style={{ position: "relative", zIndex: 1 }}>
-        {/* Header row */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
-            marginBottom: "1.1rem",
-          }}
-        >
-          {/* Label */}
-          <p
+      <div className={cn("relative z-[1]", contentClassName)}>
+        {resolvedChildren}
+      </div>
+    </Component>
+  );
+}
+
+/* ===============================
+   UI: PRIMARY KPI CARD
+================================ */
+function MetricCard({
+  title = "Total Revenue",
+  value = 84320,
+  subtitle = "Compared to last month",
+  icon,
+  tone = "teal",
+  isCurrency = false,
+  badge,
+}) {
+  return (
+    <DashboardCardSurface tone={tone} tilt interactive>
+      {({ hovered, tone: t }) => (
+        <>
+          <div
             style={{
-              margin: 0,
-              fontSize: "10.5px",
-              fontWeight: 700,
-              letterSpacing: "0.14em",
-              textTransform: "uppercase",
-              color: "#94a3b8",
-              lineHeight: 1,
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+              marginBottom: "1.1rem",
             }}
           >
-            {title}
-          </p>
+            <p
+              style={{
+                margin: 0,
+                fontSize: "10.5px",
+                fontWeight: 700,
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: "#94a3b8",
+                lineHeight: 1,
+              }}
+            >
+              {title}
+            </p>
 
-          {/* Icon bubble */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "40px",
+                height: "40px",
+                borderRadius: "12px",
+                background: t.iconBg,
+                color: t.iconColor,
+                border: `1px solid ${t.ring}`,
+                backdropFilter: "blur(8px)",
+                boxShadow: `0 2px 8px ${t.accentSoft}, inset 0 1px 0 rgba(255,255,255,0.6)`,
+                transform: hovered
+                  ? "scale(1.08) rotate(-3deg)"
+                  : "scale(1) rotate(0deg)",
+                transition: "transform 0.35s cubic-bezier(0.23,1,0.32,1)",
+                flexShrink: 0,
+              }}
+            >
+              {icon || (
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+                  <polyline points="16 7 22 7 22 13" />
+                </svg>
+              )}
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "baseline",
+              gap: "2px",
+              marginBottom: "0.9rem",
+            }}
+          >
+            {isCurrency && (
+              <span
+                style={{
+                  fontSize: "17px",
+                  fontWeight: 600,
+                  color: "#64748b",
+                  lineHeight: 1,
+                  marginBottom: "3px",
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                $
+              </span>
+            )}
+            <span
+              style={{
+                fontSize: "34px",
+                fontWeight: 800,
+                color: "#0f172a",
+                lineHeight: 1,
+                letterSpacing: "-0.03em",
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              <AnimatedNumber
+                value={Math.round(
+                  typeof value === "string"
+                    ? parseFloat(value.replace(/[^0-9.-]/g, ""))
+                    : value,
+                )}
+                duration={800}
+              />
+            </span>
+          </div>
+
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              width: "40px",
-              height: "40px",
-              borderRadius: "12px",
-              background: t.iconBg,
-              color: t.iconColor,
-              border: `1px solid ${t.ring}`,
-              backdropFilter: "blur(8px)",
-              boxShadow: `0 2px 8px ${t.accentSoft}, inset 0 1px 0 rgba(255,255,255,0.6)`,
-              transform: hovered
-                ? "scale(1.08) rotate(-3deg)"
-                : "scale(1) rotate(0deg)",
-              transition: "transform 0.35s cubic-bezier(0.23,1,0.32,1)",
-              flexShrink: 0,
+              justifyContent: "space-between",
             }}
           >
-            {icon || (
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+            <p
+              style={{
+                margin: 0,
+                fontSize: "12px",
+                color: "#94a3b8",
+                fontWeight: 500,
+                lineHeight: 1.4,
+              }}
+            >
+              {subtitle}
+            </p>
+
+            {badge && (
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: "3px 10px",
+                  borderRadius: "999px",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  background: t.badge,
+                  color: t.badgeText,
+                  border: `1px solid ${t.ring}`,
+                  backdropFilter: "blur(8px)",
+                  letterSpacing: "0.02em",
+                  whiteSpace: "nowrap",
+                }}
               >
-                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
-                <polyline points="16 7 22 7 22 13" />
-              </svg>
+                {badge}
+              </span>
             )}
           </div>
-        </div>
-
-        {/* Value */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "baseline",
-            gap: "2px",
-            marginBottom: "0.9rem",
-          }}
-        >
-          {isCurrency && (
-            <span
-              style={{
-                fontSize: "17px",
-                fontWeight: 600,
-                color: "#64748b",
-                lineHeight: 1,
-                marginBottom: "3px",
-                letterSpacing: "-0.02em",
-              }}
-            >
-              $
-            </span>
-          )}
-          <span
-            style={{
-              fontSize: "34px",
-              fontWeight: 800,
-              color: "#0f172a",
-              lineHeight: 1,
-              letterSpacing: "-0.03em",
-              fontVariantNumeric: "tabular-nums",
-            }}
-          >
-            <AnimatedNumber
-              value={Math.round(
-                typeof value === "string"
-                  ? parseFloat(value.replace(/[^0-9.-]/g, ""))
-                  : value,
-              )}
-              duration={800}
-            />
-          </span>
-        </div>
-
-        {/* Footer row */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <p
-            style={{
-              margin: 0,
-              fontSize: "12px",
-              color: "#94a3b8",
-              fontWeight: 500,
-              lineHeight: 1.4,
-            }}
-          >
-            {subtitle}
-          </p>
-
-          {badge && (
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                padding: "3px 10px",
-                borderRadius: "999px",
-                fontSize: "11px",
-                fontWeight: 700,
-                background: t.badge,
-                color: t.badgeText,
-                border: `1px solid ${t.ring}`,
-                backdropFilter: "blur(8px)",
-                letterSpacing: "0.02em",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {badge}
-            </span>
-          )}
-        </div>
-      </div>
-    </div>
+        </>
+      )}
+    </DashboardCardSurface>
   );
 }
 
@@ -462,32 +540,35 @@ function MetricCard({
    UI: COMPACT KPI ITEM
 ================================ */
 function CompactMetric({ label, value, icon, tone = "slate", prefix = "" }) {
-  const toneClasses = {
-    indigo: "bg-indigo-50 text-indigo-700 ring-indigo-200",
-    teal: "bg-teal-50 text-teal-700 ring-teal-200",
-    violet: "bg-violet-50 text-violet-700 ring-violet-200",
-    cyan: "bg-cyan-50 text-cyan-700 ring-cyan-200",
-    fuchsia: "bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-200",
-    slate: "bg-slate-100 text-slate-700 ring-slate-200",
-  };
+  const t = TONES[tone] || TONES.slate;
 
   return (
-    <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-          {label}
-        </p>
-        <p className="mt-1 text-base font-bold text-slate-900">
-          {prefix}
-          <AnimatedNumber value={Math.round(toNumber(value))} duration={650} />
-        </p>
+    <DashboardCardSurface tone={tone} padding="0.9rem 1rem" interactive>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+            {label}
+          </p>
+          <p className="mt-1 text-base font-bold text-slate-900">
+            {prefix}
+            <AnimatedNumber
+              value={Math.round(toNumber(value))}
+              duration={650}
+            />
+          </p>
+        </div>
+        <div
+          className="rounded-lg p-2 ring-1"
+          style={{
+            background: t.iconBg,
+            color: t.iconColor,
+            borderColor: t.ring,
+          }}
+        >
+          {icon}
+        </div>
       </div>
-      <div
-        className={`rounded-lg p-2 ring-1 ${toneClasses[tone] || toneClasses.slate}`}
-      >
-        {icon}
-      </div>
-    </div>
+    </DashboardCardSurface>
   );
 }
 
@@ -496,21 +577,16 @@ function CompactMetric({ label, value, icon, tone = "slate", prefix = "" }) {
 ================================ */
 function QuickAction({ label, description, icon, onClick }) {
   return (
-    <button
+    <DashboardCardSurface
+      as="button"
+      tone="teal"
       onClick={onClick}
-      className="
-        group relative overflow-hidden rounded-md
-        bg-white p-4 text-left
-        transition-all duration-300 ease-out
-        shadow-[0_0_0_1px_rgba(15,23,42,0.03),0_12px_30px_rgba(15,23,42,0.10)]
-        hover:shadow-[0_0_0_1px_rgba(15,23,42,0.04),0_18px_45px_rgba(15,23,42,0.14)]
-
-        hover:-translate-y-[2px] active:scale-[0.98]
-      "
+      padding="1rem"
+      className="group text-left active:scale-[0.98]"
+      parent="quickAction"
     >
-      <div className="absolute left-0 top-0 h-full w-1 rounded-l-2xl bg-gradient-to-b from-teal-400 via-teal-500 to-teal-600"></div>
-
       {/* Soft hover wash */}
+
       <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-teal-50/60 opacity-0 transition duration-300 group-hover:opacity-100" />
 
       <div className="relative flex items-start gap-3 pl-2">
@@ -523,7 +599,7 @@ function QuickAction({ label, description, icon, onClick }) {
           <p className="mt-1 text-xs text-slate-500">{description}</p>
         </div>
       </div>
-    </button>
+    </DashboardCardSurface>
   );
 }
 
@@ -916,16 +992,12 @@ function Dashboardpage() {
       {/* ===============================
           KPI SECTION
       ================================ */}
-      <section
-        className="
-    relative overflow-hidden rounded-3xl
-    bg-gradient-to-br from-white via-rose-50/40 to-white
-    p-6 mb-8
-    before:absolute before:inset-0 before:rounded-3xl
-    before:bg-gradient-to-b before:from-white/80 before:to-transparent
-    before:opacity-60 before:pointer-events-none
-    shadow-[0_1px_1px_rgba(0,0,0,0.04),0_8px_24px_rgba(15,23,42,0.08),0_20px_60px_rgba(15,23,42,0.10)]
-  "
+      <DashboardCardSurface
+        as="section"
+        tone="teal"
+        className="mb-8"
+        padding="1.5rem"
+        interactive={false}
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-slate-900">Key Metrics</h2>
@@ -1024,26 +1096,19 @@ function Dashboardpage() {
             </div>
           </>
         )}
-      </section>
+      </DashboardCardSurface>
 
       {/* ===============================
           QUICK ACTIONS
       ================================ */}
 
-      <section
-        className="
-    relative overflow-hidden rounded-3xl
-    bg-gradient-to-br from-white via-rose-50/40 to-white
-    p-6 mb-8
-
-    before:absolute before:inset-0 before:rounded-3xl
-    before:bg-gradient-to-b before:from-white/80 before:to-transparent
-    before:opacity-60 before:pointer-events-none
-
-    shadow-[0_1px_1px_rgba(0,0,0,0.04),0_8px_24px_rgba(15,23,42,0.08),0_20px_60px_rgba(15,23,42,0.10)]
-  "
+      <DashboardCardSurface
+        as="section"
+        tone="indigo"
+        className="mb-8"
+        padding="1.5rem"
+        interactive={false}
       >
-        {" "}
         <h2 className="mb-4 text-lg font-bold text-slate-900">Quick Actions</h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
           {quickActions.map((action) => (
@@ -1056,13 +1121,18 @@ function Dashboardpage() {
             />
           ))}
         </div>
-      </section>
+      </DashboardCardSurface>
 
       {/* ===============================
           CHARTS: SALES + INVOICE STATUS
       ================================ */}
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-12 mb-8">
-        <div className="app-card col-span-1 p-5 xl:col-span-7">
+        <DashboardCardSurface
+          tone="emerald"
+          className="col-span-1 xl:col-span-7"
+          padding="1.25rem"
+          interactive
+        >
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-base font-bold text-slate-900">
               Sales vs Purchases
@@ -1089,9 +1159,14 @@ function Dashboardpage() {
               }}
             />
           </div>
-        </div>
+        </DashboardCardSurface>
 
-        <div className="app-card col-span-1 p-5 xl:col-span-5">
+        <DashboardCardSurface
+          tone="sky"
+          className="col-span-1 xl:col-span-5"
+          padding="1.25rem"
+          interactive
+        >
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-base font-bold text-slate-900">
               Invoice Status
@@ -1114,14 +1189,19 @@ function Dashboardpage() {
               }}
             />
           </div>
-        </div>
+        </DashboardCardSurface>
       </section>
 
       {/* ===============================
           CHART + ATTENTION PANEL
       ================================ */}
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-12 mb-8">
-        <div className="app-card col-span-1 p-5 xl:col-span-7">
+        <DashboardCardSurface
+          tone="indigo"
+          className="col-span-1 xl:col-span-7"
+          padding="1.25rem"
+          interactive
+        >
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-base font-bold text-slate-900">
               Orders by Status
@@ -1156,9 +1236,14 @@ function Dashboardpage() {
               />
             )}
           </div>
-        </div>
+        </DashboardCardSurface>
 
-        <div className="app-card col-span-1 p-5 xl:col-span-5">
+        <DashboardCardSurface
+          tone="amber"
+          className="col-span-1 xl:col-span-5"
+          padding="1.25rem"
+          interactive
+        >
           <h3 className="mb-4 text-base font-bold text-slate-900">
             Attention Items
           </h3>
@@ -1211,7 +1296,7 @@ function Dashboardpage() {
               )}
             </div>
           </div>
-        </div>
+        </DashboardCardSurface>
       </section>
 
       {/* ===============================
@@ -1225,7 +1310,12 @@ function Dashboardpage() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {logsToShow.length > 0 ? (
               logsToShow.map((log) => (
-                <div key={log._id} className="app-info-card p-5">
+                <DashboardCardSurface
+                  key={log._id}
+                  tone="teal"
+                  padding="1.25rem"
+                  interactive
+                >
                   <div className="flex items-center gap-3">
                     <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
                       <LuActivity className="text-xl" />
@@ -1239,7 +1329,7 @@ function Dashboardpage() {
                       </p>
                     </div>
                   </div>
-                </div>
+                </DashboardCardSurface>
               ))
             ) : (
               <NoData

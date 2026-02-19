@@ -91,7 +91,7 @@
 
   .app-info-card::before {
     content: "";
-    @apply absolute left-0 top-0 h-full w-1 bg-teal-600;
+    /* @apply absolute left-0 top-0 h-full w-1 bg-teal-600; */
   }
 
   .app-table-wrap {

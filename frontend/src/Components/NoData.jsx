@@ -6,11 +6,11 @@ const NoData = ({
   icon: Icon = Database,
 }) => {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+    <div className="relative overflow-hidden rounded-md border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_20%,rgba(77,0,0,0.12),transparent_34%),radial-gradient(circle_at_88%_14%,rgba(109,16,16,0.08),transparent_30%)]" />
       {/* <div className="pointer-events-none absolute left-0 top-0 h-full w-1 bg-teal-700" /> */}
-      <div className="relative mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-100 to-teal-50 ring-1 ring-teal-200 shadow-inner">
-        <div className="absolute -inset-1 -z-10 rounded-2xl bg-teal-200/40 blur-md" />
+      <div className="relative mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-md bg-gradient-to-br from-teal-100 to-teal-50 ring-1 ring-teal-200 shadow-inner">
+        {/* <div className="absolute -inset-1 -z-10 rounded-md bg-teal-200/40 blur-md" /> */}
         <Icon className="h-10 w-10 text-teal-700" />
       </div>
       <h3 className="relative text-lg font-extrabold tracking-tight text-slate-800">
