@@ -76,7 +76,7 @@ function LoginPage() {
 
   return (
     <div className="min-h-screen bg-base-100 flex bg-gray-50">
-      <div className="w-full sm:w-1/2 p-6 flex items-center justify-center bg-white shadow-lg rounded-xl">
+      <div className="w-full sm:w-1/2 p-6 flex items-center justify-center app-card app-surface-static">
         <div className="max-w-md w-full">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-teal-900">InventoryPro</h1>
@@ -190,7 +190,7 @@ function LoginPage() {
 
           {/* Feature List – Cards untouched */}
           <div className="space-y-5">
-            <div className="flex gap-4 items-start bg-teal-100 border border-slate-200 rounded-xl p-5 shadow-sm">
+            <div className="app-card p-5 flex gap-4 items-start">
               <div className="p-3 rounded-lg bg-teal-600 text-teal-700">📦</div>
               <div>
                 <h4 className="font-semibold text-slate-800">
@@ -202,7 +202,7 @@ function LoginPage() {
               </div>
             </div>
 
-            <div className="flex gap-4 items-start bg-teal-100 border border-slate-200 rounded-xl p-5 shadow-sm">
+            <div className="app-card p-5 flex gap-4 items-start">
               <div className="p-3 rounded-lg bg-teal-600 text-blue-700">📊</div>
               <div>
                 <h4 className="font-semibold text-slate-800">
@@ -214,7 +214,7 @@ function LoginPage() {
               </div>
             </div>
 
-            <div className="flex gap-4 items-start bg-teal-100 border border-slate-200 rounded-xl p-5 shadow-sm">
+            <div className="app-card p-5 flex gap-4 items-start">
               <div className="p-3 rounded-lg bg-teal-600 text-purple-700">
                 🔒
               </div>

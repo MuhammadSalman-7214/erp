@@ -51,7 +51,7 @@ function LedgerPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="bg-white rounded-2xl shadow-sm border p-4">
+        <div className="app-card p-4">
           <h2 className="text-lg font-semibold mb-3">Outstanding</h2>
           <div className="space-y-2">
             {(outstanding || []).map((o) => (
@@ -74,7 +74,7 @@ function LedgerPage() {
           </div>
         </div>
 
-        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border p-4">
+        <div className="lg:col-span-2 app-card p-4">
           <h2 className="text-lg font-semibold mb-3">Ledger Entries</h2>
           {!selectedParty ? (
             <div className="text-slate-500">Select a party to view ledger.</div>

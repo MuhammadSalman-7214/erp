@@ -321,7 +321,7 @@ function Supplierpage({ readOnly = false }) {
       )}
 
       <div className="mt-4">
-        <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+        <div className="app-card overflow-hidden">
           {!Array.isArray(displaySuppliers) || displaySuppliers.length === 0 ? (
             <div className="p-10 text-center">
               <NoData

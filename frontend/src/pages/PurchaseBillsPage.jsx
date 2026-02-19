@@ -126,7 +126,7 @@ function PurchaseBillsPage() {
       </div>
 
       {showForm && (
-        <div className="mt-4 bg-white rounded-2xl shadow-sm border p-4">
+        <div className="mt-4 app-card p-4">
           <form onSubmit={submitBill} className="space-y-3">
             <select
               className="border rounded px-3 py-2 w-full"
@@ -231,7 +231,7 @@ function PurchaseBillsPage() {
         </div>
       )}
 
-      <div className="mt-4 bg-white rounded-2xl shadow-sm border overflow-hidden">
+      <div className="mt-4 app-card overflow-hidden">
         {isLoading ? (
           <div className="p-10 text-center text-slate-500 animate-pulse">
             Loading bills...

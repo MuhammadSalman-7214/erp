@@ -65,7 +65,7 @@ function SetupPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-white shadow-lg rounded-xl p-8">
+      <div className="max-w-md w-full app-card app-surface-static p-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-teal-900">Initial Setup</h1>
           <p className="text-gray-600 mt-2">Create Super Admin Account</p>

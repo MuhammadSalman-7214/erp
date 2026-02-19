@@ -201,7 +201,7 @@ function StockTransaction({ readOnly = false }) {
 
       {/* Table Card */}
       {/* Table Card */}
-      <div className="mt-6 bg-white rounded-2xl shadow-sm border overflow-x-auto">
+      <div className="mt-6 app-card overflow-x-auto">
         {Array.isArray(displaystock) && displaystock.length > 0 ? (
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b">

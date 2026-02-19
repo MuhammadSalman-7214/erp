@@ -886,11 +886,11 @@ function Dashboardpage() {
             counts.overdue,
           ],
           backgroundColor: [
-            "#22c55e",
-            "#6366f1",
-            "#0ea5e9",
-            "#94a3b8",
-            "#dc2626",
+            "rgba(20, 184, 166, 0.8)",
+            "rgba(99, 102, 241, 0.8)", // indigo-500, soft
+            "rgba(14, 165, 233, 0.8)", // sky-500, soft
+            "rgba(148, 163, 184, 0.5)", // slate-400, lighter
+            "rgba(220, 38, 38, 0.8)", // red-600, soft
           ],
           borderWidth: 0,
         },

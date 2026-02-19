@@ -234,7 +234,7 @@ function Productpage({ readOnly = false }) {
 
       {/* TABLE */}
       <div className="mt-4">
-        <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+        <div className="app-card overflow-hidden">
           {/* Loading State */}
           {false ? ( // replace false with your loading state if you have one
             <div className="p-10 text-center text-slate-500 animate-pulse">

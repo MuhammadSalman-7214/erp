@@ -465,7 +465,7 @@ function Salespage() {
       )}
 
       {/* TABLE */}
-      <div className="mt-4 bg-white rounded-2xl shadow-sm border overflow-hidden">
+      <div className="mt-4 app-card overflow-hidden">
         {!displaySales || displaySales.length === 0 ? (
           <div className="p-10 text-center">
             <NoData

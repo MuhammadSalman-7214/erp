@@ -161,11 +161,9 @@ function InvoiceDetailPage() {
   if (!invoice) return <p className="p-6">Invoice not found</p>;
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      <TopNavbar />
-      <div className="p-6 max-w-5xl mx-auto">
-        <div className="bg-white rounded-2xl shadow p-6">
-          {/* Header */}
+    <div className="min-h-screen">
+      <div className="max-w-5xl mx-auto">
+        <div className="app-card p-6">
           <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
             <h1 className="text-2xl font-bold text-gray-800 mb-2 md:mb-0">
               {invoice.invoiceNumber}

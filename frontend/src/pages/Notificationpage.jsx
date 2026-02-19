@@ -155,7 +155,7 @@ function NotificationPage() {
       )}
 
       {/* Notifications List Card */}
-      <div className="bg-white rounded-2xl shadow-sm border overflow-hidden mt-4">
+      <div className="app-card overflow-hidden mt-4">
         {notifications.length > 0 ? (
           notifications.map((notification) => (
             <div

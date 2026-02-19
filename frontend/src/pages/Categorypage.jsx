@@ -215,7 +215,7 @@ function Categorypage() {
 
       {/* CATEGORY TABLE */}
       <div className="mt-4">
-        <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+        <div className="app-card overflow-hidden">
           <div className="overflow-x-auto">
             {Array.isArray(displayCategory) && displayCategory.length > 0 ? (
               <table className="w-full text-sm">

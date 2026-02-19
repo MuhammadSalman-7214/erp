@@ -7,8 +7,8 @@ function InfoStatCard({
   iconShellClass = "bg-teal-50 text-teal-700",
 }) {
   return (
-    <div className="group relative overflow-hidden rounded-md  border border-slate-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-      <span className={`absolute inset-y-0 left-0 w-1 ${accentClass}`} />
+    <div className="app-card group p-5">
+      <span className={`absolute inset-y-0 left-0 z-[2] w-1 ${accentClass}`} />
 
       <div className="flex items-start justify-between gap-4">
         <div>

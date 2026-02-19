@@ -52,7 +52,7 @@ function Activitylogpage() {
 
   return (
     <div className="min-h-[92vh] p-4">
-      <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+      <div className="app-card overflow-hidden">
         {currentLogs.length === 0 ? (
           <div className="p-10 text-center">
             <p className="text-slate-500">No activity logs available</p>

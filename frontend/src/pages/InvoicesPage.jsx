@@ -121,7 +121,7 @@ function InvoicesPage() {
         </button>
       </div>
       {/* Card */}
-      <div className="mt-4 bg-white rounded-2xl shadow-sm border overflow-hidden">
+      <div className="mt-4 app-card overflow-hidden">
         {loading ? (
           <div className="p-10 text-center text-slate-500 animate-pulse">
             Loading invoices...

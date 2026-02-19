@@ -45,17 +45,155 @@
     @apply p-4 md:p-6 lg:p-8 space-y-6;
   }
 
+  .app-surface-card,
+  .app-card,
+  .app-card-soft,
+  .app-metric-card,
+  .app-info-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 7px;
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.92) 0%,
+      rgba(248, 250, 252, 0.88) 100%
+    );
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(205, 212, 222, 0.7);
+    box-shadow:
+      0 4px 16px rgba(15, 23, 42, 0.06),
+      0 1px 4px rgba(15, 23, 42, 0.04),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    transition:
+      transform 0.35s cubic-bezier(0.23, 1, 0.32, 1),
+      box-shadow 0.35s ease,
+      border-color 0.35s ease;
+    --app-card-accent: #14b8a6;
+    --app-card-accent-soft: rgba(20, 184, 166, 0.12);
+    --app-card-orb: rgba(20, 184, 166, 0.28);
+    --app-card-orb-2: rgba(6, 182, 212, 0.18);
+    --app-card-ring: rgba(20, 184, 166, 0.25);
+  }
+
+  .app-surface-card::before,
+  .app-card::before,
+  .app-card-soft::before,
+  .app-metric-card::before,
+  .app-info-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background:
+      radial-gradient(
+        circle at 88% -10%,
+        var(--app-card-orb) 0,
+        transparent 42%
+      ),
+      radial-gradient(
+        circle at -6% 105%,
+        var(--app-card-orb-2) 0,
+        transparent 36%
+      ),
+      radial-gradient(
+        circle at 50% 0,
+        var(--app-card-accent-soft) 0,
+        transparent 52%
+      );
+    opacity: 0.72;
+    transition: opacity 0.35s ease;
+  }
+
+  .app-surface-card::after,
+  .app-card::after,
+  .app-card-soft::after,
+  .app-metric-card::after,
+  .app-info-card::after {
+    content: "";
+    position: absolute;
+    left: 14%;
+    right: 14%;
+    top: 0;
+    height: 1px;
+    pointer-events: none;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.9),
+      var(--app-card-accent-soft),
+      rgba(255, 255, 255, 0.9),
+      transparent
+    );
+    opacity: 0.68;
+    transition: opacity 0.35s ease;
+  }
+
+  .app-surface-card > *,
+  .app-card > *,
+  .app-card-soft > *,
+  .app-metric-card > *,
+  .app-info-card > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .app-surface-card:hover,
+  .app-card:hover,
+  .app-card-soft:hover,
+  .app-metric-card:hover,
+  .app-info-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--app-card-ring);
+    box-shadow:
+      0 20px 60px rgba(15, 23, 42, 0.12),
+      0 8px 24px rgba(15, 23, 42, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      0 0 0 1px var(--app-card-ring);
+  }
+
+  .app-surface-card:hover::before,
+  .app-surface-card:hover::after,
+  .app-card:hover::before,
+  .app-card:hover::after,
+  .app-card-soft:hover::before,
+  .app-card-soft:hover::after,
+  .app-metric-card:hover::before,
+  .app-metric-card:hover::after,
+  .app-info-card:hover::before,
+  .app-info-card:hover::after {
+    opacity: 1;
+  }
+
+  .app-surface-static:hover {
+    transform: translateY(0);
+    border-color: rgba(226, 232, 240, 0.7);
+    box-shadow:
+      0 4px 16px rgba(15, 23, 42, 0.06),
+      0 1px 4px rgba(15, 23, 42, 0.04),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  }
+
+  .app-surface-static:hover::before,
+  .app-surface-static:hover::after {
+    opacity: 0.72;
+  }
+
   .app-card {
-    background: var(--app-surface);
-    /* border: 1px solid var(--app-border); */
-    box-shadow: 0 10px 35px rgba(15, 23, 42, 0.08);
-    @apply rounded-2xl;
+    --app-card-accent: #14b8a6;
+    --app-card-accent-soft: rgba(20, 184, 166, 0.12);
+    --app-card-orb: rgba(20, 184, 166, 0.28);
+    --app-card-orb-2: rgba(6, 182, 212, 0.18);
+    --app-card-ring: rgba(20, 184, 166, 0.25);
   }
 
   .app-card-soft {
-    background: var(--app-surface-soft);
-    border: 1px solid #dbe7f5;
-    @apply rounded-2xl;
+    --app-card-accent: #6366f1;
+    --app-card-accent-soft: rgba(99, 102, 241, 0.1);
+    --app-card-orb: rgba(99, 102, 241, 0.24);
+    --app-card-orb-2: rgba(139, 92, 246, 0.16);
+    --app-card-ring: rgba(99, 102, 241, 0.22);
   }
 
   .app-input {
@@ -82,16 +220,20 @@
   }
 
   .app-metric-card {
-    @apply relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg;
+    padding: 1rem;
+    --app-card-accent: #10b981;
+    --app-card-accent-soft: rgba(16, 185, 129, 0.11);
+    --app-card-orb: rgba(16, 185, 129, 0.26);
+    --app-card-orb-2: rgba(52, 211, 153, 0.16);
+    --app-card-ring: rgba(16, 185, 129, 0.24);
   }
 
   .app-info-card {
-    @apply relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg;
-  }
-
-  .app-info-card::before {
-    content: "";
-    /* @apply absolute left-0 top-0 h-full w-1 bg-teal-600; */
+    --app-card-accent: #0ea5e9;
+    --app-card-accent-soft: rgba(14, 165, 233, 0.11);
+    --app-card-orb: rgba(14, 165, 233, 0.24);
+    --app-card-orb-2: rgba(56, 189, 248, 0.16);
+    --app-card-ring: rgba(14, 165, 233, 0.24);
   }
 
   .app-table-wrap {

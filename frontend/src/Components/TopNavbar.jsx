@@ -20,7 +20,7 @@ function TopNavbar() {
   return (
     <nav className="bg-white w-full h-[72px] flex items-center justify-between px-8 border-b border-gray-200 shadow-sm">
       {/* LEFT */}
-      <div className="flex flex-col">
+      {/* <div className="flex flex-col">
         <h1 className="text-lg font-semibold text-gray-900">
           Welcome back, {user?.name || "Guest"}
         </h1>
@@ -32,7 +32,7 @@ function TopNavbar() {
             year: "numeric",
           })}
         </p>
-      </div>
+      </div> */}
 
       {/* RIGHT */}
       <div className="flex items-center gap-4">

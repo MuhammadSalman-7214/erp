@@ -5,17 +5,17 @@ module.exports = {
     extend: {
       colors: {
         teal: {
-          50: "#f9f0f0",
-          100: "#f3e0e0",
-          200: "#e8c1c1",
-          300: "#d79a9a",
-          400: "#bf6a6a",
-          500: "#8a2f2f",
-          600: "#6d1010",
-          700: "#4d0000",
-          800: "#3b0000",
-          900: "#2a0000",
-          950: "#160000",
+          50: "#f0fdfa", // very light cyan-teal
+          100: "#ccfbf1",
+          200: "#99f6e4",
+          300: "#5eead4",
+          400: "#2dd4bf",
+          500: "#14b8a6", // base teal
+          600: "#0d9488",
+          700: "#0f766e",
+          800: "#115e59",
+          900: "#134e4a", // darkest teal
+          950: "#042f2e", // near-black teal
         },
       },
       fontFamily: {

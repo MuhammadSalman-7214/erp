@@ -33,7 +33,7 @@ function HomePage() {
     <div className="min-h-screen bg-slate-50 flex justify-center item-center px-4 sm:px-6 md:px-10 lg:px-16 py-10">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12 items-center">
         {/* LEFT – Auth Section */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 md:p-10">
+        <div className="app-card p-6 sm:p-8 md:p-10">
           <h1 className="text-3xl sm:text-4xl font-bold text-slate-800 leading-tight mb-4">
             Welcome to <br />
             <span className="text-teal-700">InventoryPro</span>
@@ -107,7 +107,7 @@ function Feature({ icon, title, desc, color }) {
   };
 
   return (
-    <div className="app-card rounded-xl p-5 sm:p-6 shadow-sm hover:shadow-md transition">
+    <div className="app-card p-5 sm:p-6">
       <div className="flex items-center gap-4 mb-3">
         <div className={`rounded-lg p-3 ${colorClasses[color] || colorClasses.teal}`}>
           {icon}

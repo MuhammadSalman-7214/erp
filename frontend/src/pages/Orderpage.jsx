@@ -368,7 +368,7 @@ function Orderpage() {
       )}
 
       {/* Orders Table */}
-      <div className="mt-4 bg-white rounded-2xl shadow-sm border overflow-hidden">
+      <div className="mt-4 app-card overflow-hidden">
         {" "}
         {/* Scrollable Container */}
         <div className="overflow-auto max-h-[600px]">

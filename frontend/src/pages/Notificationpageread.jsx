@@ -35,7 +35,7 @@ function NotificationPageRead() {
   return (
     <div className="min-h-[92vh] bg-white p-4">
       {/* Notifications List Card */}
-      <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+      <div className="app-card overflow-hidden">
         {notifications.length > 0 ? (
           notifications.map((notification) => (
             <div

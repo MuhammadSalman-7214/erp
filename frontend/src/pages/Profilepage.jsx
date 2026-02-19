@@ -91,7 +91,7 @@ function ProfilePage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* LEFT: PROFILE INFO (AUTO HEIGHT) */}
         <div className="lg:col-span-3">
-          <div className="bg-white border rounded-xl shadow-md p-6 text-center h-fit">
+          <div className="app-card app-surface-static p-6 text-center h-fit">
             {/* Avatar */}
             <div className="relative mb-6 flex justify-center">
               <img
@@ -145,9 +145,9 @@ function ProfilePage() {
 
         {/* RIGHT: RECENT ACTIVITY (FIXED HEADER + SCROLL BODY) */}
         <div className="lg:col-span-9">
-          <div className="bg-white border rounded-xl shadow-md h-[88vh] flex flex-col">
+          <div className="app-card app-surface-static h-[88vh] flex flex-col">
             {/* FIXED HEADER */}
-            <div className="stick top-0 bg-white z-10 border-b p-4 rounded-t-xl">
+            <div className="stick top-0 z-10 border-b p-4 rounded-t-xl">
               <h1 className="text-lg font-semibold text-slate-800">
                 All Activity
               </h1>

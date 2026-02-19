@@ -83,7 +83,7 @@ function DashboardShell({
       />
 
       <aside
-        className={`app-card fixed left-0 top-0 z-50 h-screen border-r border-slate-200/80 transition-all duration-300 md:relative md:z-auto ${
+        className={`app-card app-surface-static fixed left-0 top-0 z-50 h-screen border-r border-slate-200/80 transition-all duration-300 md:relative md:z-auto ${
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         } ${sidebarOpen ? "w-72" : "w-[78px]"}`}
       >

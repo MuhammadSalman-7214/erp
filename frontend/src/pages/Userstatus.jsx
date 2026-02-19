@@ -12,7 +12,7 @@ import { fetchUsersByRole, removeusers } from "../features/authSlice";
 /* ---------------------------------- */
 function UserCard({ title, users, onDelete, canDelete }) {
   return (
-    <div className="bg-base-100 p-4 rounded-2xl border shadow-md">
+    <div className="app-card p-4">
       <h2 className="text-lg text-teal-800 font-semibold mb-2">{title}</h2>
 
       {users?.length > 0 ? (

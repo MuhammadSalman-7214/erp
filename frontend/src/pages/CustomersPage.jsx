@@ -123,7 +123,7 @@ function CustomersPage({ readOnly = false }) {
       </div>
 
       {isFormVisible && (
-        <div className="mt-4 bg-white rounded-2xl shadow-sm border p-4">
+        <div className="mt-4 app-card p-4">
           <form
             onSubmit={submitCustomer}
             className="grid grid-cols-1 md:grid-cols-2 gap-3"
@@ -171,7 +171,7 @@ function CustomersPage({ readOnly = false }) {
         </div>
       )}
 
-      <div className="mt-4 bg-white rounded-2xl shadow-sm border overflow-hidden">
+      <div className="mt-4 app-card overflow-hidden">
         {isLoading ? (
           <div className="p-10 text-center text-slate-500 animate-pulse">
             Loading customers...

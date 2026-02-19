@@ -75,7 +75,7 @@ const StockTransactionGraph = () => {
   }, []);
 
   return (
-    <div className="bg-white w-full h-[40vh] p-4 sm:p-6 rounded-2xl shadow-sm border">
+    <div className="app-card w-full h-[40vh] p-4 sm:p-6">
       {chartData ? (
         <Line
           data={chartData}
