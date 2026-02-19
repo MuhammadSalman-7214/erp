@@ -31,10 +31,10 @@
       system-ui,
       -apple-system,
       sans-serif;
-    background:
+    /* background:
       radial-gradient(circle at 10% 0%, #fdf4f4 0%, transparent 30%),
       radial-gradient(circle at 90% 10%, #fdf4f4 0%, transparent 35%),
-      linear-gradient(180deg, #f8fbff 0%, var(--app-bg) 100%);
+      linear-gradient(180deg, #f8fbff 0%, var(--app-bg) 100%); */
     color: var(--app-text);
     @apply antialiased;
   }
