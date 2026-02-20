@@ -26,7 +26,6 @@ const getCurrentMonthRange = () => {
 };
 
 const CountryReportsPage = () => {
-  const { user } = useSelector((state) => state.auth);
   const { summary, shipmentPnl, isLoadingSummary, isLoadingShipmentPnl } =
     useSelector((state) => state.reports);
   const dispatch = useDispatch();
@@ -46,16 +45,6 @@ const CountryReportsPage = () => {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-extrabold text-slate-900">
-          Country Reports
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Financial and shipment insights for{" "}
-          {user?.country?.name || "all countries"}
-        </p>
-      </div>
-
       <div className="app-card p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

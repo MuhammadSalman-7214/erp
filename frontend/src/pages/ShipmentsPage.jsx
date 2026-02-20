@@ -32,11 +32,7 @@ const ShipmentsPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Shipments</h1>
-          <p className="text-gray-600 mt-1">Manage import/export shipments</p>
-        </div>
+      <div className="flex items-center justify-end">
         {hasPermission("shipment", "write") && (
           <button
             onClick={() => navigate("../createShipment")}

@@ -140,16 +140,7 @@ const CountriesPage = () => {
 
   return (
     <div>
-      {/* Header */}
       <div className="flex items-center justify-between pb-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Countries Management
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Manage countries and exchange rates
-          </p>
-        </div>
         <button
           onClick={() => {
             resetForm();

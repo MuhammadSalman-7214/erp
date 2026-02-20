@@ -26,7 +26,6 @@ const getCurrentMonthRange = () => {
 };
 
 const BranchReportsPage = () => {
-  const { user } = useSelector((state) => state.auth);
   const { summary, shipmentPnl, isLoadingSummary, isLoadingShipmentPnl } =
     useSelector((state) => state.reports);
   const dispatch = useDispatch();
@@ -46,16 +45,6 @@ const BranchReportsPage = () => {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-extrabold text-slate-900">
-          Branch Reports
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Financial and shipment insights for{" "}
-          {user?.branch?.name || "all branches"}
-        </p>
-      </div>
-
       <div className="app-card p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

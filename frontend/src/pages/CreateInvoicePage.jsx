@@ -129,10 +129,6 @@ function CreateInvoicePage() {
     <div className="min-h-[92vh] p-4">
       <div className="p-6 max-w-6xl mx-auto">
         <div className="app-card p-6">
-          <h1 className="text-2xl font-bold mb-6 text-gray-800">
-            Create Invoice
-          </h1>
-
           {/* Invoice Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>

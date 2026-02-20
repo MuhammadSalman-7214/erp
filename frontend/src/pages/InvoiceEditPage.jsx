@@ -122,10 +122,6 @@ function InvoiceEditPage() {
     <div className="min-h-[92vh] p-4">
       <div className="p-6 max-w-5xl mx-auto">
         <div className="app-card p-6">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">
-            Edit Invoice
-          </h1>
-
           {/* Invoice Number */}
           <p className="text-gray-600 mb-6">
             <strong>Invoice No:</strong> {invoice.invoiceNumber}

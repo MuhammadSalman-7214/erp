@@ -992,12 +992,13 @@ function Dashboardpage() {
       {/* ===============================
           KPI SECTION
       ================================ */}
-      <DashboardCardSurface
-        as="section"
-        tone="teal"
-        className="mb-8"
-        padding="1.5rem"
-        interactive={false}
+      <div
+        // as="section"
+        // tone="teal"
+        // className="mb-8"
+        // padding="1.5rem"
+        // interactive={false}
+        className="mb-8 "
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-slate-900">Key Metrics</h2>
@@ -1096,18 +1097,18 @@ function Dashboardpage() {
             </div>
           </>
         )}
-      </DashboardCardSurface>
+      </div>
 
       {/* ===============================
           QUICK ACTIONS
       ================================ */}
 
-      <DashboardCardSurface
-        as="section"
-        tone="indigo"
+      <div
+        // as="section"
+        // tone="indigo"
         className="mb-8"
-        padding="1.5rem"
-        interactive={false}
+        // padding="1.5rem"
+        // interactive={false}
       >
         <h2 className="mb-4 text-lg font-bold text-slate-900">Quick Actions</h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
@@ -1121,7 +1122,7 @@ function Dashboardpage() {
             />
           ))}
         </div>
-      </DashboardCardSurface>
+      </div>
 
       {/* ===============================
           CHARTS: SALES + INVOICE STATUS

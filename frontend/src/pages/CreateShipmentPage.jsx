@@ -88,7 +88,6 @@ const CreateShipmentPage = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Create Shipment</h1>
       <div className="bg-white rounded-lg shadow p-6">
         <form
           onSubmit={submitShipment}

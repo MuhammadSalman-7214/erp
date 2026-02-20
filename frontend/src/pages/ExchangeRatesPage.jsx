@@ -51,7 +51,7 @@ const ExchangeRatesPage = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Exchange Rates Management</h1>
+      {/* <h1 className="text-2xl font-bold">Exchange Rates Management</h1> */}
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="min-w-full">

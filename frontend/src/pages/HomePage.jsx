@@ -11,20 +11,16 @@ import toast from "react-hot-toast";
 import axiosInstance from "../lib/axios";
 
 function HomePage() {
-  // Add a check in HomePage to guide first-time users
   const navigate = useNavigate();
   useEffect(() => {
     const checkIfSetupNeeded = async () => {
       try {
         const response = await axiosInstance.get("/auth/check-setup");
         if (!response.data.setupComplete) {
-          // Show banner or redirect to setup
           toast.info("Please complete initial setup");
           setTimeout(() => navigate("/setup"), 2000);
         }
-      } catch (error) {
-        // Ignore errors
-      }
+      } catch (error) {}
     };
 
     checkIfSetupNeeded();
@@ -109,7 +105,9 @@ function Feature({ icon, title, desc, color }) {
   return (
     <div className="app-card p-5 sm:p-6">
       <div className="flex items-center gap-4 mb-3">
-        <div className={`rounded-lg p-3 ${colorClasses[color] || colorClasses.teal}`}>
+        <div
+          className={`rounded-lg p-3 ${colorClasses[color] || colorClasses.teal}`}
+        >
           {icon}
         </div>
         <h3 className="font-semibold text-slate-800">{title}</h3>

@@ -1,14 +1,7 @@
-import React, { useMemo, useState } from "react";
-import { Link, NavLink, Outlet } from "react-router-dom";
-import {
-  Menu,
-  PanelLeftClose,
-  PanelLeftOpen,
-  LogOut,
-  Settings,
-  User,
-} from "lucide-react";
-import image from "../images/user.png";
+import React, { useState } from "react";
+import { NavLink, Outlet } from "react-router-dom";
+import { PanelLeftClose, PanelLeftOpen, LogOut } from "lucide-react";
+import DashboardHeader from "./DashboardHeader";
 
 const linkBaseClass =
   "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition duration-200";
@@ -24,17 +17,6 @@ function DashboardShell({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  const todayLabel = useMemo(
-    () =>
-      new Date().toLocaleDateString("en-GB", {
-        weekday: "long",
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      }),
-    [],
-  );
 
   const renderNav = () => (
     <nav className="space-y-5 px-3 py-4">
@@ -129,36 +111,14 @@ function DashboardShell({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/85 px-4 py-3 backdrop-blur md:px-6">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setMobileOpen(true)}
-                className="rounded-lg border border-slate-200 p-2 text-slate-600 md:hidden"
-              >
-                <Menu className="h-4 w-4" />
-              </button>
-              <div>
-                <h2 className="text-base font-bold text-slate-900">
-                  Welcome, {user?.name || "User"}
-                </h2>
-                <p className="text-xs text-slate-500">
-                  {roleLabel} · {todayLabel}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Link
-                to={profilePath}
-                className="hidden items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 md:inline-flex"
-              >
-                <User className=" text-teal-700" />
-                Profile
-              </Link>
-            </div>
-          </div>
-        </header>
+        <DashboardHeader
+          user={user}
+          roleLabel={roleLabel}
+          menuItems={menuItems}
+          profilePath={profilePath}
+          onLogout={onLogout}
+          onOpenMobileMenu={() => setMobileOpen(true)}
+        />
 
         <main className="app-page flex-1 overflow-y-auto">
           <Outlet />
