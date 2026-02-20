@@ -100,6 +100,68 @@ const formatCompact = (value) =>
     maximumFractionDigits: 1,
   }).format(toNumber(value));
 
+const ORDER_STATUS_COLOR_MAP = [
+  {
+    statuses: ["completed", "delivered", "fulfilled", "paid", "success"],
+    color: "rgba(16, 185, 129, 0.78)",
+    border: "rgba(5, 150, 105, 0.95)",
+  },
+  {
+    statuses: [
+      "processing",
+      "in progress",
+      "packed",
+      "ready",
+      "shipped",
+      "dispatched",
+      "approved",
+    ],
+    color: "rgba(14, 165, 233, 0.78)",
+    border: "rgba(2, 132, 199, 0.95)",
+  },
+  {
+    statuses: ["pending", "awaiting", "on hold"],
+    color: "rgba(245, 158, 11, 0.78)",
+    border: "rgba(217, 119, 6, 0.95)",
+  },
+  {
+    statuses: [
+      "cancelled",
+      "canceled",
+      "rejected",
+      "failed",
+      "returned",
+      "refunded",
+    ],
+    color: "rgba(239, 68, 68, 0.78)",
+    border: "rgba(220, 38, 38, 0.95)",
+  },
+  {
+    statuses: ["draft", "new", "unknown"],
+    color: "rgba(100, 116, 139, 0.72)",
+    border: "rgba(71, 85, 105, 0.9)",
+  },
+];
+
+const getOrderStatusStyle = (status) => {
+  const normalizedStatus = (status || "unknown").toLowerCase();
+  const mappedStyle = ORDER_STATUS_COLOR_MAP.find(({ statuses }) =>
+    statuses.some(
+      (candidate) =>
+        normalizedStatus === candidate ||
+        normalizedStatus.includes(candidate) ||
+        candidate.includes(normalizedStatus),
+    ),
+  );
+
+  return (
+    mappedStyle || {
+      color: "rgba(139, 92, 246, 0.72)",
+      border: "rgba(124, 58, 237, 0.9)",
+    }
+  );
+};
+
 /* ─── Palette ───────────────────────────────────────────────────── */
 
 const TONES = {
@@ -906,13 +968,23 @@ function Dashboardpage() {
       statusMap.set(status, (statusMap.get(status) || 0) + 1);
     });
 
+    const labels = Array.from(statusMap.keys());
+    const backgroundColor = labels.map(
+      (status) => getOrderStatusStyle(status).color,
+    );
+    const borderColor = labels.map(
+      (status) => getOrderStatusStyle(status).border,
+    );
+
     return {
-      labels: Array.from(statusMap.keys()),
+      labels,
       datasets: [
         {
           label: "Orders",
           data: Array.from(statusMap.values()),
-          backgroundColor: "rgba(77, 0, 0, 0.65)",
+          backgroundColor,
+          borderColor,
+          borderWidth: 1,
           borderRadius: 10,
           maxBarThickness: 44,
         },
