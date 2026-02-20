@@ -17,9 +17,7 @@ import { gettingallCategory } from "../features/categorySlice";
 import NoData from "../Components/NoData";
 
 function Orderpage() {
-  const { getorder, editorder, searchdata } = useSelector(
-    (state) => state.order,
-  );
+  const { getorder, searchdata } = useSelector((state) => state.order);
   const { getallproduct } = useSelector((state) => state.product);
   const { getallSupplier } = useSelector((state) => state.supplier);
   const [supplier, setsupplier] = useState("");
@@ -54,10 +52,6 @@ function Orderpage() {
   }, [dispatch, user]);
 
   useEffect(() => {
-    dispatch(gettingallOrder());
-  }, [dispatch, editorder]);
-
-  useEffect(() => {
     if (query.trim() !== "") {
       const timeout = setTimeout(() => {
         dispatch(SearchOrder(query));
@@ -73,13 +67,13 @@ function Orderpage() {
 
     const updatedData = {
       user: user?.id || " ",
-      description: Description,
+      Description,
       status,
       supplier,
-      products: {
+      Product: {
         product: Product,
         quantity: Number(quantity),
-        Price: Number(Price),
+        price: Number(Price),
       },
     };
 

@@ -15,6 +15,14 @@ const initialState = {
   statusgraph: [],
   errorGraph: null,
 };
+
+const normalizeOrdersPayload = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.orders)) return payload.orders;
+  if (Array.isArray(payload?.order)) return payload.order;
+  if (Array.isArray(payload?.data)) return payload.data;
+  return [];
+};
 export const createdOrder = createAsyncThunk(
   "order/createorder",
   async (order, { rejectWithValue }) => {
@@ -127,7 +135,7 @@ const orderSlice = createSlice({
       })
       .addCase(gettingallOrder.fulfilled, (state, action) => {
         state.isgetorder = false;
-        state.getorder = action.payload;
+        state.getorder = normalizeOrdersPayload(action.payload);
       })
 
       .addCase(gettingallOrder.rejected, (state, action) => {
@@ -140,8 +148,12 @@ const orderSlice = createSlice({
 
       .addCase(createdOrder.fulfilled, (state, action) => {
         state.isorderadd = false;
-        if (action.payload?.displayOrder?.length > 0) {
-          state.getorder.push(action.payload.displayOrder[0]);
+        const createdOrderRecord =
+          action.payload?.order ||
+          action.payload?.displayOrder?.[0] ||
+          action.payload?.data?.order;
+        if (createdOrderRecord?._id) {
+          state.getorder.unshift(createdOrderRecord);
         }
       })
 
@@ -169,6 +181,12 @@ const orderSlice = createSlice({
       .addCase(updatestatusOrder.fulfilled, (state, action) => {
         state.iseditorder = false;
         state.editorder = action.payload;
+        const updatedOrder = action.payload?.order || action.payload;
+        if (updatedOrder?._id) {
+          state.getorder = state.getorder.map((order) =>
+            order._id === updatedOrder._id ? updatedOrder : order,
+          );
+        }
       })
 
       .addCase(updatestatusOrder.rejected, (state, action) => {

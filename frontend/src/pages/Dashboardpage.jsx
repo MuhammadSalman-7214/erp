@@ -84,6 +84,29 @@ const getSalesAmount = (sale) => {
   });
 };
 
+const getPurchaseAmount = (bill) => {
+  if (toNumber(bill?.totalAmount) > 0) return toNumber(bill.totalAmount);
+  if (toNumber(bill?.subTotal) > 0) {
+    return (
+      toNumber(bill.subTotal) + toNumber(bill?.taxAmount) - toNumber(bill?.discount)
+    );
+  }
+
+  return sumBy(bill?.items, (item) => {
+    if (toNumber(item?.total) > 0) return toNumber(item.total);
+    return toNumber(item?.quantity) * toNumber(item?.unitPrice);
+  });
+};
+
+const getRecordDate = (record) =>
+  record?.createdAt ||
+  record?.date ||
+  record?.billDate ||
+  record?.invoiceDate ||
+  record?.transactionDate ||
+  record?.updatedAt ||
+  null;
+
 const isInvoiceOverdue = (invoice) => {
   const status = (invoice?.status || "").toLowerCase();
 
@@ -791,7 +814,12 @@ function Dashboardpage() {
           : [],
       orders:
         ordersRes.status === "fulfilled"
-          ? asArray(ordersRes.value?.data?.orders || ordersRes.value?.data)
+          ? asArray(
+              ordersRes.value?.data?.orders ||
+                ordersRes.value?.data?.order ||
+                ordersRes.value?.data?.data ||
+                ordersRes.value?.data,
+            )
           : [],
     });
 
@@ -803,6 +831,23 @@ function Dashboardpage() {
   ================================ */
   useEffect(() => {
     fetchDashboardData();
+
+    const handleFocusRefresh = () => {
+      fetchDashboardData();
+    };
+    const handleVisibilityRefresh = () => {
+      if (document.visibilityState === "visible") {
+        fetchDashboardData();
+      }
+    };
+
+    window.addEventListener("focus", handleFocusRefresh);
+    document.addEventListener("visibilitychange", handleVisibilityRefresh);
+
+    return () => {
+      window.removeEventListener("focus", handleFocusRefresh);
+      document.removeEventListener("visibilitychange", handleVisibilityRefresh);
+    };
   }, [fetchDashboardData]);
 
   useEffect(() => {
@@ -818,7 +863,7 @@ function Dashboardpage() {
   ================================ */
   const metrics = useMemo(() => {
     const totalSales = sumBy(datasets.sales, getSalesAmount);
-    const totalPurchases = sumBy(datasets.bills, (bill) => bill?.totalAmount);
+    const totalPurchases = sumBy(datasets.bills, getPurchaseAmount);
 
     const paidInvoices = datasets.invoices.filter(
       (invoice) => (invoice?.status || "").toLowerCase() === "paid",
@@ -877,7 +922,7 @@ function Dashboardpage() {
     const purchaseMap = new Map(months.map((month) => [month.key, 0]));
 
     datasets.sales.forEach((sale) => {
-      const date = new Date(sale?.createdAt);
+      const date = new Date(getRecordDate(sale));
       if (Number.isNaN(date.getTime())) return;
 
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
@@ -887,14 +932,14 @@ function Dashboardpage() {
     });
 
     datasets.bills.forEach((bill) => {
-      const date = new Date(bill?.createdAt);
+      const date = new Date(getRecordDate(bill));
       if (Number.isNaN(date.getTime())) return;
 
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
       if (purchaseMap.has(key)) {
         purchaseMap.set(
           key,
-          purchaseMap.get(key) + toNumber(bill?.totalAmount),
+          purchaseMap.get(key) + getPurchaseAmount(bill),
         );
       }
     });
