@@ -69,17 +69,16 @@
       transform 0.35s cubic-bezier(0.23, 1, 0.32, 1),
       box-shadow 0.35s ease,
       border-color 0.35s ease;
-    --app-card-accent: #14b8a6;
-    --app-card-accent-soft: rgba(20, 184, 166, 0.12);
-    --app-card-orb: rgba(20, 184, 166, 0.28);
-    --app-card-orb-2: rgba(6, 182, 212, 0.18);
-    --app-card-ring: rgba(20, 184, 166, 0.25);
+    --app-card-accent: #b6f0e9;
+    --app-card-accent-soft: rgba(158, 250, 240, 0.12);
+    --app-card-orb: rgba(180, 250, 242, 0.28);
+    --app-card-orb-2: rgba(152, 236, 251, 0.18);
+    --app-card-ring: rgba(142, 254, 241, 0.25);
   }
 
   .app-surface-card::before,
   .app-card::before,
   .app-card-soft::before,
-  .app-metric-card::before,
   .app-info-card::before {
     content: "";
     position: absolute;
@@ -100,7 +99,7 @@
       radial-gradient(
         circle at 50% 0,
         var(--app-card-accent-soft) 0,
-        transparent 52%
+        transparent 44%
       );
     opacity: 0.72;
     transition: opacity 0.35s ease;
@@ -109,8 +108,51 @@
   .app-surface-card::after,
   .app-card::after,
   .app-card-soft::after,
-  .app-metric-card::after,
   .app-info-card::after {
+    content: "";
+    position: absolute;
+    left: 14%;
+    right: 14%;
+    top: 0;
+    height: 1px;
+    pointer-events: none;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.9),
+      var(--app-card-accent-soft),
+      rgba(255, 255, 255, 0.9),
+      transparent
+    );
+    opacity: 0.68;
+    transition: opacity 0.35s ease;
+  }
+  .app-metric-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background:
+      radial-gradient(
+        circle at 88% -10%,
+        rgba(166, 240, 231, 0.28) 0,
+        transparent 42%
+      ),
+      radial-gradient(
+        circle at -6% 105%,
+        rgba(178, 240, 250, 0.18) 0,
+        transparent 36%
+      ),
+      radial-gradient(
+        circle at 50% 0,
+        rgba(170, 247, 238, 0.12) 0,
+        transparent 44%
+      );
+    opacity: 0.72;
+    transition: opacity 0.35s ease;
+  }
+  .app-metric-card::after {
     content: "";
     position: absolute;
     left: 14%;
@@ -181,11 +223,11 @@
   }
 
   .app-card {
-    --app-card-accent: #14b8a6;
-    --app-card-accent-soft: rgba(20, 184, 166, 0.12);
-    --app-card-orb: rgba(20, 184, 166, 0.28);
-    --app-card-orb-2: rgba(6, 182, 212, 0.18);
-    --app-card-ring: rgba(20, 184, 166, 0.25);
+    --app-card-accent: #acf0e8;
+    --app-card-accent-soft: rgba(147, 250, 238, 0.12);
+    --app-card-orb: rgba(161, 249, 239, 0.28);
+    --app-card-orb-2: rgba(184, 239, 249, 0.18);
+    --app-card-ring: rgba(178, 249, 241, 0.25);
   }
 
   .app-card-soft {
