@@ -5,6 +5,10 @@ const initialState = {
   customers: [],
   isLoading: false,
   error: null,
+  selectedCustomerSummary: null,
+  selectedCustomerLedger: [],
+  isCustomerSummaryLoading: false,
+  isCustomerLedgerLoading: false,
 };
 
 export const fetchCustomers = createAsyncThunk(
@@ -69,6 +73,59 @@ export const deleteCustomer = createAsyncThunk(
   },
 );
 
+export const fetchCustomerSummary = createAsyncThunk(
+  "customers/fetchSummary",
+  async (customerId, { rejectWithValue }) => {
+    try {
+      const res = await axiosInstance.get(`customer/${customerId}/summary`, {
+        withCredentials: true,
+      });
+      return res.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch customer summary",
+      );
+    }
+  },
+);
+
+export const fetchCustomerLedger = createAsyncThunk(
+  "customers/fetchLedger",
+  async (customerId, { rejectWithValue }) => {
+    try {
+      const res = await axiosInstance.get(
+        `ledger?entityType=CUSTOMER&entityId=${customerId}`,
+        {
+          withCredentials: true,
+        },
+      );
+      return res.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch customer ledger",
+      );
+    }
+  },
+);
+
+export const createCustomerPayment = createAsyncThunk(
+  "customers/createPayment",
+  async ({ customerId, amount, description }, { rejectWithValue }) => {
+    try {
+      const res = await axiosInstance.post(
+        "customer-payment",
+        { customerId, amount, description },
+        { withCredentials: true },
+      );
+      return res.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to record customer payment",
+      );
+    }
+  },
+);
+
 const customerSlice = createSlice({
   name: "customers",
   initialState,
@@ -100,6 +157,29 @@ const customerSlice = createSlice({
         state.customers = state.customers.filter(
           (c) => c._id !== action.payload,
         );
+      })
+      .addCase(fetchCustomerSummary.pending, (state) => {
+        state.isCustomerSummaryLoading = true;
+      })
+      .addCase(fetchCustomerSummary.fulfilled, (state, action) => {
+        state.isCustomerSummaryLoading = false;
+        state.selectedCustomerSummary = action.payload;
+      })
+      .addCase(fetchCustomerSummary.rejected, (state) => {
+        state.isCustomerSummaryLoading = false;
+      })
+      .addCase(fetchCustomerLedger.pending, (state) => {
+        state.isCustomerLedgerLoading = true;
+      })
+      .addCase(fetchCustomerLedger.fulfilled, (state, action) => {
+        state.isCustomerLedgerLoading = false;
+        state.selectedCustomerLedger = action.payload?.entries || [];
+      })
+      .addCase(fetchCustomerLedger.rejected, (state) => {
+        state.isCustomerLedgerLoading = false;
+      })
+      .addCase(createCustomerPayment.rejected, (state, action) => {
+        state.error = action.payload;
       });
   },
 });

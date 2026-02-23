@@ -6,15 +6,26 @@ import {
   createCustomer,
   updateCustomer,
   deleteCustomer,
+  fetchCustomerSummary,
+  fetchCustomerLedger,
+  createCustomerPayment,
 } from "../features/customerSlice";
 import { toast } from "react-hot-toast";
 import { IoMdAdd } from "react-icons/io";
 import { MdDelete, MdEdit } from "react-icons/md";
 import NoData from "../Components/NoData";
+import FormattedTime from "../lib/FormattedTime";
 
 function CustomersPage({ readOnly = false }) {
   const dispatch = useDispatch();
-  const { customers, isLoading } = useSelector((state) => state.customers);
+  const {
+    customers,
+    isLoading,
+    selectedCustomerSummary,
+    selectedCustomerLedger,
+    isCustomerSummaryLoading,
+    isCustomerLedgerLoading,
+  } = useSelector((state) => state.customers);
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
 
   const isReadOnlyMode = readOnly || checkReadOnly("customer");
@@ -22,14 +33,23 @@ function CustomersPage({ readOnly = false }) {
   const [query, setQuery] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [activeCustomer, setActiveCustomer] = useState(null);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentDescription, setPaymentDescription] = useState("");
 
   useEffect(() => {
     dispatch(fetchCustomers());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (!activeCustomer?._id) return;
+    dispatch(fetchCustomerSummary(activeCustomer._id));
+    dispatch(fetchCustomerLedger(activeCustomer._id));
+  }, [dispatch, activeCustomer?._id]);
 
   const resetForm = () => {
     setName("");
@@ -40,14 +60,9 @@ function CustomersPage({ readOnly = false }) {
 
   const submitCustomer = async (e) => {
     e.preventDefault();
-    if (!name) {
-      toast.error("Name is required");
-      return;
-    }
-    const payload = {
-      name,
-      contactInfo: { phone, email, address },
-    };
+    if (!name) return toast.error("Name is required");
+    const payload = { name, contactInfo: { phone, email, address } };
+
     if (editing) {
       dispatch(updateCustomer({ id: editing._id, payload }))
         .unwrap()
@@ -58,16 +73,17 @@ function CustomersPage({ readOnly = false }) {
           resetForm();
         })
         .catch((err) => toast.error(err));
-    } else {
-      dispatch(createCustomer(payload))
-        .unwrap()
-        .then(() => {
-          toast.success("Customer created");
-          setIsFormVisible(false);
-          resetForm();
-        })
-        .catch((err) => toast.error(err));
+      return;
     }
+
+    dispatch(createCustomer(payload))
+      .unwrap()
+      .then(() => {
+        toast.success("Customer created");
+        setIsFormVisible(false);
+        resetForm();
+      })
+      .catch((err) => toast.error(err));
   };
 
   const handleEdit = (customer) => {
@@ -86,17 +102,48 @@ function CustomersPage({ readOnly = false }) {
       .catch((err) => toast.error(err));
   };
 
+  const handleCustomerPayment = () => {
+    if (!activeCustomer?._id) return;
+    const amount = Number(paymentAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error("Enter a valid payment amount");
+      return;
+    }
+
+    dispatch(
+      createCustomerPayment({
+        customerId: activeCustomer._id,
+        amount,
+        description: paymentDescription,
+      }),
+    )
+      .unwrap()
+      .then(() => {
+        toast.success("Customer payment recorded");
+        setPaymentAmount("");
+        setPaymentDescription("");
+        dispatch(fetchCustomerSummary(activeCustomer._id));
+        dispatch(fetchCustomerLedger(activeCustomer._id));
+      })
+      .catch((err) => toast.error(err || "Failed to record payment"));
+  };
+
+  const formatAmount = (value) =>
+    Number(value || 0).toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    });
+
   const filtered = (customers || []).filter((c) => {
     if (!query.trim()) return true;
     const lower = query.toLowerCase();
     return (
       (c.name && c.name.toLowerCase().includes(lower)) ||
-      (c.contactInfo?.email &&
-        c.contactInfo.email.toLowerCase().includes(lower)) ||
-      (c.contactInfo?.phone &&
-        c.contactInfo.phone.toLowerCase().includes(lower))
+      (c.contactInfo?.email && c.contactInfo.email.toLowerCase().includes(lower)) ||
+      (c.contactInfo?.phone && c.contactInfo.phone.toLowerCase().includes(lower))
     );
   });
+
   return (
     <div className="min-h-[92vh] p-4">
       <div className="flex flex-col md:flex-row md:items-center gap-2">
@@ -192,17 +239,18 @@ function CustomersPage({ readOnly = false }) {
                   <th className="px-5 py-4 font-medium">Country</th>
                   <th className="px-5 py-4 font-medium">Branch</th>
                   <th className="px-5 py-4 font-medium">Created By</th>
-                  {hasPermission("customer", "delete") && (
-                    <th className="px-5 py-4 font-medium text-right">
-                      Actions
-                    </th>
-                  )}
+                  <th className="px-5 py-4 font-medium text-right">Actions</th>
                 </tr>
               </thead>
 
               <tbody>
                 {filtered.map((c) => (
-                  <tr key={c._id} className="border-b last:border-b-0">
+                  <tr
+                    key={c._id}
+                    className={`border-b last:border-b-0 ${
+                      activeCustomer?._id === c._id ? "bg-teal-50/40" : ""
+                    }`}
+                  >
                     <td className="px-5 py-4">{c.name}</td>
                     <td className="px-5 py-4">{c.contactInfo?.email || "-"}</td>
                     <td className="px-5 py-4">{c.contactInfo?.phone || "-"}</td>
@@ -211,7 +259,13 @@ function CustomersPage({ readOnly = false }) {
                     <td className="px-5 py-4">{c.createdBy?.email || "-"}</td>
                     <td className="px-5 py-4">
                       <div className="flex justify-end gap-2">
-                        {hasPermission("customer", "write") && (
+                        <button
+                          onClick={() => setActiveCustomer(c)}
+                          className="px-2 py-1 rounded-lg bg-teal-100 text-teal-700 text-xs font-semibold"
+                        >
+                          Ledger
+                        </button>
+                        {!isReadOnlyMode && hasPermission("customer", "write") && (
                           <button
                             onClick={() => handleEdit(c)}
                             className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
@@ -219,8 +273,7 @@ function CustomersPage({ readOnly = false }) {
                             <MdEdit size={18} />
                           </button>
                         )}
-
-                        {hasPermission("customer", "delete") && (
+                        {!isReadOnlyMode && hasPermission("customer", "delete") && (
                           <button
                             onClick={() => handleDelete(c._id)}
                             className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition"
@@ -237,8 +290,119 @@ function CustomersPage({ readOnly = false }) {
           </div>
         )}
       </div>
+
+      {activeCustomer && (
+        <div className="mt-4 app-card p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold text-slate-800">
+              Customer Financials: {activeCustomer.name}
+            </h3>
+            {hasPermission("customer", "write") && (
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="number"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  placeholder="Received amount"
+                  className="h-9 px-3 border rounded-lg"
+                />
+                <input
+                  type="text"
+                  value={paymentDescription}
+                  onChange={(e) => setPaymentDescription(e.target.value)}
+                  placeholder="Description"
+                  className="h-9 px-3 border rounded-lg"
+                />
+                <button
+                  onClick={handleCustomerPayment}
+                  className="h-9 px-3 rounded-lg bg-teal-700 text-white text-sm"
+                >
+                  Record Receipt
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-slate-500">Total Amount</p>
+              <p className="text-lg font-semibold">
+                {isCustomerSummaryLoading
+                  ? "Loading..."
+                  : formatAmount(selectedCustomerSummary?.totalSales)}
+              </p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-slate-500">Paid Amount</p>
+              <p className="text-lg font-semibold">
+                {isCustomerSummaryLoading
+                  ? "Loading..."
+                  : formatAmount(selectedCustomerSummary?.totalReceived)}
+              </p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-slate-500">Pending Amount</p>
+              <p className="text-lg font-semibold">
+                {isCustomerSummaryLoading
+                  ? "Loading..."
+                  : formatAmount(selectedCustomerSummary?.pending)}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 border-b">
+                <tr className="text-left text-slate-500">
+                  <th className="px-3 py-2">Date</th>
+                  <th className="px-3 py-2">Type</th>
+                  <th className="px-3 py-2 text-right">Debit</th>
+                  <th className="px-3 py-2 text-right">Credit</th>
+                  <th className="px-3 py-2 text-right">Balance After</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isCustomerLedgerLoading ? (
+                  <tr>
+                    <td className="px-3 py-3 text-slate-500" colSpan={5}>
+                      Loading transaction history...
+                    </td>
+                  </tr>
+                ) : selectedCustomerLedger.length === 0 ? (
+                  <tr>
+                    <td className="px-3 py-3 text-slate-500" colSpan={5}>
+                      No transactions found.
+                    </td>
+                  </tr>
+                ) : (
+                  selectedCustomerLedger.map((entry) => (
+                    <tr key={entry._id} className="border-b last:border-b-0">
+                      <td className="px-3 py-2">
+                        <FormattedTime timestamp={entry.createdAt} />
+                      </td>
+                      <td className="px-3 py-2">
+                        {entry.transactionType || entry.entryType}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        {formatAmount(entry.debitAmount)}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        {formatAmount(entry.creditAmount)}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        {formatAmount(entry.balanceAfter)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 export default CustomersPage;
+

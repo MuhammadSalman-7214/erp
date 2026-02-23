@@ -36,7 +36,13 @@ const BranchAdminDashboard = () => {
   const menuItems = [
     {
       category: "Dashboard",
-      items: [{ name: "Overview", path: "/BranchAdminDashboard", icon: LayoutDashboard }],
+      items: [
+        {
+          name: "Overview",
+          path: "/BranchAdminDashboard",
+          icon: LayoutDashboard,
+        },
+      ],
     },
     {
       category: "Management",
@@ -46,36 +52,76 @@ const BranchAdminDashboard = () => {
           path: "/BranchAdminDashboard/user-management",
           icon: UserCog,
         },
-        { name: "Reports", path: "/BranchAdminDashboard/reports", icon: BarChart3 },
+        {
+          name: "Reports",
+          path: "/BranchAdminDashboard/reports",
+          icon: BarChart3,
+        },
       ],
     },
     {
       category: "Operations",
       items: [
-        { name: "Products", path: "/BranchAdminDashboard/product", icon: Package },
-        { name: "Orders", path: "/BranchAdminDashboard/order", icon: ShoppingCart },
-        { name: "Sales", path: "/BranchAdminDashboard/sales", icon: TrendingUp },
+        {
+          name: "Products",
+          path: "/BranchAdminDashboard/product",
+          icon: Package,
+        },
+        {
+          name: "Orders",
+          path: "/BranchAdminDashboard/order",
+          icon: ShoppingCart,
+        },
+        {
+          name: "Sales",
+          path: "/BranchAdminDashboard/sales",
+          icon: TrendingUp,
+        },
         {
           name: "Stock Transactions",
           path: "/BranchAdminDashboard/stock-transaction",
           icon: Archive,
         },
-        { name: "Categories", path: "/BranchAdminDashboard/category", icon: Tag },
-        { name: "Suppliers", path: "/BranchAdminDashboard/supplier", icon: Truck },
-        { name: "Customers", path: "/BranchAdminDashboard/customers", icon: Users2 },
-        { name: "Invoices", path: "/BranchAdminDashboard/invoices", icon: FileText },
+        {
+          name: "Categories",
+          path: "/BranchAdminDashboard/category",
+          icon: Tag,
+        },
+        {
+          name: "Suppliers",
+          path: "/BranchAdminDashboard/supplier",
+          icon: Truck,
+        },
+        {
+          name: "Customers",
+          path: "/BranchAdminDashboard/customers",
+          icon: Users2,
+        },
+        {
+          name: "Invoices",
+          path: "/BranchAdminDashboard/invoices",
+          icon: FileText,
+        },
         {
           name: "Purchase Bills",
           path: "/BranchAdminDashboard/purchase-bills",
           icon: Receipt,
         },
-        { name: "Ledger", path: "/BranchAdminDashboard/ledger", icon: BookOpen },
+        {
+          name: "Ledger",
+          path: "/BranchAdminDashboard/ledger",
+          icon: BookOpen,
+        },
       ],
     },
     {
       category: "Logistics",
       items: [
-        { name: "Shipments", path: "/BranchAdminDashboard/shipments", icon: Ship },
+        {
+          name: "Shipments",
+          path: "/BranchAdminDashboard/shipments",
+          icon: Ship,
+        },
         {
           name: "Clearing Jobs",
           path: "/BranchAdminDashboard/clearing-jobs",

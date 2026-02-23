@@ -509,7 +509,7 @@ module.exports.signup = async (req, res) => {
         });
       }
     }
-    const duplicatedUser = await User.findOne({ email });
+    const duplicatedUser = await User.findOne({ email: email.toLowerCase() });
     if (duplicatedUser) {
       return res.status(400).json({ message: "Email already exists" });
     }
@@ -557,7 +557,7 @@ module.exports.signup = async (req, res) => {
 
     const newUser = new User({
       name,
-      email,
+      email: email.toLowerCase(),
       password: hashedpassword,
       ProfilePic: "",
       role,
@@ -579,7 +579,7 @@ module.exports.signup = async (req, res) => {
       savedUser: {
         id: savedUser._id,
         name: savedUser.name,
-        email: savedUser.email,
+        email: savedUser.email.toLowerCase(),
         role: savedUser.role,
         countryId: savedUser.countryId,
         branchId: savedUser.branchId,
@@ -608,7 +608,7 @@ module.exports.login = async (req, res) => {
     const { email, password } = req.body;
     const ipAddress = req.ip;
 
-    const user = await User.findOne({ email })
+    const user = await User.findOne({ email: email.toLowerCase() })
       .populate("countryId", "name code currency currencySymbol exchangeRate")
       .populate("branchId", "name branchCode city");
 
@@ -648,7 +648,7 @@ module.exports.login = async (req, res) => {
       user: {
         id: user._id,
         name: user.name,
-        email: user.email,
+        email: user.email.toLowerCase(),
         role: user.role,
         countryId: user.countryId,
         branchId: user.branchId,
@@ -946,7 +946,7 @@ module.exports.setupInitialAdmin = async (req, res) => {
 
     const superAdmin = new User({
       name,
-      email,
+      email: email.toLowerCase(),
       password: hashedpassword,
       role: "superadmin",
       isActive: true,

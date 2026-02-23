@@ -15,6 +15,7 @@ const {
   getAllSuppliers,
   searchSupplier,
 } = require("../controller/suppliercontroller");
+const { getSupplierSummary } = require("../controller/ledgerController.js");
 
 // GET - All roles (Admin, Manager can write; Staff read-only)
 router.get(
@@ -38,6 +39,12 @@ router.put(
   authmiddleware,
   checkPermission("supplier", "write"),
   editSupplier,
+);
+router.get(
+  "/:supplierId/summary",
+  authmiddleware,
+  checkPermission("supplier", "read"),
+  getSupplierSummary,
 );
 
 // DELETE - Admin and Manager only

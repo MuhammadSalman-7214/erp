@@ -24,6 +24,7 @@ const customerrouter = require("./Routers/customerRouter.js");
 const purchasebillrouter = require("./Routers/purchaseBillRouter.js");
 const ledgerrouter = require("./Routers/ledgerRouter.js");
 const systemsettingsrouter = require("./Routers/systemSettingsRouter.js");
+const financeRouter = require("./Routers/financeRouter.js");
 require("dotenv").config();
 const PORT = process.env.PORT || 3003;
 console.log("🚀 ~ PORT:", PORT);
@@ -90,6 +91,7 @@ app.use("/api/customer", customerrouter);
 app.use("/api/purchase-bill", purchasebillrouter);
 app.use("/api/ledger", ledgerrouter);
 app.use("/api/system-settings", systemsettingsrouter);
+app.use("/api", financeRouter);
 
 server.listen(PORT, () => {
   MongoDBconfig();

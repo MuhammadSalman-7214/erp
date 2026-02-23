@@ -98,7 +98,7 @@ function DashboardShell({
           {renderNav()}
         </div>
 
-        <div className="border-t border-slate-200/80 p-3">
+        {/* <div className="border-t border-slate-200/80 p-3">
           <button
             type="button"
             onClick={onLogout}
@@ -107,7 +107,7 @@ function DashboardShell({
             <LogOut className="h-4 w-4" />
             {(sidebarOpen || mobileOpen) && <span>Logout</span>}
           </button>
-        </div>
+        </div> */}
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">

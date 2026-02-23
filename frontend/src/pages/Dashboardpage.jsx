@@ -714,6 +714,10 @@ function Dashboardpage() {
     customers: [],
     orders: [],
   });
+  const [ledgerFinancials, setLedgerFinancials] = useState({
+    supplierPayable: 0,
+    customerReceivable: 0,
+  });
 
   const canViewActivity = hasPermission("activityLog", "read");
 
@@ -770,6 +774,8 @@ function Dashboardpage() {
       axiosInstance.get("/product"),
       axiosInstance.get("/customer"),
       axiosInstance.get("/order/getorders"),
+      axiosInstance.get("/ledger/outstanding/supplier"),
+      axiosInstance.get("/ledger/outstanding/customer"),
     ]);
 
     const [
@@ -779,6 +785,8 @@ function Dashboardpage() {
       productsRes,
       customersRes,
       ordersRes,
+      supplierOutstandingRes,
+      customerOutstandingRes,
     ] = results;
 
     setDatasets({
@@ -821,6 +829,19 @@ function Dashboardpage() {
                 ordersRes.value?.data,
             )
           : [],
+    });
+
+    const sumOutstanding = (rows) =>
+      asArray(rows).reduce((sum, row) => sum + toNumber(row?.outstanding), 0);
+    setLedgerFinancials({
+      supplierPayable:
+        supplierOutstandingRes.status === "fulfilled"
+          ? sumOutstanding(supplierOutstandingRes.value?.data?.data)
+          : 0,
+      customerReceivable:
+        customerOutstandingRes.status === "fulfilled"
+          ? sumOutstanding(customerOutstandingRes.value?.data?.data)
+          : 0,
     });
 
     setIsLoading(false);
@@ -897,10 +918,12 @@ function Dashboardpage() {
       lowStockProducts: lowStockProducts.length,
       totalCustomers: datasets.customers.length,
       totalOrders: datasets.orders.length,
+      totalSupplierPayable: ledgerFinancials.supplierPayable,
+      totalCustomerReceivable: ledgerFinancials.customerReceivable,
       overdueInvoiceCount: overdueInvoices.length,
       lowStockList: lowStockProducts.slice(0, 5),
     };
-  }, [datasets]);
+  }, [datasets, ledgerFinancials]);
 
   /* ===============================
      CHART DATA
@@ -1174,7 +1197,7 @@ function Dashboardpage() {
               />
             </div>
 
-            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
               <CompactMetric
                 label="Purchases"
                 value={metrics.totalPurchases}
@@ -1210,6 +1233,22 @@ function Dashboardpage() {
                 value={metrics.totalOrders}
                 icon={<ShoppingCart className="h-4 w-4" />}
                 tone="fuchsia"
+              />
+
+              <CompactMetric
+                label="Payable"
+                value={metrics.totalSupplierPayable}
+                prefix="$"
+                icon={<ArrowDownToLine className="h-4 w-4" />}
+                tone="amber"
+              />
+
+              <CompactMetric
+                label="Receivable"
+                value={metrics.totalCustomerReceivable}
+                prefix="$"
+                icon={<Wallet className="h-4 w-4" />}
+                tone="emerald"
               />
             </div>
           </>

@@ -231,8 +231,8 @@ function LoginPage() {
 
           {/* Footer Note */}
           <p className="text-xs text-teal-200 pt-4 text-center">
-            © {new Date().getFullYear()} DevSouq Technologies — All rights
-            reserved.
+            © {new Date().getFullYear()} <b> DevSouq Technologies </b> — All
+            rights reserved.
           </p>
         </div>
       </div>

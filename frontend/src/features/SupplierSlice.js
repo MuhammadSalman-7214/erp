@@ -12,6 +12,10 @@ const initialState = {
   editedSupplier: null,
   iseditedSupplier: false,
   editedsupplier: null,
+  selectedSupplierSummary: null,
+  selectedSupplierLedger: [],
+  isSupplierSummaryLoading: false,
+  isSupplierLedgerLoading: false,
 };
 
 export const CreateSupplier = createAsyncThunk(
@@ -106,6 +110,57 @@ export const EditSupplier = createAsyncThunk(
   },
 );
 
+export const fetchSupplierSummary = createAsyncThunk(
+  "supplier/fetchSummary",
+  async (supplierId, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get(`supplier/${supplierId}/summary`, {
+        withCredentials: true,
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch supplier summary",
+      );
+    }
+  },
+);
+
+export const fetchSupplierLedger = createAsyncThunk(
+  "supplier/fetchLedger",
+  async (supplierId, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get(
+        `ledger?entityType=SUPPLIER&entityId=${supplierId}`,
+        { withCredentials: true },
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch supplier ledger",
+      );
+    }
+  },
+);
+
+export const createSupplierPayment = createAsyncThunk(
+  "supplier/createPayment",
+  async ({ supplierId, amount, description }, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post(
+        "supplier-payment",
+        { supplierId, amount, description },
+        { withCredentials: true },
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to record supplier payment",
+      );
+    }
+  },
+);
+
 const supplierSlice = createSlice({
   name: "supplier",
   initialState: initialState,
@@ -166,6 +221,34 @@ const supplierSlice = createSlice({
       })
 
       .addCase(EditSupplier.rejected, (state, action) => {});
+
+    builder
+      .addCase(fetchSupplierSummary.pending, (state) => {
+        state.isSupplierSummaryLoading = true;
+      })
+      .addCase(fetchSupplierSummary.fulfilled, (state, action) => {
+        state.isSupplierSummaryLoading = false;
+        state.selectedSupplierSummary = action.payload;
+      })
+      .addCase(fetchSupplierSummary.rejected, (state) => {
+        state.isSupplierSummaryLoading = false;
+      })
+      .addCase(fetchSupplierLedger.pending, (state) => {
+        state.isSupplierLedgerLoading = true;
+      })
+      .addCase(fetchSupplierLedger.fulfilled, (state, action) => {
+        state.isSupplierLedgerLoading = false;
+        state.selectedSupplierLedger = action.payload?.entries || [];
+      })
+      .addCase(fetchSupplierLedger.rejected, (state) => {
+        state.isSupplierLedgerLoading = false;
+      })
+      .addCase(createSupplierPayment.fulfilled, (state) => {
+        toast.success("Supplier payment recorded");
+      })
+      .addCase(createSupplierPayment.rejected, (state, action) => {
+        toast.error(action.payload || "Failed to record supplier payment");
+      });
   },
 });
 

@@ -11,7 +11,7 @@ export const useRequireAuth = (allowedRoles = []) => {
   useEffect(() => {
     // Check if user is authenticated
     if (!isAuthenticated || !user) {
-      toast.error("Please login first");
+      // toast.error("Please login first");
       navigate("/login", { replace: true });
       return;
     }
