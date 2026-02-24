@@ -30,7 +30,7 @@ function LedgerPage() {
   };
 
   return (
-    <div className="min-h-[92vh] p-4">
+    <div className="min-h-[92vh]">
       <div className="flex gap-2 mb-4">
         <button
           onClick={() => setPartyType("customer")}

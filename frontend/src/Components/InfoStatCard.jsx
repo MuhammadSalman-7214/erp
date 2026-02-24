@@ -8,7 +8,9 @@ function InfoStatCard({
 }) {
   return (
     <div className="app-card group p-5">
-      <span className={`absolute inset-y-0 left-0 z-[2] w-1 ${accentClass}`} />
+      <span
+        className={`absolute inset-y-0 left-0 z-[2] w-[5px] ${accentClass}`}
+      />
 
       <div className="flex items-start justify-between gap-4">
         <div>

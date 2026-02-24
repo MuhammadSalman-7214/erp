@@ -231,7 +231,7 @@ function Salespage() {
   };
 
   return (
-    <div className="min-h-[92vh] p-4">
+    <div className="min-h-[92vh]">
       <SalesChart />
 
       <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">

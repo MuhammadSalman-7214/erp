@@ -85,7 +85,7 @@ const CountryReportsPage = () => {
         </div>
       </div>
 
-      <div className="app-card p-5">
+      <div className="">
         {isLoadingSummary ? (
           <p className="text-sm text-slate-500">Loading summary...</p>
         ) : (
@@ -111,7 +111,7 @@ const CountryReportsPage = () => {
         )}
       </div>
 
-      <div className="app-card p-5">
+      <div className="">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-slate-900">
             Shipment P&L (Latest 50)

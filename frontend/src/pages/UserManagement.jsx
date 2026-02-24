@@ -410,12 +410,12 @@ const UserManagement = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {u.countryId ? `${u.countryId.code} ` : "-"}
+                    {u.countryId ? `${u.countryId.code} ` : "--"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {u.branchId
                       ? `${u.branchId.name} (${u.branchId.city})`
-                      : "-"}
+                      : "--"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
@@ -442,7 +442,7 @@ const UserManagement = () => {
                         )}
                       </button>
                     ) : (
-                      <span className="text-xs text-gray-400">-</span>
+                      "--"
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap space-x-2 flex items-center">

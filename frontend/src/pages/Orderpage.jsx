@@ -193,7 +193,7 @@ function Orderpage() {
   const displayOrder = query.trim() !== "" ? searchdata : getorder;
 
   return (
-    <div className="min-h-[92vh] p-4">
+    <div className="min-h-[92vh]">
       <OrderStatusChart />
 
       {/* Search + Add */}

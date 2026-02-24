@@ -126,7 +126,7 @@ function CreateInvoicePage() {
   };
 
   return (
-    <div className="min-h-[92vh] p-4">
+    <div className="min-h-[92vh]">
       <div className="p-6 max-w-6xl mx-auto">
         <div className="app-card p-6">
           {/* Invoice Info */}

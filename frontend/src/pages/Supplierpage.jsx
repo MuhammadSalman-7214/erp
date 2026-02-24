@@ -111,8 +111,10 @@ function Supplierpage({ readOnly = false }) {
 
   const handleEditSubmit = (event) => {
     event.preventDefault();
-    if (!canWrite) return toast.error("You do not have permission to edit suppliers");
-    if (!name || !phone || !email) return toast.error("Name, phone and email are required");
+    if (!canWrite)
+      return toast.error("You do not have permission to edit suppliers");
+    if (!name || !phone || !email)
+      return toast.error("Name, phone and email are required");
     if (!selectedSupplier) return;
 
     const updatedData = {
@@ -132,8 +134,10 @@ function Supplierpage({ readOnly = false }) {
 
   const submitSupplier = (event) => {
     event.preventDefault();
-    if (!canWrite) return toast.error("You do not have permission to add suppliers");
-    if (!name || !phone || !email) return toast.error("Name, phone and email are required");
+    if (!canWrite)
+      return toast.error("You do not have permission to add suppliers");
+    if (!name || !phone || !email)
+      return toast.error("Name, phone and email are required");
 
     const supplierData = {
       name,
@@ -184,7 +188,7 @@ function Supplierpage({ readOnly = false }) {
   const displaySuppliers = query.trim() !== "" ? searchdata : getallSupplier;
 
   return (
-    <div className="min-h-[92vh] p-4">
+    <div className="min-h-[92vh]">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-2">
         <InfoStatCard
           title="Total Suppliers"
@@ -232,7 +236,9 @@ function Supplierpage({ readOnly = false }) {
         )}
       </div>
 
-      {isFormVisible && <div className="app-modal-overlay" onClick={closeForm} />}
+      {isFormVisible && (
+        <div className="app-modal-overlay" onClick={closeForm} />
+      )}
 
       {isFormVisible && canWrite && (
         <div className="app-modal-drawer app-modal-drawer-md">
@@ -343,7 +349,9 @@ function Supplierpage({ readOnly = false }) {
                   <tr
                     key={supplier._id}
                     className={`border-b last:border-b-0 hover:bg-slate-50 transition ${
-                      activeSupplier?._id === supplier._id ? "bg-teal-50/40" : ""
+                      activeSupplier?._id === supplier._id
+                        ? "bg-teal-50/40"
+                        : ""
                     }`}
                   >
                     <td className="px-5 py-4 text-slate-500">{index + 1}</td>
@@ -513,4 +521,3 @@ function Supplierpage({ readOnly = false }) {
 }
 
 export default Supplierpage;
-

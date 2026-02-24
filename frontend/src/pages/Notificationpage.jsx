@@ -94,7 +94,7 @@ function NotificationPage() {
   };
 
   return (
-    <div className="min-h-[92vh] p-4">
+    <div className="min-h-[92vh]">
       <div className="flex justify-end items-center">
         <button
           onClick={() => setIsFormVisible(true)}

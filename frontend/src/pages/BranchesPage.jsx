@@ -362,22 +362,39 @@ const BranchesPage = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Country
                   </label>
-                  <select
-                    value={formData.countryId}
-                    onChange={(e) =>
-                      setFormData({ ...formData, countryId: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    required
-                    disabled={user.role === "countryadmin"}
-                  >
-                    <option value="">Select Country</option>
-                    {countries.map((country) => (
-                      <option key={country._id} value={country._id}>
-                        {country.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="app-select-wrapper">
+                    <select
+                      value={formData.countryId}
+                      onChange={(e) =>
+                        setFormData({ ...formData, countryId: e.target.value })
+                      }
+                      className="app-select"
+                      required
+                      disabled={user.role === "countryadmin"}
+                    >
+                      <option value="">Select Country</option>
+                      {countries.map((country) => (
+                        <option key={country._id} value={country._id}>
+                          {country.name}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="app-select-arrow">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
 
                 <div>

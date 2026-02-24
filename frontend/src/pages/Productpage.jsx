@@ -164,7 +164,7 @@ function Productpage({ readOnly = false }) {
   const displayProducts = query.trim() !== "" ? searchdata : getallproduct;
 
   return (
-    <div className="min-h-[92vh] p-4">
+    <div className="min-h-[92vh]">
       {/* KPI CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
         {/* Total Products */}
@@ -376,19 +376,37 @@ function Productpage({ readOnly = false }) {
 
             <div>
               <label className="text-sm font-medium">Category</label>
-              <select
-                value={Category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                required
-              >
-                <option value="">Select category</option>
-                {getallCategory?.map((c) => (
-                  <option key={c._id} value={c._id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+              <div className="app-select-wrapper mt-2">
+                <select
+                  value={Category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="app-select"
+                  required
+                >
+                  <option value="">Select category</option>
+                  {getallCategory?.map((c) => (
+                    <option key={c._id} value={c._id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="app-select-arrow">
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </div>
+              </div>
             </div>
 
             <button

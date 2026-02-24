@@ -139,13 +139,15 @@ function CustomersPage({ readOnly = false }) {
     const lower = query.toLowerCase();
     return (
       (c.name && c.name.toLowerCase().includes(lower)) ||
-      (c.contactInfo?.email && c.contactInfo.email.toLowerCase().includes(lower)) ||
-      (c.contactInfo?.phone && c.contactInfo.phone.toLowerCase().includes(lower))
+      (c.contactInfo?.email &&
+        c.contactInfo.email.toLowerCase().includes(lower)) ||
+      (c.contactInfo?.phone &&
+        c.contactInfo.phone.toLowerCase().includes(lower))
     );
   });
 
   return (
-    <div className="min-h-[92vh] p-4">
+    <div className="min-h-[92vh]">
       <div className="flex flex-col md:flex-row md:items-center gap-2">
         <input
           type="text"
@@ -265,22 +267,24 @@ function CustomersPage({ readOnly = false }) {
                         >
                           Ledger
                         </button>
-                        {!isReadOnlyMode && hasPermission("customer", "write") && (
-                          <button
-                            onClick={() => handleEdit(c)}
-                            className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
-                          >
-                            <MdEdit size={18} />
-                          </button>
-                        )}
-                        {!isReadOnlyMode && hasPermission("customer", "delete") && (
-                          <button
-                            onClick={() => handleDelete(c._id)}
-                            className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition"
-                          >
-                            <MdDelete size={18} />
-                          </button>
-                        )}
+                        {!isReadOnlyMode &&
+                          hasPermission("customer", "write") && (
+                            <button
+                              onClick={() => handleEdit(c)}
+                              className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
+                            >
+                              <MdEdit size={18} />
+                            </button>
+                          )}
+                        {!isReadOnlyMode &&
+                          hasPermission("customer", "delete") && (
+                            <button
+                              onClick={() => handleDelete(c._id)}
+                              className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition"
+                            >
+                              <MdDelete size={18} />
+                            </button>
+                          )}
                       </div>
                     </td>
                   </tr>
@@ -405,4 +409,3 @@ function CustomersPage({ readOnly = false }) {
 }
 
 export default CustomersPage;
-

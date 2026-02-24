@@ -88,7 +88,9 @@ const getPurchaseAmount = (bill) => {
   if (toNumber(bill?.totalAmount) > 0) return toNumber(bill.totalAmount);
   if (toNumber(bill?.subTotal) > 0) {
     return (
-      toNumber(bill.subTotal) + toNumber(bill?.taxAmount) - toNumber(bill?.discount)
+      toNumber(bill.subTotal) +
+      toNumber(bill?.taxAmount) -
+      toNumber(bill?.discount)
     );
   }
 
@@ -430,7 +432,7 @@ function DashboardCardSurface({
         }}
       />
       {parent === "quickAction" && (
-        <div className="absolute left-0 top-0 h-full w-1 rounded-l-2xl bg-teal-500"></div>
+        <div className="absolute left-0 top-0 h-full w-[5px] rounded-l-2xl bg-teal-500"></div>
       )}
       {/* ── Accent bottom bar ── */}
       <div
@@ -960,10 +962,7 @@ function Dashboardpage() {
 
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
       if (purchaseMap.has(key)) {
-        purchaseMap.set(
-          key,
-          purchaseMap.get(key) + getPurchaseAmount(bill),
-        );
+        purchaseMap.set(key, purchaseMap.get(key) + getPurchaseAmount(bill));
       }
     });
 
