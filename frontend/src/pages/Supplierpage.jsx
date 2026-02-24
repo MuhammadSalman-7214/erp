@@ -148,10 +148,9 @@ function Supplierpage({ readOnly = false }) {
     dispatch(CreateSupplier(supplierData))
       .unwrap()
       .then(() => {
-        toast.success("Supplier added successfully");
         closeForm();
       })
-      .catch(() => toast.error("Supplier add unsuccessful"));
+      .catch(() => toast.error("Supplier create unsuccessful"));
   };
 
   const handleSupplierPayment = () => {
