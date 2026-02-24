@@ -77,7 +77,10 @@ function DashboardShell({
                 <h1 className="text-lg font-extrabold text-slate-900">
                   {title}
                 </h1>
-                <p className="text-xs text-slate-500">{subtitle}</p>
+                <p className="text-xs text-slate-500">
+                  {subtitle}
+                  {/* {roleLabel} */}
+                </p>
               </div>
             )}
             <button
@@ -94,7 +97,7 @@ function DashboardShell({
           </div>
         </div>
 
-        <div className="h-[calc(100vh-170px)] overflow-y-auto">
+        <div className="h-[calc(100vh-90px)] overflow-y-auto">
           {renderNav()}
         </div>
 

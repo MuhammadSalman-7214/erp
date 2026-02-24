@@ -11,6 +11,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { authAPI, branchAPI, countryAPI } from "../services/api";
 import StatCard from "../Components/StatCard";
+import NoData from "../Components/NoData";
 
 const createUserSchema = yup.object().shape({
   name: yup.string().required("Name is required"),
@@ -291,22 +292,19 @@ const UserManagement = () => {
     user?.role,
   );
 
-  const filteredUsers = showStaffOnly
-    ? users.filter((u) => u.role === "staff")
-    : users;
+  const filteredUsers = users
+    .filter((u) => u.role !== "superadmin")
+    .filter((u) => (showStaffOnly ? u.role === "staff" : true));
 
   return (
     <div>
       <div className="flex justify-end items-center mb-6">
-        {/* <h1 className="text-2xl font-bold">User Management</h1> */}
-
-        {/* ADD Create User BUTTON */}
         {canManageStaff && (
           <button
             onClick={() => setIsCreateUserOpen(true)}
             className="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 transition flex items-center gap-1"
           >
-            <Plus className="w-6 h-6" strokeWidth={3} />
+            <Plus className="w-6 h-6" strokeWidth={2} />
             Create User
           </button>
         )}
@@ -315,14 +313,14 @@ const UserManagement = () => {
       {/* Stats */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-5 gap-5 mb-6">
-          {user.role === "superadmin" && (
+          {/* {user.role === "superadmin" && (
             <StatCard
               title="Super Admins"
               value={stats.superadmin}
               accent="bg-blue-500"
               icon="👑"
             />
-          )}
+          )} */}
 
           <StatCard
             title="Country Admins"
@@ -371,102 +369,111 @@ const UserManagement = () => {
 
       {/* Users Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Name
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Email
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Role
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Country
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Branch
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Staff Edit
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {filteredUsers.map((u) => (
-              <tr key={u._id}>
-                <td className="px-6 py-4 whitespace-nowrap">{u.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{u.email}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800">
-                    {u.role}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {u.countryId ? `${u.countryId.code} ` : "-"}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {u.branchId ? `${u.branchId.name} (${u.branchId.city})` : "-"}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`px-2 py-1 text-xs rounded ${
-                      u.isActive
-                        ? "bg-green-100 text-green-800"
-                        : "bg-red-100 text-red-800"
-                    }`}
-                  >
-                    {u.isActive ? "Active" : "Inactive"}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {canManageStaff && u.role === "staff" ? (
-                    <button
-                      onClick={() => handleToggleStaffEdit(u)}
-                      className="text-blue-600 hover:text-blue-800"
-                      title="Staff edit permission allows edit + delete in their scope"
+        {filteredUsers.length !== 0 ? (
+          <table className="min-w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Email
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Role
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Country
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Branch
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Staff Edit
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {filteredUsers.map((u) => (
+                <tr key={u._id}>
+                  <td className="px-6 py-4 whitespace-nowrap">{u.name}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{u.email}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800">
+                      {u.role}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {u.countryId ? `${u.countryId.code} ` : "-"}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {u.branchId
+                      ? `${u.branchId.name} (${u.branchId.city})`
+                      : "-"}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`px-2 py-1 text-xs rounded ${
+                        u.isActive
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }`}
                     >
-                      {u.staffCanEdit ? (
+                      {u.isActive ? "Active" : "Inactive"}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {canManageStaff && u.role === "staff" ? (
+                      <button
+                        onClick={() => handleToggleStaffEdit(u)}
+                        className="text-blue-600 hover:text-blue-800"
+                        title="Staff edit permission allows edit + delete in their scope"
+                      >
+                        {u.staffCanEdit ? (
+                          <ToggleRight className="text-green-500 w-8 h-8 hover:text-green-600 transition-colors" />
+                        ) : (
+                          <ToggleLeft className="text-red-500 w-8 h-8 hover:text-red-600 transition-colors" />
+                        )}
+                      </button>
+                    ) : (
+                      <span className="text-xs text-gray-400">-</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap space-x-2 flex items-center">
+                    <button
+                      onClick={() => handleToggleStatus(u._id)}
+                      className="text-blue-600 hover:text-blue-800"
+                    >
+                      {u.isActive ? (
                         <ToggleRight className="text-green-500 w-8 h-8 hover:text-green-600 transition-colors" />
                       ) : (
                         <ToggleLeft className="text-red-500 w-8 h-8 hover:text-red-600 transition-colors" />
-                      )}
+                      )}{" "}
                     </button>
-                  ) : (
-                    <span className="text-xs text-gray-400">-</span>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap space-x-2 flex items-center">
-                  <button
-                    onClick={() => handleToggleStatus(u._id)}
-                    className="text-blue-600 hover:text-blue-800"
-                  >
-                    {u.isActive ? (
-                      <ToggleRight className="text-green-500 w-8 h-8 hover:text-green-600 transition-colors" />
-                    ) : (
-                      <ToggleLeft className="text-red-500 w-8 h-8 hover:text-red-600 transition-colors" />
-                    )}{" "}
-                  </button>
-                  <button
-                    onClick={() => handleDeleteUser(u._id)}
-                    className="text-red-600 transition"
-                    title="Delete"
-                  >
-                    <MdDelete size={24} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                    <button
+                      onClick={() => handleDeleteUser(u._id)}
+                      className="text-red-600 transition"
+                      title="Delete"
+                    >
+                      <MdDelete size={24} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <NoData
+            title="Users"
+            description="Try adjusting filters or Create new User to get started."
+          />
+        )}
       </div>
 
       {isCreateUserOpen && (
@@ -543,13 +550,31 @@ const UserManagement = () => {
                 <label className="mb-1 block text-sm font-medium text-slate-700">
                   Role
                 </label>
-                <select {...register("role")} className="app-input">
-                  {creatorRoleOptions.map((roleOption) => (
-                    <option key={roleOption.value} value={roleOption.value}>
-                      {roleOption.label}
-                    </option>
-                  ))}
-                </select>
+                <div className="app-select-wrapper">
+                  <select {...register("role")} className="app-select">
+                    {creatorRoleOptions.map((roleOption) => (
+                      <option key={roleOption.value} value={roleOption.value}>
+                        {roleOption.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  <div className="app-select-arrow">
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </div>
+                </div>
                 {errors.role && (
                   <p className="mt-1 text-sm text-red-600">
                     {errors.role.message}
@@ -564,19 +589,37 @@ const UserManagement = () => {
                   <label className="mb-1 block text-sm font-medium text-slate-700">
                     Country
                   </label>
-                  <select
-                    {...register("countryId")}
-                    className="app-input"
-                    disabled={user?.role !== "superadmin"}
-                  >
-                    <option value="">Select Country</option>
-                    {countries.map((country) => (
-                      <option key={country?._id} value={country?._id}>
-                        {country?.name}{" "}
-                        {country?.code ? `(${country.code})` : ""}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="app-select-wrapper">
+                    <select
+                      {...register("countryId")}
+                      className="app-select"
+                      disabled={user?.role !== "superadmin"}
+                    >
+                      <option value="">Select Country</option>
+                      {countries.map((country) => (
+                        <option key={country?._id} value={country?._id}>
+                          {country?.name}{" "}
+                          {country?.code ? `(${country.code})` : ""}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div className="app-select-arrow">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </div>
+                  </div>
                   {errors.countryId && (
                     <p className="mt-1 text-sm text-red-600">
                       {errors.countryId.message}
@@ -590,18 +633,37 @@ const UserManagement = () => {
                   <label className="mb-1 block text-sm font-medium text-slate-700">
                     Branch
                   </label>
-                  <select
-                    {...register("branchId")}
-                    className="app-input"
-                    disabled={user?.role === "branchadmin"}
-                  >
-                    <option value="">Select Branch</option>
-                    {branches.map((branch) => (
-                      <option key={branch?._id} value={branch?._id}>
-                        {branch?.name} {branch?.city ? `(${branch.city})` : ""}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="app-select-wrapper">
+                    <select
+                      {...register("branchId")}
+                      className="app-select"
+                      disabled={user?.role === "branchadmin"}
+                    >
+                      <option value="">Select Branch</option>
+                      {branches.map((branch) => (
+                        <option key={branch?._id} value={branch?._id}>
+                          {branch?.name}{" "}
+                          {branch?.city ? `(${branch.city})` : ""}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div className="app-select-arrow">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </div>
+                  </div>
                   {errors.branchId && (
                     <p className="mt-1 text-sm text-red-600">
                       {errors.branchId.message}

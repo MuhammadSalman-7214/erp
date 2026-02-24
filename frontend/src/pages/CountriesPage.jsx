@@ -140,7 +140,7 @@ const CountriesPage = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between pb-4">
+      <div className="flex items-center justify-end pb-4">
         <button
           onClick={() => {
             resetForm();
@@ -242,7 +242,7 @@ const CountriesPage = () => {
       {countries.length === 0 && (
         <div className="text-center pt-8">
           <NoData
-            title="No countries found"
+            title="Countries"
             description="Create your first country to get started"
             icon={Globe}
           />

@@ -12,8 +12,8 @@
     --app-text: #0f172a;
     --app-text-muted: #64748b;
     --app-border: #d6e1ef;
-    --app-primary: #6d1010;
-    --app-primary-strong: #4d0000;
+    --app-primary: #0d9488;
+    --app-primary-strong: #0d9488;
     --app-accent: #0ea5e9;
     --app-danger: #dc2626;
   }
@@ -243,6 +243,57 @@
     background: #ffffff;
     color: var(--app-text);
     @apply w-full rounded-xl px-3 py-2.5 text-sm transition duration-200 focus:outline-none focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500;
+  }
+
+  /* =========================
+   Professional Select
+========================= */
+
+  .app-select {
+    border: 1px solid var(--app-border);
+    background: #ffffff;
+    color: var(--app-text);
+    @apply w-full
+         appearance-none
+         rounded-xl
+         px-3
+         py-2.5
+         pr-10
+         text-sm
+         transition
+         duration-200
+         focus:outline-none
+         focus:ring-2
+         focus:ring-teal-500/40
+         focus:border-teal-500
+         hover:border-slate-400
+         shadow-sm;
+  }
+
+  .app-select-wrapper {
+    @apply relative w-full;
+  }
+
+  .app-select-arrow {
+    @apply pointer-events-none
+         absolute
+         inset-y-0
+         right-3
+         flex
+         items-center
+         text-slate-400;
+  }
+  /* Disabled State */
+  .app-select:disabled {
+    @apply bg-slate-100
+         text-slate-400
+         cursor-not-allowed
+         border-slate-200
+         shadow-none;
+  }
+
+  .app-select:disabled + .app-select-arrow {
+    @apply text-slate-300;
   }
 
   .app-button {

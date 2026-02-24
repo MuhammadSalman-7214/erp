@@ -92,8 +92,9 @@ function App() {
               style: {
                 background: "#e8faf5",
                 color: "#134e4a",
-                borderLeft: "6px solid rgb(3, 58, 52)",
-                boxShadow: "0 10px 25px rgba(3, 58, 52,0.15)",
+                borderLeft: "6px solid #017365",
+                borderColor: "#017365",
+                boxShadow: "0 10px 25px rgba(10, 167, 148, 0.15)",
               },
               iconTheme: {
                 primary: "#14b8a6",

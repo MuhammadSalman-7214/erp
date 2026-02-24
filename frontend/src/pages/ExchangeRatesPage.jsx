@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { countryAPI } from "../services/api";
 import toast from "react-hot-toast";
 import { MdEdit } from "react-icons/md";
-
+import Nodata from "../Components/NoData.jsx";
 const ExchangeRatesPage = () => {
   const [countries, setCountries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -53,51 +53,58 @@ const ExchangeRatesPage = () => {
     <div className="space-y-6">
       {/* <h1 className="text-2xl font-bold">Exchange Rates Management</h1> */}
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Country
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Currency
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Exchange Rate (to USD)
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {countries.map((country) => (
-              <tr key={country._id}>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {country.name} ({country.code})
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {country.currency} ({country.currencySymbol})
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  1 USD = {country.exchangeRate} {country.currency}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <button
-                    onClick={() =>
-                      handleUpdateRate(country._id, country.exchangeRate)
-                    }
-                    className="p-2 rounded-xl bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
-                  >
-                    <MdEdit size={18} />
-                  </button>
-                </td>
+      {countries.length !== 0 ? (
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <table className="min-w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Country
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Currency
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Exchange Rate (to USD)
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Actions
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {countries.map((country) => (
+                <tr key={country._id}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {country.name} ({country.code})
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {country.currency} ({country.currencySymbol})
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    1 USD = {country.exchangeRate} {country.currency}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <button
+                      onClick={() =>
+                        handleUpdateRate(country._id, country.exchangeRate)
+                      }
+                      className="p-2 rounded-xl bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
+                    >
+                      <MdEdit size={18} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <Nodata
+          title="Exchange Rates"
+          description="No exchange rates have been added yet. Please add a new rate or adjust your filters to view existing records."
+        />
+      )}
     </div>
   );
 };

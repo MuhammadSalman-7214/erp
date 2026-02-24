@@ -169,32 +169,51 @@ const BranchesPage = () => {
 
       {/* Filter */}
       {user.role === "superadmin" && (
-        <div className="bg-white rounded-lg shadow p-4 my-6">
+        <div
+          className="bg-white rounded-xl p-4 my-6 
+               app-card
+               "
+        >
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Filter by Country
           </label>
-          <select
-            value={selectedCountry}
-            onChange={(e) => setSelectedCountry(e.target.value)}
-            className="w-full md:w-64 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">All Countries</option>
-            {countries.map((country) => (
-              <option key={country._id} value={country._id}>
-                {country.name} ({country.code})
-              </option>
-            ))}
-          </select>
+          <div className="app-select-wrapper md:w-64">
+            <select
+              value={selectedCountry}
+              onChange={(e) => setSelectedCountry(e.target.value)}
+              className="app-select"
+            >
+              <option value="">All Countries</option>
+              {countries.map((country) => (
+                <option key={country._id} value={country._id}>
+                  {country.name} ({country.code})
+                </option>
+              ))}
+            </select>
+
+            <div className="app-select-arrow">
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Branches Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredBranches.map((branch) => (
-          <div
-            key={branch._id}
-            className="app-info-card p-6"
-          >
+          <div key={branch._id} className="app-info-card p-6">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
@@ -271,7 +290,7 @@ const BranchesPage = () => {
       {/* Empty State */}
       {filteredBranches.length === 0 && (
         <NoData
-          title="No branches found"
+          title="Branches"
           description="Try adjusting filters or add a new branch to get started."
         />
       )}
