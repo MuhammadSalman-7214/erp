@@ -10,10 +10,23 @@ module.exports.createProduct = async (req, res) => {
         .status(403)
         .json({ message: "Only branch staff can create products" });
     }
-    const { name, Desciption, Category, Price, quantity, image, supplier } =
-      req.body;
+    const {
+      name,
+      Desciption,
+      Category,
+      Price,
+      salePrice,
+      purchasePrice,
+      quantity,
+      image,
+      supplier,
+    } = req.body;
 
-    if (!name || !Desciption || !Category || !Price) {
+    const normalizedSalePrice = Number(salePrice ?? Price);
+    const normalizedPurchasePrice = Number(
+      purchasePrice ?? salePrice ?? Price,
+    );
+    if (!name || !Desciption || !Category || !normalizedSalePrice) {
       return res.status(400).json({
         message: "Please provide all required product details.",
       });
@@ -26,13 +39,17 @@ module.exports.createProduct = async (req, res) => {
     const userCurrencyExchangeRate = currencySnapshot.exchangeRate;
 
     // Convert local price to USD using snapshot exchange rate
-    const priceUSD = Number((Price / userCurrencyExchangeRate).toFixed(2));
+    const priceUSD = Number(
+      (normalizedSalePrice / userCurrencyExchangeRate).toFixed(2),
+    );
 
     const createdProduct = new Product({
       name,
       Desciption,
       Category,
-      Price,
+      Price: normalizedSalePrice,
+      salePrice: normalizedSalePrice,
+      purchasePrice: normalizedPurchasePrice,
       branchId,
       countryId,
       currency: userCurrency,
@@ -165,12 +182,25 @@ module.exports.RemoveProduct = async (req, res) => {
 
 module.exports.EditProduct = async (req, res) => {
   try {
-    const { name, Category, Price, quantity, Desciption, dateAdded } = req.body;
+    const {
+      name,
+      Category,
+      Price,
+      salePrice,
+      purchasePrice,
+      quantity,
+      Desciption,
+      dateAdded,
+    } = req.body;
     const { id } = req.params;
     const userId = req.user.userId;
     const userRole = req.user.role;
     const ipAddress = req.ip;
-    if (!name || !Category || !Price) {
+    const normalizedSalePrice = Number(salePrice ?? Price);
+    const normalizedPurchasePrice = Number(
+      purchasePrice ?? salePrice ?? Price,
+    );
+    if (!name || !Category || !normalizedSalePrice) {
       return res.status(400).json({ message: "Required fields missing" });
     }
 
@@ -194,7 +224,16 @@ module.exports.EditProduct = async (req, res) => {
 
     const updatedProduct = await Product.findByIdAndUpdate(
       id,
-      { name, Category, Price, quantity, Desciption, dateAdded },
+      {
+        name,
+        Category,
+        Price: normalizedSalePrice,
+        salePrice: normalizedSalePrice,
+        purchasePrice: normalizedPurchasePrice,
+        quantity,
+        Desciption,
+        dateAdded,
+      },
       { new: true },
     );
 

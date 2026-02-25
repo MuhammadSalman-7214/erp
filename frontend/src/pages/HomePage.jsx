@@ -31,8 +31,7 @@ function HomePage() {
         {/* LEFT – Auth Section */}
         <div className="app-card p-6 sm:p-8 md:p-10">
           <h1 className="text-3xl sm:text-4xl font-bold text-slate-800 leading-tight mb-4">
-            Welcome to <br />
-            <span className="text-teal-700">InventoryPro</span>
+            Welcome to <span className="text-teal-700">InventoryPro</span>
           </h1>
 
           <p className="text-slate-600 text-base sm:text-lg mb-8">

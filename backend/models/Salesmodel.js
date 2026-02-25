@@ -33,6 +33,7 @@ const SaleSchema = new mongoose.Schema(
         },
         quantity: { type: Number, required: true },
         price: { type: Number, required: true },
+        salePrice: { type: Number, default: 0 },
       },
     ],
     totalAmount: { type: Number, required: true },

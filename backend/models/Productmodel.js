@@ -7,6 +7,8 @@ const ProductSchema = new mongoose.Schema(
     Desciption: { type: String, required: true },
     Category: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
     Price: { type: Number, required: true },
+    salePrice: { type: Number, default: 0 },
+    purchasePrice: { type: Number, default: 0 },
     branchId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Branch",
@@ -65,5 +67,12 @@ const ProductSchema = new mongoose.Schema(
 );
 ProductSchema.index({ branchId: 1, countryId: 1 });
 ProductSchema.index({ status: 1 });
+
+ProductSchema.pre("validate", function syncLegacyPricing(next) {
+  if (!this.salePrice && this.Price) this.salePrice = this.Price;
+  if (!this.Price && this.salePrice) this.Price = this.salePrice;
+  next();
+});
+
 const Product = mongoose.model("Product", ProductSchema);
 module.exports = Product;

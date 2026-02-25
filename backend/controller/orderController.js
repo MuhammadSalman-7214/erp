@@ -1,7 +1,7 @@
 const Order = require("../models/Ordermodel");
 const logActivity = require("../libs/logger");
 const ProductModel = require("../models/Productmodel");
-const StockTransaction = require("../models/StockTranscationmodel");
+const LedgerEntry = require("../models/LedgerEntrymodel.js");
 const Branch = require("../models/Branchmodel.js");
 
 const {
@@ -11,6 +11,51 @@ const {
 const { invalidateReportCache } = require("./reportController.js");
 const { getCountryCurrencySnapshot } = require("../libs/currency.js");
 const { assertNotLocked } = require("../libs/periodLock.js");
+
+const createSupplierPurchaseLedgerEntry = async ({
+  supplierId,
+  totalAmount,
+  currency,
+  exchangeRateUsed,
+  branchId,
+  countryId,
+  orderId,
+  userId,
+  entryType = "purchase",
+  debit = null,
+  credit = null,
+  description = "",
+}) => {
+  if (!supplierId) return;
+  const normalizedAmount = Number(totalAmount || 0);
+  const normalizedRate = Number(exchangeRateUsed || 1);
+  const hasCredit = credit !== null && credit !== undefined;
+  const hasDebit = debit !== null && debit !== undefined;
+  const finalCredit = hasCredit
+    ? Number(credit)
+    : entryType === "purchase"
+      ? normalizedAmount
+      : 0;
+  const finalDebit = hasDebit ? Number(debit) : 0;
+  const amountBase = Math.abs(finalCredit || finalDebit || normalizedAmount);
+
+  await LedgerEntry.create({
+    partyType: "supplier",
+    partyId: supplierId,
+    entryType,
+    debit: finalDebit,
+    credit: finalCredit,
+    currency,
+    amountUSD: Number((amountBase / normalizedRate).toFixed(2)),
+    exchangeRateUsed: normalizedRate,
+    branchId,
+    countryId,
+    referenceType: "order",
+    referenceId: orderId,
+    description,
+    createdBy: userId,
+  });
+};
 
 const createOrder = async (req, res) => {
   try {
@@ -39,14 +84,10 @@ const createOrder = async (req, res) => {
     if (!status) return res.status(400).json({ message: "Status is required" });
     if (!Product?.product)
       return res.status(400).json({ message: "Product ID is required" });
-    if (!Product?.price)
-      return res.status(400).json({ message: "Price is required" });
     if (!Product?.quantity)
       return res.status(400).json({ message: "Quantity is required" });
 
-    const { product, price, quantity } = Product;
-
-    const totalOrderAmount = price * quantity;
+    const { product, quantity } = Product;
 
     const productRecord = await ProductModel.findById(product);
     if (!productRecord) {
@@ -60,6 +101,24 @@ const createOrder = async (req, res) => {
         message: "Product does not belong to your branch/country",
       });
     }
+    const unitPurchasePrice = Number(
+      Product.purchasePrice ??
+        Product.unitPrice ??
+        Product.price ??
+        productRecord.purchasePrice ??
+        productRecord.Price,
+    );
+    if (!Number.isFinite(unitPurchasePrice) || unitPurchasePrice <= 0) {
+      return res.status(400).json({ message: "Valid purchase price is required" });
+    }
+    const normalizedProductLine = {
+      product,
+      quantity: Number(quantity),
+      unitPrice: unitPurchasePrice,
+      purchasePrice: unitPurchasePrice,
+      price: unitPurchasePrice * Number(quantity),
+    };
+    const totalOrderAmount = normalizedProductLine.price;
 
     const priceUSD = Number(
       (totalOrderAmount / userCurrencyExchangeRate).toFixed(2),
@@ -74,7 +133,7 @@ const createOrder = async (req, res) => {
       orderNumber,
       user: userId,
       Description,
-      Product,
+      Product: normalizedProductLine,
       supplier,
       totalAmount: totalOrderAmount,
       status,
@@ -90,6 +149,19 @@ const createOrder = async (req, res) => {
     await newOrder.save();
     if (status === "delivered") {
       await createStockInTransaction(newOrder);
+      await createSupplierPurchaseLedgerEntry({
+        supplierId: newOrder.supplier,
+        totalAmount: newOrder.totalAmount,
+        currency: newOrder.currency,
+        exchangeRateUsed: newOrder.exchangeRateUsed,
+        branchId: newOrder.branchId,
+        countryId: newOrder.countryId,
+        orderId: newOrder._id,
+        userId,
+        entryType: "purchase",
+        credit: newOrder.totalAmount,
+        description: `Purchase recorded from order ${newOrder.orderNumber}`,
+      });
     }
     invalidateReportCache();
     res.status(201).json({
@@ -169,7 +241,7 @@ const getOrder = async (req, res) => {
     }
 
     const orders = await Order.find(query)
-      .populate("Product.product", "name ProductModelrice ")
+      .populate("Product.product", "name purchasePrice salePrice Price")
       .populate("user", "name email")
       .populate("supplier", "name");
 
@@ -286,18 +358,62 @@ const updatestatusOrder = async (req, res) => {
       }
     }
     const originalOrder = oldOrder.toObject();
+    const nextStatus = updates.status || oldOrder.status;
+    let normalizedProductLine = oldOrder.Product;
+    if (updates.Product) {
+      if (!updates.Product?.product) {
+        return res.status(400).json({ message: "Product ID is required" });
+      }
+      if (!updates.Product?.quantity) {
+        return res.status(400).json({ message: "Quantity is required" });
+      }
+      const productRecord = await ProductModel.findById(updates.Product.product);
+      if (!productRecord) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+      const unitPurchasePrice = Number(
+        updates.Product.purchasePrice ??
+          updates.Product.unitPrice ??
+          updates.Product.price ??
+          productRecord.purchasePrice ??
+          productRecord.Price,
+      );
+      if (!Number.isFinite(unitPurchasePrice) || unitPurchasePrice <= 0) {
+        return res
+          .status(400)
+          .json({ message: "Valid purchase price is required" });
+      }
+
+      normalizedProductLine = {
+        product: updates.Product.product,
+        quantity: Number(updates.Product.quantity),
+        unitPrice: unitPurchasePrice,
+        purchasePrice: unitPurchasePrice,
+        price: unitPurchasePrice * Number(updates.Product.quantity),
+      };
+    }
+
+    const nextTotalAmount = Number(normalizedProductLine.price || 0);
+    const rate = Number(oldOrder.exchangeRateUsed || 1);
+    const updatesPayload = {
+      ...updates,
+      Product: normalizedProductLine,
+      totalAmount: nextTotalAmount,
+      priceUSD: Number((nextTotalAmount / rate).toFixed(2)),
+      lastUpdatedBy: req.user.userId,
+    };
 
     // 2️⃣ Update order
-    const updatedOrder = await Order.findByIdAndUpdate(OrderId, updates, {
+    const updatedOrder = await Order.findByIdAndUpdate(OrderId, updatesPayload, {
       new: true,
     });
     if (oldOrder.workflowStatus === "Approved" && updates.revisionReason) {
-      const changes = Object.keys(updates)
+      const changes = Object.keys(updatesPayload)
         .filter((key) => !["revisionReason", "workflowStatus"].includes(key))
         .map((key) => ({
           field: key,
           from: originalOrder[key],
-          to: updates[key],
+          to: updatesPayload[key],
         }));
       updatedOrder.revisions.push({
         changes,
@@ -307,19 +423,96 @@ const updatestatusOrder = async (req, res) => {
       await updatedOrder.save();
     }
 
-    // 3️⃣ Stock logic
-    if (
-      oldOrder.status !== "delivered" &&
-      updatedOrder.status === "delivered"
-    ) {
-      // Order became delivered ➜ add stock
+    // 3️⃣ Stock + supplier ledger logic
+    const oldDelivered = oldOrder.status === "delivered";
+    const newDelivered = nextStatus === "delivered";
+    const supplierChanged =
+      String(oldOrder.supplier || "") !== String(updatedOrder.supplier || "");
+
+    if (oldDelivered) {
+      await removeStockTransaction(oldOrder);
+    }
+    if (newDelivered) {
       await createStockInTransaction(updatedOrder);
-    } else if (
-      oldOrder.status === "delivered" &&
-      updatedOrder.status !== "delivered"
-    ) {
-      // Order was delivered but now changed to pending/shipped ➜ remove stock
-      await removeStockTransaction(updatedOrder);
+    }
+
+    if (!oldDelivered && newDelivered) {
+      await createSupplierPurchaseLedgerEntry({
+        supplierId: updatedOrder.supplier,
+        totalAmount: updatedOrder.totalAmount,
+        currency: updatedOrder.currency,
+        exchangeRateUsed: updatedOrder.exchangeRateUsed,
+        branchId: updatedOrder.branchId,
+        countryId: updatedOrder.countryId,
+        orderId: updatedOrder._id,
+        userId: req.user.userId,
+        entryType: "purchase",
+        credit: updatedOrder.totalAmount,
+        description: `Purchase recorded from order ${updatedOrder.orderNumber}`,
+      });
+    } else if (oldDelivered && !newDelivered) {
+      await createSupplierPurchaseLedgerEntry({
+        supplierId: oldOrder.supplier,
+        totalAmount: oldOrder.totalAmount,
+        currency: oldOrder.currency,
+        exchangeRateUsed: oldOrder.exchangeRateUsed,
+        branchId: oldOrder.branchId,
+        countryId: oldOrder.countryId,
+        orderId: oldOrder._id,
+        userId: req.user.userId,
+        entryType: "adjustment",
+        debit: oldOrder.totalAmount,
+        credit: 0,
+        description: `Delivered order ${oldOrder.orderNumber} reversed`,
+      });
+    } else if (oldDelivered && newDelivered) {
+      if (supplierChanged) {
+        await createSupplierPurchaseLedgerEntry({
+          supplierId: oldOrder.supplier,
+          totalAmount: oldOrder.totalAmount,
+          currency: oldOrder.currency,
+          exchangeRateUsed: oldOrder.exchangeRateUsed,
+          branchId: oldOrder.branchId,
+          countryId: oldOrder.countryId,
+          orderId: oldOrder._id,
+          userId: req.user.userId,
+          entryType: "adjustment",
+          debit: oldOrder.totalAmount,
+          credit: 0,
+          description: `Purchase moved from supplier for order ${oldOrder.orderNumber}`,
+        });
+        await createSupplierPurchaseLedgerEntry({
+          supplierId: updatedOrder.supplier,
+          totalAmount: updatedOrder.totalAmount,
+          currency: updatedOrder.currency,
+          exchangeRateUsed: updatedOrder.exchangeRateUsed,
+          branchId: updatedOrder.branchId,
+          countryId: updatedOrder.countryId,
+          orderId: updatedOrder._id,
+          userId: req.user.userId,
+          entryType: "purchase",
+          credit: updatedOrder.totalAmount,
+          description: `Purchase moved to supplier for order ${updatedOrder.orderNumber}`,
+        });
+      } else {
+        const diff = Number(updatedOrder.totalAmount || 0) - Number(oldOrder.totalAmount || 0);
+        if (diff !== 0) {
+          await createSupplierPurchaseLedgerEntry({
+            supplierId: updatedOrder.supplier,
+            totalAmount: Math.abs(diff),
+            currency: updatedOrder.currency,
+            exchangeRateUsed: updatedOrder.exchangeRateUsed,
+            branchId: updatedOrder.branchId,
+            countryId: updatedOrder.countryId,
+            orderId: updatedOrder._id,
+            userId: req.user.userId,
+            entryType: "adjustment",
+            debit: diff < 0 ? Math.abs(diff) : 0,
+            credit: diff > 0 ? diff : 0,
+            description: `Purchase adjustment for order ${updatedOrder.orderNumber}`,
+          });
+        }
+      }
     }
 
     invalidateReportCache();

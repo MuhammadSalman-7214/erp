@@ -23,6 +23,23 @@ const StockTranscationSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Supplier",
     },
+    unitPrice: {
+      type: Number,
+      default: 0,
+    },
+    totalPrice: {
+      type: Number,
+      default: 0,
+    },
+    referenceType: {
+      type: String,
+      enum: ["order", "sale", "manual"],
+      default: "manual",
+    },
+    referenceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
+    },
     branchId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Branch",

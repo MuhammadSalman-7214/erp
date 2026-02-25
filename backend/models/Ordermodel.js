@@ -42,6 +42,14 @@ const OrderSchema = new mongoose.Schema(
         type: Number,
         required: true,
       },
+      unitPrice: {
+        type: Number,
+        default: 0,
+      },
+      purchasePrice: {
+        type: Number,
+        default: 0,
+      },
     },
 
     totalAmount: {

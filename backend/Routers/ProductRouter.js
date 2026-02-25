@@ -12,6 +12,7 @@ const {
   getProduct,
   RemoveProduct,
   EditProduct,
+  SearchProduct,
   getTopProductsByQuantity,
 } = require("../controller/productController.js");
 // Import your product controllers
@@ -23,6 +24,12 @@ router.get(
   "/getTopProductsByQuantity",
   authmiddleware,
   getTopProductsByQuantity,
+);
+router.get(
+  "/searchproduct",
+  authmiddleware,
+  checkPermission("product", "read"),
+  SearchProduct,
 );
 
 // POST - Admin and Manager only

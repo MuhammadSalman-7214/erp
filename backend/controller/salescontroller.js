@@ -3,6 +3,10 @@ const ProductModel = require("../models/Productmodel.js");
 const Customer = require("../models/Customermodel.js");
 const LedgerEntry = require("../models/LedgerEntrymodel.js");
 const Branch = require("../models/Branchmodel.js");
+const {
+  createStockOutForSale,
+  removeStockOutForSale,
+} = require("../libs/createstock.js");
 const { invalidateReportCache } = require("./reportController.js");
 const { getCountryCurrencySnapshot } = require("../libs/currency.js");
 const { assertNotLocked } = require("../libs/periodLock.js");
@@ -57,46 +61,28 @@ module.exports.createSale = async (req, res) => {
     }
 
     // Validate each product object
+    const normalizedProducts = [];
     for (const item of products) {
-      if (!item.product || !item.quantity || !item.price) {
+      const lineUnitSalePrice = Number(item.salePrice ?? item.price);
+      if (!item.product || !item.quantity || !lineUnitSalePrice) {
         return res.status(400).json({
           success: false,
           message: "Each product must have product id, quantity, and price",
         });
       }
+      normalizedProducts.push({
+        product: item.product,
+        quantity: Number(item.quantity),
+        price: lineUnitSalePrice,
+        salePrice: lineUnitSalePrice,
+      });
     }
 
     // Calculate totalAmount
-    const totalAmount = products.reduce(
+    const totalAmount = normalizedProducts.reduce(
       (total, item) => total + item.price * item.quantity,
       0,
     );
-    // Before creating the sale
-    for (const item of products) {
-      const productRecord = await ProductModel.findById(item.product);
-      if (!productRecord) {
-        return res.status(404).json({
-          success: false,
-          message: `Product ${item.product} not found`,
-        });
-      }
-
-      if (productRecord.quantity < item.quantity) {
-        return res.status(400).json({
-          success: false,
-          message: `Only ${productRecord.quantity} items available for ${productRecord.name}. You requested ${item.quantity}.`,
-          available: productRecord.quantity,
-          requested: item.quantity,
-        });
-      }
-    }
-
-    // After validation, decrement stock
-    for (const item of products) {
-      const productRecord = await ProductModel.findById(item.product);
-      productRecord.quantity -= item.quantity;
-      await productRecord.save();
-    }
 
     // Validate customer scope if provided
     let resolvedCustomerName = customerName;
@@ -130,7 +116,7 @@ module.exports.createSale = async (req, res) => {
       saleNumber,
       customerName: resolvedCustomerName,
       customerId: customerId || null,
-      products,
+      products: normalizedProducts,
       paymentMethod,
       paymentStatus,
       status,
@@ -144,6 +130,19 @@ module.exports.createSale = async (req, res) => {
       createdBy: userId,
       lastUpdatedBy: userId,
     });
+    if (status === "completed") {
+      try {
+        await createStockOutForSale(sale);
+      } catch (stockError) {
+        await Sale.findByIdAndDelete(sale._id);
+        return res.status(stockError.statusCode || 500).json({
+          success: false,
+          message: stockError.message || "Failed to process stock-out",
+          available: stockError.available,
+          requested: stockError.requested,
+        });
+      }
+    }
     if (customerId) {
       await LedgerEntry.create({
         partyType: "customer",
@@ -394,26 +393,28 @@ module.exports.updateSale = async (req, res) => {
       }
     }
 
-    // 2️⃣ Rollback OLD stock
-    for (const oldItem of existingSale.products) {
-      const product = await ProductModel.findById(oldItem.product);
-      if (product) {
-        product.quantity += oldItem.quantity;
-        await product.save();
-      }
-    }
-
-    // 3️⃣ Validate NEW products & availability
+    // 2️⃣ Validate and normalize new products
     let updatedTotalAmount = 0;
+    const normalizedProducts = [];
+    const nextStatus = updatedData.status || existingSale.status;
+    const oldWasCompleted = existingSale.status === "completed";
+    const newIsCompleted = nextStatus === "completed";
 
     for (const item of updatedData.products) {
-      if (!item.product || !item.quantity || !item.price) {
+      const lineUnitSalePrice = Number(item.salePrice ?? item.price);
+      if (!item.product || !item.quantity || !lineUnitSalePrice) {
         return res.status(400).json({
           success: false,
           message: "Each product must have product id, quantity, and price",
         });
       }
 
+      const normalizedItem = {
+        product: item.product,
+        quantity: Number(item.quantity),
+        price: lineUnitSalePrice,
+        salePrice: lineUnitSalePrice,
+      };
       const productRecord = await ProductModel.findById(item.product);
       if (!productRecord) {
         return res.status(404).json({
@@ -422,32 +423,42 @@ module.exports.updateSale = async (req, res) => {
         });
       }
 
-      if (productRecord.quantity < item.quantity) {
-        return res.status(400).json({
-          success: false,
-          message: `Only ${productRecord.quantity} items available for ${productRecord.name}. You requested ${item.quantity}.`,
-          available: productRecord.quantity,
-          requested: item.quantity,
-        });
+      normalizedProducts.push(normalizedItem);
+      updatedTotalAmount += normalizedItem.quantity * normalizedItem.price;
+    }
+
+    if (oldWasCompleted) {
+      await removeStockOutForSale(existingSale);
+    }
+
+    if (newIsCompleted) {
+      for (const item of normalizedProducts) {
+        const productRecord = await ProductModel.findById(item.product);
+        if (!productRecord) {
+          return res.status(404).json({
+            success: false,
+            message: `Product ${item.product} not found`,
+          });
+        }
+        if (productRecord.quantity < item.quantity) {
+          return res.status(400).json({
+            success: false,
+            message: `Only ${productRecord.quantity} items available for ${productRecord.name}. You requested ${item.quantity}.`,
+            available: productRecord.quantity,
+            requested: item.quantity,
+          });
+        }
       }
-
-      updatedTotalAmount += item.quantity * item.price;
     }
 
-    // 4️⃣ Deduct NEW stock
-    for (const item of updatedData.products) {
-      const product = await ProductModel.findById(item.product);
-      product.quantity -= item.quantity;
-      await product.save();
-    }
-
-    // 5️⃣ Update sale
+    // 3️⃣ Update sale
     const rate = existingSale.exchangeRateUsed || userCurrencyExchangeRate || 1;
     const priceUSD = Number((updatedTotalAmount / rate).toFixed(2));
     const updatedSale = await Sale.findByIdAndUpdate(
       id,
       {
         ...updatedData,
+        products: normalizedProducts,
         totalAmount: updatedTotalAmount,
         priceUSD,
         lastUpdatedBy: req.user.userId,
@@ -455,7 +466,24 @@ module.exports.updateSale = async (req, res) => {
       { new: true },
     );
 
-    // 6️⃣ Populate for frontend
+    if (newIsCompleted) {
+      try {
+        await createStockOutForSale(updatedSale);
+      } catch (stockError) {
+        if (!oldWasCompleted) {
+          // Sale newly marked completed failed due to stock; keep updated sale but report failure
+          return res.status(stockError.statusCode || 500).json({
+            success: false,
+            message: stockError.message || "Failed to process stock-out",
+            available: stockError.available,
+            requested: stockError.requested,
+          });
+        }
+        throw stockError;
+      }
+    }
+
+    // 4️⃣ Populate for frontend
     const populatedSale = await Sale.findById(id).populate("products.product");
 
     if (

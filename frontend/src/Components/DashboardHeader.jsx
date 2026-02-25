@@ -60,7 +60,8 @@ const resolvePageDescription = (title, pathname, user) => {
     Ledger: "Review account movements and balances.",
     Shipments: "Track shipment lifecycle, costs, and statuses.",
     "Create Shipment": "Capture shipment details and create a new record.",
-    "Shipment Details": "Inspect shipment timeline, cost breakdown, and status.",
+    "Shipment Details":
+      "Inspect shipment timeline, cost breakdown, and status.",
     "Clearing Jobs": "Manage customs clearing workflow and assignments.",
     "Clearing Job Details":
       "Track progress, documents, and expenses for this clearing job.",
@@ -73,7 +74,8 @@ const resolvePageDescription = (title, pathname, user) => {
   };
 
   if (descriptions[title]) return descriptions[title];
-  if (cleanPath.includes("/reports")) return "Analyze performance insights and export report data.";
+  if (cleanPath.includes("/reports"))
+    return "Analyze performance insights and export report data.";
   return `Manage and monitor ${title.toLowerCase()}.`;
 };
 
@@ -115,71 +117,132 @@ function DashboardHeader({
   }, []);
 
   return (
-    <header className="sticky top-0 z-30 h-16 border-b border-slate-200/80 bg-slate-50/85 backdrop-blur">
-      <div className="flex h-full items-center justify-between gap-4 px-4 md:px-6">
+    <header
+      className="sticky top-0 z-30 
+  border-b border-slate-200/60 
+  bg-gradient-to-r from-teal-50 via-white to-blue-50
+  backdrop-blur-xl 
+  shadow-md
+  rounded-bl-xl
+  rounded-br-xl"
+    >
+      <div className="flex h-full items-center justify-between gap-4 px-4 py-4 md:px-6">
+        {/* Left Section */}
         <div className="flex min-w-0 items-center gap-3">
           <button
             type="button"
             onClick={onOpenMobileMenu}
-            className="rounded-lg border border-slate-200 p-2 text-slate-600 md:hidden"
+            className="rounded-lg border border-slate-200 
+                   bg-white/70 p-2 
+                   text-slate-600 
+                   shadow-sm 
+                   transition hover:bg-white hover:shadow-md 
+                   md:hidden"
             aria-label="Open navigation"
           >
             <Menu className="h-4 w-4" />
           </button>
+
           <div className="min-w-0">
-            <h2 className="truncate text-lg font-semibold text-slate-900 md:text-xl">
+            <h2
+              className="truncate text-lg font-semibold 
+                       bg-gradient-to-r from-slate-900 to-slate-600 
+                       bg-clip-text text-transparent 
+                       md:text-xl"
+            >
               {pageTitle}
             </h2>
-            <p className="truncate text-xs text-slate-500">{pageDescription}</p>
+            <p className="truncate text-xs text-slate-500 tracking-wide">
+              {pageDescription}
+            </p>
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2 md:gap-3" ref={menuRef}>
+        {/* Right Section */}
+        <div
+          className="relative flex shrink-0 items-center gap-3"
+          ref={menuRef}
+        >
           <img
-            className="h-9 w-9 rounded-full border border-slate-200 object-cover"
+            className="h-9 w-9 rounded-full 
+                   border border-white 
+                   shadow-md object-cover"
             src={user?.ProfilePic || fallbackAvatar}
             alt={user?.name || "User avatar"}
           />
+
           <div className="hidden text-right leading-tight sm:block">
-            <p className="max-w-[11rem] truncate text-sm font-semibold text-slate-900">
+            <p className="max-w-[11rem] truncate text-sm font-semibold text-slate-800">
               {user?.name || "User"}
             </p>
             <p className="max-w-[11rem] truncate text-xs text-slate-500">
               {roleLabel || "Member"}
             </p>
           </div>
+
           <button
             type="button"
             onClick={() => setIsMenuOpen((prev) => !prev)}
-            className="inline-flex h-9 items-center gap-1 rounded-lg border border-slate-200 px-2 text-slate-600 transition hover:bg-slate-100 hover:text-slate-800"
+            className="inline-flex h-9 items-center gap-1 
+                   rounded-lg border border-slate-200 
+                   bg-white/70 px-2 
+                   text-slate-600 
+                   shadow-sm 
+                   transition hover:bg-white hover:shadow-md 
+                   focus:outline-none focus:ring-2 focus:ring-teal-500/40"
             aria-label="Open user menu"
             aria-expanded={isMenuOpen}
           >
-            <ChevronDown className="h-4 w-4" />
+            <ChevronDown
+              className={`h-4 w-4 transition-transform ${isMenuOpen ? "rotate-180" : ""}`}
+            />
           </button>
 
+          {/* Dropdown */}
           {isMenuOpen && (
-            <div className="absolute right-4 top-14 w-48 rounded-xl border border-slate-200 bg-white p-1 shadow-lg md:right-6">
+            <div
+              className="absolute right-0 top-14 w-52 
+                        rounded-2xl 
+                        border border-slate-200/70 
+                        bg-white/95 
+                        backdrop-blur-xl 
+                        p-2 
+                        shadow-xl 
+                        animate-in fade-in zoom-in-95 duration-150"
+            >
               <Link
                 to={profilePath}
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100"
+                className="flex items-center gap-2 
+                       rounded-xl px-3 py-2 text-sm 
+                       text-slate-700 
+                       transition hover:bg-slate-100"
               >
-                <User className="h-4 w-4 text-teal-700" />
+                <User className="h-4 w-4 text-teal-600" />
                 Profile
               </Link>
+
               {settingsPath && (
                 <Link
                   to={settingsPath}
-                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100"
+                  className="flex items-center gap-2 
+                         rounded-xl px-3 py-2 text-sm 
+                         text-slate-700 
+                         transition hover:bg-slate-100"
                 >
                   <Settings className="h-4 w-4 text-slate-500" />
                   Settings
                 </Link>
               )}
+
+              <div className="my-1 border-t border-slate-200"></div>
+
               <button
                 type="button"
                 onClick={onLogout}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-600 transition hover:bg-red-50"
+                className="flex w-full items-center gap-2 
+                       rounded-xl px-3 py-2 text-left text-sm 
+                       text-red-600 
+                       transition hover:bg-red-50"
               >
                 <LogOut className="h-4 w-4" />
                 Logout

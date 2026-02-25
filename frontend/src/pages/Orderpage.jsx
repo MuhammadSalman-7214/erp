@@ -14,6 +14,7 @@ import {
 } from "../features/orderSlice";
 import { gettingallproducts } from "../features/productSlice";
 import { gettingallCategory } from "../features/categorySlice";
+import { gettingallSupplier } from "../features/SupplierSlice";
 import NoData from "../Components/NoData";
 
 function Orderpage() {
@@ -29,7 +30,6 @@ function Orderpage() {
 
   const [query, setquery] = useState("");
   const [Product, setProduct] = useState("");
-  const [Price, setPrice] = useState("");
   const [quantity, setQuantity] = useState("");
   const [Description, setDescription] = useState("");
   const [status, setstatus] = useState("");
@@ -48,6 +48,7 @@ function Orderpage() {
   useEffect(() => {
     dispatch(gettingallOrder());
     dispatch(gettingallproducts());
+    dispatch(gettingallSupplier());
     dispatch(gettingallCategory());
   }, [dispatch, user]);
 
@@ -73,7 +74,9 @@ function Orderpage() {
       Product: {
         product: Product,
         quantity: Number(quantity),
-        price: Number(Price),
+        purchasePrice: Number(unitPrice),
+        unitPrice: Number(unitPrice),
+        price: Number(unitPrice),
       },
     };
 
@@ -117,7 +120,6 @@ function Orderpage() {
     const errors = {};
 
     if (!Product) errors.product = "Product is required";
-    if (!Price) errors.price = "Price is required";
     if (!quantity) errors.quantity = "Quantity is required";
 
     if (Object.keys(errors).length > 0) {
@@ -132,7 +134,9 @@ function Orderpage() {
       supplier,
       Product: {
         product: Product,
-        price: Number(Price),
+        purchasePrice: Number(unitPrice),
+        unitPrice: Number(unitPrice),
+        price: Number(unitPrice),
         quantity: Number(quantity),
       },
     };
@@ -148,7 +152,6 @@ function Orderpage() {
 
   const resetForm = () => {
     setProduct("");
-    setPrice("");
     setQuantity("");
     setDescription("");
     setstatus("");
@@ -165,14 +168,19 @@ function Orderpage() {
   const handleEditClick = (order) => {
     setselectedOrder(order);
     setProduct(order.Product.product?._id || "");
-    setPrice(order.Product?.price || "");
-    setsupplier(order.supplier || "");
+    setsupplier(order.supplier?._id || order.supplier || "");
 
     const productObj = getallproduct.find(
       (p) => p._id === order.Product.product?._id,
     );
 
-    if (productObj) setUnitPrice(productObj.Price || 0);
+    setUnitPrice(
+      order.Product?.unitPrice ??
+        order.Product?.purchasePrice ??
+        productObj?.purchasePrice ??
+        productObj?.Price ??
+        0,
+    );
     setQuantity(order.Product?.quantity || "");
     setstatus(order.status || "");
     setDescription(order.Description || "");
@@ -253,13 +261,13 @@ function Orderpage() {
                   );
 
                   if (selectedProduct) {
-                    setUnitPrice(selectedProduct.Price); // store unit price
-                    setPrice(
-                      quantity ? selectedProduct.Price * Number(quantity) : "",
-                    ); // update total price
+                    setUnitPrice(
+                      selectedProduct.purchasePrice ??
+                        selectedProduct.Price ??
+                        0,
+                    ); // store unit purchase price
                   } else {
                     setUnitPrice(0);
-                    setPrice("");
                   }
 
                   setFormErrors((prev) => ({ ...prev, product: "" }));
@@ -296,10 +304,6 @@ function Orderpage() {
                   const qty = Number(e.target.value);
                   setQuantity(qty);
 
-                  if (unitPrice) {
-                    setPrice(unitPrice * qty); // auto-calculate total price
-                  }
-
                   setFormErrors((prev) => ({ ...prev, quantity: "" }));
                 }}
                 className={`w-full h-10 px-2 border-2 rounded-lg mt-2 `}
@@ -313,13 +317,13 @@ function Orderpage() {
               )}
             </div>
             <div className="mb-4">
-              <label>Price</label>
+              <label>Line Total</label>
               <input
                 type="number"
-                value={Price}
+                value={Number(unitPrice || 0) * Number(quantity || 0)}
                 readOnly
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-gray-100 cursor-not-allowed"
-                placeholder="Price auto-calculated"
+                placeholder="Line total auto-calculated"
               />
             </div>
             <div className="mb-4">

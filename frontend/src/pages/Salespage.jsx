@@ -31,7 +31,6 @@ function Salespage() {
   const [name, setName] = useState("");
   const [Product, setProduct] = useState("");
   const [Payment, setPayment] = useState("");
-  const [Price, setPrice] = useState("");
   const [quantity, setQuantity] = useState("");
   const [paymentStatus, setpaymentStatus] = useState("");
   const [Status, setStatus] = useState("");
@@ -77,6 +76,7 @@ function Salespage() {
           product: Product,
           quantity: Number(quantity),
           price: Number(unitPrice),
+          salePrice: Number(unitPrice),
         },
       ],
       paymentMethod: Payment,
@@ -109,6 +109,7 @@ function Salespage() {
           product: Product,
           quantity: Number(quantity),
           price: Number(unitPrice),
+          salePrice: Number(unitPrice),
         },
       ],
       paymentMethod: Payment,
@@ -133,7 +134,6 @@ function Salespage() {
     setCustomerId("");
     setProduct("");
     setPayment("");
-    setPrice("");
     setQuantity("");
     setpaymentStatus("");
     setStatus("");
@@ -151,19 +151,20 @@ function Salespage() {
     if (sales.products && sales.products.length > 0) {
       const firstProduct = sales.products[0];
       setProduct(firstProduct.product?._id || "");
-      setPrice(firstProduct.price || "");
       setQuantity(firstProduct.quantity || "");
       const productObj = getallproduct.find(
         (p) => p._id === firstProduct.product?._id,
       );
 
       if (productObj) {
-        setUnitPrice(productObj.Price);
+        setUnitPrice(productObj.salePrice ?? productObj.Price ?? 0);
+      } else {
+        setUnitPrice(firstProduct.salePrice ?? firstProduct.price ?? 0);
       }
     } else {
       setProduct("");
-      setPrice("");
       setQuantity("");
+      setUnitPrice(0);
     }
 
     setPayment(sales.paymentMethod || "");
@@ -348,8 +349,9 @@ function Salespage() {
                   );
 
                   if (selectedProduct) {
-                    setUnitPrice(selectedProduct.Price);
-                    setPrice(selectedProduct.Price);
+                    setUnitPrice(
+                      selectedProduct.salePrice ?? selectedProduct.Price ?? 0,
+                    );
                   }
                 }}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2"
@@ -374,9 +376,6 @@ function Salespage() {
                 onChange={(e) => {
                   const qty = Number(e.target.value);
                   setQuantity(qty);
-
-                  // Keep Price as unit price
-                  setPrice(unitPrice);
 
                   // Optional: client-side check for stock
                   const productObj = getallproduct.find(

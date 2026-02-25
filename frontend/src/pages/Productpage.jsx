@@ -43,7 +43,8 @@ function Productpage({ readOnly = false }) {
   const [query, setQuery] = useState("");
   const [name, setName] = useState("");
   const [Category, setCategory] = useState("");
-  const [Price, setPrice] = useState("");
+  const [salePrice, setSalePrice] = useState("");
+  const [purchasePrice, setPurchasePrice] = useState("");
   const [quantity, setQuantity] = useState("");
   const [Desciption, setDesciption] = useState("");
   const [dateAdded, setDateAdded] = useState(
@@ -93,7 +94,8 @@ function Productpage({ readOnly = false }) {
     const updatedData = {
       name,
       Category,
-      Price,
+      salePrice: Number(salePrice),
+      purchasePrice: Number(purchasePrice || salePrice),
       quantity,
       Desciption,
       dateAdded: selectedProduct.dateAdded || new Date().toISOString(),
@@ -119,7 +121,8 @@ function Productpage({ readOnly = false }) {
       name,
       Desciption,
       Category,
-      Price,
+      salePrice: Number(salePrice),
+      purchasePrice: Number(purchasePrice || salePrice),
       dateAdded: new Date(dateAdded).toISOString(),
     };
 
@@ -135,7 +138,8 @@ function Productpage({ readOnly = false }) {
   const resetForm = () => {
     setName("");
     setCategory("");
-    setPrice("");
+    setSalePrice("");
+    setPurchasePrice("");
     setQuantity("");
     setDesciption("");
   };
@@ -155,7 +159,8 @@ function Productpage({ readOnly = false }) {
     setSelectedProduct(product);
     setName(product.name);
     setCategory(product.Category?._id || "");
-    setPrice(product.Price);
+    setSalePrice(product.salePrice ?? product.Price ?? "");
+    setPurchasePrice(product.purchasePrice ?? product.salePrice ?? product.Price ?? "");
     setQuantity(product.quantity);
     setDesciption(product.Desciption);
     setIsFormVisible(true);
@@ -185,7 +190,10 @@ function Productpage({ readOnly = false }) {
               <span className="mr-1">{user?.country?.currencySymbol}</span>
               <span>
                 {new Intl.NumberFormat().format(
-                  getallproduct?.reduce((total, p) => total + p.Price, 0) || 0,
+                  getallproduct?.reduce(
+                    (total, p) => total + Number(p.salePrice ?? p.Price ?? 0),
+                    0,
+                  ) || 0,
                 )}
               </span>
             </span>
@@ -259,7 +267,8 @@ function Productpage({ readOnly = false }) {
                     <th className="px-5 py-4 font-medium">Category</th>
                     <th className="px-5 py-4 font-medium">Description</th>
                     <th className="px-5 py-4 font-medium">Qty</th>
-                    <th className="px-5 py-4 font-medium">Price</th>
+                    <th className="px-5 py-4 font-medium">Sale Price</th>
+                    <th className="px-5 py-4 font-medium">Purchase Price</th>
                     <th className="px-5 py-4 font-medium">Date</th>
                     {!isReadOnlyMode && (
                       <th className="px-5 py-4 font-medium">Actions</th>
@@ -294,7 +303,10 @@ function Productpage({ readOnly = false }) {
                       </td>
 
                       <td className="px-5 py-4 font-semibold text-slate-800">
-                        {`${product.Price?.toLocaleString()} ${product?.currencySymbol} `}
+                        {`${Number(product.salePrice ?? product.Price ?? 0).toLocaleString()} ${product?.currencySymbol} `}
+                      </td>
+                      <td className="px-5 py-4 font-semibold text-slate-800">
+                        {`${Number(product.purchasePrice ?? product.salePrice ?? product.Price ?? 0).toLocaleString()} ${product?.currencySymbol} `}
                       </td>
 
                       <td className="px-5 py-4 text-slate-600">
@@ -359,7 +371,8 @@ function Productpage({ readOnly = false }) {
             {[
               ["Name", name, setName, "text"],
               ["Description", Desciption, setDesciption, "text"],
-              ["Price", Price, setPrice, "number"],
+              ["Sale Price", salePrice, setSalePrice, "number"],
+              ["Purchase Price", purchasePrice, setPurchasePrice, "number"],
               // ["Quantity", quantity, setQuantity, "number"],
             ].map(([label, val, setter, type]) => (
               <div key={label}>
