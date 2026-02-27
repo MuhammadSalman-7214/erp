@@ -118,7 +118,7 @@ function DashboardHeader({
 
   return (
     <header
-      className="sticky top-0 z-30 
+      className="app-dashboard-header sticky top-0 z-30 
   border-b border-slate-200/60 
   bg-gradient-to-r from-teal-50 via-white to-blue-50
   backdrop-blur-xl 

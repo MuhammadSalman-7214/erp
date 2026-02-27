@@ -74,6 +74,7 @@
     --app-card-orb: rgba(180, 250, 242, 0.28);
     --app-card-orb-2: rgba(152, 236, 251, 0.18);
     --app-card-ring: rgba(142, 254, 241, 0.25);
+    contain: paint;
   }
 
   .app-surface-card::before,
@@ -179,6 +180,20 @@
   .app-info-card > * {
     position: relative;
     z-index: 1;
+  }
+
+  html[data-browser-engine="chromium"] .app-surface-card,
+  html[data-browser-engine="chromium"] .app-card,
+  html[data-browser-engine="chromium"] .app-card-soft,
+  html[data-browser-engine="chromium"] .app-metric-card,
+  html[data-browser-engine="chromium"] .app-info-card {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  html[data-browser-engine="chromium"] .app-dashboard-header {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
   .app-surface-card:hover,

@@ -6,6 +6,22 @@ import reportWebVitals from './reportWebVitals';
 import { Provider } from "react-redux";
 import store from "./store/store";
 
+const detectBrowserEngine = () => {
+  if (typeof navigator === "undefined") return "unknown";
+  const ua = navigator.userAgent;
+  const isSafari =
+    /Safari/.test(ua) && !/Chrome|CriOS|Edg|OPR|Firefox/.test(ua);
+  const isChromium = /Chrome|CriOS|Edg|OPR/.test(ua);
+  if (isSafari) return "safari";
+  if (isChromium) return "chromium";
+  return "other";
+};
+
+document.documentElement.setAttribute(
+  "data-browser-engine",
+  detectBrowserEngine(),
+);
+
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

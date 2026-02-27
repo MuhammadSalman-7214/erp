@@ -301,6 +301,13 @@ const TONES = {
     badgeText: "#334155",
   },
 };
+
+const isChromiumEngine = () => {
+  if (typeof document === "undefined") return false;
+  return document.documentElement.dataset.browserEngine === "chromium";
+};
+
+const REDUCE_SCROLL_EFFECTS = isChromiumEngine();
 /* ===============================
    UI: DASHBOARD SURFACE
 ================================ */
@@ -319,16 +326,33 @@ function DashboardCardSurface({
   const [hovered, setHovered] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 });
   const cardRef = useRef(null);
+  const animationFrameRef = useRef(null);
+  const pendingMousePosRef = useRef({ x: 0.5, y: 0.5 });
   const t = TONES[tone] || TONES.teal;
   const Component = as;
+
+  useEffect(() => {
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, []);
 
   const handleMouseMove = (e) => {
     if (!interactive) return;
     const rect = cardRef.current?.getBoundingClientRect();
     if (!rect) return;
-    setMousePos({
+
+    pendingMousePosRef.current = {
       x: (e.clientX - rect.left) / rect.width,
       y: (e.clientY - rect.top) / rect.height,
+    };
+
+    if (animationFrameRef.current) return;
+    animationFrameRef.current = requestAnimationFrame(() => {
+      setMousePos(pendingMousePosRef.current);
+      animationFrameRef.current = null;
     });
   };
 
@@ -352,8 +376,10 @@ function DashboardCardSurface({
         overflow: "hidden",
         background:
           "linear-gradient(145deg, rgba(255,255,255,0.92) 0%, rgba(248,250,252,0.88) 100%)",
-        backdropFilter: "blur(24px)",
-        WebkitBackdropFilter: "blur(24px)",
+        backdropFilter: REDUCE_SCROLL_EFFECTS ? "blur(10px)" : "blur(24px)",
+        WebkitBackdropFilter: REDUCE_SCROLL_EFFECTS
+          ? "blur(10px)"
+          : "blur(24px)",
         border: `1px solid ${hovered ? t.ring : "rgba(226,232,240,0.7)"}`,
         boxShadow: hovered
           ? `0 20px 60px rgba(15,23,42,0.12), 0 8px 24px rgba(15,23,42,0.08), inset 0 1px 0 rgba(255,255,255,0.9), 0 0 0 1px ${t.ring}`
@@ -366,7 +392,7 @@ function DashboardCardSurface({
               : "translateY(0)",
         transition:
           "transform 0.35s cubic-bezier(0.23,1,0.32,1), box-shadow 0.35s ease, border-color 0.35s ease",
-        willChange: interactive ? "transform" : "auto",
+        willChange: interactive && hovered ? "transform" : "auto",
         fontFamily: "'DM Sans', 'Plus Jakarta Sans', system-ui, sans-serif",
       }}
     >
@@ -380,7 +406,7 @@ function DashboardCardSurface({
           height: "160px",
           borderRadius: "50%",
           background: `radial-gradient(circle, ${t.orb} 0%, transparent 70%)`,
-          filter: "blur(28px)",
+          filter: REDUCE_SCROLL_EFFECTS ? "blur(16px)" : "blur(28px)",
           opacity: hovered ? 1 : 0.5,
           transition: "opacity 0.5s ease",
           pointerEvents: "none",
@@ -397,7 +423,7 @@ function DashboardCardSurface({
           height: "120px",
           borderRadius: "50%",
           background: `radial-gradient(circle, ${t.orb2} 0%, transparent 70%)`,
-          filter: "blur(24px)",
+          filter: REDUCE_SCROLL_EFFECTS ? "blur(14px)" : "blur(24px)",
           opacity: hovered ? 0.8 : 0.3,
           transition: "opacity 0.5s ease",
           pointerEvents: "none",
@@ -507,7 +533,7 @@ function MetricCard({
                 background: t.iconBg,
                 color: t.iconColor,
                 border: `1px solid ${t.ring}`,
-                backdropFilter: "blur(8px)",
+                backdropFilter: REDUCE_SCROLL_EFFECTS ? "blur(4px)" : "blur(8px)",
                 boxShadow: `0 2px 8px ${t.accentSoft}, inset 0 1px 0 rgba(255,255,255,0.6)`,
                 transform: hovered
                   ? "scale(1.08) rotate(-3deg)"
@@ -608,7 +634,9 @@ function MetricCard({
                   background: t.badge,
                   color: t.badgeText,
                   border: `1px solid ${t.ring}`,
-                  backdropFilter: "blur(8px)",
+                  backdropFilter: REDUCE_SCROLL_EFFECTS
+                    ? "blur(4px)"
+                    : "blur(8px)",
                   letterSpacing: "0.02em",
                   whiteSpace: "nowrap",
                 }}
