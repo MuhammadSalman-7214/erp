@@ -2,6 +2,12 @@ const mongoose = require("mongoose");
 
 const VendorSchema = new mongoose.Schema(
   {
+    user_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
     name: {
       type: String,
       required: true,

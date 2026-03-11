@@ -4,6 +4,7 @@ module.exports.createCustomer = async (req, res) => {
   try {
     const { customerCode, name, contactInfo, openingBalance, paymentTerms } =
       req.body;
+    const userId = req.user.userId;
 
     if (!name || !name.trim()) {
       return res.status(400).json({
@@ -15,6 +16,7 @@ module.exports.createCustomer = async (req, res) => {
     if (customerCode) {
       const existingCode = await Customer.findOne({
         customerCode: customerCode.toUpperCase(),
+        user_id: userId,
       });
       if (existingCode) {
         return res.status(400).json({
@@ -25,6 +27,7 @@ module.exports.createCustomer = async (req, res) => {
     }
 
     const customer = await Customer.create({
+      user_id: userId,
       customerCode: customerCode ? customerCode.toUpperCase() : undefined,
       name: name.trim(),
       contactInfo: {
@@ -52,7 +55,10 @@ module.exports.createCustomer = async (req, res) => {
 
 module.exports.getAllCustomers = async (req, res) => {
   try {
-    const customers = await Customer.find().sort({ createdAt: -1 });
+    const userId = req.user.userId;
+    const customers = await Customer.find({ user_id: userId }).sort({
+      createdAt: -1,
+    });
     res.status(200).json(customers);
   } catch (error) {
     res.status(500).json({
@@ -66,7 +72,11 @@ module.exports.getAllCustomers = async (req, res) => {
 module.exports.getCustomerById = async (req, res) => {
   try {
     const { customerId } = req.params;
-    const customer = await Customer.findById(customerId);
+    const userId = req.user.userId;
+    const customer = await Customer.findOne({
+      _id: customerId,
+      user_id: userId,
+    });
 
     if (!customer) {
       return res.status(404).json({
@@ -93,8 +103,9 @@ module.exports.editCustomer = async (req, res) => {
     const { id } = req.params;
     const { customerCode, name, contactInfo, openingBalance, paymentTerms } =
       req.body;
+    const userId = req.user.userId;
 
-    const customer = await Customer.findById(id);
+    const customer = await Customer.findOne({ _id: id, user_id: userId });
     if (!customer) {
       return res.status(404).json({
         success: false,
@@ -107,6 +118,7 @@ module.exports.editCustomer = async (req, res) => {
       const existingCode = await Customer.findOne({
         customerCode: normalizedCode,
         _id: { $ne: id },
+        user_id: userId,
       });
       if (existingCode) {
         return res.status(400).json({
@@ -148,7 +160,11 @@ module.exports.editCustomer = async (req, res) => {
 module.exports.deleteCustomer = async (req, res) => {
   try {
     const { customerId } = req.params;
-    const customer = await Customer.findByIdAndDelete(customerId);
+    const userId = req.user.userId;
+    const customer = await Customer.findOneAndDelete({
+      _id: customerId,
+      user_id: userId,
+    });
 
     if (!customer) {
       return res.status(404).json({
@@ -173,6 +189,7 @@ module.exports.deleteCustomer = async (req, res) => {
 module.exports.searchCustomer = async (req, res) => {
   try {
     const { query } = req.query;
+    const userId = req.user.userId;
 
     if (!query || query.trim() === "") {
       return res.status(400).json({
@@ -182,6 +199,7 @@ module.exports.searchCustomer = async (req, res) => {
     }
 
     const customers = await Customer.find({
+      user_id: userId,
       $or: [
         { name: { $regex: query, $options: "i" } },
         { customerCode: { $regex: query, $options: "i" } },

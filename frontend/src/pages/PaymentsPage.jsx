@@ -107,8 +107,8 @@ function PaymentsPage() {
               onChange={(e) => setType(e.target.value)}
               className="w-full h-10 px-3 border rounded-xl mt-1"
             >
-              <option value="received">Received</option>
-              <option value="paid">Paid</option>
+              <option value="received">Receive</option>
+              <option value="paid">Pay</option>
             </select>
           </div>
 
@@ -163,7 +163,9 @@ function PaymentsPage() {
                   {customers.map((customer) => (
                     <option key={customer._id} value={customer._id}>
                       {customer.name}
-                      {customer.customerCode ? ` (${customer.customerCode})` : ""}
+                      {customer.customerCode
+                        ? ` (${customer.customerCode})`
+                        : ""}
                     </option>
                   ))}
                 </select>

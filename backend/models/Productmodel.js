@@ -3,8 +3,14 @@ const { v4: uuidv4 } = require("uuid"); // use uuid v8 for CommonJS
 
 const ProductSchema = new mongoose.Schema(
   {
+    user_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
     productCode: { type: String, required: true },
-    name: { type: String, required: true, unique: true, trim: true },
+    name: { type: String, required: true, trim: true },
     brand: { type: String, required: true, trim: true },
     grade: { type: String, required: true, trim: true },
     Desciption: { type: String, required: true },
@@ -31,13 +37,15 @@ const ProductSchema = new mongoose.Schema(
     supplier: { type: mongoose.Schema.Types.ObjectId, ref: "Supplier" },
     sku: {
       type: String,
-      unique: true,
       default: () => uuidv4(), // automatically generate unique SKU
     },
     createdAt: { type: Date, default: Date.now },
   },
   { timestamps: true },
 );
+
+ProductSchema.index({ user_id: 1, name: 1 }, { unique: true });
+ProductSchema.index({ user_id: 1, sku: 1 }, { unique: true });
 
 const Product = mongoose.model("Product", ProductSchema);
 module.exports = Product;

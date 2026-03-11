@@ -4,6 +4,12 @@ const logger=require('../libs/logger')
 
 const ActivityLogSchema = new mongoose.Schema(
   {
+    user_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
     action: {
       type: String,
       required: true,

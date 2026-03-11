@@ -9,7 +9,7 @@ const {
 
 // 🔐 ADMIN → all logs
 router.get("/", authmiddleware, adminmiddleware, async (req, res) => {
-  const logs = await ActivityLog.find()
+  const logs = await ActivityLog.find({ user_id: req.user.userId })
     .populate("userId", "-password")
     .sort({ createdAt: -1 });
   res.json(logs);
@@ -17,7 +17,7 @@ router.get("/", authmiddleware, adminmiddleware, async (req, res) => {
 
 // 🔐 ADMIN + MANAGER → recent logs (dashboard)
 router.get("/recent", authmiddleware, managermiddleware, async (req, res) => {
-  const logs = await ActivityLog.find()
+  const logs = await ActivityLog.find({ user_id: req.user.userId })
     .populate("userId", "-password")
     .sort({ createdAt: -1 })
     .limit(6);
@@ -27,7 +27,10 @@ router.get("/recent", authmiddleware, managermiddleware, async (req, res) => {
 
 // 🔐 ANY USER → own logs
 router.get("/me", authmiddleware, async (req, res) => {
-  const logs = await ActivityLog.find({ userId: req.user.userId })
+  const logs = await ActivityLog.find({
+    userId: req.user.userId,
+    user_id: req.user.userId,
+  })
     .populate("userId", "-password")
     .sort({ createdAt: -1 });
 
@@ -35,10 +38,14 @@ router.get("/me", authmiddleware, async (req, res) => {
 });
 
 // 🧠 INTERNAL LOG CREATION
-router.post("/", async (req, res) => {
+router.post("/", authmiddleware, async (req, res) => {
   const io = req.app.get("io");
 
-  const log = await ActivityLog.create(req.body);
+  const log = await ActivityLog.create({
+    ...req.body,
+    userId: req.user.userId,
+    user_id: req.user.userId,
+  });
   const populatedLog = await log.populate("userId", "-password");
 
   io.emit("newActivityLog", populatedLog);
@@ -47,7 +54,10 @@ router.post("/", async (req, res) => {
 
 // 🔐 ADMIN → delete log
 router.delete("/:id", authmiddleware, adminmiddleware, async (req, res) => {
-  await ActivityLog.findByIdAndDelete(req.params.id);
+  await ActivityLog.findOneAndDelete({
+    _id: req.params.id,
+    user_id: req.user.userId,
+  });
   res.json({ message: "Log deleted" });
 });
 

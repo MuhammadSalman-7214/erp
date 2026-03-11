@@ -9,14 +9,15 @@ const logActivity = async ({
   ipAddress,
 }) => {
   try {
-    const newActivity = new ActivityLog({
-      action,
-      description,
-      entity,
-      entityId,
-      userId,
-      ipAddress,
-    });
+  const newActivity = new ActivityLog({
+    action,
+    description,
+    entity,
+    entityId,
+    userId,
+    user_id: userId,
+    ipAddress,
+  });
 
     await newActivity.save();
   } catch (error) {

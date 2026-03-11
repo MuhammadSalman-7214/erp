@@ -30,6 +30,7 @@ const createPayment = async (req, res) => {
       paidAt,
       notes,
     } = req.body;
+    const userId = req.user.userId;
 
     if (!type || amount === undefined || !partyType) {
       return res
@@ -43,7 +44,10 @@ const createPayment = async (req, res) => {
     let resolvedVendor = vendor;
 
     if (invoice) {
-      const invoiceDoc = await Invoice.findById(invoice);
+      const invoiceDoc = await Invoice.findOne({
+        _id: invoice,
+        user_id: userId,
+      });
       if (!invoiceDoc) {
         return res.status(404).json({ message: "Invoice not found" });
       }
@@ -68,7 +72,10 @@ const createPayment = async (req, res) => {
 
     if (partyType === "customer") {
       if (resolvedCustomerId) {
-        const customerDoc = await Customer.findById(resolvedCustomerId);
+        const customerDoc = await Customer.findOne({
+          _id: resolvedCustomerId,
+          user_id: userId,
+        });
         if (!customerDoc) {
           return res.status(404).json({ message: "Customer not found" });
         }
@@ -83,7 +90,18 @@ const createPayment = async (req, res) => {
       }
     }
 
+    if (partyType === "vendor" && resolvedVendor) {
+      const vendorDoc = await Vendor.findOne({
+        _id: resolvedVendor,
+        user_id: userId,
+      });
+      if (!vendorDoc) {
+        return res.status(404).json({ message: "Vendor not found" });
+      }
+    }
+
     const payment = await Payment.create({
+      user_id: userId,
       type,
       amount,
       method,
@@ -99,17 +117,23 @@ const createPayment = async (req, res) => {
 
     if (invoice) {
       const payments = await Payment.aggregate([
-        { $match: { invoice: payment.invoice } },
+        { $match: { invoice: payment.invoice, user_id: userId } },
         { $group: { _id: "$invoice", total: { $sum: "$amount" } } },
       ]);
 
       const totalPaid = payments?.[0]?.total || 0;
-      const invoiceDoc = await Invoice.findById(invoice);
+      const invoiceDoc = await Invoice.findOne({
+        _id: invoice,
+        user_id: userId,
+      });
       if (invoiceDoc && totalPaid >= invoiceDoc.totalAmount) {
-        await Invoice.findByIdAndUpdate(invoice, {
+        await Invoice.findOneAndUpdate(
+          { _id: invoice, user_id: userId },
+          {
           status: "paid",
           paidAt: new Date(),
-        });
+          },
+        );
       }
     }
 
@@ -121,7 +145,8 @@ const createPayment = async (req, res) => {
 
 const getPayments = async (req, res) => {
   try {
-    const payments = await Payment.find()
+    const userId = req.user.userId;
+    const payments = await Payment.find({ user_id: userId })
       .populate("invoice")
       .populate("vendor")
       .populate("customerId")
@@ -134,6 +159,7 @@ const getPayments = async (req, res) => {
 
 const getPartyBalances = async (req, res) => {
   try {
+    const userId = req.user.userId;
     const [
       vendors,
       customers,
@@ -142,16 +168,18 @@ const getPartyBalances = async (req, res) => {
       vendorPayments,
       customerPayments,
     ] = await Promise.all([
-      Vendor.find().select("_id name openingBalance"),
-      Customer.find().select("_id name customerCode openingBalance"),
-      Invoice.find({ invoiceType: "purchase" }).select("_id vendor totalAmount status"),
-      Invoice.find({ invoiceType: "sales" }).select(
+      Vendor.find({ user_id: userId }).select("_id name openingBalance"),
+      Customer.find({ user_id: userId }).select("_id name customerCode openingBalance"),
+      Invoice.find({ invoiceType: "purchase", user_id: userId }).select(
+        "_id vendor totalAmount status",
+      ),
+      Invoice.find({ invoiceType: "sales", user_id: userId }).select(
         "_id customerId customer totalAmount status",
       ),
-      Payment.find({ partyType: "vendor", type: "paid" }).select(
+      Payment.find({ partyType: "vendor", type: "paid", user_id: userId }).select(
         "_id vendor amount invoice",
       ),
-      Payment.find({ partyType: "customer", type: "received" }).select(
+      Payment.find({ partyType: "customer", type: "received", user_id: userId }).select(
         "_id customerId customer amount invoice",
       ),
     ]);

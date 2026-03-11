@@ -3,12 +3,13 @@ const Notification = require("../models/Notificationmodel.js");
 module.exports.createNotification = async (req, res) => {
   try {
     const { name, type } = req.body;
+    const userId = req.user.userId;
     if (!name || !type)
       return res
         .status(400)
         .json({ success: false, message: "Name and type required" });
 
-    const notification = new Notification({ name, type });
+    const notification = new Notification({ name, type, user_id: userId });
     await notification.save();
 
     const io = req.app.get("io");
@@ -24,7 +25,10 @@ module.exports.createNotification = async (req, res) => {
 
 module.exports.getAllNotifications = async (req, res) => {
   try {
-    const notifications = await Notification.find().sort({ createdAt: -1 });
+    const userId = req.user.userId;
+    const notifications = await Notification.find({ user_id: userId }).sort({
+      createdAt: -1,
+    });
     res.status(200).json(notifications);
   } catch (error) {
     res.status(500).json({ message: "Error fetching notifications", error });
@@ -34,8 +38,9 @@ module.exports.getAllNotifications = async (req, res) => {
 module.exports.markAsRead = async (req, res) => {
   try {
     const { id } = req.params;
-    const notification = await Notification.findByIdAndUpdate(
-      id,
+    const userId = req.user.userId;
+    const notification = await Notification.findOneAndUpdate(
+      { _id: id, user_id: userId },
       { read: true },
       { new: true },
     );
@@ -58,7 +63,11 @@ module.exports.markAsRead = async (req, res) => {
 module.exports.deleteNotification = async (req, res) => {
   try {
     const { id } = req.params;
-    const notification = await Notification.findByIdAndDelete(id);
+    const userId = req.user.userId;
+    const notification = await Notification.findOneAndDelete({
+      _id: id,
+      user_id: userId,
+    });
     if (!notification)
       return res
         .status(404)

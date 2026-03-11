@@ -1,4 +1,5 @@
 const Vendor = require("../models/Suppliermodel.js");
+const Product = require("../models/Productmodel.js");
 
 module.exports.createSupplier = async (req, res) => {
   try {
@@ -9,6 +10,7 @@ module.exports.createSupplier = async (req, res) => {
       openingBalance,
       paymentTerms,
     } = req.body;
+    const userId = req.user.userId;
 
     if (!name || !contactInfo || !contactInfo.email || !contactInfo.phone) {
       return res.status(400).json({
@@ -17,7 +19,21 @@ module.exports.createSupplier = async (req, res) => {
       });
     }
 
+    if (Array.isArray(productsSupplied) && productsSupplied.length) {
+      const ownedProducts = await Product.countDocuments({
+        _id: { $in: productsSupplied },
+        user_id: userId,
+      });
+      if (ownedProducts !== productsSupplied.length) {
+        return res.status(403).json({
+          success: false,
+          message: "One or more products do not belong to the current user.",
+        });
+      }
+    }
+
     const newSupplier = new Vendor({
+      user_id: userId,
       name,
       contactInfo: {
         phone: contactInfo.phone,
@@ -47,7 +63,10 @@ module.exports.createSupplier = async (req, res) => {
 
 module.exports.getAllSuppliers = async (req, res) => {
   try {
-    const Suppliers = await Vendor.find().populate("productsSupplied");
+    const userId = req.user.userId;
+    const Suppliers = await Vendor.find({ user_id: userId }).populate(
+      "productsSupplied",
+    );
 
     res.status(200).json(Suppliers);
   } catch (error) {
@@ -60,9 +79,12 @@ module.exports.getAllSuppliers = async (req, res) => {
 module.exports.getSupplierById = async (req, res) => {
   try {
     const { supplierId } = req.params;
+    const userId = req.user.userId;
 
-    const supplier =
-      await Vendor.findById(supplierId).populate("productsSupplied");
+    const supplier = await Vendor.findOne({
+      _id: supplierId,
+      user_id: userId,
+    }).populate("productsSupplied");
 
     if (!supplier) {
       return res
@@ -84,7 +106,8 @@ module.exports.editSupplier = async (req, res) => {
     req.body;
 
   try {
-    const supplier = await Vendor.findById(id);
+    const userId = req.user.userId;
+    const supplier = await Vendor.findOne({ _id: id, user_id: userId });
     if (!supplier) {
       return res.status(404).json({ message: "Supplier not found" });
     }
@@ -105,6 +128,18 @@ module.exports.editSupplier = async (req, res) => {
       ? productsSupplied
       : supplier.productsSupplied;
 
+    if (Array.isArray(supplier.productsSupplied) && supplier.productsSupplied.length) {
+      const ownedProducts = await Product.countDocuments({
+        _id: { $in: supplier.productsSupplied },
+        user_id: userId,
+      });
+      if (ownedProducts !== supplier.productsSupplied.length) {
+        return res.status(403).json({
+          message: "One or more products do not belong to the current user.",
+        });
+      }
+    }
+
     const updatedSupplier = await supplier.save();
 
     res.status(200).json({
@@ -119,7 +154,11 @@ module.exports.editSupplier = async (req, res) => {
 module.exports.deleteSupplier = async (req, res) => {
   try {
     const { supplierId } = req.params; // <-- use req.params
-    const supplier = await Vendor.findByIdAndDelete(supplierId);
+    const userId = req.user.userId;
+    const supplier = await Vendor.findOneAndDelete({
+      _id: supplierId,
+      user_id: userId,
+    });
 
     if (!supplier) {
       return res
@@ -140,6 +179,7 @@ module.exports.deleteSupplier = async (req, res) => {
 module.exports.searchSupplier = async (req, res) => {
   try {
     const { query } = req.query;
+    const userId = req.user.userId;
     console.log("Received query:", query);
 
     if (!query || query.trim() === "") {
@@ -149,6 +189,7 @@ module.exports.searchSupplier = async (req, res) => {
     }
 
     const suppliers = await Vendor.find({
+      user_id: userId,
       name: { $regex: new RegExp(query, "i") },
     });
 

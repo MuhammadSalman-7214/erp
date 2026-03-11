@@ -1,10 +1,12 @@
 const Product = require("../models/Productmodel");
 const StockTransaction = require("../models/StockTranscationmodel");
+const Vendor = require("../models/Suppliermodel");
 
 // Create a stock transaction
 module.exports.createStockTransaction = async (req, res) => {
   try {
     const { product, type, quantity, supplier, vendor } = req.body;
+    const userId = req.user.userId;
 
     if (!product || !type || !quantity) {
       return res.status(400).json({
@@ -13,7 +15,10 @@ module.exports.createStockTransaction = async (req, res) => {
       });
     }
 
-    const productToUpdate = await Product.findById(product);
+    const productToUpdate = await Product.findOne({
+      _id: product,
+      user_id: userId,
+    });
 
     if (!productToUpdate) {
       return res.status(404).json({
@@ -38,20 +43,36 @@ module.exports.createStockTransaction = async (req, res) => {
 
     await productToUpdate.save();
 
+    const vendorId = vendor || supplier || null;
+    if (vendorId) {
+      const vendorRecord = await Vendor.findOne({
+        _id: vendorId,
+        user_id: userId,
+      });
+      if (!vendorRecord) {
+        return res.status(404).json({
+          success: false,
+          message: "Supplier not found",
+        });
+      }
+    }
+
     // ✅ Save transaction only after validation
     const newTransaction = new StockTransaction({
+      user_id: userId,
       product,
       type,
       quantity,
-      vendor: vendor || supplier || null,
+      vendor: vendorId,
       supplier,
     });
 
     await newTransaction.save();
 
-    const populatedTransaction = await StockTransaction.findById(
-      newTransaction._id,
-    )
+    const populatedTransaction = await StockTransaction.findOne({
+      _id: newTransaction._id,
+      user_id: userId,
+    })
       .populate("product")
       .populate("vendor")
       .populate("supplier");
@@ -72,7 +93,8 @@ module.exports.createStockTransaction = async (req, res) => {
 // Get all stock transactions
 module.exports.getAllStockTransactions = async (req, res) => {
   try {
-    const transactions = await StockTransaction.find()
+    const userId = req.user.userId;
+    const transactions = await StockTransaction.find({ user_id: userId })
       .populate("product")
       .populate("vendor")
       .populate("supplier")
@@ -93,7 +115,11 @@ module.exports.getAllStockTransactions = async (req, res) => {
 module.exports.getStockTransactionsByProduct = async (req, res) => {
   try {
     const { productId } = req.params;
-    const transactions = await StockTransaction.find({ product: productId })
+    const userId = req.user.userId;
+    const transactions = await StockTransaction.find({
+      product: productId,
+      user_id: userId,
+    })
       .populate("product")
       .populate("vendor")
       .populate("supplier")
@@ -121,7 +147,9 @@ module.exports.getStockTransactionsByProduct = async (req, res) => {
 module.exports.getStockTransactionsBySupplier = async (req, res) => {
   try {
     const { supplierId } = req.params;
+    const userId = req.user.userId;
     const transactions = await StockTransaction.find({
+      user_id: userId,
       $or: [{ supplier: supplierId }, { vendor: supplierId }],
     })
       .populate("product")
@@ -151,11 +179,12 @@ module.exports.getStockTransactionsBySupplier = async (req, res) => {
 module.exports.searchStocks = async (req, res) => {
   try {
     const { query } = req.query;
+    const userId = req.user.userId;
     if (!query) {
       return res.status(400).json({ message: "Query parameter is required" });
     }
 
-    const transactions = await StockTransaction.find()
+    const transactions = await StockTransaction.find({ user_id: userId })
       .populate("product")
       .populate("vendor")
       .populate("supplier");

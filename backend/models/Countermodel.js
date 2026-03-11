@@ -2,10 +2,15 @@ const mongoose = require("mongoose");
 
 const CounterSchema = new mongoose.Schema(
   {
+    user_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
     key: {
       type: String,
       required: true,
-      unique: true,
       trim: true,
     },
     seq: {
@@ -15,6 +20,8 @@ const CounterSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+CounterSchema.index({ user_id: 1, key: 1 }, { unique: true });
 
 const Counter = mongoose.model("Counter", CounterSchema);
 

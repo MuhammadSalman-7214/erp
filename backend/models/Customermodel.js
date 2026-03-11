@@ -2,12 +2,17 @@ const mongoose = require("mongoose");
 
 const CustomerSchema = new mongoose.Schema(
   {
+    user_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
     customerCode: {
       type: String,
       trim: true,
       uppercase: true,
       sparse: true,
-      unique: true,
     },
     name: {
       type: String,
@@ -30,6 +35,8 @@ const CustomerSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+CustomerSchema.index({ user_id: 1, customerCode: 1 }, { unique: true, sparse: true });
 
 const Customer = mongoose.model("Customer", CustomerSchema);
 

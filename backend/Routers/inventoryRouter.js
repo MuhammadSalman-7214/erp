@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const { authmiddleware } = require("../middleware/Authmiddleware");
 const {
   addOrUpdateInventory,
   getAllInventory,
@@ -7,9 +8,9 @@ const {
   deleteInventory,
 } = require("../controller/inventorycontroller.js");
 
-router.post("/inventory", addOrUpdateInventory);
-router.get("/inventory", getAllInventory);
-router.get("/inventory/:productId", getInventoryByProduct);
-router.delete("/inventory/:productId", deleteInventory);
+router.post("/inventory", authmiddleware, addOrUpdateInventory);
+router.get("/inventory", authmiddleware, getAllInventory);
+router.get("/inventory/:productId", authmiddleware, getInventoryByProduct);
+router.delete("/inventory/:productId", authmiddleware, deleteInventory);
 
 module.exports = router;

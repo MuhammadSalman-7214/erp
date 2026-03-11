@@ -1,5 +1,6 @@
 const Invoice = require("../models/Invoicemodel");
 const Customer = require("../models/Customermodel");
+const Vendor = require("../models/Suppliermodel");
 const { getNextInvoiceNumber } = require("../libs/invoiceNumber");
 
 /**
@@ -21,7 +22,12 @@ const calculateTotals = (items, taxRate = 0, discount = 0) => {
   };
 };
 
-const resolveCustomerPayload = async ({ invoiceType, customerId, customer }) => {
+const resolveCustomerPayload = async ({
+  invoiceType,
+  customerId,
+  customer,
+  userId,
+}) => {
   if (invoiceType !== "sales") {
     return {
       resolvedCustomerId: undefined,
@@ -30,7 +36,10 @@ const resolveCustomerPayload = async ({ invoiceType, customerId, customer }) => 
   }
 
   if (customerId) {
-    const customerDoc = await Customer.findById(customerId);
+    const customerDoc = await Customer.findOne({
+      _id: customerId,
+      user_id: userId,
+    });
     if (!customerDoc) {
       const error = new Error("Customer not found");
       error.statusCode = 404;
@@ -73,6 +82,7 @@ module.exports.createInvoice = async (req, res) => {
       paymentMethod,
       status,
     } = req.body;
+    const userId = req.user.userId;
 
     if (!items || items.length === 0) {
       return res.status(400).json({ message: "Invoice must have items" });
@@ -86,17 +96,26 @@ module.exports.createInvoice = async (req, res) => {
     const resolvedInvoiceNumber =
       invoiceNumber ||
       (invoiceType === "sales"
-        ? await getNextInvoiceNumber("SI")
-        : await getNextInvoiceNumber("PI"));
+        ? await getNextInvoiceNumber("SI", userId)
+        : await getNextInvoiceNumber("PI", userId));
 
     const { resolvedCustomerId, resolvedCustomerSnapshot } =
       await resolveCustomerPayload({
         invoiceType,
         customerId,
         customer: customer || client,
+        userId,
       });
 
+    if (vendor) {
+      const vendorDoc = await Vendor.findOne({ _id: vendor, user_id: userId });
+      if (!vendorDoc) {
+        return res.status(404).json({ message: "Vendor not found" });
+      }
+    }
+
     const invoice = await Invoice.create({
+      user_id: userId,
       invoiceNumber: resolvedInvoiceNumber,
       invoiceType,
       customerId: resolvedCustomerId,
@@ -134,7 +153,8 @@ module.exports.createInvoice = async (req, res) => {
 
 module.exports.getAllInvoices = async (req, res) => {
   try {
-    const invoices = await Invoice.find()
+    const userId = req.user.userId;
+    const invoices = await Invoice.find({ user_id: userId })
       .populate("vendor")
       .populate("customerId")
       .sort({
@@ -156,8 +176,10 @@ module.exports.getAllInvoices = async (req, res) => {
 
 module.exports.getInvoiceById = async (req, res) => {
   try {
+    const userId = req.user.userId;
     const invoice = await Invoice.findOne({
       _id: req.params.id,
+      user_id: userId,
     })
       .populate("vendor")
       .populate("customerId");
@@ -180,8 +202,10 @@ module.exports.getInvoiceById = async (req, res) => {
 
 module.exports.updateInvoice = async (req, res) => {
   try {
+    const userId = req.user.userId;
     let invoice = await Invoice.findOne({
       _id: req.params.id,
+      user_id: userId,
     });
 
     if (!invoice) {
@@ -199,10 +223,21 @@ module.exports.updateInvoice = async (req, res) => {
         invoiceType: req.body.invoiceType || invoice.invoiceType,
         customerId: req.body.customerId || invoice.customerId,
         customer: req.body.customer || invoice.customer,
+        userId,
       });
 
-    invoice = await Invoice.findByIdAndUpdate(
-      req.params.id,
+    if (req.body.vendor) {
+      const vendorDoc = await Vendor.findOne({
+        _id: req.body.vendor,
+        user_id: userId,
+      });
+      if (!vendorDoc) {
+        return res.status(404).json({ message: "Vendor not found" });
+      }
+    }
+
+    invoice = await Invoice.findOneAndUpdate(
+      { _id: req.params.id, user_id: userId },
       {
         ...req.body,
         customerId: resolvedCustomerId,
@@ -234,8 +269,10 @@ module.exports.updateInvoice = async (req, res) => {
 
 module.exports.deleteInvoice = async (req, res) => {
   try {
+    const userId = req.user.userId;
     const invoice = await Invoice.findOneAndDelete({
       _id: req.params.id,
+      user_id: userId,
     });
 
     if (!invoice) {
@@ -256,9 +293,11 @@ module.exports.deleteInvoice = async (req, res) => {
 
 module.exports.markInvoiceAsPaid = async (req, res) => {
   try {
+    const userId = req.user.userId;
     const invoice = await Invoice.findOneAndUpdate(
       {
         _id: req.params.id,
+        user_id: userId,
       },
       {
         status: "paid",

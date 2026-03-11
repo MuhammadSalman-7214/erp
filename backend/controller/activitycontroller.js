@@ -2,7 +2,12 @@ const ActivityLog = require("../models/ActivityLogmodel.js");
 
 module.exports.createActivityLog = async (req, res) => {
   try {
-    const { action, description, entity, entityId, userId } = req.body;
+    const { action, description, entity, entityId } = req.body;
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
 
     if (!action || !description || !entity || !entityId) {
       return res
@@ -16,7 +21,8 @@ module.exports.createActivityLog = async (req, res) => {
     const newActivity = new ActivityLog({
       action,
       description,
-      userId,
+      userId: userId,
+      user_id: userId,
       entity,
       entityId,
       ipAddress: req.ip,
@@ -40,7 +46,10 @@ module.exports.createActivityLog = async (req, res) => {
 
 module.exports.getAllActivityLogs = async (req, res) => {
   try {
-    const logs = await ActivityLog.find().sort({ createdAt: -1 });
+    const userId = req.user?.userId;
+    const logs = await ActivityLog.find({ user_id: userId }).sort({
+      createdAt: -1,
+    });
 
     res.status(200).json({ success: true, logs });
   } catch (error) {

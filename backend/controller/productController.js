@@ -1,4 +1,5 @@
 const Product = require("../models/Productmodel");
+const CategoryModel = require("../models/ Categorymodel");
 const logActivity = require("../libs/logger");
 module.exports.Addproduct = async (req, res) => {
   const userId = req.user.userId;
@@ -35,7 +36,16 @@ module.exports.Addproduct = async (req, res) => {
         .json({ error: "Please provide all product details." });
     }
 
+    const categoryRecord = await CategoryModel.findOne({
+      _id: Category,
+      user_id: userId,
+    });
+    if (!categoryRecord) {
+      return res.status(404).json({ error: "Category not found" });
+    }
+
     const createdProduct = new Product({
+      user_id: userId,
       productCode,
       name,
       brand,
@@ -78,9 +88,10 @@ module.exports.Addproduct = async (req, res) => {
 
 module.exports.getProduct = async (req, res) => {
   try {
-    const Products = await Product.find({}).populate("Category");
+    const userId = req.user.userId;
+    const Products = await Product.find({ user_id: userId }).populate("Category");
 
-    const totalProduct = await Product.countDocuments({});
+    const totalProduct = await Product.countDocuments({ user_id: userId });
     res.status(200).json({ Products, totalProduct });
   } catch (error) {
     res
@@ -94,7 +105,10 @@ module.exports.RemoveProduct = async (req, res) => {
     const { productId } = req.params;
     const userId = req.user.userId;
     const ipAddress = req.ip;
-    const deletedProduct = await Product.findByIdAndDelete(productId);
+    const deletedProduct = await Product.findOneAndDelete({
+      _id: productId,
+      user_id: userId,
+    });
 
     if (!deletedProduct) {
       return res.status(404).json({ message: "Product not found!" });
@@ -140,7 +154,18 @@ module.exports.EditProduct = async (req, res) => {
       return res.status(400).json({ message: "Required fields missing" });
     }
 
-    const existingProduct = await Product.findById(id);
+    const categoryRecord = await CategoryModel.findOne({
+      _id: Category,
+      user_id: userId,
+    });
+    if (!categoryRecord) {
+      return res.status(404).json({ message: "Category not found" });
+    }
+
+    const existingProduct = await Product.findOne({
+      _id: id,
+      user_id: userId,
+    });
     if (!existingProduct) {
       return res.status(404).json({ message: "Product not found." });
     }
@@ -198,9 +223,11 @@ module.exports.EditProduct = async (req, res) => {
       ];
     }
 
-    const updatedProduct = await Product.findByIdAndUpdate(id, updates, {
-      new: true,
-    });
+    const updatedProduct = await Product.findOneAndUpdate(
+      { _id: id, user_id: userId },
+      updates,
+      { new: true },
+    );
 
     if (!updatedProduct) {
       return res.status(404).json({ message: "Product not found." });
@@ -227,6 +254,7 @@ module.exports.EditProduct = async (req, res) => {
 module.exports.SearchProduct = async (req, res) => {
   try {
     const { query } = req.query;
+    const userId = req.user.userId;
 
     if (!query) {
       return res.status(400).json({ message: "Query parameter is required" });
@@ -234,6 +262,7 @@ module.exports.SearchProduct = async (req, res) => {
 
     // Search by productCode only
     const products = await Product.find({
+      user_id: userId,
       productCode: { $regex: query, $options: "i" },
     }).populate("Category"); // populate Category if needed
 
@@ -248,7 +277,10 @@ module.exports.SearchProduct = async (req, res) => {
 
 module.exports.getTopProductsByQuantity = async (req, res) => {
   try {
-    const topProducts = await Product.find({}).sort({ quantity: -1 }).limit(10);
+    const userId = req.user.userId;
+    const topProducts = await Product.find({ user_id: userId })
+      .sort({ quantity: -1 })
+      .limit(10);
     res.status(200).json({ success: true, topProducts });
   } catch (error) {
     res.status(500).json({

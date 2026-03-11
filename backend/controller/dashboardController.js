@@ -4,6 +4,7 @@ const Product = require("../models/Productmodel");
 
 const getDashboardSummary = async (req, res) => {
   try {
+    const userId = req.user.userId;
     const now = new Date();
     const startOfDay = new Date(
       now.getFullYear(),
@@ -25,9 +26,15 @@ const getDashboardSummary = async (req, res) => {
     );
 
     const [salesInvoices, purchaseInvoices, payments] = await Promise.all([
-      Invoice.find({ invoiceType: "sales" }).select("totalAmount dueDate status createdAt").lean(),
-      Invoice.find({ invoiceType: "purchase" }).select("totalAmount dueDate status createdAt").lean(),
-      Payment.find().select("amount type invoice paidAt invoiceType").lean(),
+      Invoice.find({ invoiceType: "sales", user_id: userId })
+        .select("totalAmount dueDate status createdAt")
+        .lean(),
+      Invoice.find({ invoiceType: "purchase", user_id: userId })
+        .select("totalAmount dueDate status createdAt")
+        .lean(),
+      Payment.find({ user_id: userId })
+        .select("amount type invoice paidAt invoiceType")
+        .lean(),
     ]);
 
     const paymentByInvoice = payments.reduce((acc, payment) => {
@@ -76,17 +83,21 @@ const getDashboardSummary = async (req, res) => {
     const overdueInvoices = await Invoice.find({
       status: { $nin: ["paid", "cancelled"] },
       dueDate: { $lt: startOfDay },
+      user_id: userId,
     })
       .sort({ dueDate: 1 })
       .limit(10)
       .lean();
 
-    const recentInvoices = await Invoice.find()
+    const recentInvoices = await Invoice.find({ user_id: userId })
       .sort({ createdAt: -1 })
       .limit(8)
       .lean();
 
-    const lowStockProducts = await Product.find({ quantity: { $lte: 5 } })
+    const lowStockProducts = await Product.find({
+      quantity: { $lte: 5 },
+      user_id: userId,
+    })
       .sort({ quantity: 1 })
       .limit(8)
       .lean();

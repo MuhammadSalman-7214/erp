@@ -32,10 +32,15 @@ const InvoiceItemSchema = new mongoose.Schema(
 
 const InvoiceSchema = new mongoose.Schema(
   {
+    user_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
     invoiceNumber: {
       type: String,
       required: true,
-      unique: true,
       trim: true,
     },
 
@@ -156,6 +161,8 @@ const InvoiceSchema = new mongoose.Schema(
     timestamps: true,
   },
 );
+
+InvoiceSchema.index({ user_id: 1, invoiceNumber: 1 }, { unique: true });
 
 const Invoice = mongoose.model("Invoice", InvoiceSchema);
 

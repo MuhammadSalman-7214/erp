@@ -21,6 +21,7 @@ module.exports.createSale = async (req, res) => {
       paymentStatus,
       status,
     } = req.body;
+    const userId = req.user.userId;
 
     if (!customerId) {
       return res.status(400).json({
@@ -29,7 +30,10 @@ module.exports.createSale = async (req, res) => {
       });
     }
 
-    const customer = await Customer.findById(customerId);
+    const customer = await Customer.findOne({
+      _id: customerId,
+      user_id: userId,
+    });
     if (!customer) {
       return res.status(404).json({
         success: false,
@@ -62,7 +66,10 @@ module.exports.createSale = async (req, res) => {
     const resolvedProducts = [];
     let totalAmount = 0;
     for (const item of products) {
-      const productRecord = await ProductModel.findById(item.product);
+      const productRecord = await ProductModel.findOne({
+        _id: item.product,
+        user_id: userId,
+      });
       if (!productRecord) {
         return res.status(404).json({
           success: false,
@@ -82,11 +89,12 @@ module.exports.createSale = async (req, res) => {
 
     const resolvedSaleStatus = status || "pending";
     if (resolvedSaleStatus === "completed") {
-      await validateSaleStockAvailability(resolvedProducts);
+      await validateSaleStockAvailability(resolvedProducts, [], userId);
     }
 
     // Create sale
     const sale = await Sale.create({
+      user_id: userId,
       customer: customer._id,
       customerName,
       customerCode,
@@ -107,14 +115,15 @@ module.exports.createSale = async (req, res) => {
     }));
 
     for (let i = 0; i < resolvedProducts.length; i += 1) {
-      const productRecord = await ProductModel.findById(
-        resolvedProducts[i].product,
-      );
+      const productRecord = await ProductModel.findOne({
+        _id: resolvedProducts[i].product,
+        user_id: userId,
+      });
       invoiceItems[i].name = productRecord?.name || "Product";
       invoiceItems[i].description = productRecord?.Desciption || "-";
     }
 
-    const invoiceNumber = await getNextInvoiceNumber("SI");
+    const invoiceNumber = await getNextInvoiceNumber("SI", userId);
     const paymentMethodMap = {
       creditcard: "card",
       banktransfer: "bank_transfer",
@@ -124,6 +133,7 @@ module.exports.createSale = async (req, res) => {
       paymentMethodMap[paymentMethod] || paymentMethod || "cash";
 
     const invoice = await Invoice.create({
+      user_id: userId,
       invoiceNumber,
       invoiceType: "sales",
       customerId: customer._id,
@@ -148,11 +158,14 @@ module.exports.createSale = async (req, res) => {
 
     sale.invoice = invoice._id;
     if (resolvedSaleStatus === "completed") {
-      await createSaleCompletedStockOut(sale);
+      await createSaleCompletedStockOut(sale, userId);
       sale.stockOutRecorded = true;
     }
     await sale.save();
-    const populatedSale = await Sale.findById(sale._id)
+    const populatedSale = await Sale.findOne({
+      _id: sale._id,
+      user_id: userId,
+    })
       .populate("products.product")
       .populate("customer");
     res.status(201).json({
@@ -181,7 +194,8 @@ module.exports.createSale = async (req, res) => {
 // Get All Sales
 module.exports.getAllSales = async (req, res) => {
   try {
-    const sales = await Sale.find()
+    const userId = req.user.userId;
+    const sales = await Sale.find({ user_id: userId })
       .populate("products.product")
       .populate("customer")
       .sort({ createdAt: -1 });
@@ -199,7 +213,8 @@ module.exports.getAllSales = async (req, res) => {
 module.exports.getSaleById = async (req, res) => {
   try {
     const { id } = req.params;
-    const sale = await Sale.findById(id)
+    const userId = req.user.userId;
+    const sale = await Sale.findOne({ _id: id, user_id: userId })
       .populate("products.product")
       .populate("customer");
     if (!sale)
@@ -221,6 +236,7 @@ module.exports.updateSale = async (req, res) => {
   try {
     const { id } = req.params;
     const updatedData = req.body;
+    const userId = req.user.userId;
 
     if (!updatedData.customerId) {
       return res.status(400).json({
@@ -229,7 +245,10 @@ module.exports.updateSale = async (req, res) => {
       });
     }
 
-    const customer = await Customer.findById(updatedData.customerId);
+    const customer = await Customer.findOne({
+      _id: updatedData.customerId,
+      user_id: userId,
+    });
     if (!customer) {
       return res.status(404).json({
         success: false,
@@ -245,7 +264,7 @@ module.exports.updateSale = async (req, res) => {
     }
 
     // 1️⃣ Fetch existing sale
-    const existingSale = await Sale.findById(id);
+    const existingSale = await Sale.findOne({ _id: id, user_id: userId });
     if (!existingSale) {
       return res.status(404).json({
         success: false,
@@ -267,7 +286,10 @@ module.exports.updateSale = async (req, res) => {
         });
       }
 
-      const productRecord = await ProductModel.findById(item.product);
+      const productRecord = await ProductModel.findOne({
+        _id: item.product,
+        user_id: userId,
+      });
       if (!productRecord) {
         return res.status(404).json({
           success: false,
@@ -289,16 +311,17 @@ module.exports.updateSale = async (req, res) => {
       await validateSaleStockAvailability(
         resolvedProducts,
         existingSale.status === "completed" ? existingSale.products : [],
+        userId,
       );
     }
 
     if (existingSale.status === "completed") {
-      await rollbackSaleCompletedStockOut(existingSale._id);
+      await rollbackSaleCompletedStockOut(existingSale._id, userId);
     }
 
     // 3️⃣ Update sale
-    const updatedSale = await Sale.findByIdAndUpdate(
-      id,
+    const updatedSale = await Sale.findOneAndUpdate(
+      { _id: id, user_id: userId },
       {
         ...updatedData,
         customer: customer._id,
@@ -315,7 +338,10 @@ module.exports.updateSale = async (req, res) => {
     if (existingSale.invoice) {
       const invoiceItems = [];
       for (const item of resolvedProducts) {
-        const productRecord = await ProductModel.findById(item.product);
+        const productRecord = await ProductModel.findOne({
+          _id: item.product,
+          user_id: userId,
+        });
         invoiceItems.push({
           name: productRecord?.name || "Product",
           description: productRecord?.Desciption || "-",
@@ -325,29 +351,32 @@ module.exports.updateSale = async (req, res) => {
         });
       }
 
-      await Invoice.findByIdAndUpdate(existingSale.invoice, {
-        customerId: customer._id,
-        customer: {
-          code: customer.customerCode || "",
-          name: customer.name,
-          email: customer.contactInfo?.email || "",
-          phone: customer.contactInfo?.phone || "",
-          address: customer.contactInfo?.address || "",
+      await Invoice.findOneAndUpdate(
+        { _id: existingSale.invoice, user_id: userId },
+        {
+          customerId: customer._id,
+          customer: {
+            code: customer.customerCode || "",
+            name: customer.name,
+            email: customer.contactInfo?.email || "",
+            phone: customer.contactInfo?.phone || "",
+            address: customer.contactInfo?.address || "",
+          },
+          items: invoiceItems,
+          subTotal: updatedTotalAmount,
+          totalAmount: updatedTotalAmount,
         },
-        items: invoiceItems,
-        subTotal: updatedTotalAmount,
-        totalAmount: updatedTotalAmount,
-      });
+      );
     }
 
     if (resolvedStatus === "completed") {
-      await createSaleCompletedStockOut(updatedSale);
+      await createSaleCompletedStockOut(updatedSale, userId);
       updatedSale.stockOutRecorded = true;
       await updatedSale.save();
     }
 
     // 4️⃣ Populate for frontend
-    const populatedSale = await Sale.findById(id)
+    const populatedSale = await Sale.findOne({ _id: id, user_id: userId })
       .populate("products.product")
       .populate("customer");
 
@@ -378,15 +407,17 @@ module.exports.updateSale = async (req, res) => {
 module.exports.SearchSales = async (req, res) => {
   try {
     const { query } = req.query;
+    const userId = req.user.userId;
 
     if (!query || query.trim() === "") {
-      const allSales = await Sale.find()
+      const allSales = await Sale.find({ user_id: userId })
         .populate("products.product")
         .populate("customer");
       return res.status(200).json({ success: true, sales: allSales });
     }
 
     const searchdata = await Sale.find({
+      user_id: userId,
       $or: [
         { customerName: { $regex: query, $options: "i" } },
         { paymentMethod: { $regex: query, $options: "i" } },

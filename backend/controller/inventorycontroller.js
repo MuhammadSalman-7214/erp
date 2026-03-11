@@ -4,6 +4,7 @@ const Product = require("../models/Productmodel.js");
 module.exports.addOrUpdateInventory = async (req, res) => {
   try {
     const { product, quantity } = req.body;
+    const userId = req.user.userId;
 
     if (!product || quantity === undefined) {
       return res
@@ -11,13 +12,21 @@ module.exports.addOrUpdateInventory = async (req, res) => {
         .json({ success: false, message: "Product and quantity are required" });
     }
 
-    let inventory = await Inventory.findOne({ product });
+    const productRecord = await Product.findOne({ _id: product, user_id: userId });
+    if (!productRecord) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Product not found" });
+    }
+
+    let inventory = await Inventory.findOne({ product, user_id: userId });
 
     if (inventory) {
       inventory.quantity = quantity;
       inventory.lastUpdated = Date.now();
     } else {
       inventory = new Inventory({
+        user_id: userId,
         product,
         quantity,
       });
@@ -41,7 +50,10 @@ module.exports.addOrUpdateInventory = async (req, res) => {
 
 module.exports.getAllInventory = async (req, res) => {
   try {
-    const inventories = await Inventory.find().populate("product");
+    const userId = req.user.userId;
+    const inventories = await Inventory.find({ user_id: userId }).populate(
+      "product",
+    );
 
     res.status(200).json({ success: true, inventories });
   } catch (error) {
@@ -54,10 +66,12 @@ module.exports.getAllInventory = async (req, res) => {
 module.exports.getInventoryByProduct = async (req, res) => {
   try {
     const { productId } = req.params;
+    const userId = req.user.userId;
 
-    const inventory = await Inventory.findOne({ product: productId }).populate(
-      "product",
-    );
+    const inventory = await Inventory.findOne({
+      product: productId,
+      user_id: userId,
+    }).populate("product");
 
     if (!inventory) {
       return res
@@ -79,8 +93,12 @@ module.exports.getInventoryByProduct = async (req, res) => {
 module.exports.deleteInventory = async (req, res) => {
   try {
     const { productId } = req.params;
+    const userId = req.user.userId;
 
-    const inventory = await Inventory.findOneAndDelete({ product: productId });
+    const inventory = await Inventory.findOneAndDelete({
+      product: productId,
+      user_id: userId,
+    });
 
     if (!inventory) {
       return res

@@ -16,6 +16,7 @@ module.exports.createCategory = async (req, res) => {
     }
 
     const newCategory = new Category({
+      user_id: userId,
       name,
       description,
     });
@@ -43,7 +44,10 @@ module.exports.RemoveCategory = async (req, res) => {
     const { CategoryId } = req.params;
     const userId = req.user.userId;
     const ipAddress = req.ip;
-    const DeletedCategory = await Category.findByIdAndDelete(CategoryId);
+    const DeletedCategory = await Category.findOneAndDelete({
+      _id: CategoryId,
+      user_id: userId,
+    });
 
     if (!DeletedCategory) {
       return res.status(404).json({ message: "Category is not found!" });
@@ -68,7 +72,8 @@ module.exports.RemoveCategory = async (req, res) => {
 
 module.exports.getCategory = async (req, res) => {
   try {
-    const allCategory = await Category.find({});
+    const userId = req.user.userId;
+    const allCategory = await Category.find({ user_id: userId });
 
     // if (!allCategory || allCategory.length === 0) {
     //   return res.status(404).json({ message: "Categories not found" });
@@ -76,7 +81,10 @@ module.exports.getCategory = async (req, res) => {
 
     const categoriesWithCount = await Promise.all(
       allCategory.map(async (category) => {
-        const count = await Product.countDocuments({ Category: category._id });
+        const count = await Product.countDocuments({
+          Category: category._id,
+          user_id: userId,
+        });
         return {
           ...category.toObject(),
           productCount: count,
@@ -98,8 +106,8 @@ module.exports.updateCategory = async (req, res) => {
     const { CategoryId } = req.params;
     const userId = req.user.userId;
     const ipAddress = req.ip;
-    const updatingCategory = await Category.findByIdAndUpdate(
-      CategoryId,
+    const updatingCategory = await Category.findOneAndUpdate(
+      { _id: CategoryId, user_id: userId },
       updatedCategory,
       { new: true },
     );
@@ -129,11 +137,13 @@ module.exports.updateCategory = async (req, res) => {
 module.exports.Searchcategory = async (req, res) => {
   try {
     const { query } = req.query;
+    const userId = req.user.userId;
     if (!query) {
       return res.status(400).json({ message: "Query parameter is required" });
     }
 
     const category = await Category.find({
+      user_id: userId,
       $or: [
         { name: { $regex: query, $options: "i" } },
         { description: { $regex: query, $options: "i" } },

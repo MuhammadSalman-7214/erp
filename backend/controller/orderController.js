@@ -1,6 +1,7 @@
 const Order = require("../models/Ordermodel");
 const logActivity = require("../libs/logger");
 const ProductModel = require("../models/Productmodel");
+const Vendor = require("../models/Suppliermodel");
 const Invoice = require("../models/Invoicemodel");
 const { getNextInvoiceNumber } = require("../libs/invoiceNumber");
 const {
@@ -10,9 +11,8 @@ const {
 
 const createOrder = async (req, res) => {
   try {
-    const { user, Description, Product, status, supplier, vendor } = req.body;
-
-    if (!user) return res.status(400).json({ message: "User ID is required" });
+    const { Description, Product, status, supplier, vendor } = req.body;
+    const userId = req.user.userId;
     if (!Description)
       return res.status(400).json({ message: "Description is required" });
     if (!status) return res.status(400).json({ message: "Status is required" });
@@ -27,15 +27,28 @@ const createOrder = async (req, res) => {
 
     const totalOrderAmount = price * quantity;
 
-    const productRecord = await ProductModel.findById(product);
+    const productRecord = await ProductModel.findOne({
+      _id: product,
+      user_id: userId,
+    });
     if (!productRecord) {
       return res.status(404).json({ message: "Product not found" });
     }
 
     const vendorId = vendor || supplier || null;
+    if (vendorId) {
+      const vendorRecord = await Vendor.findOne({
+        _id: vendorId,
+        user_id: userId,
+      });
+      if (!vendorRecord) {
+        return res.status(404).json({ message: "Vendor not found" });
+      }
+    }
 
     const newOrder = new Order({
-      user,
+      user_id: userId,
+      user: userId,
       Description,
       Product,
       vendor: vendorId,
@@ -47,13 +60,14 @@ const createOrder = async (req, res) => {
     await newOrder.save();
 
     if (newOrder.status === "delivered") {
-      await createOrderDeliveredStockIn(newOrder);
+      await createOrderDeliveredStockIn(newOrder, userId);
       newOrder.stockInRecorded = true;
       await newOrder.save();
     }
 
-    const invoiceNumber = await getNextInvoiceNumber("PI");
+    const invoiceNumber = await getNextInvoiceNumber("PI", userId);
     const invoice = await Invoice.create({
+      user_id: userId,
       invoiceNumber,
       invoiceType: "purchase",
       vendor: vendorId,
@@ -101,17 +115,20 @@ const Removeorder = async (req, res) => {
     const userId = req.user.userId;
     const ipAddress = req.ip;
 
-    const Deletedorder = await Order.findById(OrdertId);
+    const Deletedorder = await Order.findOne({
+      _id: OrdertId,
+      user_id: userId,
+    });
 
     if (!Deletedorder) {
       return res.status(404).json({ message: "Order is not found!" });
     }
 
     if (Deletedorder.status === "delivered" || Deletedorder.stockInRecorded) {
-      await rollbackOrderDeliveredStockIn(Deletedorder._id);
+      await rollbackOrderDeliveredStockIn(Deletedorder._id, userId);
     }
 
-    await Order.findByIdAndDelete(OrdertId);
+    await Order.findOneAndDelete({ _id: OrdertId, user_id: userId });
 
     await logActivity({
       action: "Delete order",
@@ -132,7 +149,8 @@ const Removeorder = async (req, res) => {
 
 const getOrder = async (req, res) => {
   try {
-    const orders = await Order.find({})
+    const userId = req.user.userId;
+    const orders = await Order.find({ user_id: userId })
       .populate("Product.product", "name")
       .populate("user", "name email")
       .populate("vendor", "name");
@@ -154,7 +172,11 @@ const updatestatusOrder = async (req, res) => {
   try {
     const { OrderId } = req.params;
     const updates = req.body;
-    const existingOrder = await Order.findById(OrderId);
+    const userId = req.user.userId;
+    const existingOrder = await Order.findOne({
+      _id: OrderId,
+      user_id: userId,
+    });
 
     if (!existingOrder) {
       return res.status(404).json({ message: "Order not found" });
@@ -163,21 +185,29 @@ const updatestatusOrder = async (req, res) => {
     const previousStatus = existingOrder.status;
     const nextStatus = updates.status || previousStatus;
 
-    const updatedOrder = await Order.findByIdAndUpdate(OrderId, updates, {
-      new: true,
-    });
+    const updatedOrder = await Order.findOneAndUpdate(
+      { _id: OrderId, user_id: userId },
+      updates,
+      { new: true },
+    );
 
     if (
       nextStatus === "delivered" &&
       (previousStatus !== "delivered" || !existingOrder.stockInRecorded)
     ) {
-      await createOrderDeliveredStockIn(updatedOrder);
-      await Order.findByIdAndUpdate(OrderId, { stockInRecorded: true });
+      await createOrderDeliveredStockIn(updatedOrder, userId);
+      await Order.findOneAndUpdate(
+        { _id: OrderId, user_id: userId },
+        { stockInRecorded: true },
+      );
     }
 
     if (previousStatus === "delivered" && nextStatus !== "delivered") {
-      await rollbackOrderDeliveredStockIn(OrderId);
-      await Order.findByIdAndUpdate(OrderId, { stockInRecorded: false });
+      await rollbackOrderDeliveredStockIn(OrderId, userId);
+      await Order.findOneAndUpdate(
+        { _id: OrderId, user_id: userId },
+        { stockInRecorded: false },
+      );
     }
 
     res.status(200).json({
@@ -195,12 +225,14 @@ const updatestatusOrder = async (req, res) => {
 const searchOrder = async (req, res) => {
   try {
     const { query } = req.query;
+    const userId = req.user.userId;
 
     if (!query) {
       return res.status(400).json({ message: "Query parameter is required" });
     }
 
     const searchdata = await Order.find({
+      user_id: userId,
       $or: [
         { Desciption: { $regex: query, $options: "i" } },
         { status: { $regex: query, $options: "i" } },
@@ -218,7 +250,9 @@ const searchOrder = async (req, res) => {
 
 const getOrderStatistics = async (req, res) => {
   try {
+    const userId = req.user.userId;
     const orderStats = await Order.aggregate([
+      { $match: { user_id: userId } },
       {
         $group: {
           _id: "$status",
