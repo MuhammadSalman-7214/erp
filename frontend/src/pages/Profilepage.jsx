@@ -169,9 +169,6 @@ function ProfilePage() {
                         <h2 className="font-medium text-slate-800">
                           {log.action}
                         </h2>
-                        <p className="text-sm text-slate-600">
-                          {log.description}
-                        </p>
 
                         <div className="mt-2 text-xs text-slate-500 space-y-1">
                           <p>

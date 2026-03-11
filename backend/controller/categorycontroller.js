@@ -5,11 +5,11 @@ const StockTransaction = require("../models/StockTranscationmodel");
 
 module.exports.createCategory = async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { name } = req.body;
 
     const userId = req.user.userId;
     const ipAddress = req.ip;
-    if (!name || !description) {
+    if (!name) {
       return res
         .status(400)
         .json({ message: "Please provide all necessary information." });
@@ -18,7 +18,6 @@ module.exports.createCategory = async (req, res) => {
     const newCategory = new Category({
       user_id: userId,
       name,
-      description,
     });
 
     await logActivity({
@@ -146,7 +145,6 @@ module.exports.Searchcategory = async (req, res) => {
       user_id: userId,
       $or: [
         { name: { $regex: query, $options: "i" } },
-        { description: { $regex: query, $options: "i" } },
       ],
     });
 

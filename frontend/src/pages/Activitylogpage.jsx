@@ -67,7 +67,6 @@ function Activitylogpage() {
                   <th className="px-5 py-4 font-medium">Email</th>
                   <th className="px-5 py-4 font-medium">Action</th>
                   <th className="px-5 py-4 font-medium">Affected Part</th>
-                  <th className="px-5 py-4 font-medium">Description</th>
                   <th className="px-5 py-4 font-medium">Time</th>
                   {/* <th className="px-5 py-4 font-medium">IP Address</th> */}
                 </tr>
@@ -99,9 +98,6 @@ function Activitylogpage() {
 
                     <td className="px-5 py-4 text-slate-700">{log.entity}</td>
 
-                    <td className="px-5 py-4 text-slate-600 max-w-xs truncate">
-                      {log.description}
-                    </td>
 
                     <td className="px-5 py-4 text-slate-600">
                       <FormattedTime timestamp={log.createdAt} />

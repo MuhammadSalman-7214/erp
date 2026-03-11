@@ -28,7 +28,6 @@ function Customerpage({ readOnly = false }) {
   const [query, setQuery] = useState("");
   const [customerCode, setCustomerCode] = useState("");
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [openingBalance, setOpeningBalance] = useState("");
@@ -72,7 +71,6 @@ function Customerpage({ readOnly = false }) {
     setCustomerCode("");
     setName("");
     setPhone("");
-    setEmail("");
     setAddress("");
     setOpeningBalance("");
     setPaymentTerms("");
@@ -102,7 +100,6 @@ function Customerpage({ readOnly = false }) {
       name,
       contactInfo: {
         phone,
-        email,
         address,
       },
       openingBalance,
@@ -138,7 +135,6 @@ function Customerpage({ readOnly = false }) {
       name,
       contactInfo: {
         phone,
-        email,
         address,
       },
       openingBalance,
@@ -180,7 +176,6 @@ function Customerpage({ readOnly = false }) {
     setCustomerCode(customer.customerCode || "");
     setName(customer.name || "");
     setPhone(customer.contactInfo?.phone || "");
-    setEmail(customer.contactInfo?.email || "");
     setAddress(customer.contactInfo?.address || "");
     setOpeningBalance(customer.openingBalance ?? "");
     setPaymentTerms(customer.paymentTerms ?? "");
@@ -297,13 +292,6 @@ function Customerpage({ readOnly = false }) {
               required
             />
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email"
-              className="w-full h-10 px-3 border rounded-xl"
-            />
-            <input
               type="text"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
@@ -317,20 +305,20 @@ function Customerpage({ readOnly = false }) {
               placeholder="Address"
               className="w-full h-10 px-3 border rounded-xl"
             />
-            <input
+            {/* <input
               type="number"
               value={openingBalance}
               onChange={(e) => setOpeningBalance(e.target.value)}
               placeholder="Opening balance"
               className="w-full h-10 px-3 border rounded-xl"
-            />
-            <input
+            /> */}
+            {/* <input
               type="text"
               value={paymentTerms}
               onChange={(e) => setPaymentTerms(e.target.value)}
               placeholder="Payment terms"
               className="w-full h-10 px-3 border rounded-xl"
-            />
+            /> */}
             <button
               type="submit"
               className="w-full h-11 bg-teal-700 text-white rounded-xl hover:bg-teal-600"
@@ -357,7 +345,6 @@ function Customerpage({ readOnly = false }) {
                   <th className="px-5 py-4 font-medium">Customer</th>
                   <th className="px-5 py-4 font-medium">Code</th>
                   <th className="px-5 py-4 font-medium">Phone</th>
-                  <th className="px-5 py-4 font-medium">Email</th>
                   <th className="px-5 py-4 font-medium">Total</th>
                   <th className="px-5 py-4 font-medium">Collected</th>
                   <th className="px-5 py-4 font-medium">Remaining</th>
@@ -373,12 +360,11 @@ function Customerpage({ readOnly = false }) {
                       className="border-b last:border-b-0 hover:bg-slate-50 transition"
                     >
                       <td className="px-5 py-4">{customer.name}</td>
-                      <td className="px-5 py-4">{customer.customerCode || "-"}</td>
                       <td className="px-5 py-4">
-                        {customer.contactInfo?.phone || "-"}
+                        {customer.customerCode || "-"}
                       </td>
                       <td className="px-5 py-4">
-                        {customer.contactInfo?.email || "-"}
+                        {customer.contactInfo?.phone || "-"}
                       </td>
                       <td className="px-5 py-4 font-medium">
                         {currency(customerSummary.totalAmount)}

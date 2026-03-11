@@ -9,7 +9,6 @@ const CategorySchema = new mongoose.Schema(
       index: true,
     },
     name: { type: String, required: true },
-    description: { type: String },
   },
 
 { timestamps: true }

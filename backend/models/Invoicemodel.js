@@ -6,11 +6,6 @@ const InvoiceItemSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    description: {
-      type: String,
-      required: true,
-      trim: true,
-    },
     quantity: {
       type: Number,
       required: true,
@@ -57,11 +52,6 @@ const InvoiceSchema = new mongoose.Schema(
       },
       name: {
         type: String,
-        trim: true,
-      },
-      email: {
-        type: String,
-        lowercase: true,
         trim: true,
       },
       phone: {

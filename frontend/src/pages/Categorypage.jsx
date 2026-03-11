@@ -28,7 +28,6 @@ function Categorypage() {
   const [query, setquery] = useState("");
 
   const [name, setname] = useState("");
-  const [description, setdescription] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
@@ -60,7 +59,7 @@ function Categorypage() {
 
   const submitCategory = async (event) => {
     event.preventDefault();
-    const CategoryData = { name, description };
+    const CategoryData = { name };
 
     if (selectedProduct) {
       // Update existing category
@@ -92,7 +91,6 @@ function Categorypage() {
 
   const resetForm = () => {
     setname("");
-    setdescription("");
   };
 
   const displayCategory = query.trim() !== "" ? searchdata : getallCategory;
@@ -175,22 +173,6 @@ function Categorypage() {
               />
             </div>
 
-            {/* Description */}
-            <div>
-              <label className="text-sm font-medium text-slate-700">
-                Description
-              </label>
-              <input
-                value={description}
-                placeholder="Enter category description"
-                onChange={(e) => setdescription(e.target.value)}
-                type="text"
-                className="w-full h-11 px-4 border border-gray-300 rounded-xl mt-2
-            focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
-                required
-              />
-            </div>
-
             {/* Submit */}
             <button
               type="submit"
@@ -214,7 +196,6 @@ function Categorypage() {
                     <th className="px-5 py-4 font-medium">#</th>
                     <th className="px-5 py-4 font-medium">Name</th>
                     <th className="px-5 py-4 font-medium">Total Products</th>
-                    <th className="px-5 py-4 font-medium">Description</th>
                     <th className="px-5 py-4 font-medium">Created At</th>
                     <th className="px-5 py-4 font-medium text-right">
                       Actions
@@ -234,9 +215,6 @@ function Categorypage() {
                       </td>
                       <td className="px-5 py-4 text-slate-700">
                         {Category.productCount ?? 0}
-                      </td>
-                      <td className="px-5 py-4 text-slate-600 max-w-xs truncate">
-                        {Category.description}
                       </td>
                       <td className="px-5 py-4 text-slate-600">
                         <FormattedTime timestamp={Category.createdAt} />
@@ -287,7 +265,6 @@ function Categorypage() {
                             onClick={() => {
                               setSelectedProduct(Category); // set the category to edit
                               setname(Category.name);
-                              setdescription(Category.description);
                               setIsFormVisible(true); // open drawer
                             }}
                             className="p-2 rounded-xl bg-slate-100 hover:bg-teal-100 text-blue-600 transition"

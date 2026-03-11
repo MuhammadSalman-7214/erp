@@ -21,10 +21,6 @@ const OrderSchema = new mongoose.Schema(
     //   type: mongoose.Schema.Types.ObjectId,
     //   ref: "Supplier",
     // },
-    Description: {
-      type: String,
-      required: true,
-    },
     Product: {
       product: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
       quantity: {

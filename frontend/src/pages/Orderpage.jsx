@@ -43,7 +43,6 @@ function Orderpage() {
   const [Product, setProduct] = useState("");
   const [Price, setPrice] = useState("");
   const [quantity, setQuantity] = useState("");
-  const [Description, setDescription] = useState("");
   const [status, setstatus] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [selectedOrder, setselectedOrder] = useState(null);
@@ -84,7 +83,6 @@ function Orderpage() {
 
     const updatedData = {
       user: user?.id || " ",
-      description: Description,
       status,
       supplier,
       products: {
@@ -146,7 +144,6 @@ function Orderpage() {
 
     const orderData = {
       user: user?.id || "",
-      Description,
       status,
       supplier,
       Product: {
@@ -170,7 +167,6 @@ function Orderpage() {
     setProduct("");
     setPrice("");
     setQuantity("");
-    setDescription("");
     setstatus("");
     setselectedOrder(null);
   };
@@ -191,7 +187,6 @@ function Orderpage() {
       );
     setQuantity(order.Product?.quantity || "");
     setstatus(order.status || "");
-    setDescription(order.Description || "");
     setIsFormVisible(true);
   };
 
@@ -296,16 +291,6 @@ function Orderpage() {
               </select>
             </div>
 
-            <div className="mb-4">
-              <label>Description</label>
-              <input
-                type="text"
-                value={Description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2"
-                placeholder="Enter description"
-              />
-            </div>
 
             <div className="mb-4">
               <label>Quantity</label>
@@ -401,7 +386,6 @@ function Orderpage() {
                 <th className="px-5 py-4 font-medium">Product</th>
                 <th className="px-5 py-4 font-medium">Quantity</th>
                 <th className="px-5 py-4 font-medium">Total Amount</th>
-                <th className="px-5 py-4 font-medium">Description</th>
                 <th className="px-5 py-4 font-medium">Status</th>
                 <th className="px-5 py-4 font-medium">Created By</th>
                 <th className="px-5 py-4 font-medium">Timestamp</th>
@@ -421,7 +405,6 @@ function Orderpage() {
                   </td>
                   <td className="px-5 py-4">{order.Product?.quantity}</td>
                   <td className="px-5 py-4">Rs {order?.totalAmount}</td>
-                  <td className="px-5 py-4">{order.Description}</td>
                   <td className="px-5 py-4">{order.status}</td>
                   <td className="px-5 py-4">{order.vendor?.name || "N/A"}</td>
                   <td className="px-5 py-4">

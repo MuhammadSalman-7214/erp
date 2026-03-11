@@ -69,7 +69,7 @@ function InvoiceEditPage() {
   const addItem = () =>
     setItems([
       ...items,
-      { name: "", description: "", quantity: 1, unitPrice: 0, total: 0 },
+      { name: "", quantity: 1, unitPrice: 0, total: 0 },
     ]);
 
   /* ================= UPDATE INVOICE ================= */
@@ -87,7 +87,11 @@ function InvoiceEditPage() {
     try {
       await axiosInstance.put(`/invoice/${id}`, {
         customerId: invoiceType === "sales" ? customerId : undefined,
-        items,
+        items: items.map(({ name, quantity, unitPrice }) => ({
+          name,
+          quantity,
+          unitPrice,
+        })),
         taxRate,
         discount,
         paymentMethod,
@@ -166,15 +170,6 @@ function InvoiceEditPage() {
                     onChange={(e) => updateItem(index, "name", e.target.value)}
                     placeholder="Item Name"
                     className="col-span-3 border border-gray-300 p-2 rounded"
-                  />
-                  <input
-                    type="text"
-                    value={item.description}
-                    onChange={(e) =>
-                      updateItem(index, "description", e.target.value)
-                    }
-                    placeholder="Description"
-                    className="col-span-4 border border-gray-300 p-2 rounded"
                   />
                   <input
                     type="number"

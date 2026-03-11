@@ -72,9 +72,6 @@ function InvoiceDetailPage() {
     const partyLines = [
       party?.name,
       isPurchase
-        ? party?.contactInfo?.email
-        : party?.contactInfo?.email || party?.email,
-      isPurchase
         ? party?.contactInfo?.phone
         : party?.contactInfo?.phone || party?.phone,
       isPurchase
@@ -87,7 +84,6 @@ function InvoiceDetailPage() {
     const tableData = invoice.items.map((item, idx) => [
       idx + 1,
       item.name,
-      item.description,
       item.quantity,
       `${invoice.currency} ${item.unitPrice.toFixed(2)}`,
       `${invoice.currency} ${item.total.toFixed(2)}`,
@@ -95,7 +91,7 @@ function InvoiceDetailPage() {
 
     autoTable(doc, {
       startY: 200,
-      head: [["#", "Name", "Description", "Qty", "Unit Price", "Total"]],
+      head: [["#", "Name", "Qty", "Unit Price", "Total"]],
       body: tableData,
       theme: "grid",
       headStyles: { fillColor: [240, 240, 240] },
@@ -186,15 +182,6 @@ function InvoiceDetailPage() {
                   : invoice.customerId?.name || invoice.customer?.name || "-"}
               </p>
               {invoice.invoiceType !== "purchase" &&
-                (invoice.customerId?.contactInfo?.email ||
-                  invoice.customer?.email) && (
-                  <p>
-                    <span className="font-semibold">Email:</span>{" "}
-                    {invoice.customerId?.contactInfo?.email ||
-                      invoice.customer?.email}
-                  </p>
-                )}
-              {invoice.invoiceType !== "purchase" &&
                 (invoice.customerId?.contactInfo?.phone ||
                   invoice.customer?.phone) && (
                   <p>
@@ -248,7 +235,6 @@ function InvoiceDetailPage() {
                 <tr>
                   <th className="px-4 py-2 border text-left">#</th>
                   <th className="px-4 py-2 border text-left">Name</th>
-                  <th className="px-4 py-2 border text-left">Description</th>
                   <th className="px-4 py-2 border text-right">Quantity</th>
                   <th className="px-4 py-2 border text-right">Unit Price</th>
                   <th className="px-4 py-2 border text-right">Total</th>
@@ -259,7 +245,6 @@ function InvoiceDetailPage() {
                   <tr key={idx} className="hover:bg-gray-50">
                     <td className="px-4 py-2 border">{idx + 1}</td>
                     <td className="px-4 py-2 border">{item.name}</td>
-                    <td className="px-4 py-2 border">{item.description}</td>
                     <td className="px-4 py-2 border text-right">
                       {item.quantity}
                     </td>

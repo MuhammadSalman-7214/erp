@@ -12,10 +12,10 @@ module.exports.createSupplier = async (req, res) => {
     } = req.body;
     const userId = req.user.userId;
 
-    if (!name || !contactInfo || !contactInfo.email || !contactInfo.phone) {
+    if (!name || !contactInfo || !contactInfo.phone) {
       return res.status(400).json({
         success: false,
-        message: " name, phone and email are required.",
+        message: " name and phone are required.",
       });
     }
 
@@ -37,7 +37,6 @@ module.exports.createSupplier = async (req, res) => {
       name,
       contactInfo: {
         phone: contactInfo.phone,
-        email: contactInfo.email,
         address: contactInfo.address || "",
       },
       openingBalance: Number(openingBalance) || 0,
@@ -115,7 +114,6 @@ module.exports.editSupplier = async (req, res) => {
     supplier.name = name || supplier.name;
     supplier.contactInfo = {
       phone: contactInfo?.phone || supplier.contactInfo.phone,
-      email: contactInfo?.email || supplier.contactInfo.email,
       address: contactInfo?.address || supplier.contactInfo.address,
     };
     supplier.openingBalance =

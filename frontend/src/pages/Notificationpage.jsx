@@ -78,7 +78,7 @@ function NotificationPage() {
 
   const submitNotification = async (e) => {
     e.preventDefault();
-    if (!name || !type) return toast.error("Title and description required");
+    if (!name || !type) return toast.error("Title and type required");
     const notificationData = { name, type };
     dispatch(createNotification(notificationData))
       .unwrap()
@@ -134,12 +134,12 @@ function NotificationPage() {
             </div>
 
             <div className="mb-4">
-              <label className="block font-medium">Description</label>
+              <label className="block font-medium">Type</label>
               <textarea
                 value={type}
                 onChange={(e) => setType(e.target.value)}
                 className="w-full h-24 px-3 border rounded-lg mt-2"
-                placeholder="Enter description"
+                placeholder="Enter type"
                 required
               />
             </div>

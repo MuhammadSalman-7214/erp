@@ -51,7 +51,6 @@ const resolveCustomerPayload = async ({
       resolvedCustomerSnapshot: {
         code: customerDoc.customerCode || "",
         name: customerDoc.name,
-        email: customerDoc.contactInfo?.email || "",
         phone: customerDoc.contactInfo?.phone || "",
         address: customerDoc.contactInfo?.address || "",
       },
@@ -123,7 +122,6 @@ module.exports.createInvoice = async (req, res) => {
       vendor,
       items: items.map((item) => ({
         name: item.name,
-        description: item.description,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         total: item.quantity * item.unitPrice,
@@ -244,7 +242,6 @@ module.exports.updateInvoice = async (req, res) => {
         customer: resolvedCustomerSnapshot,
         items: items.map((item) => ({
           name: item.name,
-          description: item.description,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           total: item.quantity * item.unitPrice,

@@ -36,7 +36,6 @@ function Supplierpage({ readOnly = false }) {
   const [vendorCode, setVendorCode] = useState("");
   const [name, setName] = useState("");
   // const [contactInfo, setContactInfo] = useState("");
-  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [openingBalance, setOpeningBalance] = useState("");
@@ -103,8 +102,8 @@ function Supplierpage({ readOnly = false }) {
       toast.error("You do not have permission to edit suppliers");
       return;
     }
-    if (!name || !phone || !email) {
-      toast.error("name, phone and email are required");
+    if (!name || !phone) {
+      toast.error("name and phone are required");
       return;
     }
 
@@ -115,7 +114,6 @@ function Supplierpage({ readOnly = false }) {
       name,
       contactInfo: {
         phone,
-        email,
         address,
       },
       openingBalance,
@@ -145,8 +143,8 @@ function Supplierpage({ readOnly = false }) {
       toast.error("You do not have permission to add suppliers");
       return;
     }
-    if (!name || !phone || !email) {
-      toast.error("name, phone and email are required");
+    if (!name || !phone) {
+      toast.error("name and phone are required");
       return;
     }
 
@@ -155,7 +153,6 @@ function Supplierpage({ readOnly = false }) {
       name,
       contactInfo: {
         phone,
-        email,
         address,
       },
       openingBalance,
@@ -178,7 +175,6 @@ function Supplierpage({ readOnly = false }) {
     setVendorCode("");
     setName("");
     setPhone("");
-    setEmail("");
     setAddress("");
     setOpeningBalance("");
     setPaymentTerms("");
@@ -194,7 +190,6 @@ function Supplierpage({ readOnly = false }) {
     setVendorCode(supplier.vendorCode || "");
     setName(supplier.name || "");
     setPhone(supplier.contactInfo?.phone || "");
-    setEmail(supplier.contactInfo?.email || "");
     setAddress(supplier.contactInfo?.address || "");
     setOpeningBalance(supplier.openingBalance ?? "");
     setPaymentTerms(supplier.paymentTerms ?? "");
@@ -356,17 +351,6 @@ function Supplierpage({ readOnly = false }) {
             </div>
 
             <div className="mb-4">
-              <label>Email</label>
-              <input
-                value={email}
-                placeholder="example@email.com"
-                onChange={(e) => setEmail(e.target.value)}
-                type="email"
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
-              />
-            </div>
-
-            <div className="mb-4">
               <label>Address</label>
               <input
                 type="text"
@@ -377,7 +361,7 @@ function Supplierpage({ readOnly = false }) {
               />
             </div>
 
-            <div className="mb-4">
+            {/* <div className="mb-4">
               <label>Opening Balance</label>
               <input
                 type="number"
@@ -386,9 +370,9 @@ function Supplierpage({ readOnly = false }) {
                 onChange={(e) => setOpeningBalance(e.target.value)}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
               />
-            </div>
+            </div> */}
 
-            <div className="mb-4">
+            {/* <div className="mb-4">
               <label>Payment Terms</label>
               <input
                 type="text"
@@ -397,7 +381,7 @@ function Supplierpage({ readOnly = false }) {
                 onChange={(e) => setPaymentTerms(e.target.value)}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
               />
-            </div>
+            </div> */}
 
             <div className="mb-4">
               <label>Product</label>
@@ -442,7 +426,6 @@ function Supplierpage({ readOnly = false }) {
                     <th className="px-5 py-4 font-medium">#</th>
                     <th className="px-5 py-4 font-medium">Name</th>
                     <th className="px-5 py-4 font-medium">Phone</th>
-                    <th className="px-5 py-4 font-medium">Email</th>
                     <th className="px-5 py-4 font-medium">Address</th>
                     <th className="px-5 py-4 font-medium">Opening</th>
                     <th className="px-5 py-4 font-medium">Total Owed</th>
@@ -460,79 +443,78 @@ function Supplierpage({ readOnly = false }) {
                   {displaySuppliers.map((supplier, index) => {
                     const vendorSummary = vendorBalances[supplier._id] || {};
                     return (
-                    <tr
-                      key={supplier._id}
-                      className="border-b last:border-b-0 hover:bg-slate-50 transition"
-                    >
-                      <td className="px-5 py-4 text-slate-500">{index + 1}</td>
-                      <td className="px-5 py-4 font-medium text-slate-800">
-                        {supplier.name}
-                      </td>
+                      <tr
+                        key={supplier._id}
+                        className="border-b last:border-b-0 hover:bg-slate-50 transition"
+                      >
+                        <td className="px-5 py-4 text-slate-500">
+                          {index + 1}
+                        </td>
+                        <td className="px-5 py-4 font-medium text-slate-800">
+                          {supplier.name}
+                        </td>
 
-                      <td className="px-5 py-4 text-slate-700">
-                        {supplier.contactInfo?.phone || "-"}
-                      </td>
+                        <td className="px-5 py-4 text-slate-700">
+                          {supplier.contactInfo?.phone || "-"}
+                        </td>
 
-                      <td className="px-5 py-4 text-slate-700">
-                        {supplier.contactInfo?.email || "-"}
-                      </td>
+                        <td className="px-5 py-4 text-slate-600 max-w-xs truncate">
+                          {supplier.contactInfo?.address || "-"}
+                        </td>
 
-                      <td className="px-5 py-4 text-slate-600 max-w-xs truncate">
-                        {supplier.contactInfo?.address || "-"}
-                      </td>
+                        <td className="px-5 py-4 text-slate-600">
+                          {supplier.openingBalance ?? 0}
+                        </td>
+                        <td className="px-5 py-4 text-slate-600 font-medium">
+                          {currency(vendorSummary.totalAmount)}
+                        </td>
+                        <td className="px-5 py-4 text-emerald-700 font-medium">
+                          {currency(vendorSummary.paidAmount)}
+                        </td>
+                        <td className="px-5 py-4 text-red-700 font-medium">
+                          {currency(vendorSummary.remainingAmount)}
+                        </td>
 
-                      <td className="px-5 py-4 text-slate-600">
-                        {supplier.openingBalance ?? 0}
-                      </td>
-                      <td className="px-5 py-4 text-slate-600 font-medium">
-                        {currency(vendorSummary.totalAmount)}
-                      </td>
-                      <td className="px-5 py-4 text-emerald-700 font-medium">
-                        {currency(vendorSummary.paidAmount)}
-                      </td>
-                      <td className="px-5 py-4 text-red-700 font-medium">
-                        {currency(vendorSummary.remainingAmount)}
-                      </td>
+                        <td className="px-5 py-4 text-slate-600">
+                          {supplier.paymentTerms || "-"}
+                        </td>
 
-                      <td className="px-5 py-4 text-slate-600">
-                        {supplier.paymentTerms || "-"}
-                      </td>
+                        <td className="px-5 py-4 text-slate-600">
+                          <FormattedTime timestamp={supplier.createdAt} />
+                        </td>
 
-                      <td className="px-5 py-4 text-slate-600">
-                        <FormattedTime timestamp={supplier.createdAt} />
-                      </td>
-
-                      {!isReadOnlyMode && (
-                        <td className="px-5 py-4">
-                          <div className="flex gap-2">
-                            {canDelete && (
-                              <Popconfirm
-                                title={
-                                  <div className="flex flex-col gap-1 max-w-xs">
-                                    <span className="font-semibold text-red-600 text-sm">
-                                      Confirm Supplier Deletion
-                                    </span>
-                                    <span className="text-xs text-gray-600 leading-snug">
-                                      This action will permanently remove this
-                                      supplier and may affect linked purchase
-                                      records. This operation cannot be undone.
-                                    </span>
-                                  </div>
-                                }
-                                okText="Yes, Delete"
-                                cancelText="Cancel"
-                                okButtonProps={{
-                                  danger: true,
-                                  className: "font-semibold",
-                                }}
-                                cancelButtonProps={{
-                                  className: "font-medium",
-                                }}
-                                placement="topRight"
-                                onConfirm={() => handleRemove(supplier._id)}
-                              >
-                                <button
-                                  className="
+                        {!isReadOnlyMode && (
+                          <td className="px-5 py-4">
+                            <div className="flex gap-2">
+                              {canDelete && (
+                                <Popconfirm
+                                  title={
+                                    <div className="flex flex-col gap-1 max-w-xs">
+                                      <span className="font-semibold text-red-600 text-sm">
+                                        Confirm Supplier Deletion
+                                      </span>
+                                      <span className="text-xs text-gray-600 leading-snug">
+                                        This action will permanently remove this
+                                        supplier and may affect linked purchase
+                                        records. This operation cannot be
+                                        undone.
+                                      </span>
+                                    </div>
+                                  }
+                                  okText="Yes, Delete"
+                                  cancelText="Cancel"
+                                  okButtonProps={{
+                                    danger: true,
+                                    className: "font-semibold",
+                                  }}
+                                  cancelButtonProps={{
+                                    className: "font-medium",
+                                  }}
+                                  placement="topRight"
+                                  onConfirm={() => handleRemove(supplier._id)}
+                                >
+                                  <button
+                                    className="
       p-2 rounded-lg
       bg-slate-100
       hover:bg-red-100
@@ -540,25 +522,25 @@ function Supplierpage({ readOnly = false }) {
       transition-all duration-200
       hover:shadow-sm
     "
-                                  title="Delete Supplier"
+                                    title="Delete Supplier"
+                                  >
+                                    <MdDelete size={18} />
+                                  </button>
+                                </Popconfirm>
+                              )}
+                              {canWrite && (
+                                <button
+                                  onClick={() => handleEditClick(supplier)}
+                                  className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
+                                  title="Edit"
                                 >
-                                  <MdDelete size={18} />
+                                  <MdEdit size={18} />
                                 </button>
-                              </Popconfirm>
-                            )}
-                            {canWrite && (
-                              <button
-                                onClick={() => handleEditClick(supplier)}
-                                className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
-                                title="Edit"
-                              >
-                                <MdEdit size={18} />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      )}
-                    </tr>
+                              )}
+                            </div>
+                          </td>
+                        )}
+                      </tr>
                     );
                   })}
                 </tbody>

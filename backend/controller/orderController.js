@@ -11,10 +11,8 @@ const {
 
 const createOrder = async (req, res) => {
   try {
-    const { Description, Product, status, supplier, vendor } = req.body;
+    const { Product, status, supplier, vendor } = req.body;
     const userId = req.user.userId;
-    if (!Description)
-      return res.status(400).json({ message: "Description is required" });
     if (!status) return res.status(400).json({ message: "Status is required" });
     if (!Product?.product)
       return res.status(400).json({ message: "Product ID is required" });
@@ -49,7 +47,6 @@ const createOrder = async (req, res) => {
     const newOrder = new Order({
       user_id: userId,
       user: userId,
-      Description,
       Product,
       vendor: vendorId,
       supplier,
@@ -74,7 +71,6 @@ const createOrder = async (req, res) => {
       items: [
         {
           name: productRecord.name,
-          description: productRecord.Desciption || "-",
           quantity,
           unitPrice: price,
           total: totalOrderAmount,
@@ -234,7 +230,6 @@ const searchOrder = async (req, res) => {
     const searchdata = await Order.find({
       user_id: userId,
       $or: [
-        { Desciption: { $regex: query, $options: "i" } },
         { status: { $regex: query, $options: "i" } },
         { "user.name": { $regex: query, $options: "i" } },
       ],

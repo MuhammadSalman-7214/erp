@@ -15,10 +15,6 @@ const ActivityLogSchema = new mongoose.Schema(
       required: true,
     
     },
-    description: {
-      type: String,
-      required: true,
-    },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

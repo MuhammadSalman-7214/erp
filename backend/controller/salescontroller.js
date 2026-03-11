@@ -108,7 +108,6 @@ module.exports.createSale = async (req, res) => {
 
     const invoiceItems = resolvedProducts.map((item) => ({
       name: "",
-      description: "",
       quantity: item.quantity,
       unitPrice: item.price,
       total: item.price * item.quantity,
@@ -120,7 +119,6 @@ module.exports.createSale = async (req, res) => {
         user_id: userId,
       });
       invoiceItems[i].name = productRecord?.name || "Product";
-      invoiceItems[i].description = productRecord?.Desciption || "-";
     }
 
     const invoiceNumber = await getNextInvoiceNumber("SI", userId);
@@ -140,7 +138,6 @@ module.exports.createSale = async (req, res) => {
       customer: {
         code: customerCode,
         name: customerName,
-        email: customer.contactInfo?.email || "",
         phone: customer.contactInfo?.phone || "",
         address: customer.contactInfo?.address || "",
       },
@@ -344,7 +341,6 @@ module.exports.updateSale = async (req, res) => {
         });
         invoiceItems.push({
           name: productRecord?.name || "Product",
-          description: productRecord?.Desciption || "-",
           quantity: item.quantity,
           unitPrice: item.price,
           total: item.price * item.quantity,
@@ -355,13 +351,12 @@ module.exports.updateSale = async (req, res) => {
         { _id: existingSale.invoice, user_id: userId },
         {
           customerId: customer._id,
-          customer: {
-            code: customer.customerCode || "",
-            name: customer.name,
-            email: customer.contactInfo?.email || "",
-            phone: customer.contactInfo?.phone || "",
-            address: customer.contactInfo?.address || "",
-          },
+        customer: {
+          code: customer.customerCode || "",
+          name: customer.name,
+          phone: customer.contactInfo?.phone || "",
+          address: customer.contactInfo?.address || "",
+        },
           items: invoiceItems,
           subTotal: updatedTotalAmount,
           totalAmount: updatedTotalAmount,

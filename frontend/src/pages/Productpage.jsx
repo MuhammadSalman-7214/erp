@@ -48,7 +48,6 @@ function Productpage({ readOnly = false }) {
   const [purchasePrice, setPurchasePrice] = useState("");
   const [salesPrice, setSalesPrice] = useState("");
   const [quantity, setQuantity] = useState("");
-  const [Desciption, setDesciption] = useState("");
   const [dateAdded, setDateAdded] = useState(
     new Date().toISOString().split("T")[0],
   );
@@ -103,7 +102,6 @@ function Productpage({ readOnly = false }) {
       purchasePrice,
       salesPrice,
       quantity,
-      Desciption,
       dateAdded: selectedProduct.dateAdded || new Date().toISOString(),
     };
     dispatch(EditProduct({ id: selectedProduct._id, updatedData }))
@@ -128,7 +126,6 @@ function Productpage({ readOnly = false }) {
       name,
       brand,
       grade,
-      Desciption,
       Category,
       purchasePrice,
       salesPrice,
@@ -153,7 +150,6 @@ function Productpage({ readOnly = false }) {
     setPurchasePrice("");
     setSalesPrice("");
     setQuantity("");
-    setDesciption("");
   };
 
   const closeForm = () => {
@@ -177,7 +173,6 @@ function Productpage({ readOnly = false }) {
     setPurchasePrice(product.pricing?.currentPurchasePrice ?? "");
     setSalesPrice(product.pricing?.currentSalesPrice ?? product.Price ?? "");
     setQuantity(product.quantity);
-    setDesciption(product.Desciption);
     setIsFormVisible(true);
   };
 
@@ -296,7 +291,6 @@ function Productpage({ readOnly = false }) {
                     <th className="px-5 py-4 font-medium">Brand</th>
                     <th className="px-5 py-4 font-medium">Grade</th>
                     <th className="px-5 py-4 font-medium">Category</th>
-                    <th className="px-5 py-4 font-medium">Description</th>
                     <th className="px-5 py-4 font-medium">Qty</th>
                     <th className="px-5 py-4 font-medium">Purchase</th>
                     <th className="px-5 py-4 font-medium">Sales</th>
@@ -336,9 +330,6 @@ function Productpage({ readOnly = false }) {
                         {product.Category?.name || "-"}
                       </td>
 
-                      <td className="px-5 py-4 text-slate-600 max-w-xs truncate">
-                        {product.Desciption}
-                      </td>
 
                       <td className="px-5 py-4 text-slate-700">
                         {product.quantity ? product.quantity : "--"}
@@ -449,7 +440,6 @@ function Productpage({ readOnly = false }) {
               ["Name", name, setName, "text"],
               ["Brand", brand, setBrand, "text"],
               ["Grade", grade, setGrade, "text"],
-              ["Description", Desciption, setDesciption, "text"],
               ["Purchase Price", purchasePrice, setPurchasePrice, "number"],
               ["Sales Price", salesPrice, setSalesPrice, "number"],
               // ["Quantity", quantity, setQuantity, "number"],

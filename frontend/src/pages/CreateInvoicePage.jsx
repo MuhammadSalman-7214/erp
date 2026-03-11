@@ -29,7 +29,7 @@ function CreateInvoicePage() {
   const [vendors, setVendors] = useState([]);
   const [vendorId, setVendorId] = useState("");
   const [items, setItems] = useState([
-    { name: "", description: "", quantity: 1, unitPrice: 0, total: 0 },
+    { name: "", quantity: 1, unitPrice: 0, total: 0 },
   ]);
   const [taxRate, setTaxRate] = useState(0);
   const [discount, setDiscount] = useState(0);
@@ -82,7 +82,7 @@ function CreateInvoicePage() {
   const addItem = () =>
     setItems([
       ...items,
-      { name: "", description: "", quantity: 1, unitPrice: 0, total: 0 },
+      { name: "", quantity: 1, unitPrice: 0, total: 0 },
     ]);
 
   const removeItem = (index) => setItems(items.filter((_, i) => i !== index));
@@ -102,9 +102,8 @@ function CreateInvoicePage() {
         invoiceType,
         customerId: invoiceType === "sales" ? customerId : undefined,
         vendor: invoiceType === "purchase" ? vendorId : undefined,
-        items: items.map(({ name, description, quantity, unitPrice }) => ({
+        items: items.map(({ name, quantity, unitPrice }) => ({
           name,
-          description,
           quantity,
           unitPrice,
         })),
@@ -232,15 +231,6 @@ function CreateInvoicePage() {
                     handleItemChange(idx, "name", e.target.value)
                   }
                   className="col-span-3 border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-                <input
-                  type="text"
-                  value={item.description}
-                  placeholder="Description"
-                  onChange={(e) =>
-                    handleItemChange(idx, "description", e.target.value)
-                  }
-                  className="col-span-4 border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
                 <input
                   type="number"

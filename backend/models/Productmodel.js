@@ -13,7 +13,6 @@ const ProductSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     brand: { type: String, required: true, trim: true },
     grade: { type: String, required: true, trim: true },
-    Desciption: { type: String, required: true },
     Category: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
     pricing: {
       currentPurchasePrice: { type: Number, required: true, min: 0 },

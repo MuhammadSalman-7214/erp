@@ -32,7 +32,6 @@ module.exports.createCustomer = async (req, res) => {
       name: name.trim(),
       contactInfo: {
         phone: contactInfo?.phone || "",
-        email: contactInfo?.email || "",
         address: contactInfo?.address || "",
       },
       openingBalance: Number(openingBalance) || 0,
@@ -132,7 +131,6 @@ module.exports.editCustomer = async (req, res) => {
     customer.name = name?.trim() || customer.name;
     customer.contactInfo = {
       phone: contactInfo?.phone ?? customer.contactInfo?.phone ?? "",
-      email: contactInfo?.email ?? customer.contactInfo?.email ?? "",
       address: contactInfo?.address ?? customer.contactInfo?.address ?? "",
     };
     customer.openingBalance =
@@ -203,7 +201,6 @@ module.exports.searchCustomer = async (req, res) => {
       $or: [
         { name: { $regex: query, $options: "i" } },
         { customerCode: { $regex: query, $options: "i" } },
-        { "contactInfo.email": { $regex: query, $options: "i" } },
         { "contactInfo.phone": { $regex: query, $options: "i" } },
       ],
     }).sort({ createdAt: -1 });

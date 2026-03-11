@@ -11,7 +11,6 @@ module.exports.Addproduct = async (req, res) => {
       name,
       brand,
       grade,
-      Desciption,
       Category,
       purchasePrice,
       salesPrice,
@@ -27,7 +26,6 @@ module.exports.Addproduct = async (req, res) => {
       !brand ||
       !grade ||
       !Category ||
-      !Desciption ||
       Number.isNaN(resolvedSalesPrice) ||
       Number.isNaN(resolvedPurchasePrice)
     ) {
@@ -50,7 +48,6 @@ module.exports.Addproduct = async (req, res) => {
       name,
       brand,
       grade,
-      Desciption,
       Category,
       pricing: {
         currentPurchasePrice: resolvedPurchasePrice,
@@ -143,7 +140,6 @@ module.exports.EditProduct = async (req, res) => {
       salesPrice,
       Price,
       quantity,
-      Desciption,
       dateAdded,
     } = req.body;
     const { id } = req.params;
@@ -183,7 +179,6 @@ module.exports.EditProduct = async (req, res) => {
       brand: brand || existingProduct.brand,
       grade: grade || existingProduct.grade,
       Category,
-      Desciption,
       quantity,
       dateAdded,
     };
