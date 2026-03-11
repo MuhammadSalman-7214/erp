@@ -13,6 +13,12 @@ const CustomerSchema = new mongoose.Schema(
       trim: true,
       uppercase: true,
       sparse: true,
+      default: undefined,
+      set: (value) => {
+        if (value === null || value === undefined) return undefined;
+        const trimmed = String(value).trim();
+        return trimmed === "" ? undefined : trimmed.toUpperCase();
+      },
     },
     name: {
       type: String,

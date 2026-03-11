@@ -17,7 +17,7 @@ import { gettingallCategory } from "../features/categorySlice";
 import { gettingallproducts } from "../features/productSlice";
 import { PiInvoiceBold } from "react-icons/pi";
 import NoData from "../Components/NoData";
-import { getAllCustomers } from "../features/customerSlice";
+import { createCustomer, getAllCustomers } from "../features/customerSlice";
 
 function Salespage() {
   const { getallsales, searchdata } = useSelector((state) => state.sales);
@@ -29,6 +29,15 @@ function Salespage() {
   const [formErrors, setFormErrors] = useState({});
 
   const [customerId, setCustomerId] = useState("");
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [showCustomerOptions, setShowCustomerOptions] = useState(false);
+  const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
+  const [newCustomerData, setNewCustomerData] = useState({
+    customerCode: "",
+    phone: "",
+    address: "",
+    paymentTerms: "",
+  });
   const [Product, setProduct] = useState("");
   const [Payment, setPayment] = useState("");
   const [Price, setPrice] = useState("");
@@ -67,6 +76,10 @@ function Salespage() {
   const handleEditSubmit = (event) => {
     event.preventDefault();
     if (!selectedSales) return;
+    if (!customerId) {
+      toast.error("Customer is required");
+      return;
+    }
 
     const updatedData = {
       customerId,
@@ -92,9 +105,51 @@ function Salespage() {
 
   const submitsales = async (event) => {
     event.preventDefault();
+    let resolvedCustomerId = customerId;
+    const customerName = customerSearch.trim();
+    if (!resolvedCustomerId) {
+      if (!customerName) {
+        toast.error("Customer name is required");
+        return;
+      }
+      if (!newCustomerData.phone.trim()) {
+        toast.error("Customer phone is required");
+        return;
+      }
+      setIsCreatingCustomer(true);
+      try {
+        const payload = {
+          name: customerName,
+          customerCode: newCustomerData.customerCode.trim() || undefined,
+          contactInfo: {
+            phone: newCustomerData.phone.trim(),
+            address: newCustomerData.address.trim(),
+          },
+          paymentTerms: newCustomerData.paymentTerms.trim(),
+        };
+        const result = await dispatch(createCustomer(payload)).unwrap();
+        const newCustomer = result?.customer;
+        if (!newCustomer?._id) {
+          toast.error("Failed to create customer");
+          return;
+        }
+        resolvedCustomerId = newCustomer._id;
+        setCustomerId(newCustomer._id);
+        setCustomerSearch(
+          newCustomer.customerCode
+            ? `${newCustomer.name} (${newCustomer.customerCode})`
+            : newCustomer.name,
+        );
+      } catch (error) {
+        toast.error(error || "Failed to create customer");
+        return;
+      } finally {
+        setIsCreatingCustomer(false);
+      }
+    }
 
     const salesData = {
-      customerId,
+      customerId: resolvedCustomerId,
       products: [{ product: Product, quantity: Number(quantity) }],
       paymentMethod: Payment,
       paymentStatus,
@@ -115,6 +170,14 @@ function Salespage() {
   };
   const resetForm = () => {
     setCustomerId("");
+    setCustomerSearch("");
+    setShowCustomerOptions(false);
+    setNewCustomerData({
+      customerCode: "",
+      phone: "",
+      address: "",
+      paymentTerms: "",
+    });
     setProduct("");
     setPayment("");
     setPrice("");
@@ -130,6 +193,18 @@ function Salespage() {
   const handleEditClick = (sales) => {
     setselectedSales(sales);
     setCustomerId(sales.customer?._id || sales.customer || "");
+    setCustomerSearch(
+      sales.customer?.name ||
+        sales.customerName ||
+        sales.customer?.customerCode ||
+        "",
+    );
+    setNewCustomerData({
+      customerCode: "",
+      phone: "",
+      address: "",
+      paymentTerms: "",
+    });
 
     if (sales.products && sales.products.length > 0) {
       const firstProduct = sales.products[0];
@@ -162,6 +237,79 @@ function Salespage() {
   }, [Category]);
 
   const displaySales = query.trim() !== "" ? searchdata : getallsales;
+
+  const customers = Array.isArray(getAllCustomer) ? getAllCustomer : [];
+  const selectedCustomer = customers.find(
+    (customer) => customer._id === customerId,
+  );
+  const normalizedCustomerSearch = customerSearch.trim().toLowerCase();
+  const filteredCustomers = normalizedCustomerSearch
+    ? customers.filter((customer) => {
+        const name = customer.name?.toLowerCase() || "";
+        const code = customer.customerCode?.toLowerCase() || "";
+        return (
+          name.includes(normalizedCustomerSearch) ||
+          code.includes(normalizedCustomerSearch)
+        );
+      })
+    : [];
+  const exactMatchCustomer = customers.find(
+    (customer) =>
+      (customer.name || "").toLowerCase() === normalizedCustomerSearch,
+  );
+  const hasExactMatch = Boolean(exactMatchCustomer);
+
+  const handleSelectCustomer = (customer) => {
+    setCustomerId(customer._id);
+    setCustomerSearch(
+      customer.customerCode
+        ? `${customer.name} (${customer.customerCode})`
+        : customer.name,
+    );
+    setNewCustomerData({
+      customerCode: "",
+      phone: "",
+      address: "",
+      paymentTerms: "",
+    });
+    setShowCustomerOptions(false);
+  };
+
+  const handleCreateCustomer = async () => {
+    const name = customerSearch.trim();
+    if (!name) return;
+    if (!newCustomerData.phone.trim()) {
+      toast.error("Customer phone is required");
+      return;
+    }
+    setIsCreatingCustomer(true);
+    try {
+      const payload = {
+        name,
+        customerCode: newCustomerData.customerCode.trim() || undefined,
+        contactInfo: {
+          phone: newCustomerData.phone.trim(),
+          address: newCustomerData.address.trim(),
+        },
+        paymentTerms: newCustomerData.paymentTerms.trim(),
+      };
+      const result = await dispatch(createCustomer(payload)).unwrap();
+      const newCustomer = result?.customer;
+      if (newCustomer?._id) {
+        setCustomerId(newCustomer._id);
+        setCustomerSearch(
+          newCustomer.customerCode
+            ? `${newCustomer.name} (${newCustomer.customerCode})`
+            : newCustomer.name,
+        );
+      }
+      setShowCustomerOptions(false);
+    } catch (error) {
+      toast.error(error || "Failed to create customer");
+    } finally {
+      setIsCreatingCustomer(false);
+    }
+  };
 
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
@@ -213,23 +361,148 @@ function Salespage() {
               onSubmit={selectedSales ? handleEditSubmit : submitsales}
               className="flex-1 flex flex-col gap-4 overflow-y-auto"
             >
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1 relative">
                 <label className="text-gray-700 font-medium">Customer</label>
-                <select
-                  value={customerId}
-                  onChange={(e) => setCustomerId(e.target.value)}
+                <input
+                  value={customerSearch}
+                  onChange={(e) => {
+                    setCustomerSearch(e.target.value);
+                    setCustomerId("");
+                    setShowCustomerOptions(true);
+                  }}
+                  onFocus={() => setShowCustomerOptions(true)}
+                  onBlur={() => {
+                    setTimeout(() => {
+                      if (!customerId && exactMatchCustomer) {
+                        handleSelectCustomer(exactMatchCustomer);
+                      } else {
+                        setShowCustomerOptions(false);
+                      }
+                    }, 150);
+                  }}
+                  placeholder="Search or create customer"
                   className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
                   required
-                >
-                  <option value="">Select customer</option>
-                  {getAllCustomer?.map((customer) => (
-                    <option key={customer._id} value={customer._id}>
-                      {customer.name}
-                      {customer.customerCode ? ` (${customer.customerCode})` : ""}
-                    </option>
-                  ))}
-                </select>
+                />
+                {showCustomerOptions && customerSearch.trim() !== "" && (
+                  <div className="absolute z-50 top-[72px] w-full bg-white border rounded-xl shadow-lg max-h-56 overflow-y-auto">
+                    {filteredCustomers.length > 0
+                      ? filteredCustomers.map((customer) => (
+                          <button
+                            key={customer._id}
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => handleSelectCustomer(customer)}
+                            className="w-full text-left px-3 py-2 hover:bg-slate-100"
+                          >
+                            <div className="text-sm font-medium text-slate-800">
+                              {customer.name}
+                            </div>
+                            {customer.customerCode && (
+                              <div className="text-xs text-slate-500">
+                                {customer.customerCode}
+                              </div>
+                            )}
+                          </button>
+                        ))
+                      : // <div className="px-3 py-2 text-sm text-slate-500">
+                        //   No matches found
+                        // </div>
+                        null}
+                    {/* {!hasExactMatch && customerSearch.trim() !== "" && (
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={handleCreateCustomer}
+                      disabled={isCreatingCustomer}
+                      className="w-full text-left px-3 py-2 border-t bg-slate-50 hover:bg-slate-100 text-teal-700 font-medium"
+                    >
+                      {isCreatingCustomer
+                        ? "Creating customer..."
+                        : `Create "${customerSearch.trim()}"`}
+                    </button>
+                    )} */}
+                  </div>
+                )}
               </div>
+              {customerId && selectedCustomer && (
+                <div className="rounded-xl border bg-slate-50 p-3 text-sm text-slate-700">
+                  <div className="font-medium text-slate-800 mb-2">
+                    Selected Customer Details
+                  </div>
+                  <div className="grid grid-cols-1 gap-1">
+                    <span>Code: {selectedCustomer.customerCode || "-"}</span>
+                    <span>
+                      Phone: {selectedCustomer.contactInfo?.phone || "-"}
+                    </span>
+                    <span>
+                      Address: {selectedCustomer.contactInfo?.address || "-"}
+                    </span>
+                    <span>
+                      Payment Terms: {selectedCustomer.paymentTerms || "-"}
+                    </span>
+                  </div>
+                </div>
+              )}
+              {!customerId &&
+                customerSearch.trim() !== "" &&
+                !hasExactMatch && (
+                  <div className="rounded-xl border bg-white p-3">
+                    <div className="font-medium text-slate-800 mb-2">
+                      New Customer Details
+                    </div>
+                    <div className="grid grid-cols-1 gap-3">
+                      <input
+                        type="text"
+                        value={newCustomerData.customerCode}
+                        onChange={(e) =>
+                          setNewCustomerData((prev) => ({
+                            ...prev,
+                            customerCode: e.target.value,
+                          }))
+                        }
+                        placeholder="Customer code (optional)"
+                        className="w-full h-10 px-3 border rounded-xl"
+                      />
+                      <input
+                        type="text"
+                        value={newCustomerData.phone}
+                        onChange={(e) =>
+                          setNewCustomerData((prev) => ({
+                            ...prev,
+                            phone: e.target.value,
+                          }))
+                        }
+                        placeholder="Phone (required)"
+                        className="w-full h-10 px-3 border rounded-xl"
+                      />
+                      <input
+                        type="text"
+                        value={newCustomerData.address}
+                        onChange={(e) =>
+                          setNewCustomerData((prev) => ({
+                            ...prev,
+                            address: e.target.value,
+                          }))
+                        }
+                        placeholder="Address (optional)"
+                        className="w-full h-10 px-3 border rounded-xl"
+                      />
+                      <input
+                        type="text"
+                        value={newCustomerData.paymentTerms}
+                        onChange={(e) =>
+                          setNewCustomerData((prev) => ({
+                            ...prev,
+                            paymentTerms: e.target.value,
+                          }))
+                        }
+                        placeholder="Payment terms (optional)"
+                        className="w-full h-10 px-3 border rounded-xl"
+                      />
+                    </div>
+                  </div>
+                )}
               <div className="mb-4">
                 <label>Category</label>
                 <select

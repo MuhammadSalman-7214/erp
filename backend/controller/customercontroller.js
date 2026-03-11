@@ -13,9 +13,11 @@ module.exports.createCustomer = async (req, res) => {
       });
     }
 
-    if (customerCode) {
+    const normalizedCode =
+      typeof customerCode === "string" ? customerCode.trim().toUpperCase() : "";
+    if (normalizedCode) {
       const existingCode = await Customer.findOne({
-        customerCode: customerCode.toUpperCase(),
+        customerCode: normalizedCode,
         user_id: userId,
       });
       if (existingCode) {
@@ -26,9 +28,8 @@ module.exports.createCustomer = async (req, res) => {
       }
     }
 
-    const customer = await Customer.create({
+    const customerPayload = {
       user_id: userId,
-      customerCode: customerCode ? customerCode.toUpperCase() : undefined,
       name: name.trim(),
       contactInfo: {
         phone: contactInfo?.phone || "",
@@ -36,7 +37,12 @@ module.exports.createCustomer = async (req, res) => {
       },
       openingBalance: Number(openingBalance) || 0,
       paymentTerms: paymentTerms || "",
-    });
+    };
+    if (normalizedCode) {
+      customerPayload.customerCode = normalizedCode;
+    }
+
+    const customer = await Customer.create(customerPayload);
 
     res.status(201).json({
       success: true,
@@ -112,7 +118,8 @@ module.exports.editCustomer = async (req, res) => {
       });
     }
 
-    const normalizedCode = customerCode ? customerCode.toUpperCase() : "";
+    const normalizedCode =
+      typeof customerCode === "string" ? customerCode.trim().toUpperCase() : "";
     if (normalizedCode && normalizedCode !== customer.customerCode) {
       const existingCode = await Customer.findOne({
         customerCode: normalizedCode,
