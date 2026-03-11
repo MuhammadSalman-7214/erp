@@ -19,7 +19,7 @@ function SignupPage() {
       .string()
       .min(6, "Password must be at least 6 characters")
       .required("Password is required"),
-    role: yup.string().required("Role is required"),
+    // role: yup.string().required("Role is required"),
   });
 
   const {
@@ -61,7 +61,7 @@ function SignupPage() {
         manager: "/ManagerDashboard",
         staff: "/StaffDashboard",
       };
-      navigate(roleRedirects[user.role] || "/");
+      navigate(roleRedirects[user.role] || "/signup");
     }
   }, [user, navigate]);
 
@@ -138,7 +138,7 @@ function SignupPage() {
               )}
             </div>
 
-            <div className="mb-6">
+            {/* <div className="mb-6">
               <label className="block text-gray-700 text-sm font-medium mb-2">
                 Role
               </label>
@@ -155,7 +155,7 @@ function SignupPage() {
                   {errors.role.message}
                 </p>
               )}
-            </div>
+            </div> */}
 
             <div className="flex items-center mb-6">
               <input type="checkbox" id="terms" className="mr-2" />
