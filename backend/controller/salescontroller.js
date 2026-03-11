@@ -430,3 +430,52 @@ module.exports.SearchSales = async (req, res) => {
     });
   }
 };
+
+// Get Sales By Customer
+module.exports.getSalesByCustomer = async (req, res) => {
+  try {
+    const { customerId } = req.params;
+    const userId = req.user.userId;
+
+    const customer = await Customer.findOne({
+      _id: customerId,
+      user_id: userId,
+    });
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: "Customer not found",
+      });
+    }
+
+    const sales = await Sale.find({ user_id: userId, customer: customerId })
+      .populate("products.product")
+      .populate("customer")
+      .sort({ createdAt: -1 });
+
+    const summary = sales.reduce(
+      (acc, sale) => {
+        const amount = Number(sale.totalAmount || 0);
+        acc.total += amount;
+        if (sale.paymentStatus === "paid") acc.paid += amount;
+        acc.count += 1;
+        return acc;
+      },
+      { total: 0, paid: 0, count: 0 },
+    );
+    summary.remaining = summary.total - summary.paid;
+
+    return res.status(200).json({
+      success: true,
+      customer,
+      sales,
+      summary,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching customer sales history",
+      error: error.message,
+    });
+  }
+};

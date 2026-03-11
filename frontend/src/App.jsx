@@ -27,6 +27,7 @@ import CreateInvoicePage from "./pages/CreateInvoicePage";
 import NotFoundPage from "./pages/NotFoundPage";
 import PaymentsPage from "./pages/PaymentsPage";
 import Customerpage from "./pages/Customerpage";
+import CustomerDetailPage from "./pages/CustomerDetailPage";
 
 function App() {
   return (
@@ -85,6 +86,7 @@ function App() {
             {/* Supplier - Manager */}
             <Route path="supplier" element={<Supplierpage />} />
             <Route path="customer" element={<Customerpage />} />
+            <Route path="customer/:id" element={<CustomerDetailPage />} />
 
             {/* User Status - Manager */}
             <Route path="Userstatus" element={<Userstatus />} />
@@ -132,6 +134,7 @@ function App() {
             {/* Supplier - Admin */}
             <Route path="supplier" element={<Supplierpage />} />
             <Route path="customer" element={<Customerpage />} />
+            <Route path="customer/:id" element={<CustomerDetailPage />} />
 
             {/* Activity Log - Admin Only */}
             <Route path="activity-log" element={<Activitylogpage />} />
@@ -175,6 +178,7 @@ function App() {
             {/* Supplier - Staff (read-only) */}
             <Route path="supplier" element={<Supplierpage readOnly />} />
             <Route path="customer" element={<Customerpage readOnly />} />
+            <Route path="customer/:id" element={<CustomerDetailPage />} />
           </Route>
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

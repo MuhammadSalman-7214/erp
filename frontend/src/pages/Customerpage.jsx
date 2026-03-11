@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { IoMdAdd } from "react-icons/io";
+import { useNavigate } from "react-router-dom";
+import { IoMdAdd, IoMdEye } from "react-icons/io";
 import { MdDelete, MdEdit, MdKeyboardDoubleArrowLeft } from "react-icons/md";
 import { PiUsersBold } from "react-icons/pi";
 import { useDispatch, useSelector } from "react-redux";
@@ -19,11 +20,26 @@ import {
 function Customerpage({ readOnly = false }) {
   const dispatch = useDispatch();
   const { getAllCustomer, searchData } = useSelector((state) => state.customer);
+  const { user } = useSelector((state) => state.auth);
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
+  const navigate = useNavigate();
 
   const isReadOnlyMode = readOnly || checkReadOnly("customer");
   const canWrite = hasPermission("customer", "write");
   const canDelete = hasPermission("customer", "delete");
+
+  const dashboardBasePath = (() => {
+    switch (user?.role) {
+      case "admin":
+        return "/AdminDashboard";
+      case "manager":
+        return "/ManagerDashboard";
+      case "staff":
+        return "/StaffDashboard";
+      default:
+        return "";
+    }
+  })();
 
   const [query, setQuery] = useState("");
   const [customerCode, setCustomerCode] = useState("");
@@ -35,6 +51,7 @@ function Customerpage({ readOnly = false }) {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [customerBalances, setCustomerBalances] = useState({});
+  const [amountFilter, setAmountFilter] = useState("all");
 
   const fetchCustomerBalances = async () => {
     try {
@@ -166,6 +183,10 @@ function Customerpage({ readOnly = false }) {
       .catch((error) => toast.error(error || "Failed to remove customer"));
   };
 
+  const handleViewCustomer = (customerId) => {
+    navigate(`${dashboardBasePath}/customer/${customerId}`);
+  };
+
   const handleEditClick = (customer) => {
     if (isReadOnlyMode) {
       toast.error("You can only view customers in read-only mode");
@@ -183,6 +204,19 @@ function Customerpage({ readOnly = false }) {
   };
 
   const displayCustomers = query.trim() !== "" ? searchData : getAllCustomer;
+  const filteredCustomers = Array.isArray(displayCustomers)
+    ? displayCustomers.filter((customer) => {
+        if (amountFilter === "all") return true;
+        const summary = customerBalances[customer._id] || {};
+        const total = Number(summary.totalAmount || 0);
+        const paid = Number(summary.paidAmount || 0);
+        const remaining = Number(summary.remainingAmount || 0);
+        if (amountFilter === "total") return total > 0;
+        if (amountFilter === "collected") return paid > 0;
+        if (amountFilter === "remaining") return remaining > 0;
+        return true;
+      })
+    : [];
   const currency = (value) => `Rs ${Number(value || 0).toLocaleString()}`;
   const summaryTotals = Array.isArray(getAllCustomer)
     ? getAllCustomer.reduce(
@@ -236,6 +270,16 @@ function Customerpage({ readOnly = false }) {
           className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="Search customer..."
         />
+        <select
+          value={amountFilter}
+          onChange={(e) => setAmountFilter(e.target.value)}
+          className="w-full md:w-64 h-10 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+        >
+          <option value="all">All Customers</option>
+          <option value="total">Total Amount</option>
+          <option value="collected">Collected Amount</option>
+          <option value="remaining">Remaining Amount</option>
+        </select>
 
         {canWrite && (
           <button
@@ -330,7 +374,7 @@ function Customerpage({ readOnly = false }) {
       )}
 
       <div className="mt-4 bg-white rounded-2xl shadow-sm border overflow-hidden">
-        {!displayCustomers || displayCustomers.length === 0 ? (
+        {!filteredCustomers || filteredCustomers.length === 0 ? (
           <div className="p-10 text-center">
             <NoData
               title="No Customer Found"
@@ -352,7 +396,7 @@ function Customerpage({ readOnly = false }) {
                 </tr>
               </thead>
               <tbody>
-                {displayCustomers.map((customer) => {
+                {filteredCustomers.map((customer) => {
                   const customerSummary = customerBalances[customer._id] || {};
                   return (
                     <tr
@@ -377,6 +421,12 @@ function Customerpage({ readOnly = false }) {
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => handleViewCustomer(customer._id)}
+                            className="p-2 rounded-lg bg-slate-100 hover:bg-teal-100 text-emerald-700 transition"
+                          >
+                            <IoMdEye size={18} />
+                          </button>
                           {canWrite && (
                             <button
                               onClick={() => handleEditClick(customer)}
