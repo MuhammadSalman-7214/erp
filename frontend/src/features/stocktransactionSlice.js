@@ -83,20 +83,6 @@ const stocktransactionSlice = createSlice({
 
         // Add transaction to top
         state.getallStocks.unshift(action.payload);
-
-        // Update product quantity in store
-        if (state.products) {
-          const productIndex = state.products.findIndex(
-            (p) => p._id === action.payload.product._id,
-          );
-          if (productIndex !== -1) {
-            if (action.payload.type === "Stock-in") {
-              state.products[productIndex].quantity += action.payload.quantity;
-            } else if (action.payload.type === "Stock-out") {
-              state.products[productIndex].quantity -= action.payload.quantity;
-            }
-          }
-        }
       })
       .addCase(createStockTransaction.rejected, (state) => {
         state.iscreatedStocks = false;

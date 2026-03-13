@@ -1,5 +1,6 @@
 const Sale = require("../models/Salesmodel.js");
 const ProductModel = require("../models/Productmodel.js");
+const ProductCode = require("../models/ProductCodemodel");
 const Invoice = require("../models/Invoicemodel");
 const Customer = require("../models/Customermodel");
 const { getNextInvoiceNumber } = require("../libs/invoiceNumber");
@@ -42,7 +43,6 @@ module.exports.createSale = async (req, res) => {
     }
 
     const customerName = customer.name;
-    const customerCode = customer.customerCode || "";
 
     // Validation: Make sure products array is provided and has at least one item
     if (!products || !Array.isArray(products) || products.length === 0) {
@@ -54,10 +54,10 @@ module.exports.createSale = async (req, res) => {
 
     // Validate each product object
     for (const item of products) {
-      if (!item.product || !item.quantity) {
+      if (!item.productCode || !item.quantity) {
         return res.status(400).json({
           success: false,
-          message: "Each product must have product id and quantity",
+          message: "Each product must have product code id and quantity",
         });
       }
     }
@@ -66,22 +66,45 @@ module.exports.createSale = async (req, res) => {
     const resolvedProducts = [];
     let totalAmount = 0;
     for (const item of products) {
+      const productCodeRecord = await ProductCode.findOne({
+        _id: item.productCode,
+        user_id: userId,
+      });
+      if (!productCodeRecord) {
+        return res.status(404).json({
+          success: false,
+          message: `Product code ${item.productCode} not found`,
+        });
+      }
+
       const productRecord = await ProductModel.findOne({
-        _id: item.product,
+        _id: productCodeRecord.product,
         user_id: userId,
       });
       if (!productRecord) {
         return res.status(404).json({
           success: false,
-          message: `Product ${item.product} not found`,
+          message: `Product ${productCodeRecord.product} not found`,
+        });
+      }
+
+      if (item.product && String(item.product) !== String(productRecord._id)) {
+        return res.status(400).json({
+          success: false,
+          message: "Product does not match selected product code",
         });
       }
 
       const unitPrice =
-        productRecord.pricing?.currentSalesPrice ?? productRecord.Price ?? 0;
+        Number(productRecord.salePrice) ||
+        productRecord.pricing?.currentSalesPrice ||
+        productRecord.Price ||
+        Number(productCodeRecord.salePrice) ||
+        0;
       totalAmount += unitPrice * item.quantity;
       resolvedProducts.push({
-        product: item.product,
+        product: productRecord._id,
+        productCode: productCodeRecord._id,
         quantity: item.quantity,
         price: unitPrice,
       });
@@ -97,7 +120,6 @@ module.exports.createSale = async (req, res) => {
       user_id: userId,
       customer: customer._id,
       customerName,
-      customerCode,
       products: resolvedProducts,
       paymentMethod,
       paymentStatus,
@@ -106,19 +128,26 @@ module.exports.createSale = async (req, res) => {
       stockOutRecorded: false,
     });
 
-    const invoiceItems = resolvedProducts.map((item) => ({
-      name: "",
-      quantity: item.quantity,
-      unitPrice: item.price,
-      total: item.price * item.quantity,
-    }));
+    const invoiceItems = [];
 
     for (let i = 0; i < resolvedProducts.length; i += 1) {
       const productRecord = await ProductModel.findOne({
         _id: resolvedProducts[i].product,
         user_id: userId,
       });
-      invoiceItems[i].name = productRecord?.name || "Product";
+      const productCodeRecord = await ProductCode.findOne({
+        _id: resolvedProducts[i].productCode,
+        user_id: userId,
+      });
+      const variantLabel = productCodeRecord?.variantName
+        ? ` - ${productCodeRecord.variantName}`
+        : "";
+      invoiceItems.push({
+        name: `${productRecord?.name || "Product"} (${productCodeRecord?.code || "code"})${variantLabel}`,
+        quantity: resolvedProducts[i].quantity,
+        unitPrice: resolvedProducts[i].price,
+        total: resolvedProducts[i].price * resolvedProducts[i].quantity,
+      });
     }
 
     const invoiceNumber = await getNextInvoiceNumber("SI", userId);
@@ -136,7 +165,6 @@ module.exports.createSale = async (req, res) => {
       invoiceType: "sales",
       customerId: customer._id,
       customer: {
-        code: customerCode,
         name: customerName,
         phone: customer.contactInfo?.phone || "",
         address: customer.contactInfo?.address || "",
@@ -164,6 +192,7 @@ module.exports.createSale = async (req, res) => {
       user_id: userId,
     })
       .populate("products.product")
+      .populate("products.productCode")
       .populate("customer");
     res.status(201).json({
       success: true,
@@ -194,6 +223,7 @@ module.exports.getAllSales = async (req, res) => {
     const userId = req.user.userId;
     const sales = await Sale.find({ user_id: userId })
       .populate("products.product")
+      .populate("products.productCode")
       .populate("customer")
       .sort({ createdAt: -1 });
     res.status(200).json({ success: true, sales });
@@ -213,6 +243,7 @@ module.exports.getSaleById = async (req, res) => {
     const userId = req.user.userId;
     const sale = await Sale.findOne({ _id: id, user_id: userId })
       .populate("products.product")
+      .populate("products.productCode")
       .populate("customer");
     if (!sale)
       return res
@@ -276,29 +307,45 @@ module.exports.updateSale = async (req, res) => {
     const resolvedProducts = [];
 
     for (const item of updatedData.products) {
-      if (!item.product || !item.quantity) {
+      if (!item.productCode || !item.quantity) {
         return res.status(400).json({
           success: false,
-          message: "Each product must have product id and quantity",
+          message: "Each product must have product code id and quantity",
+        });
+      }
+
+      const productCodeRecord = await ProductCode.findOne({
+        _id: item.productCode,
+        user_id: userId,
+      });
+      if (!productCodeRecord) {
+        return res.status(404).json({
+          success: false,
+          message: `Product code ${item.productCode} not found`,
         });
       }
 
       const productRecord = await ProductModel.findOne({
-        _id: item.product,
+        _id: productCodeRecord.product,
         user_id: userId,
       });
       if (!productRecord) {
         return res.status(404).json({
           success: false,
-          message: `Product ${item.product} not found`,
+          message: `Product ${productCodeRecord.product} not found`,
         });
       }
 
       const unitPrice =
-        productRecord.pricing?.currentSalesPrice ?? productRecord.Price ?? 0;
+        Number(productRecord.salePrice) ||
+        productRecord.pricing?.currentSalesPrice ||
+        productRecord.Price ||
+        Number(productCodeRecord.salePrice) ||
+        0;
       updatedTotalAmount += item.quantity * unitPrice;
       resolvedProducts.push({
-        product: item.product,
+        product: productRecord._id,
+        productCode: productCodeRecord._id,
         quantity: item.quantity,
         price: unitPrice,
       });
@@ -323,7 +370,6 @@ module.exports.updateSale = async (req, res) => {
         ...updatedData,
         customer: customer._id,
         customerName: customer.name,
-        customerCode: customer.customerCode || "",
         products: resolvedProducts,
         totalAmount: updatedTotalAmount,
         status: resolvedStatus,
@@ -339,8 +385,15 @@ module.exports.updateSale = async (req, res) => {
           _id: item.product,
           user_id: userId,
         });
+        const productCodeRecord = await ProductCode.findOne({
+          _id: item.productCode,
+          user_id: userId,
+        });
+        const variantLabel = productCodeRecord?.variantName
+          ? ` - ${productCodeRecord.variantName}`
+          : "";
         invoiceItems.push({
-          name: productRecord?.name || "Product",
+          name: `${productRecord?.name || "Product"} (${productCodeRecord?.code || "code"})${variantLabel}`,
           quantity: item.quantity,
           unitPrice: item.price,
           total: item.price * item.quantity,
@@ -351,12 +404,11 @@ module.exports.updateSale = async (req, res) => {
         { _id: existingSale.invoice, user_id: userId },
         {
           customerId: customer._id,
-        customer: {
-          code: customer.customerCode || "",
-          name: customer.name,
-          phone: customer.contactInfo?.phone || "",
-          address: customer.contactInfo?.address || "",
-        },
+          customer: {
+            name: customer.name,
+            phone: customer.contactInfo?.phone || "",
+            address: customer.contactInfo?.address || "",
+          },
           items: invoiceItems,
           subTotal: updatedTotalAmount,
           totalAmount: updatedTotalAmount,
@@ -373,6 +425,7 @@ module.exports.updateSale = async (req, res) => {
     // 4️⃣ Populate for frontend
     const populatedSale = await Sale.findOne({ _id: id, user_id: userId })
       .populate("products.product")
+      .populate("products.productCode")
       .populate("customer");
 
     res.status(200).json({
@@ -407,6 +460,7 @@ module.exports.SearchSales = async (req, res) => {
     if (!query || query.trim() === "") {
       const allSales = await Sale.find({ user_id: userId })
         .populate("products.product")
+        .populate("products.productCode")
         .populate("customer");
       return res.status(200).json({ success: true, sales: allSales });
     }
@@ -419,6 +473,7 @@ module.exports.SearchSales = async (req, res) => {
       ],
     })
       .populate("products.product")
+      .populate("products.productCode")
       .populate("customer");
 
     res.status(200).json({ success: true, sales: searchdata });
@@ -450,6 +505,7 @@ module.exports.getSalesByCustomer = async (req, res) => {
 
     const sales = await Sale.find({ user_id: userId, customer: customerId })
       .populate("products.product")
+      .populate("products.productCode")
       .populate("customer")
       .sort({ createdAt: -1 });
 

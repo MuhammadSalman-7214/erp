@@ -12,6 +12,11 @@ const StockTranscationSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
     },
+    productCode: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ProductCode",
+      required: true,
+    },
     type: {
       type: String,
       enum: ["Stock-in", "Stock-out"],

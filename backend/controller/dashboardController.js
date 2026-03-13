@@ -1,6 +1,6 @@
 const Invoice = require("../models/Invoicemodel");
 const Payment = require("../models/Paymentmodel");
-const Product = require("../models/Productmodel");
+const ProductCode = require("../models/ProductCodemodel");
 
 const getDashboardSummary = async (req, res) => {
   try {
@@ -94,10 +94,11 @@ const getDashboardSummary = async (req, res) => {
       .limit(8)
       .lean();
 
-    const lowStockProducts = await Product.find({
+    const lowStockProducts = await ProductCode.find({
       quantity: { $lte: 5 },
       user_id: userId,
     })
+      .populate("product", "name")
       .sort({ quantity: 1 })
       .limit(8)
       .lean();

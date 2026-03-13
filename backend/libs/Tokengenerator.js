@@ -13,7 +13,7 @@ const generateToken = async (user, res) => {
     const token = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" },
+      { expiresIn: "8h" },
     );
     res.cookie("token", token, {
       maxAge: 7 * 24 * 60 * 60 * 1000,
@@ -21,7 +21,6 @@ const generateToken = async (user, res) => {
       sameSite: "None",
       secure: true,
     });
-
     return token;
   } catch (error) {
     console.error("Error generating token:", error.message);

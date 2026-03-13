@@ -2,8 +2,7 @@ const Customer = require("../models/Customermodel");
 
 module.exports.createCustomer = async (req, res) => {
   try {
-    const { customerCode, name, contactInfo, openingBalance, paymentTerms } =
-      req.body;
+    const { name, contactInfo } = req.body;
     const userId = req.user.userId;
 
     if (!name || !name.trim()) {
@@ -13,36 +12,14 @@ module.exports.createCustomer = async (req, res) => {
       });
     }
 
-    const normalizedCode =
-      typeof customerCode === "string" ? customerCode.trim().toUpperCase() : "";
-    if (normalizedCode) {
-      const existingCode = await Customer.findOne({
-        customerCode: normalizedCode,
-        user_id: userId,
-      });
-      if (existingCode) {
-        return res.status(400).json({
-          success: false,
-          message: "Customer code already exists.",
-        });
-      }
-    }
-
-    const customerPayload = {
+    const customer = await Customer.create({
       user_id: userId,
       name: name.trim(),
       contactInfo: {
         phone: contactInfo?.phone || "",
         address: contactInfo?.address || "",
       },
-      openingBalance: Number(openingBalance) || 0,
-      paymentTerms: paymentTerms || "",
-    };
-    if (normalizedCode) {
-      customerPayload.customerCode = normalizedCode;
-    }
-
-    const customer = await Customer.create(customerPayload);
+    });
 
     res.status(201).json({
       success: true,
@@ -106,8 +83,7 @@ module.exports.getCustomerById = async (req, res) => {
 module.exports.editCustomer = async (req, res) => {
   try {
     const { id } = req.params;
-    const { customerCode, name, contactInfo, openingBalance, paymentTerms } =
-      req.body;
+    const { name, contactInfo } = req.body;
     const userId = req.user.userId;
 
     const customer = await Customer.findOne({ _id: id, user_id: userId });
@@ -118,33 +94,11 @@ module.exports.editCustomer = async (req, res) => {
       });
     }
 
-    const normalizedCode =
-      typeof customerCode === "string" ? customerCode.trim().toUpperCase() : "";
-    if (normalizedCode && normalizedCode !== customer.customerCode) {
-      const existingCode = await Customer.findOne({
-        customerCode: normalizedCode,
-        _id: { $ne: id },
-        user_id: userId,
-      });
-      if (existingCode) {
-        return res.status(400).json({
-          success: false,
-          message: "Customer code already exists.",
-        });
-      }
-      customer.customerCode = normalizedCode;
-    }
-
     customer.name = name?.trim() || customer.name;
     customer.contactInfo = {
       phone: contactInfo?.phone ?? customer.contactInfo?.phone ?? "",
       address: contactInfo?.address ?? customer.contactInfo?.address ?? "",
     };
-    customer.openingBalance =
-      openingBalance !== undefined
-        ? Number(openingBalance) || 0
-        : customer.openingBalance;
-    customer.paymentTerms = paymentTerms ?? customer.paymentTerms;
 
     const updatedCustomer = await customer.save();
 
@@ -207,7 +161,6 @@ module.exports.searchCustomer = async (req, res) => {
       user_id: userId,
       $or: [
         { name: { $regex: query, $options: "i" } },
-        { customerCode: { $regex: query, $options: "i" } },
         { "contactInfo.phone": { $regex: query, $options: "i" } },
       ],
     }).sort({ createdAt: -1 });

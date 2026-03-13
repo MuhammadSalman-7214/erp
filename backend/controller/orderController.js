@@ -1,6 +1,7 @@
 const Order = require("../models/Ordermodel");
 const logActivity = require("../libs/logger");
 const ProductModel = require("../models/Productmodel");
+const ProductCode = require("../models/ProductCodemodel");
 const Vendor = require("../models/Suppliermodel");
 const Invoice = require("../models/Invoicemodel");
 const { getNextInvoiceNumber } = require("../libs/invoiceNumber");
@@ -11,26 +12,83 @@ const {
 
 const createOrder = async (req, res) => {
   try {
-    const { Product, status, supplier, vendor } = req.body;
+    const { Product, products, status, supplier, vendor } = req.body;
     const userId = req.user.userId;
     if (!status) return res.status(400).json({ message: "Status is required" });
-    if (!Product?.product)
-      return res.status(400).json({ message: "Product ID is required" });
-    if (!Product?.price)
-      return res.status(400).json({ message: "Price is required" });
-    if (!Product?.quantity)
-      return res.status(400).json({ message: "Quantity is required" });
+    const incomingProducts = Array.isArray(products) ? products : null;
+    if (!incomingProducts && !Product?.productCode) {
+      return res.status(400).json({ message: "Product code ID is required" });
+    }
 
-    const { product, price, quantity } = Product;
+    const orderItems = incomingProducts?.length
+      ? incomingProducts
+      : [Product];
 
-    const totalOrderAmount = price * quantity;
+    if (!orderItems.length) {
+      return res.status(400).json({ message: "At least one product is required" });
+    }
 
-    const productRecord = await ProductModel.findOne({
-      _id: product,
-      user_id: userId,
-    });
-    if (!productRecord) {
-      return res.status(404).json({ message: "Product not found" });
+    const resolvedItems = [];
+    let totalOrderAmount = 0;
+
+    for (const item of orderItems) {
+      if (!item?.productCode) {
+        return res
+          .status(400)
+          .json({ message: "Product code ID is required" });
+      }
+      if (!item?.quantity) {
+        return res.status(400).json({ message: "Quantity is required" });
+      }
+
+      const { product, productCode, price, quantity } = item;
+
+      const productCodeRecord = await ProductCode.findOne({
+        _id: productCode,
+        user_id: userId,
+      });
+      if (!productCodeRecord) {
+        return res.status(404).json({ message: "Product code not found" });
+      }
+
+      const productRecord = await ProductModel.findOne({
+        _id: productCodeRecord.product,
+        user_id: userId,
+      });
+      if (!productRecord) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
+      if (product && String(product) !== String(productRecord._id)) {
+        return res
+          .status(400)
+          .json({ message: "Product does not match selected product code" });
+      }
+
+      const resolvedUnitPrice =
+        price !== undefined && price !== null
+          ? Number(price)
+          : Number(
+              productRecord.purchasePrice ??
+                productRecord.pricing?.currentPurchasePrice ??
+                productCodeRecord.purchasePrice ??
+                0,
+            );
+
+      if (Number.isNaN(resolvedUnitPrice)) {
+        return res.status(400).json({ message: "Price is required" });
+      }
+
+      totalOrderAmount += resolvedUnitPrice * Number(quantity);
+      resolvedItems.push({
+        product: productRecord._id,
+        productCode: productCodeRecord._id,
+        quantity: Number(quantity),
+        price: resolvedUnitPrice,
+        name: productRecord.name,
+        code: productCodeRecord.code,
+        variantName: productCodeRecord.variantName,
+      });
     }
 
     const vendorId = vendor || supplier || null;
@@ -44,10 +102,24 @@ const createOrder = async (req, res) => {
       }
     }
 
+    const firstItem = resolvedItems[0];
     const newOrder = new Order({
       user_id: userId,
       user: userId,
-      Product,
+      Product: firstItem
+        ? {
+            product: firstItem.product,
+            productCode: firstItem.productCode,
+            price: firstItem.price,
+            quantity: firstItem.quantity,
+          }
+        : undefined,
+      products: resolvedItems.map((item) => ({
+        product: item.product,
+        productCode: item.productCode,
+        price: item.price,
+        quantity: item.quantity,
+      })),
       vendor: vendorId,
       supplier,
       totalAmount: totalOrderAmount,
@@ -63,19 +135,22 @@ const createOrder = async (req, res) => {
     }
 
     const invoiceNumber = await getNextInvoiceNumber("PI", userId);
+    const invoiceItems = resolvedItems.map((item) => {
+      const variantLabel = item.variantName ? ` - ${item.variantName}` : "";
+      return {
+        name: `${item.name} (${item.code})${variantLabel}`,
+        quantity: item.quantity,
+        unitPrice: item.price,
+        total: Number(item.price) * Number(item.quantity),
+      };
+    });
+
     const invoice = await Invoice.create({
       user_id: userId,
       invoiceNumber,
       invoiceType: "purchase",
       vendor: vendorId,
-      items: [
-        {
-          name: productRecord.name,
-          quantity,
-          unitPrice: price,
-          total: totalOrderAmount,
-        },
-      ],
+      items: invoiceItems,
       taxRate: 0,
       discount: 0,
       currency: "USD",
@@ -148,13 +223,12 @@ const getOrder = async (req, res) => {
     const userId = req.user.userId;
     const orders = await Order.find({ user_id: userId })
       .populate("Product.product", "name")
+      .populate("Product.productCode")
+      .populate("products.product", "name")
+      .populate("products.productCode")
       .populate("user", "name email")
       .populate("vendor", "name");
     // .populate("supplier", "name");
-
-    // if (!orders || orders.length === 0) {
-    //   return res.status(404).json({ message: "No orders found" });
-    // }
 
     res.status(200).json(orders);
   } catch (error) {

@@ -1,47 +1,67 @@
 const Product = require("../models/Productmodel");
+const ProductCode = require("../models/ProductCodemodel");
 const StockTransaction = require("../models/StockTranscationmodel");
 const Vendor = require("../models/Suppliermodel");
 
 // Create a stock transaction
 module.exports.createStockTransaction = async (req, res) => {
   try {
-    const { product, type, quantity, supplier, vendor } = req.body;
+    const { productCode, type, quantity, supplier, vendor, product } = req.body;
     const userId = req.user.userId;
 
-    if (!product || !type || !quantity) {
+    if (!productCode || !type || !quantity) {
       return res.status(400).json({
         success: false,
-        message: "Product, type, and quantity are required.",
+        message: "Product code, type, and quantity are required.",
       });
     }
 
-    const productToUpdate = await Product.findOne({
-      _id: product,
+    const codeRecord = await ProductCode.findOne({
+      _id: productCode,
       user_id: userId,
     });
 
-    if (!productToUpdate) {
+    if (!codeRecord) {
+      return res.status(404).json({
+        success: false,
+        message: "Product code not found",
+      });
+    }
+
+    const productRecord = await Product.findOne({
+      _id: codeRecord.product,
+      user_id: userId,
+    });
+
+    if (!productRecord) {
       return res.status(404).json({
         success: false,
         message: "Product not found",
       });
     }
 
-    if (type === "Stock-out" && productToUpdate.quantity < quantity) {
+    if (product && String(product) !== String(productRecord._id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Product does not match selected product code",
+      });
+    }
+
+    if (type === "Stock-out" && codeRecord.quantity < quantity) {
       return res.status(400).json({
         success: false,
         message: "Insufficient stock for Stock-out",
       });
     }
 
-    // ✅ Update product quantity
+    // ✅ Update product code quantity
     if (type === "Stock-in") {
-      productToUpdate.quantity += Number(quantity);
+      codeRecord.quantity += Number(quantity);
     } else {
-      productToUpdate.quantity -= Number(quantity);
+      codeRecord.quantity -= Number(quantity);
     }
 
-    await productToUpdate.save();
+    await codeRecord.save();
 
     const vendorId = vendor || supplier || null;
     if (vendorId) {
@@ -60,7 +80,8 @@ module.exports.createStockTransaction = async (req, res) => {
     // ✅ Save transaction only after validation
     const newTransaction = new StockTransaction({
       user_id: userId,
-      product,
+      product: productRecord._id,
+      productCode,
       type,
       quantity,
       vendor: vendorId,
@@ -74,6 +95,7 @@ module.exports.createStockTransaction = async (req, res) => {
       user_id: userId,
     })
       .populate("product")
+      .populate("productCode")
       .populate("vendor")
       .populate("supplier");
 
@@ -96,6 +118,7 @@ module.exports.getAllStockTransactions = async (req, res) => {
     const userId = req.user.userId;
     const transactions = await StockTransaction.find({ user_id: userId })
       .populate("product")
+      .populate("productCode")
       .populate("vendor")
       .populate("supplier")
       .sort({ transactionDate: -1 });
@@ -111,16 +134,17 @@ module.exports.getAllStockTransactions = async (req, res) => {
   }
 };
 
-// Get transactions by product
-module.exports.getStockTransactionsByProduct = async (req, res) => {
+// Get transactions by product code
+module.exports.getStockTransactionsByProductCode = async (req, res) => {
   try {
-    const { productId } = req.params;
+    const { productCodeId } = req.params;
     const userId = req.user.userId;
     const transactions = await StockTransaction.find({
-      product: productId,
+      productCode: productCodeId,
       user_id: userId,
     })
       .populate("product")
+      .populate("productCode")
       .populate("vendor")
       .populate("supplier")
       .sort({ transactionDate: -1 });
@@ -128,16 +152,16 @@ module.exports.getStockTransactionsByProduct = async (req, res) => {
     if (!transactions.length) {
       return res.status(404).json({
         success: false,
-        message: "No transactions found for this product.",
+        message: "No transactions found for this product code.",
       });
     }
 
     res.status(200).json({ success: true, transactions });
   } catch (error) {
-    console.error("Get Stock Transactions By Product Error:", error);
+    console.error("Get Stock Transactions By Product Code Error:", error);
     res.status(500).json({
       success: false,
-      message: "Error fetching transactions by product",
+      message: "Error fetching transactions by product code",
       error: error.message,
     });
   }
@@ -153,6 +177,7 @@ module.exports.getStockTransactionsBySupplier = async (req, res) => {
       $or: [{ supplier: supplierId }, { vendor: supplierId }],
     })
       .populate("product")
+      .populate("productCode")
       .populate("vendor")
       .populate("supplier")
       .sort({ transactionDate: -1 });
@@ -186,6 +211,7 @@ module.exports.searchStocks = async (req, res) => {
 
     const transactions = await StockTransaction.find({ user_id: userId })
       .populate("product")
+      .populate("productCode")
       .populate("vendor")
       .populate("supplier");
 
@@ -194,13 +220,16 @@ module.exports.searchStocks = async (req, res) => {
       const productMatch = t.product?.name
         ?.toLowerCase()
         .includes(query.toLowerCase());
+      const codeMatch = t.productCode?.code
+        ?.toLowerCase()
+        .includes(query.toLowerCase());
       const supplierMatch = t.supplier?.name
         ?.toLowerCase()
         .includes(query.toLowerCase());
       const vendorMatch = t.vendor?.name
         ?.toLowerCase()
         .includes(query.toLowerCase());
-      return typeMatch || productMatch || supplierMatch || vendorMatch;
+      return typeMatch || productMatch || codeMatch || supplierMatch || vendorMatch;
     });
 
     res.status(200).json({ success: true, transactions: filtered });

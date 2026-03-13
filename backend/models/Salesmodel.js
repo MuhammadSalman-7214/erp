@@ -9,12 +9,16 @@ const SaleSchema = new mongoose.Schema(
     },
     customer: { type: mongoose.Schema.Types.ObjectId, ref: "Customer" },
     customerName: { type: String, required: true },
-    customerCode: { type: String, trim: true },
     products: [
       {
         product: {
           type: mongoose.Schema.Types.ObjectId,
           ref: "Product",
+          required: true,
+        },
+        productCode: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "ProductCode",
           required: true,
         },
         quantity: { type: Number, required: true },

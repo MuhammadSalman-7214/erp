@@ -139,10 +139,7 @@ const orderSlice = createSlice({
       })
 
       .addCase(createdOrder.fulfilled, (state, action) => {
-        state.isorderadd = false;
-        if (action.payload?.displayOrder?.length > 0) {
-          state.getorder.push(action.payload.displayOrder[0]);
-        }
+        state.getorder.unshift(action.payload);
       })
 
       .addCase(createdOrder.rejected, (state, action) => {

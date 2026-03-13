@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
-import TopNavbar from "../Components/TopNavbar";
+import { useEffect, useMemo, useState } from "react";
 import { IoMdAdd } from "react-icons/io";
-import { MdEdit, MdKeyboardDoubleArrowLeft } from "react-icons/md";
+import { MdDelete, MdEdit, MdKeyboardDoubleArrowLeft } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
 import FormattedTime from "../lib/FormattedTime";
 
@@ -13,7 +12,6 @@ import {
 } from "../features/salesSlice";
 import SalesChart from "../lib/Salesgraph";
 import toast from "react-hot-toast";
-import { gettingallCategory } from "../features/categorySlice";
 import { gettingallproducts } from "../features/productSlice";
 import { PiInvoiceBold } from "react-icons/pi";
 import NoData from "../Components/NoData";
@@ -26,35 +24,36 @@ function Salespage() {
 
   const dispatch = useDispatch();
   const [query, setquery] = useState("");
-  const [formErrors, setFormErrors] = useState({});
 
   const [customerId, setCustomerId] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
   const [showCustomerOptions, setShowCustomerOptions] = useState(false);
   const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
   const [newCustomerData, setNewCustomerData] = useState({
-    customerCode: "",
     phone: "",
     address: "",
-    paymentTerms: "",
   });
-  const [Product, setProduct] = useState("");
   const [Payment, setPayment] = useState("");
-  const [Price, setPrice] = useState("");
-  const [quantity, setQuantity] = useState("");
   const [paymentStatus, setpaymentStatus] = useState("");
   const [Status, setStatus] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
-  const [Category, setCategory] = useState("");
-  const [unitPrice, setUnitPrice] = useState(0);
+  const [codeQuery, setCodeQuery] = useState("");
+  const [debouncedCodeQuery, setDebouncedCodeQuery] = useState("");
+  const [showCodeOptions, setShowCodeOptions] = useState(false);
+  const [cartItems, setCartItems] = useState([]);
 
   const [selectedSales, setselectedSales] = useState(null);
-  const { getallCategory } = useSelector((state) => state.category);
   const { getAllCustomer } = useSelector((state) => state.customer);
-
+  const getStatusBadge = (status) => {
+    const mapping = {
+      pending: "bg-yellow-50 text-yellow-700",
+      completed: "bg-blue-50 text-blue-700",
+      cancelled: "bg-teal-50 text-teal-700",
+    };
+    return mapping[status] || "bg-gray-200 text-gray-800";
+  };
   useEffect(() => {
-    dispatch(gettingallCategory());
-    dispatch(gettingallproducts()); // fetch products for the dropdown
+    dispatch(gettingallproducts());
     dispatch(getAllCustomers());
   }, [dispatch]);
 
@@ -68,10 +67,68 @@ function Salespage() {
         dispatch(searchsalesdata(query));
       }, 500);
       return () => clearTimeout(repeatTimeout);
-    } else {
-      dispatch(gettingallSales());
     }
+    dispatch(gettingallSales());
   }, [query, dispatch]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedCodeQuery(codeQuery.trim());
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [codeQuery]);
+
+  const codeOptions = useMemo(() => {
+    if (!debouncedCodeQuery) return [];
+    const q = debouncedCodeQuery.toLowerCase();
+    const results = [];
+    getallproduct.forEach((product) => {
+      (product.productCodes || []).forEach((code) => {
+        const codeValue = String(code.code || "").toLowerCase();
+        if (!codeValue.includes(q)) return;
+        results.push({
+          productId: product._id,
+          codeId: code._id,
+          code: code.code,
+          name: product.name,
+          availableQty: Number(code.quantity || 0),
+        });
+      });
+    });
+    return results.slice(0, 20);
+  }, [debouncedCodeQuery, getallproduct]);
+
+  const availableQtyByCode = useMemo(() => {
+    const map = new Map();
+    getallproduct.forEach((product) => {
+      (product.productCodes || []).forEach((code) => {
+        map.set(String(code._id), Number(code.quantity || 0));
+      });
+    });
+    return map;
+  }, [getallproduct]);
+
+  const buildCartItemsFromSale = (sale) => {
+    const products = Array.isArray(sale?.products) ? sale.products : [];
+    return products.map((item) => {
+      const productId = item.product?._id || item.product;
+      const codeId = item.productCode?._id || item.productCode;
+      const productRecord = getallproduct.find((p) => p._id === productId);
+      const codeRecord = productRecord?.productCodes?.find(
+        (code) => code._id === codeId,
+      );
+      return {
+        productId,
+        codeId,
+        name: productRecord?.name || item.product?.name || "Product",
+        code: codeRecord?.code || item.productCode?.code || "code",
+        quantity: Number(item.quantity || 0),
+        availableQty: Number(
+          codeRecord?.quantity ?? availableQtyByCode.get(String(codeId)) ?? 0,
+        ),
+      };
+    });
+  };
 
   const handleEditSubmit = (event) => {
     event.preventDefault();
@@ -80,10 +137,44 @@ function Salespage() {
       toast.error("Customer is required");
       return;
     }
+    if (!cartItems.length) {
+      toast.error("Add at least one product");
+      return;
+    }
+
+    const invalidQty = cartItems.some(
+      (item) => !item.quantity || Number(item.quantity) <= 0,
+    );
+    if (invalidQty) {
+      toast.error("Quantity is required for all items");
+      return;
+    }
+
+    const insufficient = cartItems.find((item) => {
+      const available =
+        item.availableQty ??
+        availableQtyByCode.get(String(item.codeId)) ??
+        0;
+      return Number(item.quantity) > Number(available);
+    });
+    if (insufficient) {
+      const available =
+        insufficient.availableQty ??
+        availableQtyByCode.get(String(insufficient.codeId)) ??
+        0;
+      toast.error(
+        `Only ${available} available for ${insufficient.code} - ${insufficient.name}`,
+      );
+      return;
+    }
 
     const updatedData = {
       customerId,
-      products: [{ product: Product, quantity: Number(quantity) }],
+      products: cartItems.map((item) => ({
+        product: item.productId,
+        productCode: item.codeId,
+        quantity: Number(item.quantity),
+      })),
       paymentMethod: Payment,
       paymentStatus,
       status: Status,
@@ -103,6 +194,41 @@ function Salespage() {
       });
   };
 
+  const addToCart = (item) => {
+    setCartItems((prev) => {
+      const existing = prev.find((p) => p.codeId === item.codeId);
+      if (existing) {
+        return prev.map((p) =>
+          p.codeId === item.codeId
+            ? { ...p, quantity: Number(p.quantity || 0) + 1 }
+            : p,
+        );
+      }
+      return [
+        ...prev,
+        {
+          ...item,
+          quantity: 1,
+          availableQty: Number(item.availableQty || 0),
+        },
+      ];
+    });
+    setCodeQuery("");
+    setShowCodeOptions(false);
+  };
+
+  const updateCartQuantity = (codeId, value) => {
+    setCartItems((prev) =>
+      prev.map((item) =>
+        item.codeId === codeId ? { ...item, quantity: value } : item,
+      ),
+    );
+  };
+
+  const removeFromCart = (codeId) => {
+    setCartItems((prev) => prev.filter((item) => item.codeId !== codeId));
+  };
+
   const submitsales = async (event) => {
     event.preventDefault();
     let resolvedCustomerId = customerId;
@@ -120,12 +246,10 @@ function Salespage() {
       try {
         const payload = {
           name: customerName,
-          customerCode: newCustomerData.customerCode.trim() || undefined,
           contactInfo: {
             phone: newCustomerData.phone.trim(),
             address: newCustomerData.address.trim(),
           },
-          paymentTerms: newCustomerData.paymentTerms.trim(),
         };
         const result = await dispatch(createCustomer(payload)).unwrap();
         const newCustomer = result?.customer;
@@ -135,11 +259,7 @@ function Salespage() {
         }
         resolvedCustomerId = newCustomer._id;
         setCustomerId(newCustomer._id);
-        setCustomerSearch(
-          newCustomer.customerCode
-            ? `${newCustomer.name} (${newCustomer.customerCode})`
-            : newCustomer.name,
-        );
+        setCustomerSearch(newCustomer.name);
       } catch (error) {
         toast.error(error || "Failed to create customer");
         return;
@@ -148,9 +268,44 @@ function Salespage() {
       }
     }
 
+    if (!cartItems.length) {
+      toast.error("Add at least one product");
+      return;
+    }
+
+    const invalidQty = cartItems.some(
+      (item) => !item.quantity || Number(item.quantity) <= 0,
+    );
+    if (invalidQty) {
+      toast.error("Quantity is required for all items");
+      return;
+    }
+
+    const insufficient = cartItems.find((item) => {
+      const available =
+        item.availableQty ??
+        availableQtyByCode.get(String(item.codeId)) ??
+        0;
+      return Number(item.quantity) > Number(available);
+    });
+    if (insufficient) {
+      const available =
+        insufficient.availableQty ??
+        availableQtyByCode.get(String(insufficient.codeId)) ??
+        0;
+      toast.error(
+        `Only ${available} available for ${insufficient.code} - ${insufficient.name}`,
+      );
+      return;
+    }
+
     const salesData = {
       customerId: resolvedCustomerId,
-      products: [{ product: Product, quantity: Number(quantity) }],
+      products: cartItems.map((item) => ({
+        product: item.productId,
+        productCode: item.codeId,
+        quantity: Number(item.quantity),
+      })),
       paymentMethod: Payment,
       paymentStatus,
       status: Status,
@@ -162,9 +317,9 @@ function Salespage() {
       closeForm();
     } catch (error) {
       if (error?.available && error?.requested) {
-        setFormErrors({
-          quantity: `Only ${error.available} items available. You requested ${error.requested}.`,
-        });
+        toast.error(
+          `Only ${error.available} items available. You requested ${error.requested}.`,
+        );
       }
     }
   };
@@ -173,17 +328,15 @@ function Salespage() {
     setCustomerSearch("");
     setShowCustomerOptions(false);
     setNewCustomerData({
-      customerCode: "",
       phone: "",
       address: "",
-      paymentTerms: "",
     });
-    setProduct("");
     setPayment("");
-    setPrice("");
-    setQuantity("");
     setpaymentStatus("");
     setStatus("");
+    setCartItems([]);
+    setCodeQuery("");
+    setShowCodeOptions(false);
   };
   const closeForm = () => {
     setIsFormVisible(false);
@@ -193,48 +346,19 @@ function Salespage() {
   const handleEditClick = (sales) => {
     setselectedSales(sales);
     setCustomerId(sales.customer?._id || sales.customer || "");
-    setCustomerSearch(
-      sales.customer?.name ||
-        sales.customerName ||
-        sales.customer?.customerCode ||
-        "",
-    );
+    setCustomerSearch(sales.customer?.name || sales.customerName || "");
     setNewCustomerData({
-      customerCode: "",
       phone: "",
       address: "",
-      paymentTerms: "",
     });
-
-    if (sales.products && sales.products.length > 0) {
-      const firstProduct = sales.products[0];
-      setProduct(firstProduct.product?._id || "");
-      setPrice(firstProduct.price || "");
-      setQuantity(firstProduct.quantity || "");
-      const productObj = getallproduct.find(
-        (p) => p._id === firstProduct.product?._id,
-      );
-
-      if (productObj) {
-        setUnitPrice(
-          productObj.pricing?.currentSalesPrice ?? productObj.Price ?? 0,
-        );
-      }
-    } else {
-      setProduct("");
-      setPrice("");
-      setQuantity("");
-    }
-
+    setCartItems(buildCartItemsFromSale(sales));
+    setCodeQuery("");
+    setShowCodeOptions(false);
     setPayment(sales.paymentMethod || "");
     setpaymentStatus(sales.paymentStatus || "");
     setStatus(sales.status || "");
     setIsFormVisible(true);
   };
-
-  useEffect(() => {
-    setProduct(""); // reset selected product when category changes
-  }, [Category]);
 
   const displaySales = query.trim() !== "" ? searchdata : getallsales;
 
@@ -246,11 +370,7 @@ function Salespage() {
   const filteredCustomers = normalizedCustomerSearch
     ? customers.filter((customer) => {
         const name = customer.name?.toLowerCase() || "";
-        const code = customer.customerCode?.toLowerCase() || "";
-        return (
-          name.includes(normalizedCustomerSearch) ||
-          code.includes(normalizedCustomerSearch)
-        );
+        return name.includes(normalizedCustomerSearch);
       })
     : [];
   const exactMatchCustomer = customers.find(
@@ -261,59 +381,17 @@ function Salespage() {
 
   const handleSelectCustomer = (customer) => {
     setCustomerId(customer._id);
-    setCustomerSearch(
-      customer.customerCode
-        ? `${customer.name} (${customer.customerCode})`
-        : customer.name,
-    );
+    setCustomerSearch(customer.name);
     setNewCustomerData({
-      customerCode: "",
       phone: "",
       address: "",
-      paymentTerms: "",
     });
     setShowCustomerOptions(false);
   };
 
-  const handleCreateCustomer = async () => {
-    const name = customerSearch.trim();
-    if (!name) return;
-    if (!newCustomerData.phone.trim()) {
-      toast.error("Customer phone is required");
-      return;
-    }
-    setIsCreatingCustomer(true);
-    try {
-      const payload = {
-        name,
-        customerCode: newCustomerData.customerCode.trim() || undefined,
-        contactInfo: {
-          phone: newCustomerData.phone.trim(),
-          address: newCustomerData.address.trim(),
-        },
-        paymentTerms: newCustomerData.paymentTerms.trim(),
-      };
-      const result = await dispatch(createCustomer(payload)).unwrap();
-      const newCustomer = result?.customer;
-      if (newCustomer?._id) {
-        setCustomerId(newCustomer._id);
-        setCustomerSearch(
-          newCustomer.customerCode
-            ? `${newCustomer.name} (${newCustomer.customerCode})`
-            : newCustomer.name,
-        );
-      }
-      setShowCustomerOptions(false);
-    } catch (error) {
-      toast.error(error || "Failed to create customer");
-    } finally {
-      setIsCreatingCustomer(false);
-    }
-  };
-
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
-      <SalesChart />
+      {/* <SalesChart /> */}
 
       <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">
         <input
@@ -336,10 +414,7 @@ function Salespage() {
 
       {/* OVERLAY */}
       {isFormVisible && (
-        <div
-          className="fixed inset-0 bg-black/40 z-40"
-          onClick={closeForm} // clicking outside closes the form
-        />
+        <div className="fixed inset-0 bg-black/40 z-40" onClick={closeForm} />
       )}
 
       {/* FORM SLIDE-IN */}
@@ -398,48 +473,23 @@ function Salespage() {
                             <div className="text-sm font-medium text-slate-800">
                               {customer.name}
                             </div>
-                            {customer.customerCode && (
-                              <div className="text-xs text-slate-500">
-                                {customer.customerCode}
-                              </div>
-                            )}
                           </button>
                         ))
-                      : // <div className="px-3 py-2 text-sm text-slate-500">
-                        //   No matches found
-                        // </div>
-                        null}
-                    {/* {!hasExactMatch && customerSearch.trim() !== "" && (
-                    <button
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={handleCreateCustomer}
-                      disabled={isCreatingCustomer}
-                      className="w-full text-left px-3 py-2 border-t bg-slate-50 hover:bg-slate-100 text-teal-700 font-medium"
-                    >
-                      {isCreatingCustomer
-                        ? "Creating customer..."
-                        : `Create "${customerSearch.trim()}"`}
-                    </button>
-                    )} */}
+                      : null}
                   </div>
                 )}
               </div>
               {customerId && selectedCustomer && (
                 <div className="rounded-xl border bg-slate-50 p-3 text-sm text-slate-700">
                   <div className="font-medium text-slate-800 mb-2">
-                    Selected Customer Details
+                    Customer Details
                   </div>
                   <div className="grid grid-cols-1 gap-1">
-                    <span>Code: {selectedCustomer.customerCode || "-"}</span>
                     <span>
                       Phone: {selectedCustomer.contactInfo?.phone || "-"}
                     </span>
                     <span>
                       Address: {selectedCustomer.contactInfo?.address || "-"}
-                    </span>
-                    <span>
-                      Payment Terms: {selectedCustomer.paymentTerms || "-"}
                     </span>
                   </div>
                 </div>
@@ -454,18 +504,6 @@ function Salespage() {
                     <div className="grid grid-cols-1 gap-3">
                       <input
                         type="text"
-                        value={newCustomerData.customerCode}
-                        onChange={(e) =>
-                          setNewCustomerData((prev) => ({
-                            ...prev,
-                            customerCode: e.target.value,
-                          }))
-                        }
-                        placeholder="Customer code (optional)"
-                        className="w-full h-10 px-3 border rounded-xl"
-                      />
-                      <input
-                        type="text"
                         value={newCustomerData.phone}
                         onChange={(e) =>
                           setNewCustomerData((prev) => ({
@@ -473,7 +511,7 @@ function Salespage() {
                             phone: e.target.value,
                           }))
                         }
-                        placeholder="Phone (required)"
+                        placeholder="Phone"
                         className="w-full h-10 px-3 border rounded-xl"
                       />
                       <input
@@ -485,120 +523,106 @@ function Salespage() {
                             address: e.target.value,
                           }))
                         }
-                        placeholder="Address (optional)"
-                        className="w-full h-10 px-3 border rounded-xl"
-                      />
-                      <input
-                        type="text"
-                        value={newCustomerData.paymentTerms}
-                        onChange={(e) =>
-                          setNewCustomerData((prev) => ({
-                            ...prev,
-                            paymentTerms: e.target.value,
-                          }))
-                        }
-                        placeholder="Payment terms (optional)"
+                        placeholder="Address"
                         className="w-full h-10 px-3 border rounded-xl"
                       />
                     </div>
                   </div>
                 )}
+
               <div className="mb-4">
-                <label>Category</label>
-                <select
-                  value={Category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full h-10 px-2 border-2 rounded-lg mt-2"
-                >
-                  <option value="">Select a Category</option>
-                  {getallCategory?.map((cat) => (
-                    <option key={cat._id} value={cat._id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
+                <label>Product Code</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={codeQuery}
+                    onChange={(e) => {
+                      setCodeQuery(e.target.value);
+                      setShowCodeOptions(true);
+                    }}
+                    onFocus={() => setShowCodeOptions(true)}
+                    className="w-full h-10 px-2 border-2 rounded-lg mt-2"
+                    placeholder="Type product code"
+                  />
+                  {showCodeOptions && codeOptions.length > 0 && (
+                    <div className="absolute z-50 mt-1 w-full max-h-56 overflow-auto rounded-lg border bg-white shadow">
+                      {codeOptions.map((option) => (
+                        <button
+                          key={`${option.codeId}`}
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50"
+                          onClick={() => addToCart(option)}
+                        >
+                          {option.code} - {option.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="mb-4">
-                <label>Product</label>
-                <select
-                  value={Product}
-                  onChange={(e) => {
-                    const selectedProductId = e.target.value;
-                    setProduct(selectedProductId);
-
-                    const selectedProduct = getallproduct.find(
-                      (p) => p._id === selectedProductId,
-                    );
-
-                    if (selectedProduct) {
-                      const resolvedPrice =
-                        selectedProduct.pricing?.currentSalesPrice ??
-                        selectedProduct.Price ??
-                        0;
-                      setUnitPrice(resolvedPrice);
-                      setPrice(
-                        quantity ? resolvedPrice * Number(quantity) : "",
-                      );
-                    }
-                  }}
-                  className="w-full h-10 px-2 border-2 rounded-lg mt-2"
-                >
-                  <option value="">Select a Product</option>
-                  {getallproduct
-                    ?.filter((p) => p.Category?._id === Category) // ✅ filter by selected category
-                    .map((product) => (
-                      <option key={product._id} value={product._id}>
-                        {product.name}
-                      </option>
+                <label>Cart Preview</label>
+                {cartItems.length ? (
+                  <div className="mt-2 border rounded-lg overflow-hidden">
+                    <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-semibold text-slate-500 border-b bg-slate-50">
+                      <div className="col-span-6">Product</div>
+                      <div className="col-span-3">Code</div>
+                      <div className="col-span-2">Qty</div>
+                      <div className="col-span-1 text-right">X</div>
+                    </div>
+                    {cartItems.map((item) => (
+                      <div
+                        key={item.codeId}
+                        className="grid grid-cols-12 gap-2 px-3 py-2 items-center text-sm border-b last:border-b-0"
+                      >
+                        <div className="col-span-6">{item.name}</div>
+                        <div className="col-span-3">
+                          <span className="text-xs font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full whitespace-nowrap">
+                            {item.code}
+                          </span>
+                        </div>
+                        <div className="col-span-2">
+                          <input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) =>
+                              updateCartQuantity(item.codeId, e.target.value)
+                            }
+                            className="w-full h-8 px-2 border rounded"
+                          />
+                        </div>
+                        <div className="col-span-1 text-right">
+                          <button
+                            type="button"
+                            className="text-red-600 text-xs"
+                            onClick={() => removeFromCart(item.codeId)}
+                          >
+                            <MdDelete size={18} />
+                          </button>
+                        </div>
+                        {Number(item.quantity) >
+                          Number(
+                            item.availableQty ??
+                              availableQtyByCode.get(String(item.codeId)) ??
+                              0,
+                          ) && (
+                          <div className="col-span-12 text-xs text-red-600">
+                            Only{" "}
+                            {item.availableQty ??
+                              availableQtyByCode.get(String(item.codeId)) ??
+                              0}{" "}
+                            available for this code.
+                          </div>
+                        )}
+                      </div>
                     ))}
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-gray-700 font-medium">Quantity</label>
-                <input
-                  type="number"
-                  value={quantity}
-                  className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
-                  onChange={(e) => {
-                    const qty = Number(e.target.value);
-                    setQuantity(qty);
-
-                    if (unitPrice) {
-                      setPrice(unitPrice * qty);
-                    }
-
-                    // Optional: client-side check if you have product stock loaded
-                    const productObj = getallproduct.find(
-                      (p) => p._id === Product,
-                    );
-                    if (productObj && qty > productObj.quantity) {
-                      setFormErrors((prev) => ({
-                        ...prev,
-                        quantity: `Only ${productObj.quantity} available`,
-                      }));
-                    } else {
-                      setFormErrors((prev) => ({ ...prev, quantity: "" }));
-                    }
-                  }}
-                />
-              </div>
-              {formErrors.quantity && (
-                <p className="text-red-600 text-sm mt-1">
-                  {formErrors.quantity}
-                </p>
-              )}
-              <div className="flex flex-col gap-1">
-                <label className="text-gray-700 font-medium">Total</label>
-                <input
-                  type="number"
-                  value={Price}
-                  readOnly
-                  // placeholder="Enter price"
-                  className="w-full h-11 px-3 border rounded-xl bg-gray-100 cursor-not-allowed"
-                  required
-                />
+                  </div>
+                ) : (
+                  <div className="text-xs text-slate-500 mt-2">
+                    No items added yet.
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col gap-1">
@@ -676,9 +700,7 @@ function Salespage() {
                 <tr className="text-left text-slate-500">
                   <th className="px-5 py-4 font-medium">#</th>
                   <th className="px-5 py-4 font-medium">Customer</th>
-                  <th className="px-5 py-4 font-medium">Code</th>
-                  <th className="px-5 py-4 font-medium">Product</th>
-                  <th className="px-5 py-4 font-medium">Quantity</th>
+                  <th className="px-5 py-4 font-medium">Products</th>
                   <th className="px-5 py-4 font-medium">Total Amount</th>
                   <th className="px-5 py-4 font-medium">Status</th>
                   <th className="px-5 py-4 font-medium">Date</th>
@@ -695,22 +717,52 @@ function Salespage() {
                   >
                     <td className="px-5 py-4 text-slate-500">{index + 1}</td>
                     <td className="px-5 py-4">{sale.customerName}</td>
-                    <td className="px-5 py-4">{sale.customerCode || "-"}</td>
                     <td className="px-5 py-4">
-                      {sale.products?.[0]?.product?.name || "-"}{" "}
-                    </td>
-                    <td className="px-5 py-4">
-                      {sale.products?.[0]?.quantity || "-"}{" "}
+                      {(sale.products || []).map((item) => (
+                        <div
+                          key={item.productCode?._id || item._id}
+                          className="flex items-center gap-2 px-3 py-2 mb-1 last:mb-0 rounded-md bg-slate-50 border border-slate-300"
+                        >
+                          <span className="text-sm font-medium text-slate-800 flex-1 truncate">
+                            {item.product?.name || "N/A"}
+                          </span>
+
+                          <span className="text-xs font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full whitespace-nowrap">
+                            {item.productCode?.code || "-"}
+                          </span>
+
+                          <span className="text-xs font-semibold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full whitespace-nowrap">
+                            × {item.quantity}
+                          </span>
+                        </div>
+                      ))}
                     </td>
                     <td className="px-5 py-4 font-semibold text-slate-800">
                       Rs {sale.totalAmount || 0}
                     </td>
-                    <td className="px-5 py-4">{sale.status}</td>
+                    <td className="px-5 py-4">
+                      <span
+                        className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full capitalize ${getStatusBadge(sale.status)}`}
+                      >
+                        {sale.status}
+                      </span>
+                    </td>
                     <td className="px-5 py-4 text-slate-600">
                       <FormattedTime timestamp={sale.createdAt} />
                     </td>
                     <td className="px-5 py-4">{sale.paymentMethod}</td>
-                    <td className="px-5 py-4">{sale.paymentStatus}</td>
+                    <td className="px-5 py-4">
+                      <span
+                        className={`px-3 py-1 text-xs rounded-full font-semibold
+    ${
+      sale.paymentStatus === "paid"
+        ? "bg-green-100 text-green-700"
+        : "bg-yellow-100 text-yellow-700"
+    }`}
+                      >
+                        {sale.paymentStatus}
+                      </span>
+                    </td>{" "}
                     <td className="px-5 py-4">
                       <div className="flex justify-end gap-2">
                         <button

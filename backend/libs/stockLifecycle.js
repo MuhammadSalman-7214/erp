@@ -1,39 +1,52 @@
 const ProductModel = require("../models/Productmodel");
+const ProductCode = require("../models/ProductCodemodel");
 const StockTransaction = require("../models/StockTranscationmodel");
 
 const ORDER_SOURCE = "order";
 const SALE_SOURCE = "sale";
 
 const createOrderDeliveredStockIn = async (order, userId) => {
-  if (!order?.Product?.product || !order?.Product?.quantity) return;
+  const items = Array.isArray(order?.products) && order.products.length
+    ? order.products
+    : order?.Product
+      ? [order.Product]
+      : [];
 
-  const existing = await StockTransaction.findOne({
-    sourceModel: ORDER_SOURCE,
-    sourceId: order._id,
-    type: "Stock-in",
-    product: order.Product.product,
-    user_id: userId,
-  });
+  if (!items.length) return;
 
-  if (existing) return;
+  for (const item of items) {
+    if (!item?.product || !item?.productCode || !item?.quantity) continue;
 
-  await StockTransaction.create({
-    product: order.Product.product,
-    type: "Stock-in",
-    quantity: order.Product.quantity,
-    vendor: order.vendor || order.supplier || null,
-    supplier: order.supplier || null,
-    sourceModel: ORDER_SOURCE,
-    sourceId: order._id,
-    user_id: userId,
-  });
+    const existing = await StockTransaction.findOne({
+      sourceModel: ORDER_SOURCE,
+      sourceId: order._id,
+      type: "Stock-in",
+      product: item.product,
+      productCode: item.productCode,
+      user_id: userId,
+    });
 
-  await ProductModel.findOneAndUpdate(
-    { _id: order.Product.product, user_id: userId },
-    {
-      $inc: { quantity: Number(order.Product.quantity) },
-    },
-  );
+    if (existing) continue;
+
+    await StockTransaction.create({
+      product: item.product,
+      productCode: item.productCode,
+      type: "Stock-in",
+      quantity: item.quantity,
+      vendor: order.vendor || order.supplier || null,
+      supplier: order.supplier || null,
+      sourceModel: ORDER_SOURCE,
+      sourceId: order._id,
+      user_id: userId,
+    });
+
+    await ProductCode.findOneAndUpdate(
+      { _id: item.productCode, user_id: userId },
+      {
+        $inc: { quantity: Number(item.quantity) },
+      },
+    );
+  }
 };
 
 const rollbackOrderDeliveredStockIn = async (orderId, userId) => {
@@ -45,10 +58,10 @@ const rollbackOrderDeliveredStockIn = async (orderId, userId) => {
   });
 
   for (const tx of transactions) {
-    await ProductModel.findOneAndUpdate(
-      { _id: tx.product, user_id: userId },
+    await ProductCode.findOneAndUpdate(
+      { _id: tx.productCode, user_id: userId },
       {
-      $inc: { quantity: -Number(tx.quantity) },
+        $inc: { quantity: -Number(tx.quantity) },
       },
     );
   }
@@ -69,24 +82,27 @@ const validateSaleStockAvailability = async (
   userId,
 ) => {
   for (const item of saleProducts) {
-    const product = await ProductModel.findOne({
-      _id: item.product,
+    const productCode = await ProductCode.findOne({
+      _id: item.productCode,
       user_id: userId,
     }).select("quantity");
-    if (!product) {
-      const error = new Error(`Product ${item.product} not found`);
+    if (!productCode) {
+      const error = new Error(`Product code ${item.productCode} not found`);
       error.statusCode = 404;
       throw error;
     }
 
     const previouslyReserved = oldCompletedProducts
-      .filter((oldItem) => String(oldItem.product) === String(item.product))
+      .filter(
+        (oldItem) =>
+          String(oldItem.productCode) === String(item.productCode),
+      )
       .reduce((sum, oldItem) => sum + Number(oldItem.quantity || 0), 0);
 
-    const available = Number(product.quantity || 0) + previouslyReserved;
+    const available = Number(productCode.quantity || 0) + previouslyReserved;
     if (available < Number(item.quantity)) {
       const error = new Error(
-        `Only ${available} items available for this product. You requested ${item.quantity}.`,
+        `Only ${available} items available for this product code. You requested ${item.quantity}.`,
       );
       error.statusCode = 400;
       error.available = available;
@@ -103,14 +119,15 @@ const createSaleCompletedStockOut = async (sale, userId) => {
       sourceId: sale._id,
       type: "Stock-out",
       product: item.product,
+      productCode: item.productCode,
       user_id: userId,
     });
 
     if (existing) continue;
 
-    const updatedProduct = await ProductModel.findOneAndUpdate(
+    const updatedProductCode = await ProductCode.findOneAndUpdate(
       {
-        _id: item.product,
+        _id: item.productCode,
         user_id: userId,
         quantity: { $gte: Number(item.quantity) },
       },
@@ -118,16 +135,18 @@ const createSaleCompletedStockOut = async (sale, userId) => {
       { new: true },
     );
 
-    if (!updatedProduct) {
+    if (!updatedProductCode) {
+      const currentProductCode = await ProductCode.findOne({
+        _id: item.productCode,
+        user_id: userId,
+      }).select("code quantity");
+      const available = Number(currentProductCode?.quantity || 0);
       const currentProduct = await ProductModel.findOne({
         _id: item.product,
         user_id: userId,
-      }).select(
-        "name quantity",
-      );
-      const available = Number(currentProduct?.quantity || 0);
+      }).select("name");
       const error = new Error(
-        `Only ${available} items available for ${currentProduct?.name || "product"}. You requested ${item.quantity}.`,
+        `Only ${available} items available for ${currentProduct?.name || "product"} (${currentProductCode?.code || "code"}). You requested ${item.quantity}.`,
       );
       error.statusCode = 400;
       error.available = available;
@@ -137,6 +156,7 @@ const createSaleCompletedStockOut = async (sale, userId) => {
 
     await StockTransaction.create({
       product: item.product,
+      productCode: item.productCode,
       type: "Stock-out",
       quantity: Number(item.quantity),
       sourceModel: SALE_SOURCE,
@@ -155,10 +175,10 @@ const rollbackSaleCompletedStockOut = async (saleId, userId) => {
   });
 
   for (const tx of transactions) {
-    await ProductModel.findOneAndUpdate(
-      { _id: tx.product, user_id: userId },
+    await ProductCode.findOneAndUpdate(
+      { _id: tx.productCode, user_id: userId },
       {
-      $inc: { quantity: Number(tx.quantity) },
+        $inc: { quantity: Number(tx.quantity) },
       },
     );
   }

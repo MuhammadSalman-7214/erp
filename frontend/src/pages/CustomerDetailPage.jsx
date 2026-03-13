@@ -87,14 +87,10 @@ function CustomerDetailPage() {
                 <div className="text-xl font-semibold text-slate-800">
                   {customer?.name || "Unknown"}
                 </div>
-                <div className="text-sm text-slate-500 mt-1">
-                  Code: {customer?.customerCode || "-"}
-                </div>
               </div>
               <div className="space-y-1 text-sm text-slate-600">
                 <div>Phone: {customer?.contactInfo?.phone || "-"}</div>
                 <div>Address: {customer?.contactInfo?.address || "-"}</div>
-                <div>Payment Terms: {customer?.paymentTerms || "-"}</div>
               </div>
             </div>
           </div>

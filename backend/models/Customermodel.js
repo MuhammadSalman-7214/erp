@@ -8,18 +8,6 @@ const CustomerSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    customerCode: {
-      type: String,
-      trim: true,
-      uppercase: true,
-      sparse: true,
-      default: undefined,
-      set: (value) => {
-        if (value === null || value === undefined) return undefined;
-        const trimmed = String(value).trim();
-        return trimmed === "" ? undefined : trimmed.toUpperCase();
-      },
-    },
     name: {
       type: String,
       required: true,
@@ -29,19 +17,9 @@ const CustomerSchema = new mongoose.Schema(
       phone: { type: String, trim: true },
       address: { type: String, trim: true },
     },
-    openingBalance: {
-      type: Number,
-      default: 0,
-    },
-    paymentTerms: {
-      type: String,
-      trim: true,
-    },
   },
   { timestamps: true },
 );
-
-CustomerSchema.index({ user_id: 1, customerCode: 1 }, { unique: true, sparse: true });
 
 const Customer = mongoose.model("Customer", CustomerSchema);
 

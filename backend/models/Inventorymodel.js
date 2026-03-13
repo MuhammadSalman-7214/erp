@@ -8,7 +8,11 @@ const InventorySchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    product: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
+    productCode: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ProductCode",
+      required: true,
+    },
     quantity: { type: Number, required: true, default: 0 },
     status: { type: String, enum: ["in-stock", "low-stock", "out-of-stock"], default: "in-stock" },
     lastUpdated: { type: Date, default: Date.now },
@@ -30,7 +34,7 @@ InventorySchema.pre("save", function (next) {
   next();
 });
 
-InventorySchema.index({ user_id: 1, product: 1 }, { unique: true });
+InventorySchema.index({ user_id: 1, productCode: 1 }, { unique: true });
 
 const Inventory= mongoose.model("Inventory", InventorySchema);
 module.exports=Inventory 

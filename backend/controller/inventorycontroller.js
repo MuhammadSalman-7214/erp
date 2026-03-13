@@ -1,46 +1,52 @@
 const Inventory = require("../models/Inventorymodel");
-const Product = require("../models/Productmodel.js");
+const ProductCode = require("../models/ProductCodemodel");
 
 module.exports.addOrUpdateInventory = async (req, res) => {
   try {
-    const { product, quantity } = req.body;
+    const { productCode, quantity } = req.body;
     const userId = req.user.userId;
 
-    if (!product || quantity === undefined) {
+    if (!productCode || quantity === undefined) {
       return res
         .status(400)
-        .json({ success: false, message: "Product and quantity are required" });
+        .json({ success: false, message: "Product code and quantity are required" });
     }
 
-    const productRecord = await Product.findOne({ _id: product, user_id: userId });
-    if (!productRecord) {
+    const codeRecord = await ProductCode.findOne({
+      _id: productCode,
+      user_id: userId,
+    });
+    if (!codeRecord) {
       return res
         .status(404)
-        .json({ success: false, message: "Product not found" });
+        .json({ success: false, message: "Product code not found" });
     }
 
-    let inventory = await Inventory.findOne({ product, user_id: userId });
+    await ProductCode.findOneAndUpdate(
+      { _id: productCode, user_id: userId },
+      { quantity: Number(quantity) },
+    );
+
+    let inventory = await Inventory.findOne({ productCode, user_id: userId });
 
     if (inventory) {
-      inventory.quantity = quantity;
+      inventory.quantity = Number(quantity);
       inventory.lastUpdated = Date.now();
     } else {
       inventory = new Inventory({
         user_id: userId,
-        product,
-        quantity,
+        productCode,
+        quantity: Number(quantity),
       });
     }
 
     await inventory.save();
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Inventory updated successfully",
-        inventory,
-      });
+    res.status(200).json({
+      success: true,
+      message: "Inventory updated successfully",
+      inventory,
+    });
   } catch (error) {
     res
       .status(500)
@@ -52,7 +58,7 @@ module.exports.getAllInventory = async (req, res) => {
   try {
     const userId = req.user.userId;
     const inventories = await Inventory.find({ user_id: userId }).populate(
-      "product",
+      "productCode",
     );
 
     res.status(200).json({ success: true, inventories });
@@ -65,21 +71,19 @@ module.exports.getAllInventory = async (req, res) => {
 
 module.exports.getInventoryByProduct = async (req, res) => {
   try {
-    const { productId } = req.params;
+    const { productCodeId } = req.params;
     const userId = req.user.userId;
 
     const inventory = await Inventory.findOne({
-      product: productId,
+      productCode: productCodeId,
       user_id: userId,
-    }).populate("product");
+    }).populate("productCode");
 
     if (!inventory) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: "Inventory not found for this product",
-        });
+      return res.status(404).json({
+        success: false,
+        message: "Inventory not found for this product code",
+      });
     }
 
     res.status(200).json({ success: true, inventory });
@@ -92,11 +96,11 @@ module.exports.getInventoryByProduct = async (req, res) => {
 
 module.exports.deleteInventory = async (req, res) => {
   try {
-    const { productId } = req.params;
+    const { productCodeId } = req.params;
     const userId = req.user.userId;
 
     const inventory = await Inventory.findOneAndDelete({
-      product: productId,
+      productCode: productCodeId,
       user_id: userId,
     });
 

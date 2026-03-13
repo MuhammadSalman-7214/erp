@@ -14,6 +14,10 @@ const {
   EditProduct,
   getTopProductsByQuantity,
   SearchProduct,
+  getProductCodesByProduct,
+  addProductCode,
+  updateProductCode,
+  deleteProductCode,
 } = require("../controller/productController.js");
 // Import your product controllers
 // const { getProducts, createProduct, updateProduct, deleteProduct } = require('../controller/productController');
@@ -27,6 +31,12 @@ router.get(
 );
 router.get("/", authmiddleware, checkPermission("product", "read"), getProduct);
 router.get(
+  "/:productId/codes",
+  authmiddleware,
+  checkPermission("product", "read"),
+  getProductCodesByProduct,
+);
+router.get(
   "/getTopProductsByQuantity",
   authmiddleware,
   getTopProductsByQuantity,
@@ -39,6 +49,12 @@ router.post(
   checkPermission("product", "write"),
   Addproduct,
 );
+router.post(
+  "/:productId/codes",
+  authmiddleware,
+  checkPermission("product", "write"),
+  addProductCode,
+);
 
 // PUT - Admin and Manager only
 router.put(
@@ -47,6 +63,12 @@ router.put(
   checkPermission("product", "write"),
   EditProduct,
 );
+router.put(
+  "/code/:codeId",
+  authmiddleware,
+  checkPermission("product", "write"),
+  updateProductCode,
+);
 
 // DELETE - Admin and Manager only
 router.delete(
@@ -54,6 +76,12 @@ router.delete(
   authmiddleware,
   checkRole("admin", "manager"),
   RemoveProduct,
+);
+router.delete(
+  "/code/:codeId",
+  authmiddleware,
+  checkRole("admin", "manager"),
+  deleteProductCode,
 );
 
 module.exports = router;

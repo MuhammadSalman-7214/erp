@@ -10,7 +10,7 @@ const {
 
 router.post("/inventory", authmiddleware, addOrUpdateInventory);
 router.get("/inventory", authmiddleware, getAllInventory);
-router.get("/inventory/:productId", authmiddleware, getInventoryByProduct);
-router.delete("/inventory/:productId", authmiddleware, deleteInventory);
+router.get("/inventory/:productCodeId", authmiddleware, getInventoryByProduct);
+router.delete("/inventory/:productCodeId", authmiddleware, deleteInventory);
 
 module.exports = router;

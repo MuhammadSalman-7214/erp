@@ -42,12 +42,9 @@ function Customerpage({ readOnly = false }) {
   })();
 
   const [query, setQuery] = useState("");
-  const [customerCode, setCustomerCode] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
-  const [openingBalance, setOpeningBalance] = useState("");
-  const [paymentTerms, setPaymentTerms] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [customerBalances, setCustomerBalances] = useState({});
@@ -85,12 +82,9 @@ function Customerpage({ readOnly = false }) {
   }, [query, dispatch]);
 
   const resetForm = () => {
-    setCustomerCode("");
     setName("");
     setPhone("");
     setAddress("");
-    setOpeningBalance("");
-    setPaymentTerms("");
   };
 
   const closeForm = () => {
@@ -113,14 +107,11 @@ function Customerpage({ readOnly = false }) {
     }
 
     const customerData = {
-      customerCode,
       name,
       contactInfo: {
         phone,
         address,
       },
-      openingBalance,
-      paymentTerms,
     };
 
     dispatch(createCustomer(customerData))
@@ -148,14 +139,11 @@ function Customerpage({ readOnly = false }) {
     }
 
     const updatedData = {
-      customerCode,
       name,
       contactInfo: {
         phone,
         address,
       },
-      openingBalance,
-      paymentTerms,
     };
 
     dispatch(editCustomer({ customerId: selectedCustomer._id, updatedData }))
@@ -194,12 +182,9 @@ function Customerpage({ readOnly = false }) {
     }
 
     setSelectedCustomer(customer);
-    setCustomerCode(customer.customerCode || "");
     setName(customer.name || "");
     setPhone(customer.contactInfo?.phone || "");
     setAddress(customer.contactInfo?.address || "");
-    setOpeningBalance(customer.openingBalance ?? "");
-    setPaymentTerms(customer.paymentTerms ?? "");
     setIsFormVisible(true);
   };
 
@@ -322,13 +307,6 @@ function Customerpage({ readOnly = false }) {
           >
             <input
               type="text"
-              value={customerCode}
-              onChange={(e) => setCustomerCode(e.target.value)}
-              placeholder="Customer code (optional)"
-              className="w-full h-10 px-3 border rounded-xl"
-            />
-            <input
-              type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Customer name"
@@ -349,20 +327,6 @@ function Customerpage({ readOnly = false }) {
               placeholder="Address"
               className="w-full h-10 px-3 border rounded-xl"
             />
-            {/* <input
-              type="number"
-              value={openingBalance}
-              onChange={(e) => setOpeningBalance(e.target.value)}
-              placeholder="Opening balance"
-              className="w-full h-10 px-3 border rounded-xl"
-            /> */}
-            {/* <input
-              type="text"
-              value={paymentTerms}
-              onChange={(e) => setPaymentTerms(e.target.value)}
-              placeholder="Payment terms"
-              className="w-full h-10 px-3 border rounded-xl"
-            /> */}
             <button
               type="submit"
               className="w-full h-11 bg-teal-700 text-white rounded-xl hover:bg-teal-600"
@@ -387,7 +351,6 @@ function Customerpage({ readOnly = false }) {
               <thead className="bg-slate-50 border-b">
                 <tr className="text-left text-slate-500">
                   <th className="px-5 py-4 font-medium">Customer</th>
-                  <th className="px-5 py-4 font-medium">Code</th>
                   <th className="px-5 py-4 font-medium">Phone</th>
                   <th className="px-5 py-4 font-medium">Total</th>
                   <th className="px-5 py-4 font-medium">Collected</th>
@@ -404,9 +367,6 @@ function Customerpage({ readOnly = false }) {
                       className="border-b last:border-b-0 hover:bg-slate-50 transition"
                     >
                       <td className="px-5 py-4">{customer.name}</td>
-                      <td className="px-5 py-4">
-                        {customer.customerCode || "-"}
-                      </td>
                       <td className="px-5 py-4">
                         {customer.contactInfo?.phone || "-"}
                       </td>

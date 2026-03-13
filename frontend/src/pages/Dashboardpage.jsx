@@ -355,7 +355,10 @@ function Dashboardpage() {
                   className="flex justify-between items-center p-3 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors duration-200"
                 >
                   <span className="text-sm font-medium text-gray-700">
-                    {product.name}
+                    {product.product?.name || "Product"}{" "}
+                    <span className="text-xs text-slate-500">
+                      ({product.code})
+                    </span>
                   </span>
                   <span className="text-sm font-semibold text-amber-600">
                     {product.quantity} {product.unit || ""}

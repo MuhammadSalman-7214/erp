@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { IoMdAdd } from "react-icons/io";
 import { MdKeyboardDoubleArrowLeft } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
@@ -25,6 +25,7 @@ function StockTransaction({ readOnly = false }) {
   const dispatch = useDispatch();
   const [query, setquery] = useState("");
   const [product, setproduct] = useState("");
+  const [productCode, setProductCode] = useState("");
   const [type, settype] = useState("");
   const [quantity, setquantity] = useState("");
   const [supplier, setsupplier] = useState("");
@@ -41,9 +42,8 @@ function StockTransaction({ readOnly = false }) {
         dispatch(searchstockdata(query));
       }, 500);
       return () => clearTimeout(repeatTimeout);
-    } else {
-      dispatch(getAllStockTransactions());
     }
+    dispatch(getAllStockTransactions());
   }, [query, dispatch]);
 
   useEffect(() => {
@@ -52,9 +52,16 @@ function StockTransaction({ readOnly = false }) {
     dispatch(gettingallSupplier());
   }, [dispatch]);
 
+  const selectedProductRecord = useMemo(
+    () => getallproduct.find((p) => p._id === product),
+    [getallproduct, product],
+  );
+  const availableCodes = selectedProductRecord?.productCodes || [];
+
   const resetForm = () => {
     setproduct("");
-    settype(""); // default
+    setProductCode("");
+    settype("");
     setquantity("");
     setsupplier("");
   };
@@ -62,12 +69,12 @@ function StockTransaction({ readOnly = false }) {
   const submitstocktranscation = async (event) => {
     event.preventDefault();
 
-    if (!type || !product || !quantity) {
+    if (!type || !product || !productCode || !quantity) {
       toast.error("Please fill all required fields!");
       return;
     }
 
-    const StocksData = { product, type, quantity, supplier };
+    const StocksData = { product, productCode, type, quantity, supplier };
     dispatch(createStockTransaction(StocksData))
       .unwrap()
       .then(() => {
@@ -83,7 +90,7 @@ function StockTransaction({ readOnly = false }) {
   const displaystock = query.trim() !== "" ? searchdata : getallStocks;
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
-      <Stocktanscationgraph />
+      {/* <Stocktanscationgraph /> */}
 
       <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">
         <input
@@ -133,13 +140,33 @@ function StockTransaction({ readOnly = false }) {
               <label>Product</label>
               <select
                 value={product}
-                onChange={(e) => setproduct(e.target.value)}
+                onChange={(e) => {
+                  setproduct(e.target.value);
+                  setProductCode("");
+                }}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2"
               >
                 <option value="">Select a product</option>
                 {getallproduct?.map((product) => (
                   <option key={product._id} value={product._id}>
                     {product.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mb-4">
+              <label>Product Code</label>
+              <select
+                value={productCode}
+                onChange={(e) => setProductCode(e.target.value)}
+                className="w-full h-10 px-2 border-2 rounded-lg mt-2"
+              >
+                <option value="">Select a product code</option>
+                {availableCodes.map((code) => (
+                  <option key={code._id} value={code._id}>
+                    {code.code}
+                    {code.variantName ? ` (${code.variantName})` : ""}
                   </option>
                 ))}
               </select>
@@ -197,7 +224,6 @@ function StockTransaction({ readOnly = false }) {
       )}
 
       {/* Table Card */}
-      {/* Table Card */}
       <div className="mt-6 bg-white rounded-2xl shadow-sm border overflow-x-auto">
         {Array.isArray(displaystock) && displaystock.length > 0 ? (
           <table className="w-full text-sm">
@@ -206,6 +232,7 @@ function StockTransaction({ readOnly = false }) {
                 <th className="px-5 py-4 font-medium">#</th>
                 <th className="px-5 py-4 font-medium">Date</th>
                 <th className="px-5 py-4 font-medium">Product</th>
+                <th className="px-5 py-4 font-medium">Product Code</th>
                 <th className="px-5 py-4 font-medium">Type</th>
                 <th className="px-5 py-4 font-medium">Quantity</th>
                 <th className="px-5 py-4 font-medium">Vendor</th>
@@ -223,6 +250,9 @@ function StockTransaction({ readOnly = false }) {
                     <FormattedTime timestamp={stock.transactionDate} />
                   </td>
                   <td className="px-5 py-4">{stock.product?.name || "N/A"}</td>
+                  <td className="px-5 py-4">
+                    {stock.productCode?.code || "-"}
+                  </td>
                   <td className="px-5 py-4">{stock.type}</td>
                   <td className="px-5 py-4">{stock.quantity}</td>
                   <td className="px-5 py-4">{stock.vendor?.name || "N/A"}</td>

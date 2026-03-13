@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useDispatch, useSelector } from "react-redux";
 import { IoMdAdd } from "react-icons/io";
@@ -13,10 +13,10 @@ import {
   SearchOrder,
 } from "../features/orderSlice";
 import { gettingallproducts } from "../features/productSlice";
-import { gettingallCategory } from "../features/categorySlice";
 import NoData from "../Components/NoData";
 import { Popconfirm } from "antd";
 import { gettingallSupplier } from "../features/SupplierSlice";
+
 function Orderpage() {
   const {
     getorder,
@@ -30,23 +30,20 @@ function Orderpage() {
     statusgraph,
   } = useSelector((state) => state.order);
   const { getallproduct } = useSelector((state) => state.product);
-  const { getallCategory } = useSelector((state) => state.category);
   const { getallSupplier } = useSelector((state) => state.supplier);
   const [supplier, setsupplier] = useState("");
 
   const { user, isUserSignup } = useSelector((state) => state.auth);
-  const [formErrors, setFormErrors] = useState({});
-
   const dispatch = useDispatch();
 
   const [query, setquery] = useState("");
-  const [Product, setProduct] = useState("");
-  const [Price, setPrice] = useState("");
-  const [quantity, setQuantity] = useState("");
   const [status, setstatus] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [selectedOrder, setselectedOrder] = useState(null);
-  const [unitPrice, setUnitPrice] = useState(0);
+  const [codeQuery, setCodeQuery] = useState("");
+  const [debouncedCodeQuery, setDebouncedCodeQuery] = useState("");
+  const [showCodeOptions, setShowCodeOptions] = useState(false);
+  const [cartItems, setCartItems] = useState([]);
   const getStatusBadge = (status) => {
     const mapping = {
       pending: "bg-yellow-50 text-yellow-700",
@@ -59,7 +56,6 @@ function Orderpage() {
   useEffect(() => {
     dispatch(gettingallOrder());
     dispatch(gettingallproducts());
-    dispatch(gettingallCategory());
     dispatch(gettingallSupplier());
   }, [dispatch, user]);
 
@@ -76,20 +72,121 @@ function Orderpage() {
     }
   }, [query, dispatch]);
 
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedCodeQuery(codeQuery.trim());
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [codeQuery]);
+
+  const codeOptions = useMemo(() => {
+    if (!debouncedCodeQuery) return [];
+    const q = debouncedCodeQuery.toLowerCase();
+    const results = [];
+    getallproduct.forEach((product) => {
+      (product.productCodes || []).forEach((code) => {
+        const codeValue = String(code.code || "").toLowerCase();
+        if (!codeValue.includes(q)) return;
+        results.push({
+          productId: product._id,
+          codeId: code._id,
+          code: code.code,
+          name: product.name,
+          unitPrice: Number(
+            product.purchasePrice ??
+              product.pricing?.currentPurchasePrice ??
+              code.purchasePrice ??
+              0,
+          ),
+        });
+      });
+    });
+    return results.slice(0, 20);
+  }, [debouncedCodeQuery, getallproduct]);
+
+  const buildCartItemsFromOrder = (order) => {
+    const list = Array.isArray(order?.products) && order.products.length
+      ? order.products
+      : order?.Product
+        ? [order.Product]
+        : [];
+
+    return list.map((item) => {
+      const productId = item.product?._id || item.product;
+      const codeId = item.productCode?._id || item.productCode;
+      const productRecord = getallproduct.find((p) => p._id === productId);
+      const codeRecord = productRecord?.productCodes?.find(
+        (code) => code._id === codeId,
+      );
+      const resolvedUnitPrice = Number(
+        item.price ??
+          productRecord?.purchasePrice ??
+          productRecord?.pricing?.currentPurchasePrice ??
+          codeRecord?.purchasePrice ??
+          0,
+      );
+      return {
+        productId,
+        codeId,
+        name: productRecord?.name || item.product?.name || "Product",
+        code: codeRecord?.code || item.productCode?.code || "code",
+        quantity: Number(item.quantity || 0),
+        unitPrice: resolvedUnitPrice,
+      };
+    });
+  };
+
   const handleEditSubmit = (event) => {
     event.preventDefault();
 
     if (!selectedOrder) return;
+    if (!cartItems.length) {
+      toast.error("Add at least one product");
+      return;
+    }
+
+    const invalidQty = cartItems.some(
+      (item) => !item.quantity || Number(item.quantity) <= 0,
+    );
+    if (invalidQty) {
+      toast.error("Quantity is required for all items");
+      return;
+    }
+
+    const resolvedProducts = cartItems.map((item) => {
+      const productRecord = getallproduct.find(
+        (p) => p._id === item.productId,
+      );
+      const codeRecord = productRecord?.productCodes?.find(
+        (code) => code._id === item.codeId,
+      );
+      const resolvedUnitPrice = Number(
+        item.unitPrice ??
+          productRecord?.purchasePrice ??
+          productRecord?.pricing?.currentPurchasePrice ??
+          codeRecord?.purchasePrice ??
+          0,
+      );
+      return {
+        product: item.productId,
+        productCode: item.codeId,
+        quantity: Number(item.quantity),
+        price: resolvedUnitPrice,
+      };
+    });
+
+    const totalAmount = resolvedProducts.reduce(
+      (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
+      0,
+    );
 
     const updatedData = {
       user: user?.id || " ",
       status,
       supplier,
-      products: {
-        product: Product,
-        quantity: Number(quantity),
-        Price: Number(Price),
-      },
+      Product: resolvedProducts[0],
+      products: resolvedProducts,
+      totalAmount,
     };
 
     dispatch(updatestatusOrder({ OrderId: selectedOrder._id, updatedData }))
@@ -104,88 +201,93 @@ function Orderpage() {
         // handleOrderError(error);
       });
   };
-  // const handleOrderError = (error) => {
-  //   // Stock-related error
-  //   if (error?.available && error?.requested) {
-  //     setFormErrors({
-  //       quantity: `Only ${error.available} items available. You requested ${error.requested}.`,
-  //     });
-  //     return;
-  //   }
 
-  //   // Validation error from backend
-  //   if (error?.response?.data?.errors) {
-  //     setFormErrors(error.response.data.errors);
-  //     return;
-  //   }
+  const addToCart = (item) => {
+    setCartItems((prev) => {
+      const existing = prev.find((p) => p.codeId === item.codeId);
+      if (existing) {
+        return prev.map((p) =>
+          p.codeId === item.codeId
+            ? { ...p, quantity: Number(p.quantity || 0) + 1 }
+            : p,
+        );
+      }
+      return [...prev, { ...item, quantity: 1 }];
+    });
+    setCodeQuery("");
+    setShowCodeOptions(false);
+  };
 
-  //   // Generic fallback
-  //   setFormErrors({
-  //     general:
-  //       error?.response?.data?.message ||
-  //       error?.message ||
-  //       "Failed to create order",
-  //   });
-  // };
+  const updateCartQuantity = (codeId, value) => {
+    setCartItems((prev) =>
+      prev.map((item) =>
+        item.codeId === codeId ? { ...item, quantity: value } : item,
+      ),
+    );
+  };
+
+  const removeFromCart = (codeId) => {
+    setCartItems((prev) => prev.filter((item) => item.codeId !== codeId));
+  };
 
   const submitOrder = async (event) => {
     event.preventDefault();
 
-    const errors = {};
-
-    if (!Product) errors.product = "Product is required";
-    if (!Price) errors.price = "Price is required";
-    if (!quantity) errors.quantity = "Quantity is required";
-
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
+    if (!cartItems.length) {
+      toast.error("Add at least one product");
       return;
     }
 
-    const orderData = {
-      user: user?.id || "",
-      status,
-      supplier,
-      Product: {
-        product: Product,
-        price: Number(Price),
-        quantity: Number(quantity),
-      },
-    };
+    const invalidQty = cartItems.some(
+      (item) => !item.quantity || Number(item.quantity) <= 0,
+    );
+
+    if (invalidQty) {
+      toast.error("Quantity is required for all items");
+      return;
+    }
 
     try {
+      const orderData = {
+        user: user?.id || "",
+        status,
+        supplier,
+        products: cartItems.map((item) => ({
+          product: item.productId,
+          productCode: item.codeId,
+          quantity: Number(item.quantity),
+        })),
+      };
+
       await dispatch(createdOrder(orderData)).unwrap();
+
       toast.success("Order created successfully");
+
+      setIsFormVisible(false); // CLOSE MODAL
       resetForm();
-      setFormErrors({});
+      setCartItems([]);
+      setCodeQuery("");
+
+      dispatch(gettingallOrder()); // REFRESH LIST
     } catch (error) {
       // handleOrderError(error);
     }
   };
 
   const resetForm = () => {
-    setProduct("");
-    setPrice("");
-    setQuantity("");
     setstatus("");
     setselectedOrder(null);
+    setCartItems([]);
+    setCodeQuery("");
+    setShowCodeOptions(false);
   };
 
   const handleEditClick = (order) => {
     setselectedOrder(order);
-    setProduct(order.Product.product?._id || "");
-    setPrice(order.Product?.price || "");
     setsupplier(order.supplier || "");
-
-    const productObj = getallproduct.find(
-      (p) => p._id === order.Product.product?._id,
-    );
-
-    if (productObj)
-      setUnitPrice(
-        productObj.pricing?.currentPurchasePrice ?? productObj.Price ?? 0,
-      );
-    setQuantity(order.Product?.quantity || "");
+    setCartItems(buildCartItemsFromOrder(order));
+    setCodeQuery("");
+    setShowCodeOptions(false);
     setstatus(order.status || "");
     setIsFormVisible(true);
   };
@@ -205,7 +307,7 @@ function Orderpage() {
 
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
-      <OrderStatusChart />
+      {/* <OrderStatusChart /> */}
 
       {/* Search + Add */}
       <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">
@@ -254,88 +356,84 @@ function Orderpage() {
 
           <form onSubmit={selectedOrder ? handleEditSubmit : submitOrder}>
             <div className="mb-4">
-              <label>Product</label>
-              <select
-                value={Product}
-                onChange={(e) => {
-                  const selectedProductId = e.target.value;
-                  setProduct(selectedProductId);
-
-                  // Find selected product from the fetched products list
-                  const selectedProduct = getallproduct.find(
-                    (p) => p._id === selectedProductId,
-                  );
-
-                  if (selectedProduct) {
-                    const resolvedPrice =
-                      selectedProduct.pricing?.currentPurchasePrice ??
-                      selectedProduct.Price ??
-                      0;
-                    setUnitPrice(resolvedPrice); // store unit price
-                    setPrice(resolvedPrice); // keep unit price
-                  } else {
-                    setUnitPrice(0);
-                    setPrice("");
-                  }
-
-                  setFormErrors((prev) => ({ ...prev, product: "" }));
-                }}
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2"
-              >
-                <option value="">Select a Product</option>
-                {getallproduct?.map((p) => (
-                  <option key={p._id} value={p._id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+              <label>Product Code</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={codeQuery}
+                  onChange={(e) => {
+                    setCodeQuery(e.target.value);
+                    setShowCodeOptions(true);
+                  }}
+                  onFocus={() => setShowCodeOptions(true)}
+                  className="w-full h-10 px-2 border-2 rounded-lg mt-2"
+                  placeholder="Type product code"
+                />
+                {showCodeOptions && codeOptions.length > 0 && (
+                  <div className="absolute z-50 mt-1 w-full max-h-56 overflow-auto rounded-lg border bg-white shadow">
+                    {codeOptions.map((option) => (
+                      <button
+                        key={`${option.codeId}`}
+                        type="button"
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50"
+                        onClick={() => addToCart(option)}
+                      >
+                        {option.code} - {option.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
-
             <div className="mb-4">
-              <label>Quantity</label>
-
-              <input
-                type="number"
-                value={quantity}
-                onChange={(e) => {
-                  const qty = Number(e.target.value);
-                  setQuantity(qty);
-
-                  if (unitPrice) {
-                    setPrice(unitPrice); // keep unit price
-                  }
-
-                  setFormErrors((prev) => ({ ...prev, quantity: "" }));
-                }}
-                className={`w-full h-10 px-2 border-2 rounded-lg mt-2 `}
-                placeholder="Enter quantity"
-              />
-
-              {formErrors.quantity && (
-                <p className="text-red-600 text-sm mt-1">
-                  {formErrors.quantity}
-                </p>
+              <label>Cart Preview</label>
+              {cartItems.length ? (
+                <div className="mt-2 border rounded-lg overflow-hidden">
+                  <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-semibold text-slate-500 border-b bg-slate-50">
+                    <div className="col-span-6">Product</div>
+                    <div className="col-span-3">Code</div>
+                    <div className="col-span-2">Qty</div>
+                    <div className="col-span-1 text-right">X</div>
+                  </div>
+                  {cartItems.map((item) => (
+                    <div
+                      key={item.codeId}
+                      className="grid grid-cols-12 gap-2 px-3 py-2 items-center text-sm border-b last:border-b-0"
+                    >
+                      <div className="col-span-6">{item.name}</div>
+                      <div className="col-span-3 ">
+                        <span className="text-xs font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full whitespace-nowrap">
+                          {item.code}
+                        </span>
+                      </div>
+                      <div className="col-span-2">
+                        <input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) =>
+                            updateCartQuantity(item.codeId, e.target.value)
+                          }
+                          className="w-full h-8 px-2 border rounded"
+                        />
+                      </div>
+                      <div className="col-span-1 text-right">
+                        <button
+                          type="button"
+                          className="text-red-600 text-xs"
+                          onClick={() => removeFromCart(item.codeId)}
+                        >
+                          <MdDelete size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-xs text-slate-500 mt-2">
+                  No items added yet.
+                </div>
               )}
-            </div>
-            <div className="mb-4">
-              <label>Unit Price</label>
-              <input
-                type="number"
-                value={Price}
-                readOnly
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-gray-100 cursor-not-allowed"
-                placeholder="Unit price"
-              />
-            </div>
-            <div className="mb-4">
-              <label>Total</label>
-              <input
-                type="number"
-                value={Number(Price || 0) * Number(quantity || 0)}
-                readOnly
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-gray-100 cursor-not-allowed"
-              />
             </div>
             <div className="mb-4">
               <label>Vendor</label>
@@ -383,11 +481,9 @@ function Orderpage() {
             <thead className="bg-slate-50 border-b">
               <tr className="text-left text-slate-500">
                 <th className="px-5 py-4 font-medium">#</th>
-                <th className="px-5 py-4 font-medium">Product</th>
-                <th className="px-5 py-4 font-medium">Quantity</th>
+                <th className="px-5 py-4 font-medium">Products</th>
                 <th className="px-5 py-4 font-medium">Total Amount</th>
                 <th className="px-5 py-4 font-medium">Status</th>
-                <th className="px-5 py-4 font-medium">Created By</th>
                 <th className="px-5 py-4 font-medium">Timestamp</th>
                 <th className="px-5 py-4 font-medium">Actions</th>
               </tr>
@@ -401,16 +497,41 @@ function Orderpage() {
                 >
                   <td className="px-5 py-4">{index + 1}</td>
                   <td className="px-5 py-4">
-                    {order.Product?.product?.name || "N/A"}
+                    {(order.products?.length
+                      ? order.products
+                      : order.Product
+                        ? [order.Product]
+                        : []
+                    ).map((item) => (
+                      <div
+                        key={item.productCode?._id || item.productCode}
+                        className="flex items-center gap-2 px-3 py-2 mb-1 last:mb-0 rounded-md bg-slate-50 border border-slate-300"
+                      >
+                        <span className="text-sm font-medium text-slate-800 flex-1 truncate">
+                          {item.product?.name || "N/A"}
+                        </span>
+                        <span className="text-xs font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full whitespace-nowrap">
+                          {item.productCode?.code || "-"}
+                        </span>
+                        <span className="text-xs font-semibold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full whitespace-nowrap">
+                          × {item.quantity}
+                        </span>
+                      </div>
+                    ))}
                   </td>
-                  <td className="px-5 py-4">{order.Product?.quantity}</td>
                   <td className="px-5 py-4">Rs {order?.totalAmount}</td>
-                  <td className="px-5 py-4">{order.status}</td>
-                  <td className="px-5 py-4">{order.vendor?.name || "N/A"}</td>
+                  <td className="px-5 py-4">
+                    <span
+                      className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full capitalize ${getStatusBadge(order.status)}`}
+                    >
+                      {order.status}
+                    </span>
+                  </td>{" "}
+                  {/* <td className="px-5 py-4">{order.vendor?.name || "N/A"}</td> */}
                   <td className="px-5 py-4">
                     <FormattedTime timestamp={order.createdAt} />
                   </td>
-                  <td className="px-5 py-4 flex gap-2">
+                  <td className="px-5 py-4 ">
                     <Popconfirm
                       title={
                         <div className="flex flex-col gap-1 max-w-xs">
@@ -444,6 +565,7 @@ function Orderpage() {
       text-red-600
       transition-all duration-200
       hover:shadow-sm
+      mr-2
     "
                         title="Delete Order"
                       >

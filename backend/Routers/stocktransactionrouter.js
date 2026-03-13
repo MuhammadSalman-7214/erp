@@ -27,10 +27,10 @@ router.get(
   stockController.searchStocks,
 );
 router.get(
-  "/product/:productId",
+  "/code/:productCodeId",
   authmiddleware,
   checkRole("admin", "manager"),
-  stockController.getStockTransactionsByProduct,
+  stockController.getStockTransactionsByProductCode,
 );
 router.get(
   "/supplier/:supplierId",

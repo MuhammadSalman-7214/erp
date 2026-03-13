@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { IoMdAdd } from "react-icons/io";
+import React, { useEffect, useMemo, useState } from "react";
+import { IoMdAdd, IoMdTrash } from "react-icons/io";
 import {
   MdDelete,
   MdEdit,
@@ -8,7 +8,7 @@ import {
 } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
 import FormattedTime from "../lib/FormattedTime";
-import { FaMoneyBill1Wave } from "react-icons/fa6";
+import { FaMoneyBill1Wave, FaPalette } from "react-icons/fa6";
 
 import {
   Addproduct,
@@ -16,6 +16,9 @@ import {
   Searchproduct,
   Removeproduct,
   EditProduct,
+  addProductCode,
+  updateProductCode,
+  deleteProductCode,
 } from "../features/productSlice";
 import { gettingallCategory } from "../features/categorySlice";
 import toast from "react-hot-toast";
@@ -23,6 +26,11 @@ import { useRolePermissions } from "../hooks/useRolePermissions";
 import { AiOutlineProduct } from "react-icons/ai";
 import NoData from "../Components/NoData";
 import { Popconfirm } from "antd";
+
+const emptyCode = {
+  code: "",
+  quantity: "",
+};
 
 function Productpage({ readOnly = false }) {
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
@@ -39,21 +47,23 @@ function Productpage({ readOnly = false }) {
 
   const dispatch = useDispatch();
 
-  const [query, setQuery] = useState("");
-  const [productCode, setProductCode] = useState("");
+  const [productCodeQuery, setProductCodeQuery] = useState("");
   const [name, setName] = useState("");
-  const [brand, setBrand] = useState("");
-  const [grade, setGrade] = useState("");
+  const [description, setDescription] = useState("");
+  const [company, setCompany] = useState("");
   const [Category, setCategory] = useState("");
   const [purchasePrice, setPurchasePrice] = useState("");
-  const [salesPrice, setSalesPrice] = useState("");
-  const [quantity, setQuantity] = useState("");
+  const [tradePrice, setTradePrice] = useState("");
+  const [salePrice, setSalePrice] = useState("");
   const [dateAdded, setDateAdded] = useState(
     new Date().toISOString().split("T")[0],
   );
-  const [productCodeQuery, setProductCodeQuery] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
+  const [codeProductId, setCodeProductId] = useState(null);
+  const [codeForm, setCodeForm] = useState({ ...emptyCode });
+  const [codeEdits, setCodeEdits] = useState({});
 
   useEffect(() => {
     dispatch(gettingallproducts());
@@ -66,9 +76,8 @@ function Productpage({ readOnly = false }) {
         dispatch(Searchproduct(productCodeQuery));
       }, 500); // debounce for 0.5s
       return () => clearTimeout(debounce);
-    } else {
-      dispatch(gettingallproducts());
     }
+    dispatch(gettingallproducts());
   }, [productCodeQuery, dispatch]);
 
   const handleremove = async (productId) => {
@@ -83,6 +92,29 @@ function Productpage({ readOnly = false }) {
       .catch((error) => toast.error(error || "Failed to remove product"));
   };
 
+  const handleRowDelete = ({ productId, codeId, codeCount }) => {
+    if (!canDelete) {
+      toast.error("You do not have permission to delete products");
+      return;
+    }
+
+    if (codeId && codeCount > 1) {
+      dispatch(deleteProductCode({ codeId, productId }))
+        .unwrap()
+        .then(() => toast.success("Code deleted successfully"))
+        .catch((error) => toast.error(error || "Failed to delete code"));
+      return;
+    }
+
+    handleremove(productId);
+  };
+
+  const normalizePrice = (value) => {
+    if (value === "" || value === null || value === undefined) return undefined;
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? undefined : parsed;
+  };
+
   const handleEditSubmit = (event) => {
     event.preventDefault();
 
@@ -94,14 +126,13 @@ function Productpage({ readOnly = false }) {
     if (!selectedProduct) return;
 
     const updatedData = {
-      productCode,
       name,
-      brand,
-      grade,
+      description,
+      company,
       Category,
-      purchasePrice,
-      salesPrice,
-      quantity,
+      purchasePrice: normalizePrice(purchasePrice),
+      tradePrice: normalizePrice(tradePrice),
+      salePrice: normalizePrice(salePrice),
       dateAdded: selectedProduct.dateAdded || new Date().toISOString(),
     };
     dispatch(EditProduct({ id: selectedProduct._id, updatedData }))
@@ -122,13 +153,13 @@ function Productpage({ readOnly = false }) {
     }
 
     const productData = {
-      productCode,
       name,
-      brand,
-      grade,
+      description,
+      company,
       Category,
-      purchasePrice,
-      salesPrice,
+      purchasePrice: normalizePrice(purchasePrice),
+      tradePrice: normalizePrice(tradePrice),
+      salePrice: normalizePrice(salePrice),
       dateAdded: new Date(dateAdded).toISOString(),
     };
 
@@ -142,14 +173,13 @@ function Productpage({ readOnly = false }) {
   };
 
   const resetForm = () => {
-    setProductCode("");
     setName("");
-    setBrand("");
-    setGrade("");
+    setDescription("");
+    setCompany("");
     setCategory("");
     setPurchasePrice("");
-    setSalesPrice("");
-    setQuantity("");
+    setTradePrice("");
+    setSalePrice("");
   };
 
   const closeForm = () => {
@@ -165,19 +195,112 @@ function Productpage({ readOnly = false }) {
     }
 
     setSelectedProduct(product);
-    setProductCode(product.productCode || "");
     setName(product.name);
-    setBrand(product.brand || "");
-    setGrade(product.grade || "");
+    setDescription(product.description || "");
+    setCompany(product.company || product.brand || "");
     setCategory(product.Category?._id || "");
-    setPurchasePrice(product.pricing?.currentPurchasePrice ?? "");
-    setSalesPrice(product.pricing?.currentSalesPrice ?? product.Price ?? "");
-    setQuantity(product.quantity);
+    setPurchasePrice(
+      product.purchasePrice ?? product.pricing?.currentPurchasePrice ?? "",
+    );
+    setTradePrice(
+      product.tradePrice ?? product.pricing?.currentTradePrice ?? "",
+    );
+    setSalePrice(
+      product.salePrice ??
+        product.pricing?.currentSalesPrice ??
+        product.Price ??
+        "",
+    );
     setIsFormVisible(true);
+  };
+
+  const openCodeModal = (productId) => {
+    setCodeProductId(productId);
+    setCodeForm({ ...emptyCode });
+    setCodeEdits({});
+    setIsCodeModalOpen(true);
+  };
+
+  const closeCodeModal = () => {
+    setIsCodeModalOpen(false);
+    setCodeProductId(null);
+    setCodeForm({ ...emptyCode });
+    setCodeEdits({});
+  };
+
+  const handleAddCode = async () => {
+    if (!codeProductId) return;
+    if (!codeForm.code.trim()) {
+      toast.error("Shade code is required");
+      return;
+    }
+
+    const payload = {
+      code: codeForm.code.trim(),
+      quantity: Number(codeForm.quantity || 0),
+    };
+
+    dispatch(addProductCode({ productId: codeProductId, codeData: payload }))
+      .unwrap()
+      .then(() => {
+        toast.success("Code added");
+        setCodeForm({ ...emptyCode });
+      })
+      .catch((error) => toast.error(error || "Failed to add code"));
+  };
+
+  const handleDeleteCode = (codeId) => {
+    if (!codeProductId) return;
+    dispatch(deleteProductCode({ codeId, productId: codeProductId }))
+      .unwrap()
+      .then(() => toast.success("Code deleted"))
+      .catch((error) => toast.error(error || "Failed to delete code"));
   };
 
   const displayProducts =
     productCodeQuery.trim() !== "" ? searchdata || [] : getallproduct;
+
+  const displayRows = useMemo(() => {
+    if (!Array.isArray(displayProducts)) return [];
+    const rows = [];
+    displayProducts.forEach((product) => {
+      const codes = Array.isArray(product.productCodes)
+        ? product.productCodes
+        : [];
+      if (!codes.length) {
+        rows.push({ product, code: null });
+        return;
+      }
+      codes.forEach((code) => rows.push({ product, code }));
+    });
+    return rows;
+  }, [displayProducts]);
+
+  const codeProduct = useMemo(
+    () =>
+      getallproduct.find((product) => product._id === codeProductId) || null,
+    [getallproduct, codeProductId],
+  );
+
+  const totalStoreValue = useMemo(() => {
+    if (!Array.isArray(getallproduct)) return 0;
+    return getallproduct.reduce((total, product) => {
+      const salePrice = Number(
+        product.salePrice ??
+          product.pricing?.currentSalesPrice ??
+          product.Price ??
+          0,
+      );
+      const totalQuantity =
+        product.totalQuantity ??
+        (product.productCodes || []).reduce(
+          (sum, code) => sum + Number(code.quantity || 0),
+          0,
+        );
+      return total + salePrice * Number(totalQuantity || 0);
+    }, 0);
+  }, [getallproduct]);
+
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
       {/* KPI CARDS */}
@@ -206,14 +329,7 @@ function Productpage({ readOnly = false }) {
             </span>
 
             <h2 className="text-2xl sm:text-3xl font-bold">
-              Rs{" "}
-              {getallproduct?.reduce(
-                (total, p) =>
-                  total +
-                  (p.pricing?.currentSalesPrice ?? p.Price ?? 0) *
-                    (p.quantity || 0),
-                0,
-              ) || 0}
+              Rs {totalStoreValue || 0}
             </h2>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
@@ -245,7 +361,7 @@ function Productpage({ readOnly = false }) {
           value={productCodeQuery}
           onChange={(e) => setProductCodeQuery(e.target.value)}
           className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
-          placeholder="Search product by code..."
+          placeholder="Search product by name or code..."
         />
 
         {canWrite && (
@@ -267,7 +383,7 @@ function Productpage({ readOnly = false }) {
       <div className="mt-4">
         <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
           {/* Loading State */}
-          {false ? ( // replace false with your loading state if you have one
+          {false ? (
             <div className="p-10 text-center text-slate-500 animate-pulse">
               Loading products...
             </div>
@@ -286,14 +402,13 @@ function Productpage({ readOnly = false }) {
                 <thead className="bg-slate-50 border-b">
                   <tr className="text-left text-slate-500">
                     <th className="px-5 py-4 font-medium">#</th>
-                    <th className="px-5 py-4 font-medium">Code</th>
                     <th className="px-5 py-4 font-medium">Product</th>
-                    <th className="px-5 py-4 font-medium">Brand</th>
-                    <th className="px-5 py-4 font-medium">Grade</th>
+                    <th className="px-5 py-4 font-medium">Product Code</th>
+                    <th className="px-5 py-4 font-medium">Purchase Price</th>
+                    <th className="px-5 py-4 font-medium">Trade Price</th>
+                    <th className="px-5 py-4 font-medium">Sale Price</th>
                     <th className="px-5 py-4 font-medium">Category</th>
                     <th className="px-5 py-4 font-medium">Qty</th>
-                    <th className="px-5 py-4 font-medium">Purchase</th>
-                    <th className="px-5 py-4 font-medium">Sales</th>
                     <th className="px-5 py-4 font-medium">Date</th>
                     {!isReadOnlyMode && (
                       <th className="px-5 py-4 font-medium">Actions</th>
@@ -302,73 +417,81 @@ function Productpage({ readOnly = false }) {
                 </thead>
 
                 <tbody>
-                  {displayProducts.map((product, index) => (
+                  {displayRows.map((row, index) => {
+                    const product = row.product;
+                    const code = row.code;
+                    const codeCount = Array.isArray(product.productCodes)
+                      ? product.productCodes.length
+                      : 0;
+                    const isCodeDelete = Boolean(code && codeCount > 1);
+                    return (
                     <tr
-                      key={product._id}
+                      key={`${product._id}-${code?._id || "no-code"}-${index}`}
                       className="border-b last:border-b-0 hover:bg-slate-50 transition"
                     >
-                      <td className="px-5 py-4 text-slate-500">{index + 1}</td>
+                        <td className="px-5 py-4 text-slate-500">
+                          {index + 1}
+                        </td>
 
-                      <td className="px-5 py-4 text-slate-700">
-                        {product.productCode || "-"}
-                      </td>
-
-                      <td className="px-5 py-4">
-                        <div className="font-medium text-slate-800">
-                          {product.name}
-                        </div>
-                      </td>
-
-                      <td className="px-5 py-4 text-slate-700">
-                        {product.brand || "-"}
-                      </td>
-                      <td className="px-5 py-4 text-slate-700">
-                        {product.grade || "-"}
-                      </td>
-
-                      <td className="px-5 py-4 text-slate-700">
-                        {product.Category?.name || "-"}
-                      </td>
-
-
-                      <td className="px-5 py-4 text-slate-700">
-                        {product.quantity ? product.quantity : "--"}
-                      </td>
-
-                      <td className="px-5 py-4 font-semibold text-slate-800">
-                        Rs{" "}
-                        {(
-                          product.pricing?.currentPurchasePrice ?? 0
-                        ).toLocaleString()}
-                      </td>
-
-                      <td className="px-5 py-4 font-semibold text-slate-800">
-                        Rs{" "}
-                        {(
-                          product.pricing?.currentSalesPrice ??
-                          product.Price ??
-                          0
-                        ).toLocaleString()}
-                      </td>
-
-                      <td className="px-5 py-4 text-slate-600">
-                        <FormattedTime timestamp={product?.createdAt} />
-                      </td>
-
-                      {!isReadOnlyMode && (
                         <td className="px-5 py-4">
-                          <div className="flex gap-2">
+                          <div className="font-medium text-slate-800">
+                            {product.name}
+                          </div>
+                        <div className="text-xs text-slate-500">
+                            {product.company || product.brand || "-"}
+                        </div>
+                        </td>
+
+                        <td className="px-5 py-4 text-slate-700">
+                          {code ? (
+                            <div className="text-xs">
+                              <span className="inline-flex items-center px-3 py-1 text-xs font-extrabold text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full shadow-md">
+                                {code.code}
+                              </span>{" "}
+                              {code.variantName ? ` • ${code.variantName}` : ""}
+                            </div>
+                          ) : (
+                            "-"
+                          )}
+                        </td>
+
+                        <td className="px-5 py-4 text-slate-700">
+                          {product.purchasePrice ?? 0}
+                        </td>
+                        <td className="px-5 py-4 text-slate-700">
+                          {product.tradePrice ?? 0}
+                        </td>
+                        <td className="px-5 py-4 text-slate-700">
+                          {product.salePrice ?? 0}
+                        </td>
+
+                        <td className="px-5 py-4 text-slate-700">
+                          {product.Category?.name || "-"}
+                        </td>
+                        <td className="px-5 py-4 text-slate-700">
+                          {code ? (code.quantity ?? 0) : 0}
+                        </td>
+
+                        <td className="px-5 py-4 text-slate-600">
+                          <FormattedTime timestamp={product?.createdAt} />
+                        </td>
+
+                        {!isReadOnlyMode && (
+                          <td className="px-5 py-4">
+                            <div className="flex gap-2">
                             {canDelete && (
                               <Popconfirm
                                 title={
                                   <div className="flex flex-col gap-1 max-w-xs">
                                     <span className="font-semibold text-red-600 text-sm">
-                                      Confirm Product Deletion
+                                      {isCodeDelete
+                                        ? "Confirm Code Deletion"
+                                        : "Confirm Product Deletion"}
                                     </span>
                                     <span className="text-xs text-gray-600 leading-snug">
-                                      This action will permanently remove this
-                                      product from inventory. This operation
-                                      cannot be undone.
+                                      {isCodeDelete
+                                        ? "This action will permanently remove this code from inventory. This operation cannot be undone."
+                                        : "This action will permanently remove this product from inventory. This operation cannot be undone."}
                                     </span>
                                   </div>
                                 }
@@ -382,30 +505,46 @@ function Productpage({ readOnly = false }) {
                                   className: "font-medium",
                                 }}
                                 placement="topRight"
-                                onConfirm={() => handleremove(product._id)}
+                                onConfirm={() =>
+                                  handleRowDelete({
+                                    productId: product._id,
+                                    codeId: code?._id,
+                                    codeCount,
+                                  })
+                                }
                               >
                                 <button
                                   className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition-all duration-200 hover:shadow-sm"
                                   title="Delete Product"
                                 >
-                                  <MdDelete size={18} />
+                                    <MdDelete size={18} />
+                                  </button>
+                                </Popconfirm>
+                              )}
+                              {canWrite && (
+                                <button
+                                  onClick={() => handleEditClick(product)}
+                                  className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
+                                  title="Edit"
+                                >
+                                  <MdEdit size={18} />
                                 </button>
-                              </Popconfirm>
-                            )}
-                            {canWrite && (
-                              <button
-                                onClick={() => handleEditClick(product)}
-                                className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
-                                title="Edit"
-                              >
-                                <MdEdit size={18} />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
+                              )}
+                              {canWrite && (
+                                <button
+                                  onClick={() => openCodeModal(product._id)}
+                                  className="px-3 py-2 rounded-lg bg-slate-100 hover:bg-orange-100 text-orange-500 text-xs font-semibold transition"
+                                  title="Manage Codes"
+                                >
+                                  <FaPalette size={16} />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -420,7 +559,7 @@ function Productpage({ readOnly = false }) {
 
       {/* SLIDE-IN DRAWER */}
       {isFormVisible && (
-        <div className="fixed top-0 right-0 w-full sm:w-[420px] h-full bg-white p-6 border-l shadow-2xl z-50">
+        <div className="fixed top-0 right-0 w-full sm:w-[480px] h-full bg-white p-6 border-l shadow-2xl z-50 overflow-y-auto">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">
               {selectedProduct ? "Edit Product" : "Create Product"}
@@ -435,34 +574,41 @@ function Productpage({ readOnly = false }) {
             onSubmit={selectedProduct ? handleEditSubmit : submitProduct}
             className="space-y-4"
           >
-            {[
-              ["Product Code", productCode, setProductCode, "text"],
-              ["Name", name, setName, "text"],
-              ["Brand", brand, setBrand, "text"],
-              ["Grade", grade, setGrade, "text"],
-              ["Purchase Price", purchasePrice, setPurchasePrice, "number"],
-              ["Sales Price", salesPrice, setSalesPrice, "number"],
-              // ["Quantity", quantity, setQuantity, "number"],
-            ].map(([label, val, setter, type]) => (
-              <div key={label}>
-                <label className="text-sm font-medium">{label}</label>
-                <input
-                  type={type}
-                  value={val}
-                  onChange={(e) => setter(e.target.value)}
-                  className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  required
-                />
-              </div>
-            ))}
-
+            <div>
+              <label className="text-sm font-medium">Name</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Description</label>
+              <input
+                type="text"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Company</label>
+              <input
+                type="text"
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                required
+              />
+            </div>
             <div>
               <label className="text-sm font-medium">Category</label>
               <select
                 value={Category}
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                required
               >
                 <option value="">Select category</option>
                 {getallCategory?.map((c) => (
@@ -473,6 +619,34 @@ function Productpage({ readOnly = false }) {
               </select>
             </div>
 
+            <div>
+              <label className="text-sm font-medium">Purchase Price</label>
+              <input
+                type="number"
+                value={purchasePrice}
+                onChange={(e) => setPurchasePrice(e.target.value)}
+                className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Trade Price</label>
+              <input
+                type="number"
+                value={tradePrice}
+                onChange={(e) => setTradePrice(e.target.value)}
+                className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Sale Price</label>
+              <input
+                type="number"
+                value={salePrice}
+                onChange={(e) => setSalePrice(e.target.value)}
+                className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
+            </div>
+
             <button
               type="submit"
               className="w-full h-12 bg-teal-700 hover:bg-teal-600 text-white rounded-xl shadow-md mt-4"
@@ -480,6 +654,113 @@ function Productpage({ readOnly = false }) {
               {selectedProduct ? "Update Product" : "Create Product"}
             </button>
           </form>
+        </div>
+      )}
+
+      {isCodeModalOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-40"
+          onClick={closeCodeModal}
+        />
+      )}
+
+      {isCodeModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="w-full max-w-2xl bg-white rounded-2xl shadow-xl border"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b">
+              <div>
+                <h3 className="text-lg font-semibold">Manage Codes</h3>
+                <p className="text-xs text-slate-500">
+                  {codeProduct?.name || "Product"}{" "}
+                  {codeProduct?.company || codeProduct?.brand
+                    ? `• ${codeProduct?.company || codeProduct?.brand}`
+                    : ""}
+                </p>
+              </div>
+              <button
+                onClick={closeCodeModal}
+                className="text-sm text-slate-500 hover:text-slate-700"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="border rounded-xl p-4 bg-slate-50">
+                <h4 className="text-sm font-semibold mb-3">Add New Code</h4>
+                <div>
+                  <label className="text-xs font-medium">Shade Code</label>
+                  <input
+                    type="text"
+                    value={codeForm.code}
+                    onChange={(e) =>
+                      setCodeForm((prev) => ({
+                        ...prev,
+                        code: e.target.value,
+                      }))
+                    }
+                    className="w-full h-9 px-2 border rounded-lg mt-1"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddCode}
+                  className="mt-3 w-full h-10 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl"
+                >
+                  Add Code
+                </button>
+              </div>
+              <div className="border rounded-2xl bg-slate-50 p-4">
+                <div className="text-xs font-semibold text-slate-500 mb-3">
+                  Shade Codes
+                </div>
+
+                {codeProduct?.productCodes?.length ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {codeProduct.productCodes.map((code) => (
+                      <div
+                        key={code._id}
+                        className="group relative rounded-xl bg-gradient-to-br from-white to-slate-100 
+          p-4 shadow-sm hover:shadow-xl transition-all duration-300 
+          hover:-translate-y-1 border border-slate-200 
+          flex flex-col justify-between"
+                      >
+                        {/* Top Section */}
+                        <div className="flex flex-col items-center text-center">
+                          <div className="text-xs text-slate-500 mb-2">
+                            Shade Code
+                          </div>
+
+                          <span className="inline-flex items-center justify-center px-3 py-1 text-xs font-extrabold text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full shadow-md">
+                            {code.code}
+                          </span>
+                        </div>
+
+                        {/* Bottom Actions */}
+                        <div className="pt-4 mt-4 border-t flex justify-center">
+                          <button
+                            onClick={() => handleDeleteCode(code._id)}
+                            className="flex w-full items-center justify-center gap-1 px-3 py-2 rounded-lg 
+              bg-red-200 text-red-600 hover:bg-red-300 
+              text-xs font-semibold transition"
+                          >
+                            <IoMdTrash size={16} /> Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-slate-500 py-6 text-center">
+                    No codes yet for this product.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
