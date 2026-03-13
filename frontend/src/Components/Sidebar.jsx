@@ -184,23 +184,17 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
               sidebarOpen={sidebarOpen}
             />
 
-            <NavItem
+            {/* <NavItem
               to="/AdminDashboard/activity-log"
               icon={<RxActivityLog />}
               label="Activity Log"
               sidebarOpen={sidebarOpen}
-            />
+            /> */}
 
             <NavItem
-              to="/AdminDashboard/supplier"
-              icon={<TfiSupport />}
-              label="Vendor"
-              sidebarOpen={sidebarOpen}
-            />
-            <NavItem
-              to="/AdminDashboard/customer"
-              icon={<LuUsers />}
-              label="Customer"
+              to="/AdminDashboard/order"
+              icon={<FiShoppingCart />}
+              label="Order"
               sidebarOpen={sidebarOpen}
             />
 
@@ -226,25 +220,30 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
             />
 
             <NavItem
-              to="/AdminDashboard/order"
-              icon={<FiShoppingCart />}
-              label="Order"
-              sidebarOpen={sidebarOpen}
-            />
-
-            <NavItem
               to="/AdminDashboard/stock-transaction"
               icon={<RiStockLine />}
               label="Stock Transaction"
               sidebarOpen={sidebarOpen}
             />
-
+            <NavItem
+              to="/AdminDashboard/supplier"
+              icon={<TfiSupport />}
+              label="Vendor"
+              sidebarOpen={sidebarOpen}
+            />
+            <NavItem
+              to="/AdminDashboard/customer"
+              icon={<LuUsers />}
+              label="Customer"
+              sidebarOpen={sidebarOpen}
+            />
+            {/* 
             <NavItem
               to="/AdminDashboard/notifications"
               icon={<IoNotificationsOutline />}
               label="Create Notifications"
               sidebarOpen={sidebarOpen}
-            />
+            /> */}
 
             <NavItem
               to="/AdminDashboard/category"

@@ -112,7 +112,7 @@ function CreateInvoicePage() {
         dueDate,
         paymentMethod,
         notes,
-        currency: "USD",
+        currency: "Rs",
       });
       toast.success("Invoice created successfully");
       navigate(`${dashboardBasePath}/invoices`);

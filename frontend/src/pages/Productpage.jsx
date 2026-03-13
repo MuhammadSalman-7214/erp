@@ -425,10 +425,10 @@ function Productpage({ readOnly = false }) {
                       : 0;
                     const isCodeDelete = Boolean(code && codeCount > 1);
                     return (
-                    <tr
-                      key={`${product._id}-${code?._id || "no-code"}-${index}`}
-                      className="border-b last:border-b-0 hover:bg-slate-50 transition"
-                    >
+                      <tr
+                        key={`${product._id}-${code?._id || "no-code"}-${index}`}
+                        className="border-b last:border-b-0 hover:bg-slate-50 transition"
+                      >
                         <td className="px-5 py-4 text-slate-500">
                           {index + 1}
                         </td>
@@ -437,9 +437,9 @@ function Productpage({ readOnly = false }) {
                           <div className="font-medium text-slate-800">
                             {product.name}
                           </div>
-                        <div className="text-xs text-slate-500">
+                          <div className="text-xs text-slate-500">
                             {product.company || product.brand || "-"}
-                        </div>
+                          </div>
                         </td>
 
                         <td className="px-5 py-4 text-slate-700">
@@ -479,44 +479,44 @@ function Productpage({ readOnly = false }) {
                         {!isReadOnlyMode && (
                           <td className="px-5 py-4">
                             <div className="flex gap-2">
-                            {canDelete && (
-                              <Popconfirm
-                                title={
-                                  <div className="flex flex-col gap-1 max-w-xs">
-                                    <span className="font-semibold text-red-600 text-sm">
-                                      {isCodeDelete
-                                        ? "Confirm Code Deletion"
-                                        : "Confirm Product Deletion"}
-                                    </span>
-                                    <span className="text-xs text-gray-600 leading-snug">
-                                      {isCodeDelete
-                                        ? "This action will permanently remove this code from inventory. This operation cannot be undone."
-                                        : "This action will permanently remove this product from inventory. This operation cannot be undone."}
-                                    </span>
-                                  </div>
-                                }
-                                okText="Yes, Delete"
-                                cancelText="Cancel"
-                                okButtonProps={{
-                                  danger: true,
-                                  className: "font-semibold",
-                                }}
-                                cancelButtonProps={{
-                                  className: "font-medium",
-                                }}
-                                placement="topRight"
-                                onConfirm={() =>
-                                  handleRowDelete({
-                                    productId: product._id,
-                                    codeId: code?._id,
-                                    codeCount,
-                                  })
-                                }
-                              >
-                                <button
-                                  className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition-all duration-200 hover:shadow-sm"
-                                  title="Delete Product"
+                              {canDelete && (
+                                <Popconfirm
+                                  title={
+                                    <div className="flex flex-col gap-1 max-w-xs">
+                                      <span className="font-semibold text-red-600 text-sm">
+                                        {isCodeDelete
+                                          ? "Confirm Code Deletion"
+                                          : "Confirm Product Deletion"}
+                                      </span>
+                                      <span className="text-xs text-gray-600 leading-snug">
+                                        {isCodeDelete
+                                          ? "This action will permanently remove this code from inventory. This operation cannot be undone."
+                                          : "This action will permanently remove this product from inventory. This operation cannot be undone."}
+                                      </span>
+                                    </div>
+                                  }
+                                  okText="Yes, Delete"
+                                  cancelText="Cancel"
+                                  okButtonProps={{
+                                    danger: true,
+                                    className: "font-semibold",
+                                  }}
+                                  cancelButtonProps={{
+                                    className: "font-medium",
+                                  }}
+                                  placement="topRight"
+                                  onConfirm={() =>
+                                    handleRowDelete({
+                                      productId: product._id,
+                                      codeId: code?._id,
+                                      codeCount,
+                                    })
+                                  }
                                 >
+                                  <button
+                                    className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition-all duration-200 hover:shadow-sm"
+                                    title="Delete Product"
+                                  >
                                     <MdDelete size={18} />
                                   </button>
                                 </Popconfirm>
@@ -708,7 +708,7 @@ function Productpage({ readOnly = false }) {
                 <button
                   type="button"
                   onClick={handleAddCode}
-                  className="mt-3 w-full h-10 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl"
+                  className="mt-3 w-full h-10 bg-teal-700 hover:bg-teal-600 text-white rounded-xl"
                 >
                   Add Code
                 </button>

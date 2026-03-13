@@ -137,145 +137,185 @@ function InvoiceDetailPage() {
   if (!invoice) return <p className="p-6">Invoice not found</p>;
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      {/* <TopNavbar /> */}
-      <div className="p-6 max-w-5xl mx-auto">
-        <div className="bg-white rounded-2xl shadow p-6">
-          {/* Header */}
-          <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-800 mb-2 md:mb-0">
+    <div className="p-6 max-w-5xl mx-auto">
+      {/* ACTION BAR (outside invoice) */}
+      <div className="flex justify-between items-center mb-4 print:hidden">
+        <button
+          onClick={() => navigate(`${dashboardBasePath}/invoices`)}
+          className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+        >
+          ← Back
+        </button>
+
+        <div className="flex gap-2">
+          <button
+            onClick={() =>
+              navigate(`${dashboardBasePath}/editInvoice/${invoice._id}`)
+            }
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Edit
+          </button>
+
+          <button
+            onClick={downloadInvoice}
+            className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
+          >
+            Download PDF
+          </button>
+        </div>
+      </div>
+
+      {/* INVOICE CARD */}
+      <div className="bg-white rounded-xl shadow p-8 print:shadow-none print:p-0">
+        {/* Header */}
+        <div className="flex justify-between items-start border-b pb-4 mb-6">
+          {/* LEFT SIDE */}
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Invoice</h1>
+            <p className="text-gray-500">{invoice.invoiceNumber}</p>
+          </div>
+
+          {/* RIGHT SIDE */}
+          <div className="text-right text-sm text-gray-600 space-y-1">
+            <p>
+              <span className="font-semibold">Issue Date:</span>{" "}
+              {new Date(invoice.issueDate).toLocaleDateString()}
+            </p>
+            <p>
+              <span className="font-semibold">Due Date:</span>{" "}
+              {new Date(invoice.dueDate).toLocaleDateString()}
+            </p>
+          </div>
+        </div>
+
+        {/* Invoice Info */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-8 text-gray-700">
+          {/* BILL TO */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-500 mb-2">
+              {invoice.invoiceType === "purchase" ? "Vendor" : "Customer"}
+            </h3>
+
+            <p className="font-semibold text-gray-900">
+              {invoice.invoiceType === "purchase"
+                ? invoice.vendor?.name
+                : invoice.customerId?.name || invoice.customer?.name}
+            </p>
+
+            {(invoice.customerId?.contactInfo?.phone ||
+              invoice.customer?.phone) && (
+              <p className="text-gray-600 text-sm">
+                {invoice.customerId?.contactInfo?.phone ||
+                  invoice.customer?.phone}
+              </p>
+            )}
+
+            {(invoice.customerId?.contactInfo?.address ||
+              invoice.customer?.address) && (
+              <p className="text-gray-600 text-sm">
+                {invoice.customerId?.contactInfo?.address ||
+                  invoice.customer?.address}
+              </p>
+            )}
+
+            <p className="text-sm mt-2">
+              <span className="font-semibold">Status:</span> {invoice.status}
+            </p>
+
+            <p className="text-sm">
+              <span className="font-semibold">Payment Method:</span>{" "}
+              {invoice.paymentMethod}
+            </p>
+          </div>
+
+          {/* INVOICE META */}
+          <div className="text-sm text-gray-600 space-y-1">
+            <p>
+              <span className="font-semibold">Invoice #:</span>{" "}
               {invoice.invoiceNumber}
-            </h1>
-            <div className="flex gap-2">
-              <button
-                onClick={() =>
-                  navigate(`${dashboardBasePath}/editInvoice/${invoice._id}`)
-                }
-                className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
-              >
-                Edit
-              </button>
-              <button
-                onClick={downloadInvoice}
-                className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
-              >
-                Download PDF
-              </button>
-              <button
-                onClick={() => navigate(`${dashboardBasePath}/invoices`)}
-                className="px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500"
-              >
-                Back
-              </button>
-            </div>
+            </p>
+            <p>
+              <span className="font-semibold">Issue Date:</span>{" "}
+              {new Date(invoice.issueDate).toLocaleDateString()}
+            </p>
+            <p>
+              <span className="font-semibold">Due Date:</span>{" "}
+              {new Date(invoice.dueDate).toLocaleDateString()}
+            </p>
           </div>
+        </div>
 
-          {/* Invoice Info */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 text-gray-700">
-            <div className="space-y-1">
-              <p>
-                <span className="font-semibold">
-                  {invoice.invoiceType === "purchase" ? "Vendor" : "Customer"}:
-                </span>{" "}
-                {invoice.invoiceType === "purchase"
-                  ? invoice.vendor?.name || "-"
-                  : invoice.customerId?.name || invoice.customer?.name || "-"}
-              </p>
-              {invoice.invoiceType !== "purchase" &&
-                (invoice.customerId?.contactInfo?.phone ||
-                  invoice.customer?.phone) && (
-                  <p>
-                    <span className="font-semibold">Phone:</span>{" "}
-                    {invoice.customerId?.contactInfo?.phone ||
-                      invoice.customer?.phone}
-                  </p>
-                )}
-              {invoice.invoiceType !== "purchase" &&
-                (invoice.customerId?.contactInfo?.address ||
-                  invoice.customer?.address) && (
-                  <p>
-                    <span className="font-semibold">Address:</span>{" "}
-                    {invoice.customerId?.contactInfo?.address ||
-                      invoice.customer?.address}
-                  </p>
-                )}
-              <p>
-                <span className="font-semibold">Status:</span> {invoice.status}
-              </p>
-              <p>
-                <span className="font-semibold">Payment Method:</span>{" "}
-                {invoice.paymentMethod}
-              </p>
-            </div>
-            <div className="space-y-1">
-              <p>
-                <span className="font-semibold">Issue Date:</span>{" "}
-                {new Date(invoice.issueDate).toLocaleDateString()}
-              </p>
-              <p>
-                <span className="font-semibold">Due Date:</span>{" "}
-                {new Date(invoice.dueDate).toLocaleDateString()}
-              </p>
-            </div>
+        {/* Notes */}
+        {invoice.notes && (
+          <div className="mb-6">
+            <h2 className="font-semibold text-gray-800 mb-1">Notes</h2>
+            <p className="text-gray-600">{invoice.notes}</p>
           </div>
+        )}
 
-          {/* Notes */}
-          {invoice.notes && (
-            <div className="mb-6">
-              <h2 className="font-semibold text-gray-800 mb-1">Notes</h2>
-              <p className="text-gray-600">{invoice.notes}</p>
-            </div>
-          )}
-
-          {/* Items Table */}
-          <h2 className="text-lg font-semibold text-gray-800 mb-3">Items</h2>
-          <div className="overflow-x-auto mb-6">
-            <table className="min-w-full border rounded-lg shadow-sm">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-4 py-2 border text-left">#</th>
-                  <th className="px-4 py-2 border text-left">Name</th>
-                  <th className="px-4 py-2 border text-right">Quantity</th>
-                  <th className="px-4 py-2 border text-right">Unit Price</th>
-                  <th className="px-4 py-2 border text-right">Total</th>
+        {/* Items Table */}
+        <h2 className="text-lg font-semibold text-gray-800 mb-3">Items</h2>
+        <div className="overflow-hidden rounded-lg border mb-8">
+          <table className="min-w-full border-collapse border text-sm">
+            <thead className="bg-slate-50 text-gray-600 text-sm">
+              <tr>
+                <th className="px-4 py-2 border text-left">#</th>
+                <th className="px-4 py-2 border text-left">Name</th>
+                <th className="px-4 py-2 border text-right">Quantity</th>
+                <th className="px-4 py-2 border text-right">Unit Price</th>
+                <th className="px-4 py-2 border text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {invoice.items.map((item, idx) => (
+                <tr key={idx} className="hover:bg-gray-50">
+                  <td className="px-4 py-2 border">{idx + 1}</td>
+                  <td className="px-4 py-2 border">{item.name}</td>
+                  <td className="px-4 py-2 border text-right">
+                    {item.quantity}
+                  </td>
+                  <td className="px-4 py-2 border text-right">
+                    {invoice.currency} {item.unitPrice.toFixed(2)}
+                  </td>
+                  <td className="px-4 py-2 border text-right">
+                    {invoice.currency} {item.total.toFixed(2)}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {invoice.items.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 border">{idx + 1}</td>
-                    <td className="px-4 py-2 border">{item.name}</td>
-                    <td className="px-4 py-2 border text-right">
-                      {item.quantity}
-                    </td>
-                    <td className="px-4 py-2 border text-right">
-                      {invoice.currency} {item.unitPrice.toFixed(2)}
-                    </td>
-                    <td className="px-4 py-2 border text-right">
-                      {invoice.currency} {item.total.toFixed(2)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-          {/* Footer */}
-          <div className="flex justify-end gap-4 text-gray-700">
-            <div className="text-right">
-              <p className="font-semibold">
-                Subtotal: {invoice.currency} {invoice.subTotal.toFixed(2)}
-              </p>
-              <p className="font-semibold">
-                Tax: {invoice.currency} {invoice.taxAmount.toFixed(2)} (
-                {invoice.taxRate}%)
-              </p>
-              <p className="font-semibold">
-                Discount: {invoice.currency} {invoice.discount.toFixed(2)}
-              </p>
-              <p className="font-bold text-lg">
-                Total: {invoice.currency} {invoice.totalAmount.toFixed(2)}
-              </p>
+        {/* Totals */}
+        <div className="flex justify-end">
+          <div className="w-72 space-y-2 text-sm text-gray-700">
+            <div className="flex justify-between">
+              <span>Subtotal</span>
+              <span>
+                {invoice.currency} {invoice.subTotal.toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between">
+              <span>Tax ({invoice.taxRate}%)</span>
+              <span>
+                {invoice.currency} {invoice.taxAmount.toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between">
+              <span>Discount</span>
+              <span>
+                {invoice.currency} {invoice.discount.toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between border-t pt-2 font-bold text-lg">
+              <span>Total</span>
+              <span>
+                {invoice.currency} {invoice.totalAmount.toFixed(2)}
+              </span>
             </div>
           </div>
         </div>

@@ -153,7 +153,7 @@ const createOrder = async (req, res) => {
       items: invoiceItems,
       taxRate: 0,
       discount: 0,
-      currency: "USD",
+      currency: "Rs",
       dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       paymentMethod: "bank_transfer",
       status: "sent",

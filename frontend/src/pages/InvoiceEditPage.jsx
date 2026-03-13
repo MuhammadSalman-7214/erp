@@ -188,7 +188,7 @@ function InvoiceEditPage() {
                     className="col-span-2 border border-gray-300 p-2 rounded"
                   />
                   <span className="col-span-1 text-gray-700 font-semibold">
-                    ${item.total.toLocaleString()}
+                    Rs {item.total.toLocaleString()}
                   </span>
 
                   <button
