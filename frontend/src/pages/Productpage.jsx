@@ -456,13 +456,13 @@ function Productpage({ readOnly = false }) {
                         </td>
 
                         <td className="px-5 py-4 text-slate-700">
-                          {product.purchasePrice ?? 0}
+                          Rs {product.purchasePrice ?? 0}
                         </td>
                         <td className="px-5 py-4 text-slate-700">
-                          {product.tradePrice ?? 0}
+                          Rs {product.tradePrice ?? 0}
                         </td>
                         <td className="px-5 py-4 text-slate-700">
-                          {product.salePrice ?? 0}
+                          Rs {product.salePrice ?? 0}
                         </td>
 
                         <td className="px-5 py-4 text-slate-700">

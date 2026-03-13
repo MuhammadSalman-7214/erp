@@ -41,6 +41,8 @@ function Salespage() {
   const [debouncedCodeQuery, setDebouncedCodeQuery] = useState("");
   const [showCodeOptions, setShowCodeOptions] = useState(false);
   const [cartItems, setCartItems] = useState([]);
+  const [showBillModal, setShowBillModal] = useState(false);
+  const [billSale, setBillSale] = useState(null);
 
   const [selectedSales, setselectedSales] = useState(null);
   const { getAllCustomer } = useSelector((state) => state.customer);
@@ -107,6 +109,181 @@ function Salespage() {
     });
     return map;
   }, [getallproduct]);
+
+  const formatCurrency = (value) =>
+    `Rs ${Number(value || 0).toLocaleString()}`;
+
+  const openBillPreview = (sale) => {
+    if (!sale) return;
+    setBillSale(sale);
+    setShowBillModal(true);
+  };
+
+  const closeBillPreview = () => {
+    setShowBillModal(false);
+    setBillSale(null);
+  };
+
+  const handlePrintBill = () => {
+    if (!billSale) return;
+    const items = Array.isArray(billSale.products) ? billSale.products : [];
+    const rows = items
+      .map((item, index) => {
+        const name = item.product?.name || "Product";
+        const code = item.productCode?.code || "-";
+        const qty = Number(item.quantity || 0);
+        const price = Number(item.price || 0);
+        const total = price * qty;
+        return `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${name}</td>
+            <td>${code}</td>
+            <td class="num">${qty}</td>
+            <td class="num">Rs ${price.toLocaleString()}</td>
+            <td class="num">Rs ${total.toLocaleString()}</td>
+          </tr>
+        `;
+      })
+      .join("");
+
+    const customerPhone =
+      billSale.customer?.contactInfo?.phone || billSale.customer?.phone || "-";
+    const customerAddress =
+      billSale.customer?.contactInfo?.address ||
+      billSale.customer?.address ||
+      "-";
+    const createdAt = billSale.createdAt
+      ? new Date(billSale.createdAt).toLocaleString()
+      : new Date().toLocaleString();
+
+    const printWindow = window.open("", "_blank", "width=900,height=650");
+    if (!printWindow) {
+      toast.error("Popup blocked. Please allow popups to print.");
+      return;
+    }
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Sales Invoice</title>
+          <style>
+            * { box-sizing: border-box; }
+            body { font-family: "Inter", "Segoe UI", Arial, sans-serif; margin: 0; padding: 32px; color: #0f172a; }
+            .sheet { max-width: 820px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; padding: 28px; }
+            .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 16px; }
+            .brand { display: flex; flex-direction: column; gap: 6px; }
+            .brand h1 { font-size: 22px; margin: 0; letter-spacing: 0.3px; color: #0f766e; }
+            .brand span { font-size: 12px; color: #475569; }
+            .meta { text-align: right; font-size: 12px; color: #475569; }
+            .meta strong { color: #0f172a; }
+            .section { margin-top: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+            .card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; background: #f8fafc; }
+            .card h3 { margin: 0 0 6px 0; font-size: 12px; text-transform: uppercase; color: #0f766e; letter-spacing: 0.6px; }
+            .card p { margin: 2px 0; font-size: 13px; color: #0f172a; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
+            thead th { background: #0f766e; color: white; padding: 10px; text-align: left; }
+            tbody td { padding: 10px; border-bottom: 1px solid #e2e8f0; }
+            tbody tr:nth-child(even) { background: #f8fafc; }
+            .num { text-align: right; }
+            .totals { margin-top: 16px; display: flex; justify-content: flex-end; }
+            .totals table { width: 280px; border-collapse: collapse; }
+            .totals td { padding: 6px 0; font-size: 13px; }
+            .totals .label { color: #475569; }
+            .totals .value { text-align: right; font-weight: 600; }
+            .grand { font-size: 15px; color: #0f172a; }
+            .footer { margin-top: 24px; font-size: 11px; color: #64748b; text-align: center; }
+          </style>
+        </head>
+        <body>
+          <div class="sheet">
+            <div class="header">
+              <div class="brand">
+                <h1>Sales Invoice</h1>
+                <span>DevSouq ERP • Sales Department</span>
+              </div>
+              <div class="meta">
+                <div><strong>Date:</strong> ${createdAt}</div>
+                <div><strong>Status:</strong> ${billSale.status}</div>
+                <div><strong>Payment:</strong> ${billSale.paymentStatus || "-"}</div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="card">
+                <h3>Customer</h3>
+                <p><strong>${billSale.customerName || "Customer"}</strong></p>
+                <p>Phone: ${customerPhone}</p>
+                <p>Address: ${customerAddress}</p>
+              </div>
+              <div class="card">
+                <h3>Sale Info</h3>
+                <p>Payment Method: ${billSale.paymentMethod || "-"}</p>
+                <p>Items: ${items.length}</p>
+                <p>Total Quantity: ${items.reduce(
+                  (sum, item) => sum + Number(item.quantity || 0),
+                  0,
+                )}</p>
+              </div>
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Product</th>
+                  <th>Code</th>
+                  <th class="num">Qty</th>
+                  <th class="num">Unit Price</th>
+                  <th class="num">Line Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows || ""}
+              </tbody>
+            </table>
+
+            <div class="totals">
+              <table>
+                <tr>
+                  <td class="label">Subtotal</td>
+                  <td class="value">Rs ${Number(
+                    billSale.totalAmount || 0,
+                  ).toLocaleString()}</td>
+                </tr>
+                <tr>
+                  <td class="label">Tax</td>
+                  <td class="value">Rs 0</td>
+                </tr>
+                <tr>
+                  <td class="label">Discount</td>
+                  <td class="value">Rs 0</td>
+                </tr>
+                <tr>
+                  <td class="label grand">Total</td>
+                  <td class="value grand">Rs ${Number(
+                    billSale.totalAmount || 0,
+                  ).toLocaleString()}</td>
+                </tr>
+              </table>
+            </div>
+
+            <div class="footer">
+              Thank you for your business. This invoice is system generated.
+            </div>
+          </div>
+          <script>
+            window.onload = () => {
+              window.focus();
+              window.print();
+              setTimeout(() => window.close(), 200);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
   const buildCartItemsFromSale = (sale) => {
     const products = Array.isArray(sale?.products) ? sale.products : [];
@@ -312,9 +489,15 @@ function Salespage() {
     };
 
     try {
-      await dispatch(CreateSales(salesData)).unwrap();
+      const result = await dispatch(CreateSales(salesData)).unwrap();
+      const createdSale = result?.sale;
       toast.success("Sale created successfully");
       closeForm();
+      const resolvedStatus =
+        createdSale?.status || salesData.status || "pending";
+      if (resolvedStatus === "completed") {
+        openBillPreview(createdSale);
+      }
     } catch (error) {
       if (error?.available && error?.requested) {
         toast.error(
@@ -682,6 +865,194 @@ function Salespage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* BILL PREVIEW MODAL */}
+      {showBillModal && billSale && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 z-50"
+            onClick={closeBillPreview}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl border overflow-hidden">
+              <div className="flex items-center justify-between px-6 py-4 border-b bg-slate-50">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-800">
+                    Sales Bill Preview
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Review the invoice before printing
+                  </p>
+                </div>
+                <button
+                  onClick={closeBillPreview}
+                  className="text-sm text-slate-500 hover:text-slate-700"
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="p-6 max-h-[70vh] overflow-y-auto">
+                <div className="rounded-2xl border border-slate-200 p-6 bg-white shadow-sm">
+                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 border-b pb-4 mb-4">
+                    <div>
+                      <h2 className="text-2xl font-semibold text-teal-700">
+                        Sales Invoice
+                      </h2>
+                      <p className="text-sm text-slate-500">
+                        DevSouq ERP • Sales Department
+                      </p>
+                    </div>
+                    <div className="text-sm text-slate-600 space-y-1">
+                      <div>
+                        <span className="font-semibold">Date:</span>{" "}
+                        {billSale.createdAt
+                          ? new Date(billSale.createdAt).toLocaleString()
+                          : new Date().toLocaleString()}
+                      </div>
+                      <div>
+                        <span className="font-semibold">Status:</span>{" "}
+                        {billSale.status}
+                      </div>
+                      <div>
+                        <span className="font-semibold">Payment:</span>{" "}
+                        {billSale.paymentStatus || "-"}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div className="rounded-xl border bg-slate-50 p-4">
+                      <h4 className="text-xs font-semibold text-teal-700 uppercase tracking-wide mb-2">
+                        Customer
+                      </h4>
+                      <p className="text-sm font-semibold text-slate-800">
+                        {billSale.customerName || "Customer"}
+                      </p>
+                      <p className="text-sm text-slate-600">
+                        Phone:{" "}
+                        {billSale.customer?.contactInfo?.phone ||
+                          billSale.customer?.phone ||
+                          "-"}
+                      </p>
+                      <p className="text-sm text-slate-600">
+                        Address:{" "}
+                        {billSale.customer?.contactInfo?.address ||
+                          billSale.customer?.address ||
+                          "-"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border bg-slate-50 p-4">
+                      <h4 className="text-xs font-semibold text-teal-700 uppercase tracking-wide mb-2">
+                        Sale Info
+                      </h4>
+                      <p className="text-sm text-slate-600">
+                        Payment Method: {billSale.paymentMethod || "-"}
+                      </p>
+                      <p className="text-sm text-slate-600">
+                        Items: {(billSale.products || []).length}
+                      </p>
+                      <p className="text-sm text-slate-600">
+                        Total Qty:{" "}
+                        {(billSale.products || []).reduce(
+                          (sum, item) => sum + Number(item.quantity || 0),
+                          0,
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="overflow-hidden rounded-xl border">
+                    <table className="w-full text-sm">
+                      <thead className="bg-teal-700 text-white">
+                        <tr>
+                          <th className="px-4 py-3 text-left">#</th>
+                          <th className="px-4 py-3 text-left">Product</th>
+                          <th className="px-4 py-3 text-left">Code</th>
+                          <th className="px-4 py-3 text-right">Qty</th>
+                          <th className="px-4 py-3 text-right">Unit</th>
+                          <th className="px-4 py-3 text-right">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(billSale.products || []).map((item, idx) => {
+                          const qty = Number(item.quantity || 0);
+                          const price = Number(item.price || 0);
+                          return (
+                            <tr
+                              key={item.productCode?._id || idx}
+                              className="border-b last:border-b-0"
+                            >
+                              <td className="px-4 py-3 text-slate-500">
+                                {idx + 1}
+                              </td>
+                              <td className="px-4 py-3 text-slate-800">
+                                {item.product?.name || "Product"}
+                              </td>
+                              <td className="px-4 py-3 text-slate-600">
+                                {item.productCode?.code || "-"}
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                {qty}
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                {formatCurrency(price)}
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                {formatCurrency(price * qty)}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="mt-6 flex justify-end">
+                    <div className="w-64 space-y-2 text-sm text-slate-600">
+                      <div className="flex justify-between">
+                        <span>Subtotal</span>
+                        <span>{formatCurrency(billSale.totalAmount)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Tax</span>
+                        <span>Rs 0</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Discount</span>
+                        <span>Rs 0</span>
+                      </div>
+                      <div className="flex justify-between text-base font-semibold text-slate-800 border-t pt-2">
+                        <span>Total</span>
+                        <span>{formatCurrency(billSale.totalAmount)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 text-xs text-slate-500 text-center">
+                    Thank you for your business. This invoice is system generated.
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row justify-end gap-3 px-6 py-4 border-t bg-slate-50">
+                <button
+                  onClick={closeBillPreview}
+                  className="px-5 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handlePrintBill}
+                  className="px-5 py-2 rounded-lg bg-teal-700 text-white hover:bg-teal-600"
+                >
+                  Print Bill
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       {/* TABLE */}
