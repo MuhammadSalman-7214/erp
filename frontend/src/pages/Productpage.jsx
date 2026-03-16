@@ -276,6 +276,23 @@ function Productpage({ readOnly = false }) {
     return rows;
   }, [displayProducts]);
 
+  const filteredRows = useMemo(() => {
+    const normalizedQuery = productCodeQuery.trim().toLowerCase();
+    if (!normalizedQuery) return displayRows;
+
+    const codeRows = displayRows.filter(({ code }) => {
+      if (!code) return false;
+      const codeValue = String(code.code || "").toLowerCase();
+      const variantValue = String(code.variantName || "").toLowerCase();
+      return (
+        codeValue.includes(normalizedQuery) ||
+        variantValue.includes(normalizedQuery)
+      );
+    });
+
+    return codeRows.length ? codeRows : displayRows;
+  }, [displayRows, productCodeQuery]);
+
   const codeProduct = useMemo(
     () =>
       getallproduct.find((product) => product._id === codeProductId) || null,
@@ -387,8 +404,7 @@ function Productpage({ readOnly = false }) {
             <div className="p-10 text-center text-slate-500 animate-pulse">
               Loading products...
             </div>
-          ) : !Array.isArray(displayProducts) ||
-            displayProducts.length === 0 ? (
+          ) : !Array.isArray(displayProducts) || filteredRows.length === 0 ? (
             /* Empty State */
             <div className="p-10 text-center">
               <NoData
@@ -417,7 +433,7 @@ function Productpage({ readOnly = false }) {
                 </thead>
 
                 <tbody>
-                  {displayRows.map((row, index) => {
+                  {filteredRows.map((row, index) => {
                     const product = row.product;
                     const code = row.code;
                     const codeCount = Array.isArray(product.productCodes)

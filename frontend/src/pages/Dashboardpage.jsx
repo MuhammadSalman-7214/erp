@@ -356,6 +356,11 @@ function Dashboardpage() {
                 >
                   <span className="text-sm font-medium text-gray-700">
                     {product.product?.name || "Product"}{" "}
+                    {product.product?.company || product.product?.brand ? (
+                      <span className="text-xs text-slate-500">
+                        • {product.product?.company || product.product?.brand}
+                      </span>
+                    ) : null}{" "}
                     <span className="text-xs text-slate-500">
                       ({product.code})
                     </span>

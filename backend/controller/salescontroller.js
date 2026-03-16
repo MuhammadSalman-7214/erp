@@ -3,6 +3,7 @@ const ProductModel = require("../models/Productmodel.js");
 const ProductCode = require("../models/ProductCodemodel");
 const Invoice = require("../models/Invoicemodel");
 const Customer = require("../models/Customermodel");
+const Payment = require("../models/Paymentmodel");
 const { getNextInvoiceNumber } = require("../libs/invoiceNumber");
 const {
   validateSaleStockAvailability,
@@ -15,13 +16,7 @@ const {
 
 module.exports.createSale = async (req, res) => {
   try {
-    const {
-      customerId,
-      products,
-      paymentMethod,
-      paymentStatus,
-      status,
-    } = req.body;
+    const { customerId, products, paymentMethod, status } = req.body;
     const userId = req.user.userId;
 
     if (!customerId) {
@@ -122,7 +117,7 @@ module.exports.createSale = async (req, res) => {
       customerName,
       products: resolvedProducts,
       paymentMethod,
-      paymentStatus,
+      // paymentStatus,
       status: resolvedSaleStatus,
       totalAmount,
       stockOutRecorded: false,
@@ -175,7 +170,8 @@ module.exports.createSale = async (req, res) => {
       currency: "Rs",
       dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       paymentMethod: resolvedPaymentMethod,
-      status: paymentStatus === "paid" ? "paid" : "sent",
+      // status: paymentStatus === "paid" ? "paid" : "sent",
+      status: "sent",
       subTotal: totalAmount,
       taxAmount: 0,
       totalAmount,
@@ -264,6 +260,10 @@ module.exports.updateSale = async (req, res) => {
   try {
     const { id } = req.params;
     const updatedData = req.body;
+    // Disable payment status updates from sales flow
+    if (Object.prototype.hasOwnProperty.call(updatedData, "paymentStatus")) {
+      delete updatedData.paymentStatus;
+    }
     const userId = req.user.userId;
 
     if (!updatedData.customerId) {
@@ -513,13 +513,70 @@ module.exports.getSalesByCustomer = async (req, res) => {
       (acc, sale) => {
         const amount = Number(sale.totalAmount || 0);
         acc.total += amount;
-        if (sale.paymentStatus === "paid") acc.paid += amount;
         acc.count += 1;
         return acc;
       },
       { total: 0, paid: 0, count: 0 },
     );
-    summary.remaining = summary.total - summary.paid;
+
+    const normalizeText = (value = "") => String(value).trim().toLowerCase();
+    const normalizedCustomerName = normalizeText(customer?.name);
+    const normalizedCustomerCode = normalizeText(customer?.customerCode);
+
+    const payments = await Payment.find({
+      user_id: userId,
+      partyType: "customer",
+      type: "received",
+      $or: [
+        { customerId: customerId },
+        { customerId: { $exists: false } },
+        { customerId: null },
+      ],
+    }).select("amount customer customerId invoice");
+
+    let paidAmount = 0;
+    const paidInvoiceIds = new Set();
+    payments.forEach((payment) => {
+      const paymentCustomerId = payment.customerId
+        ? String(payment.customerId)
+        : "";
+      const paymentName = normalizeText(payment.customer?.name);
+      const paymentCode = normalizeText(payment.customer?.code);
+
+      const matchesCustomer =
+        paymentCustomerId === String(customerId) ||
+        (paymentCustomerId === "" &&
+          (paymentName === normalizedCustomerName ||
+            paymentCode === normalizedCustomerCode));
+
+      if (!matchesCustomer) return;
+      paidAmount += Number(payment.amount) || 0;
+      if (payment.invoice) {
+        paidInvoiceIds.add(String(payment.invoice));
+      }
+    });
+
+    const invoices = await Invoice.find({
+      invoiceType: "sales",
+      user_id: userId,
+      $or: [
+        { customerId: customerId },
+        { "customer.name": customer?.name || "" },
+        { "customer.code": customer?.customerCode || "" },
+      ],
+    }).select("_id totalAmount status");
+
+    invoices.forEach((invoice) => {
+      if (
+        invoice.status === "paid" &&
+        !paidInvoiceIds.has(String(invoice._id))
+      ) {
+        paidAmount += Number(invoice.totalAmount) || 0;
+      }
+    });
+
+    summary.paid = paidAmount;
+    summary.remaining = Math.max(summary.total - summary.paid, 0);
 
     return res.status(200).json({
       success: true,

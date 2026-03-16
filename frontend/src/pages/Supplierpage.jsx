@@ -394,6 +394,9 @@ function Supplierpage({ readOnly = false }) {
                 {getallproduct?.map((product) => (
                   <option key={product._id} value={product._id}>
                     {product.name}
+                    {product.company || product.brand
+                      ? ` • ${product.company || product.brand}`
+                      : ""}
                   </option>
                 ))}
               </select>

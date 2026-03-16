@@ -150,6 +150,9 @@ function StockTransaction({ readOnly = false }) {
                 {getallproduct?.map((product) => (
                   <option key={product._id} value={product._id}>
                     {product.name}
+                    {product.company || product.brand
+                      ? ` • ${product.company || product.brand}`
+                      : ""}
                   </option>
                 ))}
               </select>
@@ -249,7 +252,16 @@ function StockTransaction({ readOnly = false }) {
                   <td className="px-5 py-4">
                     <FormattedTime timestamp={stock.transactionDate} />
                   </td>
-                  <td className="px-5 py-4">{stock.product?.name || "N/A"}</td>
+                  <td className="px-5 py-4">
+                    <div className="font-medium text-slate-800">
+                      {stock.product?.name || "N/A"}
+                    </div>
+                    {stock.product?.company || stock.product?.brand ? (
+                      <div className="text-xs text-slate-500">
+                        {stock.product?.company || stock.product?.brand}
+                      </div>
+                    ) : null}
+                  </td>
                   <td className="px-5 py-4">
                     {stock.productCode?.code || "-"}
                   </td>

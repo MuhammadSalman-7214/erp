@@ -34,7 +34,7 @@ function Salespage() {
     address: "",
   });
   const [Payment, setPayment] = useState("");
-  const [paymentStatus, setpaymentStatus] = useState("");
+  // const [paymentStatus, setpaymentStatus] = useState("");
   const [Status, setStatus] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [codeQuery, setCodeQuery] = useState("");
@@ -93,6 +93,7 @@ function Salespage() {
           codeId: code._id,
           code: code.code,
           name: product.name,
+          company: product.company || product.brand || "",
           availableQty: Number(code.quantity || 0),
         });
       });
@@ -110,8 +111,7 @@ function Salespage() {
     return map;
   }, [getallproduct]);
 
-  const formatCurrency = (value) =>
-    `Rs ${Number(value || 0).toLocaleString()}`;
+  const formatCurrency = (value) => `Rs ${Number(value || 0).toLocaleString()}`;
 
   const openBillPreview = (sale) => {
     if (!sale) return;
@@ -130,14 +130,16 @@ function Salespage() {
     const rows = items
       .map((item, index) => {
         const name = item.product?.name || "Product";
+        const company = item.product?.company || item.product?.brand || "";
         const code = item.productCode?.code || "-";
         const qty = Number(item.quantity || 0);
         const price = Number(item.price || 0);
         const total = price * qty;
+        const fullName = company ? `${name} • ${company}` : name;
         return `
           <tr>
             <td>${index + 1}</td>
-            <td>${name}</td>
+            <td>${fullName}</td>
             <td>${code}</td>
             <td class="num">${qty}</td>
             <td class="num">Rs ${price.toLocaleString()}</td>
@@ -298,6 +300,12 @@ function Salespage() {
         productId,
         codeId,
         name: productRecord?.name || item.product?.name || "Product",
+        company:
+          productRecord?.company ||
+          productRecord?.brand ||
+          item.product?.company ||
+          item.product?.brand ||
+          "",
         code: codeRecord?.code || item.productCode?.code || "code",
         quantity: Number(item.quantity || 0),
         availableQty: Number(
@@ -329,9 +337,7 @@ function Salespage() {
 
     const insufficient = cartItems.find((item) => {
       const available =
-        item.availableQty ??
-        availableQtyByCode.get(String(item.codeId)) ??
-        0;
+        item.availableQty ?? availableQtyByCode.get(String(item.codeId)) ?? 0;
       return Number(item.quantity) > Number(available);
     });
     if (insufficient) {
@@ -353,7 +359,7 @@ function Salespage() {
         quantity: Number(item.quantity),
       })),
       paymentMethod: Payment,
-      paymentStatus,
+      // paymentStatus,
       status: Status,
     };
 
@@ -460,9 +466,7 @@ function Salespage() {
 
     const insufficient = cartItems.find((item) => {
       const available =
-        item.availableQty ??
-        availableQtyByCode.get(String(item.codeId)) ??
-        0;
+        item.availableQty ?? availableQtyByCode.get(String(item.codeId)) ?? 0;
       return Number(item.quantity) > Number(available);
     });
     if (insufficient) {
@@ -484,7 +488,7 @@ function Salespage() {
         quantity: Number(item.quantity),
       })),
       paymentMethod: Payment,
-      paymentStatus,
+      // paymentStatus,
       status: Status,
     };
 
@@ -515,7 +519,7 @@ function Salespage() {
       address: "",
     });
     setPayment("");
-    setpaymentStatus("");
+    // setpaymentStatus("");
     setStatus("");
     setCartItems([]);
     setCodeQuery("");
@@ -538,7 +542,7 @@ function Salespage() {
     setCodeQuery("");
     setShowCodeOptions(false);
     setPayment(sales.paymentMethod || "");
-    setpaymentStatus(sales.paymentStatus || "");
+    // setpaymentStatus(sales.paymentStatus || "");
     setStatus(sales.status || "");
     setIsFormVisible(true);
   };
@@ -734,10 +738,11 @@ function Salespage() {
                           key={`${option.codeId}`}
                           type="button"
                           className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50"
-                          onClick={() => addToCart(option)}
-                        >
-                          {option.code} - {option.name}
-                        </button>
+                        onClick={() => addToCart(option)}
+                      >
+                        {option.code} - {option.name}
+                        {option.company ? ` • ${option.company}` : ""}
+                      </button>
                       ))}
                     </div>
                   )}
@@ -759,7 +764,16 @@ function Salespage() {
                         key={item.codeId}
                         className="grid grid-cols-12 gap-2 px-3 py-2 items-center text-sm border-b last:border-b-0"
                       >
-                        <div className="col-span-6">{item.name}</div>
+                        <div className="col-span-6">
+                          <div className="font-medium text-slate-800">
+                            {item.name}
+                          </div>
+                          {item.company ? (
+                            <div className="text-xs text-slate-500">
+                              {item.company}
+                            </div>
+                          ) : null}
+                        </div>
                         <div className="col-span-3">
                           <span className="text-xs font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full whitespace-nowrap">
                             {item.code}
@@ -772,7 +786,7 @@ function Salespage() {
                             onChange={(e) =>
                               updateCartQuantity(item.codeId, e.target.value)
                             }
-                            className="w-full h-8 px-2 border rounded"
+                            className="w-full h-9 px-3 border rounded min-w-[90px]"
                           />
                         </div>
                         <div className="col-span-1 text-right">
@@ -825,21 +839,7 @@ function Salespage() {
                 </select>
               </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="text-gray-700 font-medium">
-                  Payment Status
-                </label>
-                <select
-                  value={paymentStatus}
-                  onChange={(e) => setpaymentStatus(e.target.value)}
-                  className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
-                  required
-                >
-                  <option value="">Select Status</option>
-                  <option value="pending">Pending</option>
-                  <option value="paid">Paid</option>
-                </select>
-              </div>
+              {/* Payment Status intentionally disabled in sales flow */}
 
               <div className="flex flex-col gap-1">
                 <label className="text-gray-700 font-medium">Sale Status</label>
@@ -989,13 +989,14 @@ function Salespage() {
                               </td>
                               <td className="px-4 py-3 text-slate-800">
                                 {item.product?.name || "Product"}
+                                {item.product?.company || item.product?.brand
+                                  ? ` • ${item.product?.company || item.product?.brand}`
+                                  : ""}
                               </td>
                               <td className="px-4 py-3 text-slate-600">
                                 {item.productCode?.code || "-"}
                               </td>
-                              <td className="px-4 py-3 text-right">
-                                {qty}
-                              </td>
+                              <td className="px-4 py-3 text-right">{qty}</td>
                               <td className="px-4 py-3 text-right">
                                 {formatCurrency(price)}
                               </td>
@@ -1031,7 +1032,8 @@ function Salespage() {
                   </div>
 
                   <div className="mt-6 text-xs text-slate-500 text-center">
-                    Thank you for your business. This invoice is system generated.
+                    Thank you for your business. This invoice is system
+                    generated.
                   </div>
                 </div>
               </div>
@@ -1094,9 +1096,17 @@ function Salespage() {
                           key={item.productCode?._id || item._id}
                           className="flex items-center gap-2 px-3 py-2 mb-1 last:mb-0 rounded-md bg-slate-50 border border-slate-300"
                         >
-                          <span className="text-sm font-medium text-slate-800 flex-1 truncate">
-                            {item.product?.name || "N/A"}
-                          </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-slate-800 truncate">
+                              {item.product?.name || "N/A"}
+                            </div>
+                            {item.product?.company || item.product?.brand ? (
+                              <div className="text-xs text-slate-500 truncate">
+                                {item.product?.company ||
+                                  item.product?.brand}
+                              </div>
+                            ) : null}
+                          </div>
 
                           <span className="text-xs font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full whitespace-nowrap">
                             {item.productCode?.code || "-"}

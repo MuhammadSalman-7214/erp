@@ -167,7 +167,12 @@ function CustomerDetailPage() {
                         0,
                       );
                       const itemsLabel = (sale.products || [])
-                        .map((item) => item.product?.name || "Product")
+                        .map((item) => {
+                          const name = item.product?.name || "Product";
+                          const company =
+                            item.product?.company || item.product?.brand || "";
+                          return company ? `${name} • ${company}` : name;
+                        })
                         .join(", ");
                       return (
                         <tr

@@ -92,14 +92,16 @@ const createOrder = async (req, res) => {
     }
 
     const vendorId = vendor || supplier || null;
-    if (vendorId) {
-      const vendorRecord = await Vendor.findOne({
-        _id: vendorId,
-        user_id: userId,
-      });
-      if (!vendorRecord) {
-        return res.status(404).json({ message: "Vendor not found" });
-      }
+    if (!vendorId) {
+      return res.status(400).json({ message: "Vendor is required" });
+    }
+
+    const vendorRecord = await Vendor.findOne({
+      _id: vendorId,
+      user_id: userId,
+    });
+    if (!vendorRecord) {
+      return res.status(404).json({ message: "Vendor not found" });
     }
 
     const firstItem = resolvedItems[0];

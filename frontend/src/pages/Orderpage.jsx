@@ -92,6 +92,7 @@ function Orderpage() {
           codeId: code._id,
           code: code.code,
           name: product.name,
+          company: product.company || product.brand || "",
           unitPrice: Number(
             product.purchasePrice ??
               product.pricing?.currentPurchasePrice ??
@@ -129,6 +130,12 @@ function Orderpage() {
         productId,
         codeId,
         name: productRecord?.name || item.product?.name || "Product",
+        company:
+          productRecord?.company ||
+          productRecord?.brand ||
+          item.product?.company ||
+          item.product?.brand ||
+          "",
         code: codeRecord?.code || item.productCode?.code || "code",
         quantity: Number(item.quantity || 0),
         unitPrice: resolvedUnitPrice,
@@ -233,6 +240,11 @@ function Orderpage() {
   const submitOrder = async (event) => {
     event.preventDefault();
 
+    if (!supplier) {
+      toast.error("Vendor is required");
+      return;
+    }
+
     if (!cartItems.length) {
       toast.error("Add at least one product");
       return;
@@ -252,6 +264,7 @@ function Orderpage() {
         user: user?.id || "",
         status,
         supplier,
+        vendor: supplier,
         products: cartItems.map((item) => ({
           product: item.productId,
           productCode: item.codeId,
@@ -276,6 +289,7 @@ function Orderpage() {
 
   const resetForm = () => {
     setstatus("");
+    setsupplier("");
     setselectedOrder(null);
     setCartItems([]);
     setCodeQuery("");
@@ -379,6 +393,7 @@ function Orderpage() {
                         onClick={() => addToCart(option)}
                       >
                         {option.code} - {option.name}
+                        {option.company ? ` • ${option.company}` : ""}
                       </button>
                     ))}
                   </div>
@@ -401,7 +416,16 @@ function Orderpage() {
                       key={item.codeId}
                       className="grid grid-cols-12 gap-2 px-3 py-2 items-center text-sm border-b last:border-b-0"
                     >
-                      <div className="col-span-6">{item.name}</div>
+                      <div className="col-span-6">
+                        <div className="font-medium text-slate-800">
+                          {item.name}
+                        </div>
+                        {item.company ? (
+                          <div className="text-xs text-slate-500">
+                            {item.company}
+                          </div>
+                        ) : null}
+                      </div>
                       <div className="col-span-3 ">
                         <span className="text-xs font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full whitespace-nowrap">
                           {item.code}
@@ -414,7 +438,7 @@ function Orderpage() {
                           onChange={(e) =>
                             updateCartQuantity(item.codeId, e.target.value)
                           }
-                          className="w-full h-8 px-2 border rounded"
+                          className="w-full h-9 px-3 border rounded min-w-[90px]"
                         />
                       </div>
                       <div className="col-span-1 text-right">
@@ -441,6 +465,7 @@ function Orderpage() {
                 value={supplier}
                 onChange={(e) => setsupplier(e.target.value)}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2"
+                required
               >
                 <option value="">Select a Vendor</option>
                 {getallSupplier?.map((supplier) => (
@@ -507,9 +532,17 @@ function Orderpage() {
                         key={item.productCode?._id || item.productCode}
                         className="flex items-center gap-2 px-3 py-2 mb-1 last:mb-0 rounded-md bg-slate-50 border border-slate-300"
                       >
-                        <span className="text-sm font-medium text-slate-800 flex-1 truncate">
-                          {item.product?.name || "N/A"}
-                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-slate-800 truncate">
+                            {item.product?.name || "N/A"}
+                          </div>
+                          {item.product?.company || item.product?.brand ? (
+                            <div className="text-xs text-slate-500 truncate">
+                              {item.product?.company ||
+                                item.product?.brand}
+                            </div>
+                          ) : null}
+                        </div>
                         <span className="text-xs font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full whitespace-nowrap">
                           {item.productCode?.code || "-"}
                         </span>

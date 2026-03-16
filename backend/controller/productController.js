@@ -1,5 +1,6 @@
 const Product = require("../models/Productmodel");
 const ProductCode = require("../models/ProductCodemodel");
+const CategoryCode = require("../models/CategoryCodemodel");
 const CategoryModel = require("../models/ Categorymodel");
 const logActivity = require("../libs/logger");
 
@@ -56,6 +57,41 @@ const resolveIncomingCodes = (body) => {
   return [];
 };
 
+const ensureCategoryCodes = async ({
+  userId,
+  categoryId,
+  codes = [],
+}) => {
+  if (!categoryId || !codes.length) return;
+
+  const operations = codes.map((code) => {
+    const normalizedCode = String(code.code || "").trim();
+    const normalizedVariant = String(code.variantName || "").trim();
+    if (!normalizedCode) return null;
+    return CategoryCode.updateOne(
+      {
+        user_id: userId,
+        category: categoryId,
+        code: normalizedCode,
+        variantName: normalizedVariant,
+      },
+      {
+        $setOnInsert: {
+          user_id: userId,
+          category: categoryId,
+          code: normalizedCode,
+          variantName: normalizedVariant,
+        },
+      },
+      { upsert: true },
+    );
+  });
+
+  const filtered = operations.filter(Boolean);
+  if (!filtered.length) return;
+  await Promise.all(filtered);
+};
+
 module.exports.Addproduct = async (req, res) => {
   const userId = req.user.userId;
   const ipAddress = req.ip;
@@ -110,21 +146,6 @@ module.exports.Addproduct = async (req, res) => {
       return res.status(400).json({
         error: `Duplicate product codes in request: ${Array.from(duplicateCodes).join(", ")}`,
       });
-    }
-
-    if (hasCodes) {
-      const existingCodes = await ProductCode.find({
-        user_id: userId,
-        code: { $in: normalizedCodes.map((code) => code.code) },
-      }).select("code");
-
-      if (existingCodes.length) {
-        return res.status(400).json({
-          error: `Product codes already exist: ${existingCodes
-            .map((code) => code.code)
-            .join(", ")}`,
-        });
-      }
     }
 
     if (Category) {
@@ -196,6 +217,14 @@ module.exports.Addproduct = async (req, res) => {
           })),
         )
       : [];
+
+    if (Category && createdCodes.length) {
+      await ensureCategoryCodes({
+        userId,
+        categoryId: Category,
+        codes: createdCodes,
+      });
+    }
 
     await logActivity({
       action: "Add Product",
@@ -407,6 +436,19 @@ module.exports.EditProduct = async (req, res) => {
       return res.status(404).json({ message: "Product not found." });
     }
 
+    if (updatedProduct.Category) {
+      const productCodes = await ProductCode.find({
+        user_id: userId,
+        product: updatedProduct._id,
+      }).select("code variantName");
+
+      await ensureCategoryCodes({
+        userId,
+        categoryId: updatedProduct.Category,
+        codes: productCodes,
+      });
+    }
+
     await logActivity({
       action: "Update Product",
       description: `Product "${updatedProduct.name}" was updated.`,
@@ -547,9 +589,15 @@ module.exports.addProductCode = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    const existing = await ProductCode.findOne({ user_id: userId, code });
+    const existing = await ProductCode.findOne({
+      user_id: userId,
+      product: productId,
+      code,
+    });
     if (existing) {
-      return res.status(400).json({ message: "Product code already exists" });
+      return res
+        .status(400)
+        .json({ message: "Product code already exists for this product" });
     }
 
     const created = await ProductCode.create({
@@ -559,6 +607,14 @@ module.exports.addProductCode = async (req, res) => {
       variantName: variantName || "",
       quantity: Number(quantity || 0),
     });
+
+    if (product.Category) {
+      await ensureCategoryCodes({
+        userId,
+        categoryId: product.Category,
+        codes: [created],
+      });
+    }
 
     res.status(201).json({ success: true, productCode: created });
   } catch (error) {
@@ -574,14 +630,26 @@ module.exports.updateProductCode = async (req, res) => {
     const { codeId } = req.params;
     const { code, variantName, quantity } = req.body || {};
 
+    const currentRecord = await ProductCode.findOne({
+      _id: codeId,
+      user_id: userId,
+    }).select("product code variantName");
+
+    if (!currentRecord) {
+      return res.status(404).json({ message: "Product code not found" });
+    }
+
     if (code) {
       const existing = await ProductCode.findOne({
         _id: { $ne: codeId },
         user_id: userId,
+        product: currentRecord.product,
         code,
       });
       if (existing) {
-        return res.status(400).json({ message: "Product code already exists" });
+        return res.status(400).json({
+          message: "Product code already exists for this product",
+        });
       }
     }
 
@@ -600,6 +668,19 @@ module.exports.updateProductCode = async (req, res) => {
 
     if (!updated) {
       return res.status(404).json({ message: "Product code not found" });
+    }
+
+    const productRecord = await Product.findOne({
+      _id: updated.product,
+      user_id: userId,
+    }).select("Category");
+
+    if (productRecord?.Category) {
+      await ensureCategoryCodes({
+        userId,
+        categoryId: productRecord.Category,
+        codes: [updated],
+      });
     }
 
     res.status(200).json({ success: true, productCode: updated });

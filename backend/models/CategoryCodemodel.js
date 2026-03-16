@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const ProductCodeSchema = new mongoose.Schema(
+const CategoryCodeSchema = new mongoose.Schema(
   {
     user_id: {
       type: mongoose.Schema.Types.ObjectId,
@@ -8,22 +8,24 @@ const ProductCodeSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    product: {
+    category: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Product",
+      ref: "Category",
       required: true,
       index: true,
     },
     code: { type: String, required: true, trim: true },
     variantName: { type: String, default: "", trim: true },
-    quantity: { type: Number, default: 0, min: 0 },
     createdAt: { type: Date, default: Date.now },
   },
   { timestamps: true },
 );
 
-ProductCodeSchema.index({ user_id: 1, product: 1, code: 1 }, { unique: true });
-ProductCodeSchema.index({ user_id: 1, product: 1 });
+CategoryCodeSchema.index(
+  { user_id: 1, category: 1, code: 1, variantName: 1 },
+  { unique: true },
+);
+CategoryCodeSchema.index({ user_id: 1, category: 1 });
 
-const ProductCode = mongoose.model("ProductCode", ProductCodeSchema);
-module.exports = ProductCode;
+const CategoryCode = mongoose.model("CategoryCode", CategoryCodeSchema);
+module.exports = CategoryCode;
