@@ -131,7 +131,7 @@ function Categorypage() {
           className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
         >
           <IoMdAdd className="text-xl mr-2" />
-          Add Category
+          Create Category
         </button>
       </div>
       {/* OVERLAY */}
@@ -147,7 +147,7 @@ function Categorypage() {
         <div className="fixed top-0 right-0 w-full sm:w-[420px] h-full bg-white p-6 border-l shadow-2xl z-50">
           <div className="flex justify-between items-center mb-6 border-b pb-3">
             <h2 className="text-xl font-semibold text-slate-800">
-              {selectedProduct ? "Edit Category" : "Add Category"}
+              {selectedProduct ? "Edit Category" : "Create Category"}
             </h2>
 
             <MdKeyboardDoubleArrowLeft
@@ -179,7 +179,7 @@ function Categorypage() {
               className="w-full h-12 bg-teal-700 hover:bg-teal-600
           text-white rounded-xl shadow-md font-medium mt-6 transition"
             >
-              {selectedProduct ? "Update Category" : "Add Category"}
+              {selectedProduct ? "Update Category" : "Create Category"}
             </button>
           </form>
         </div>

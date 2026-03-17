@@ -275,7 +275,7 @@ function Customerpage({ readOnly = false }) {
             }}
             className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
           >
-            <IoMdAdd className="text-xl mr-2" /> Add Customer
+            <IoMdAdd className="text-xl mr-2" /> Create Customer
           </button>
         )}
         {isReadOnlyMode && (
@@ -293,7 +293,7 @@ function Customerpage({ readOnly = false }) {
         <div className="fixed top-0 right-0 w-full sm:w-[420px] h-full bg-white p-6 border-l shadow-2xl z-50">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">
-              {selectedCustomer ? "Edit Customer" : "Add Customer"}
+              {selectedCustomer ? "Edit Customer" : "Create Customer"}
             </h2>
             <MdKeyboardDoubleArrowLeft
               onClick={closeForm}
@@ -331,7 +331,7 @@ function Customerpage({ readOnly = false }) {
               type="submit"
               className="w-full h-11 bg-teal-700 text-white rounded-xl hover:bg-teal-600"
             >
-              {selectedCustomer ? "Update Customer" : "Add Customer"}
+              {selectedCustomer ? "Update Customer" : "Create Customer"}
             </button>
           </form>
         </div>

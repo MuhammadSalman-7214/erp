@@ -285,7 +285,7 @@ function Supplierpage({ readOnly = false }) {
             }}
             className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
           >
-            <IoMdAdd className="text-xl mr-2" /> Add Vendor
+            <IoMdAdd className="text-xl mr-2" /> Create Vendor
           </button>
         )}
         {isReadOnlyMode && (
@@ -307,7 +307,7 @@ function Supplierpage({ readOnly = false }) {
         <div className="fixed top-0 right-0 w-full sm:w-[420px] h-full bg-white p-6 border-l shadow-2xl z-50">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">
-              {selectedSupplier ? "Edit Vendor" : "Add Vendor"}
+              {selectedSupplier ? "Edit Vendor" : "Create Vendor"}
             </h2>
             <MdKeyboardDoubleArrowLeft
               onClick={() => setIsFormVisible(false)}
@@ -406,7 +406,7 @@ function Supplierpage({ readOnly = false }) {
               type="submit"
               className="bg-teal-800 text-white w-full h-12 rounded-lg hover:bg-teal-700 mt-4"
             >
-              {selectedSupplier ? "Update Vendor" : "Add Vendor"}
+              {selectedSupplier ? "Update Vendor" : "Create Vendor"}
             </button>
           </form>
         </div>
