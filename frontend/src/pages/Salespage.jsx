@@ -92,14 +92,23 @@ function Salespage() {
           productId: product._id,
           codeId: code._id,
           code: code.code,
+          description: product.description,
           name: product.name,
           company: product.company || product.brand || "",
           availableQty: Number(code.quantity || 0),
+          unitPrice: Number(
+            product.salePrice ??
+              product.pricing?.currentSalesPrice ??
+              product.Price ??
+              code.salePrice ??
+              0,
+          ),
         });
       });
     });
     return results.slice(0, 20);
   }, [debouncedCodeQuery, getallproduct]);
+  console.log({ getallproduct });
 
   const availableQtyByCode = useMemo(() => {
     const map = new Map();
@@ -112,6 +121,16 @@ function Salespage() {
   }, [getallproduct]);
 
   const formatCurrency = (value) => `Rs ${Number(value || 0).toLocaleString()}`;
+
+  const cartSubTotal = useMemo(
+    () =>
+      cartItems.reduce(
+        (sum, item) =>
+          sum + Number(item.quantity || 0) * Number(item.unitPrice || 0),
+        0,
+      ),
+    [cartItems],
+  );
 
   const openBillPreview = (sale) => {
     if (!sale) return;
@@ -134,6 +153,7 @@ function Salespage() {
         const code = item.productCode?.code || "-";
         const qty = Number(item.quantity || 0);
         const price = Number(item.price || 0);
+        const description = item.product.description || "-";
         const total = price * qty;
         const fullName = company ? `${name} • ${company}` : name;
         return `
@@ -141,6 +161,7 @@ function Salespage() {
             <td>${index + 1}</td>
             <td>${fullName}</td>
             <td>${code}</td>
+            <td>${description}</td>
             <td class="num">${qty}</td>
             <td class="num">Rs ${price.toLocaleString()}</td>
             <td class="num">Rs ${total.toLocaleString()}</td>
@@ -235,6 +256,7 @@ function Salespage() {
                   <th>#</th>
                   <th>Product</th>
                   <th>Code</th>
+                  <th>Description</th>
                   <th class="num">Qty</th>
                   <th class="num">Unit Price</th>
                   <th class="num">Line Total</th>
@@ -296,6 +318,14 @@ function Salespage() {
       const codeRecord = productRecord?.productCodes?.find(
         (code) => code._id === codeId,
       );
+      const resolvedUnitPrice = Number(
+        item.price ??
+          productRecord?.salePrice ??
+          productRecord?.pricing?.currentSalesPrice ??
+          productRecord?.Price ??
+          codeRecord?.salePrice ??
+          0,
+      );
       return {
         productId,
         codeId,
@@ -311,6 +341,7 @@ function Salespage() {
         availableQty: Number(
           codeRecord?.quantity ?? availableQtyByCode.get(String(codeId)) ?? 0,
         ),
+        unitPrice: resolvedUnitPrice,
       };
     });
   };
@@ -334,6 +365,16 @@ function Salespage() {
       toast.error("Quantity is required for all items");
       return;
     }
+    const invalidPrice = cartItems.some(
+      (item) =>
+        item.unitPrice === "" ||
+        !Number.isFinite(Number(item.unitPrice)) ||
+        Number(item.unitPrice) < 0,
+    );
+    if (invalidPrice) {
+      toast.error("Valid price is required for all items");
+      return;
+    }
 
     const insufficient = cartItems.find((item) => {
       const available =
@@ -353,11 +394,15 @@ function Salespage() {
 
     const updatedData = {
       customerId,
-      products: cartItems.map((item) => ({
-        product: item.productId,
-        productCode: item.codeId,
-        quantity: Number(item.quantity),
-      })),
+      products: cartItems.map((item) => {
+        const resolvedPrice = Number(item.unitPrice);
+        return {
+          product: item.productId,
+          productCode: item.codeId,
+          quantity: Number(item.quantity),
+          ...(Number.isFinite(resolvedPrice) ? { price: resolvedPrice } : {}),
+        };
+      }),
       paymentMethod: Payment,
       // paymentStatus,
       status: Status,
@@ -399,11 +444,52 @@ function Salespage() {
     setCodeQuery("");
     setShowCodeOptions(false);
   };
+  const hasStockIssue = cartItems.some(
+    (item) =>
+      Number(item.quantity) >
+      Number(
+        item.availableQty ?? availableQtyByCode.get(String(item.codeId)) ?? 0,
+      ),
+  );
 
   const updateCartQuantity = (codeId, value) => {
+    if (value === "") {
+      setCartItems((prev) =>
+        prev.map((item) =>
+          item.codeId === codeId ? { ...item, quantity: "" } : item,
+        ),
+      );
+      return;
+    }
+
+    let safeValue = Number(value);
+
+    if (!Number.isFinite(safeValue) || safeValue < 0) {
+      safeValue = 0;
+    }
+
     setCartItems((prev) =>
       prev.map((item) =>
-        item.codeId === codeId ? { ...item, quantity: value } : item,
+        item.codeId === codeId ? { ...item, quantity: safeValue } : item,
+      ),
+    );
+  };
+
+  const updateCartPrice = (codeId, value) => {
+    if (value === "") {
+      setCartItems((prev) =>
+        prev.map((item) =>
+          item.codeId === codeId ? { ...item, unitPrice: "" } : item,
+        ),
+      );
+      return;
+    }
+    const safeValue = Number(value);
+    setCartItems((prev) =>
+      prev.map((item) =>
+        item.codeId === codeId
+          ? { ...item, unitPrice: Number.isFinite(safeValue) ? safeValue : "" }
+          : item,
       ),
     );
   };
@@ -463,6 +549,16 @@ function Salespage() {
       toast.error("Quantity is required for all items");
       return;
     }
+    const invalidPrice = cartItems.some(
+      (item) =>
+        item.unitPrice === "" ||
+        !Number.isFinite(Number(item.unitPrice)) ||
+        Number(item.unitPrice) < 0,
+    );
+    if (invalidPrice) {
+      toast.error("Valid price is required for all items");
+      return;
+    }
 
     const insufficient = cartItems.find((item) => {
       const available =
@@ -482,11 +578,15 @@ function Salespage() {
 
     const salesData = {
       customerId: resolvedCustomerId,
-      products: cartItems.map((item) => ({
-        product: item.productId,
-        productCode: item.codeId,
-        quantity: Number(item.quantity),
-      })),
+      products: cartItems.map((item) => {
+        const resolvedPrice = Number(item.unitPrice);
+        return {
+          product: item.productId,
+          productCode: item.codeId,
+          quantity: Number(item.quantity),
+          ...(Number.isFinite(resolvedPrice) ? { price: resolvedPrice } : {}),
+        };
+      }),
       paymentMethod: Payment,
       // paymentStatus,
       status: Status,
@@ -595,7 +695,7 @@ function Salespage() {
           }}
           className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
         >
-          <IoMdAdd className="text-xl mr-2" /> Add Sales
+          <IoMdAdd className="text-xl mr-2" /> Create Sales
         </button>
       </div>
 
@@ -610,7 +710,7 @@ function Salespage() {
           {/* Header */}
           <div className="flex justify-between items-center p-6 border-b">
             <h2 className="text-xl font-semibold">
-              {selectedSales ? "Edit Sale" : "Add Sale"}
+              {selectedSales ? "Edit Sale" : "Create Sale"}
             </h2>
             <MdKeyboardDoubleArrowLeft
               onClick={closeForm}
@@ -738,11 +838,28 @@ function Salespage() {
                           key={`${option.codeId}`}
                           type="button"
                           className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50"
-                        onClick={() => addToCart(option)}
-                      >
-                        {option.code} - {option.name}
-                        {option.company ? ` • ${option.company}` : ""}
-                      </button>
+                          onClick={() => addToCart(option)}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="truncate">
+                                {option.code} - {option.name}
+                                {option.company ? ` • ${option.company}` : ""}
+                                <span className="text-xs text-slate-600">
+                                  {" "}
+                                  - {option.description}
+                                </span>
+                              </div>
+
+                              <div className="text-xs text-slate-500">
+                                Available: {option.availableQty}
+                              </div>
+                            </div>
+                            <span className="text-xs font-semibold text-slate-600 whitespace-nowrap">
+                              {formatCurrency(option.unitPrice)}
+                            </span>
+                          </div>
+                        </button>
                       ))}
                     </div>
                   )}
@@ -751,75 +868,105 @@ function Salespage() {
 
               <div className="mb-4">
                 <label>Cart Preview</label>
-                {cartItems.length ? (
-                  <div className="mt-2 border rounded-lg overflow-hidden">
-                    <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-semibold text-slate-500 border-b bg-slate-50">
-                      <div className="col-span-6">Product</div>
-                      <div className="col-span-3">Code</div>
-                      <div className="col-span-2">Qty</div>
-                      <div className="col-span-1 text-right">X</div>
-                    </div>
-                    {cartItems.map((item) => (
-                      <div
-                        key={item.codeId}
-                        className="grid grid-cols-12 gap-2 px-3 py-2 items-center text-sm border-b last:border-b-0"
-                      >
-                        <div className="col-span-6">
-                          <div className="font-medium text-slate-800">
-                            {item.name}
-                          </div>
-                          {item.company ? (
-                            <div className="text-xs text-slate-500">
-                              {item.company}
-                            </div>
-                          ) : null}
+                <div className="flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-500 bg-slate-50 border-b">
+                  <span className="flex-1">Product</span>
+                  <span className="w-16 text-center">Qty</span>
+                  <span className="w-20 text-center">Price</span>
+                  <span className="w-6"></span>
+                </div>
+                {cartItems.map((item) => {
+                  const available =
+                    item.availableQty ??
+                    availableQtyByCode.get(String(item.codeId)) ??
+                    0;
+
+                  const isExceeded =
+                    Number(item.quantity || 0) > Number(available);
+
+                  return (
+                    <div
+                      key={item.codeId}
+                      className="flex items-center gap-2 px-3 py-3 border-b last:border-b-0 text-sm"
+                    >
+                      {/* PRODUCT */}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-slate-800 truncate">
+                          {item.name}
                         </div>
-                        <div className="col-span-3">
-                          <span className="text-xs font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full whitespace-nowrap">
+
+                        <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
+                          {item.company && (
+                            <span className="truncate">{item.company}</span>
+                          )}
+
+                          <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full whitespace-nowrap">
                             {item.code}
                           </span>
                         </div>
-                        <div className="col-span-2">
-                          <input
-                            type="number"
-                            value={item.quantity}
-                            onChange={(e) =>
-                              updateCartQuantity(item.codeId, e.target.value)
-                            }
-                            className="w-full h-9 px-3 border rounded min-w-[90px]"
-                          />
+
+                        <div className="mt-1">
+                          {!isExceeded ? (
+                            <div className="text-xs text-teal-700">
+                              Available: {available}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-red-600 font-medium">
+                              Only {available} available
+                            </div>
+                          )}
                         </div>
-                        <div className="col-span-1 text-right">
-                          <button
-                            type="button"
-                            className="text-red-600 text-xs"
-                            onClick={() => removeFromCart(item.codeId)}
-                          >
-                            <MdDelete size={18} />
-                          </button>
-                        </div>
-                        {Number(item.quantity) >
-                          Number(
-                            item.availableQty ??
-                              availableQtyByCode.get(String(item.codeId)) ??
-                              0,
-                          ) && (
-                          <div className="col-span-12 text-xs text-red-600">
-                            Only{" "}
-                            {item.availableQty ??
-                              availableQtyByCode.get(String(item.codeId)) ??
-                              0}{" "}
-                            available for this code.
-                          </div>
-                        )}
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-xs text-slate-500 mt-2">
-                    No items added yet.
-                  </div>
-                )}
+
+                      <input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) =>
+                          updateCartQuantity(item.codeId, e.target.value)
+                        }
+                        className={`w-16 h-9 text-center border rounded-lg ${
+                          isExceeded ? "border-red-500 focus:ring-red-500" : ""
+                        }`}
+                      />
+
+                      {/* PRICE */}
+                      <input
+                        type="number"
+                        value={item.unitPrice}
+                        onChange={(e) =>
+                          updateCartPrice(item.codeId, e.target.value)
+                        }
+                        min="0"
+                        step="0.01"
+                        className="w-20 h-9 text-center border rounded-lg"
+                      />
+
+                      {/* DELETE */}
+                      <button
+                        type="button"
+                        onClick={() => removeFromCart(item.codeId)}
+                        className="text-red-500 hover:text-red-700 transition"
+                      >
+                        <MdDelete size={18} />
+                      </button>
+
+                      {/* ERROR */}
+                      {/* {Number(item.quantity) >
+                      Number(
+                        item.availableQty ??
+                          availableQtyByCode.get(String(item.codeId)) ??
+                          0,
+                      ) && (
+                      <div className="w-full text-xs text-red-600 mt-1">
+                        Only{" "}
+                        {item.availableQty ??
+                          availableQtyByCode.get(String(item.codeId)) ??
+                          0}{" "}
+                        available
+                      </div>
+                    )} */}
+                    </div>
+                  );
+                })}
               </div>
 
               <div className="flex flex-col gap-1">
@@ -857,10 +1004,14 @@ function Salespage() {
               </div>
 
               <button
-                type="submit"
-                className="w-full  bg-teal-700 hover:bg-teal-600 text-white rounded-xl shadow-md mt-4 py-3"
+                disabled={hasStockIssue}
+                className={`w-full py-3 rounded-xl ${
+                  hasStockIssue
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-teal-700 hover:bg-teal-600 text-white"
+                }`}
               >
-                {selectedSales ? "Update Sale" : "Add Sale"}
+                {selectedSales ? "Update Sale" : "Create Sale"}
               </button>
             </form>
           </div>
@@ -969,6 +1120,7 @@ function Salespage() {
                         <tr>
                           <th className="px-4 py-3 text-left">#</th>
                           <th className="px-4 py-3 text-left">Product</th>
+                          <th className="px-4 py-3 text-left">Description</th>
                           <th className="px-4 py-3 text-left">Code</th>
                           <th className="px-4 py-3 text-right">Qty</th>
                           <th className="px-4 py-3 text-right">Unit</th>
@@ -992,6 +1144,10 @@ function Salespage() {
                                 {item.product?.company || item.product?.brand
                                   ? ` • ${item.product?.company || item.product?.brand}`
                                   : ""}
+                              </td>
+
+                              <td className="px-4 py-3 text-slate-600">
+                                {item.product.description || "-"}
                               </td>
                               <td className="px-4 py-3 text-slate-600">
                                 {item.productCode?.code || "-"}
@@ -1097,15 +1253,29 @@ function Salespage() {
                           className="flex items-center gap-2 px-3 py-2 mb-1 last:mb-0 rounded-md bg-slate-50 border border-slate-300"
                         >
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-slate-800 truncate">
-                              {item.product?.name || "N/A"}
+                            <div className="text-sm text-slate-800 flex items-center gap-2 flex-wrap">
+                              {/* 🔹 Product Name */}
+                              <span className="font-semibold truncate">
+                                {item.product?.name || "N/A"}
+                              </span>
+
+                              {/* 🔹 Description (inline, subtle) */}
+                              {item.product?.description && (
+                                <span
+                                  className="text-xs text-slate-500 truncate max-w-[200px]"
+                                  title={item.product.description}
+                                >
+                                  — {item.product.description}
+                                </span>
+                              )}
                             </div>
-                            {item.product?.company || item.product?.brand ? (
-                              <div className="text-xs text-slate-500 truncate">
-                                {item.product?.company ||
-                                  item.product?.brand}
+
+                            {/* 🔹 Company / Brand */}
+                            {(item.product?.company || item.product?.brand) && (
+                              <div className="text-xs text-slate-400 truncate mt-0.5">
+                                {item.product?.company || item.product?.brand}
                               </div>
-                            ) : null}
+                            )}
                           </div>
 
                           <span className="text-xs font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full whitespace-nowrap">

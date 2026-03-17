@@ -194,7 +194,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
             <NavItem
               to="/AdminDashboard/order"
               icon={<FiShoppingCart />}
-              label="Order"
+              label="Purchase Order"
               sidebarOpen={sidebarOpen}
             />
 

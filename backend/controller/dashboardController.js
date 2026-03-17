@@ -95,7 +95,7 @@ const getDashboardSummary = async (req, res) => {
       .lean();
 
     const lowStockProducts = await ProductCode.find({
-      quantity: { $lte: 5 },
+      quantity: { $lte: 50 },
       user_id: userId,
     })
       .populate("product", "name")

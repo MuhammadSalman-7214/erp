@@ -420,6 +420,7 @@ function Productpage({ readOnly = false }) {
                     <th className="px-5 py-4 font-medium">#</th>
                     <th className="px-5 py-4 font-medium">Product</th>
                     <th className="px-5 py-4 font-medium">Product Code</th>
+                    <th className="px-5 py-4 font-medium">Description</th>
                     <th className="px-5 py-4 font-medium">Purchase Price</th>
                     <th className="px-5 py-4 font-medium">Trade Price</th>
                     <th className="px-5 py-4 font-medium">Sale Price</th>
@@ -470,7 +471,9 @@ function Productpage({ readOnly = false }) {
                             "-"
                           )}
                         </td>
-
+                        <td className="px-5 py-4 text-slate-700">
+                          {product.description ?? "-"}
+                        </td>
                         <td className="px-5 py-4 text-slate-700">
                           Rs {product.purchasePrice ?? 0}
                         </td>

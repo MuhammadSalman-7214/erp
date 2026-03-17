@@ -92,6 +92,7 @@ function Orderpage() {
           codeId: code._id,
           code: code.code,
           name: product.name,
+          description: product.description,
           company: product.company || product.brand || "",
           unitPrice: Number(
             product.purchasePrice ??
@@ -106,11 +107,12 @@ function Orderpage() {
   }, [debouncedCodeQuery, getallproduct]);
 
   const buildCartItemsFromOrder = (order) => {
-    const list = Array.isArray(order?.products) && order.products.length
-      ? order.products
-      : order?.Product
-        ? [order.Product]
-        : [];
+    const list =
+      Array.isArray(order?.products) && order.products.length
+        ? order.products
+        : order?.Product
+          ? [order.Product]
+          : [];
 
     return list.map((item) => {
       const productId = item.product?._id || item.product;
@@ -161,9 +163,7 @@ function Orderpage() {
     }
 
     const resolvedProducts = cartItems.map((item) => {
-      const productRecord = getallproduct.find(
-        (p) => p._id === item.productId,
-      );
+      const productRecord = getallproduct.find((p) => p._id === item.productId);
       const codeRecord = productRecord?.productCodes?.find(
         (code) => code._id === item.codeId,
       );
@@ -337,7 +337,8 @@ function Orderpage() {
           onClick={() => setIsFormVisible(true)}
           className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
         >
-          <IoMdAdd className="text-xl mr-2" /> Add Order
+          <IoMdAdd className="text-xl mr-2" />
+          Purchase Order
         </button>
       </div>
 
@@ -357,7 +358,9 @@ function Orderpage() {
         <div className="fixed top-0 right-0 w-full sm:w-[420px] h-full bg-white p-6 border-l shadow-2xl z-50 overflow-y-auto">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">
-              {selectedOrder ? "Edit Order" : "Add Order"}
+              {selectedOrder
+                ? "Update Purchase Order"
+                : "Create Purchase Order"}
             </h2>
             <MdKeyboardDoubleArrowLeft
               onClick={() => {
@@ -394,6 +397,10 @@ function Orderpage() {
                       >
                         {option.code} - {option.name}
                         {option.company ? ` • ${option.company}` : ""}
+                        <span className="text-xs text-slate-600">
+                          {" "}
+                          - {option.description}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -493,7 +500,9 @@ function Orderpage() {
               type="submit"
               className="bg-teal-800 text-white w-full h-12 rounded-lg hover:bg-teal-700 mt-4"
             >
-              {selectedOrder ? "Update Order" : "Add Order"}
+              {selectedOrder
+                ? "Update Purchase Order"
+                : "Create Purchase Order"}
             </button>
           </form>
         </div>
@@ -538,8 +547,7 @@ function Orderpage() {
                           </div>
                           {item.product?.company || item.product?.brand ? (
                             <div className="text-xs text-slate-500 truncate">
-                              {item.product?.company ||
-                                item.product?.brand}
+                              {item.product?.company || item.product?.brand}
                             </div>
                           ) : null}
                         </div>

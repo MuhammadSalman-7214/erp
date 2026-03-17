@@ -90,12 +90,17 @@ module.exports.createSale = async (req, res) => {
         });
       }
 
-      const unitPrice =
+      const defaultUnitPrice =
         Number(productRecord.salePrice) ||
         productRecord.pricing?.currentSalesPrice ||
         productRecord.Price ||
         Number(productCodeRecord.salePrice) ||
         0;
+      const requestedPrice = Number(item.price);
+      const unitPrice =
+        Number.isFinite(requestedPrice) && requestedPrice >= 0
+          ? requestedPrice
+          : defaultUnitPrice;
       totalAmount += unitPrice * item.quantity;
       resolvedProducts.push({
         product: productRecord._id,
@@ -336,12 +341,17 @@ module.exports.updateSale = async (req, res) => {
         });
       }
 
-      const unitPrice =
+      const defaultUnitPrice =
         Number(productRecord.salePrice) ||
         productRecord.pricing?.currentSalesPrice ||
         productRecord.Price ||
         Number(productCodeRecord.salePrice) ||
         0;
+      const requestedPrice = Number(item.price);
+      const unitPrice =
+        Number.isFinite(requestedPrice) && requestedPrice >= 0
+          ? requestedPrice
+          : defaultUnitPrice;
       updatedTotalAmount += item.quantity * unitPrice;
       resolvedProducts.push({
         product: productRecord._id,
