@@ -118,6 +118,18 @@ const supplierSlice = createSlice({
       })
       .addCase(CreateSupplier.fulfilled, (state, action) => {
         state.isSupplieradd = false;
+        const newVendor = action.payload?.vendor;
+        if (!newVendor) return;
+        if (!Array.isArray(state.getallSupplier)) {
+          state.getallSupplier = [newVendor];
+          return;
+        }
+        const exists = state.getallSupplier.some(
+          (vendor) => vendor._id === newVendor._id,
+        );
+        if (!exists) {
+          state.getallSupplier = [newVendor, ...state.getallSupplier];
+        }
       })
       .addCase(CreateSupplier.rejected, (state, action) => {
         state.isSupplieradd = false;

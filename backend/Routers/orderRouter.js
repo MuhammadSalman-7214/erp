@@ -7,6 +7,7 @@ const {
   getOrder,
   getOrderStatistics,
   Removeorder,
+  getOrdersByVendor,
 } = require("../controller/orderController.js");
 const {
   authmiddleware,
@@ -20,5 +21,6 @@ router.delete("/removeorder/:OrdertId", authmiddleware, Removeorder);
 router.put("/updatestatusOrder/:OrderId", authmiddleware, updatestatusOrder);
 router.get("/Searchdata", authmiddleware, searchOrder);
 router.get("/graphstatusorder", authmiddleware, getOrderStatistics);
+router.get("/vendor/:vendorId", authmiddleware, getOrdersByVendor);
 
 module.exports = router;

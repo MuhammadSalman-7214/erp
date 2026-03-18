@@ -542,14 +542,24 @@ function Orderpage() {
                         className="flex items-center gap-2 px-3 py-2 mb-1 last:mb-0 rounded-md bg-slate-50 border border-slate-300"
                       >
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-slate-800 truncate">
-                            {item.product?.name || "N/A"}
+                          <div className="text-sm text-slate-800 flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold truncate">
+                              {item.product?.name || "N/A"}
+                            </span>
+                            {item.product?.description && (
+                              <span
+                                className="text-xs text-slate-500 truncate max-w-[200px]"
+                                title={item.product.description}
+                              >
+                                — {item.product.description}
+                              </span>
+                            )}
                           </div>
-                          {item.product?.company || item.product?.brand ? (
-                            <div className="text-xs text-slate-500 truncate">
+                          {(item.product?.company || item.product?.brand) && (
+                            <div className="text-xs text-slate-500 truncate mt-0.5">
                               {item.product?.company || item.product?.brand}
                             </div>
-                          ) : null}
+                          )}
                         </div>
                         <span className="text-xs font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full whitespace-nowrap">
                           {item.productCode?.code || "-"}

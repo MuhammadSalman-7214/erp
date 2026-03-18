@@ -28,6 +28,7 @@ function InvoicesPage() {
     }
   })();
   const [query, setQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
 
   const fetchInvoices = async () => {
     setLoading(true);
@@ -66,6 +67,9 @@ function InvoicesPage() {
   };
   // ✅ Filter invoices client-side
   const displayInvoices = invoices.filter((inv) => {
+    if (typeFilter !== "all") {
+      if ((inv.invoiceType || "").toLowerCase() !== typeFilter) return false;
+    }
     if (!query.trim()) return true;
     const lower = query.toLowerCase();
     return (
@@ -88,6 +92,15 @@ function InvoicesPage() {
           className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="Search invoice..."
         />
+        <select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+          className="w-full md:w-56 h-10 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white"
+        >
+          <option value="all">All Types</option>
+          <option value="sales">Sales</option>
+          <option value="purchase">Purchase</option>
+        </select>
 
         <button
           onClick={() => navigate(`${dashboardBasePath}/createInvoice`)}

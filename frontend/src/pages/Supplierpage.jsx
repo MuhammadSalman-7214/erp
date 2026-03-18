@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import TopNavbar from "../Components/TopNavbar";
-import { IoMdAdd } from "react-icons/io";
+import { IoMdAdd, IoMdEye } from "react-icons/io";
 import { MdKeyboardDoubleArrowLeft, MdDelete, MdEdit } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
 import FormattedTime from "../lib/FormattedTime";
@@ -30,7 +31,9 @@ function Supplierpage({ readOnly = false }) {
 
   const { getallSupplier, editedsupplier, iscreatedsupplier, searchdata } =
     useSelector((state) => state.supplier);
+  const { user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const [query, setQuery] = useState("");
   const [vendorCode, setVendorCode] = useState("");
@@ -46,6 +49,19 @@ function Supplierpage({ readOnly = false }) {
   const [vendorBalances, setVendorBalances] = useState({});
 
   const { getallproduct } = useSelector((state) => state.product);
+
+  const dashboardBasePath = (() => {
+    switch (user?.role) {
+      case "admin":
+        return "/AdminDashboard";
+      case "manager":
+        return "/ManagerDashboard";
+      case "staff":
+        return "/StaffDashboard";
+      default:
+        return "";
+    }
+  })();
 
   const fetchVendorBalances = async () => {
     try {
@@ -194,6 +210,10 @@ function Supplierpage({ readOnly = false }) {
     setOpeningBalance(supplier.openingBalance ?? "");
     setPaymentTerms(supplier.paymentTerms ?? "");
     setIsFormVisible(true);
+  };
+
+  const handleViewSupplier = (supplierId) => {
+    navigate(`${dashboardBasePath}/supplier/${supplierId}`);
   };
 
   const displaySuppliers = query.trim() !== "" ? searchdata : getallSupplier;
@@ -436,9 +456,7 @@ function Supplierpage({ readOnly = false }) {
                     <th className="px-5 py-4 font-medium">Remaining</th>
                     <th className="px-5 py-4 font-medium">Terms</th>
                     <th className="px-5 py-4 font-medium">Date</th>
-                    {!isReadOnlyMode && (
-                      <th className="px-5 py-4 font-medium">Actions</th>
-                    )}
+                    <th className="px-5 py-4 font-medium">Actions</th>
                   </tr>
                 </thead>
 
@@ -486,38 +504,43 @@ function Supplierpage({ readOnly = false }) {
                           <FormattedTime timestamp={supplier.createdAt} />
                         </td>
 
-                        {!isReadOnlyMode && (
-                          <td className="px-5 py-4">
-                            <div className="flex gap-2">
-                              {canDelete && (
-                                <Popconfirm
-                                  title={
-                                    <div className="flex flex-col gap-1 max-w-xs">
-                                      <span className="font-semibold text-red-600 text-sm">
-                                        Confirm Supplier Deletion
-                                      </span>
-                                      <span className="text-xs text-gray-600 leading-snug">
-                                        This action will permanently remove this
-                                        supplier and may affect linked purchase
-                                        records. This operation cannot be
-                                        undone.
-                                      </span>
-                                    </div>
-                                  }
-                                  okText="Yes, Delete"
-                                  cancelText="Cancel"
-                                  okButtonProps={{
-                                    danger: true,
-                                    className: "font-semibold",
-                                  }}
-                                  cancelButtonProps={{
-                                    className: "font-medium",
-                                  }}
-                                  placement="topRight"
-                                  onConfirm={() => handleRemove(supplier._id)}
-                                >
-                                  <button
-                                    className="
+                        <td className="px-5 py-4">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleViewSupplier(supplier._id)}
+                              className="p-2 rounded-lg bg-slate-100 hover:bg-teal-100 text-emerald-700 transition"
+                              title="View Details"
+                            >
+                              <IoMdEye size={18} />
+                            </button>
+                            {!isReadOnlyMode && canDelete && (
+                              <Popconfirm
+                                title={
+                                  <div className="flex flex-col gap-1 max-w-xs">
+                                    <span className="font-semibold text-red-600 text-sm">
+                                      Confirm Supplier Deletion
+                                    </span>
+                                    <span className="text-xs text-gray-600 leading-snug">
+                                      This action will permanently remove this
+                                      supplier and may affect linked purchase
+                                      records. This operation cannot be undone.
+                                    </span>
+                                  </div>
+                                }
+                                okText="Yes, Delete"
+                                cancelText="Cancel"
+                                okButtonProps={{
+                                  danger: true,
+                                  className: "font-semibold",
+                                }}
+                                cancelButtonProps={{
+                                  className: "font-medium",
+                                }}
+                                placement="topRight"
+                                onConfirm={() => handleRemove(supplier._id)}
+                              >
+                                <button
+                                  className="
       p-2 rounded-lg
       bg-slate-100
       hover:bg-red-100
@@ -525,24 +548,23 @@ function Supplierpage({ readOnly = false }) {
       transition-all duration-200
       hover:shadow-sm
     "
-                                    title="Delete Supplier"
-                                  >
-                                    <MdDelete size={18} />
-                                  </button>
-                                </Popconfirm>
-                              )}
-                              {canWrite && (
-                                <button
-                                  onClick={() => handleEditClick(supplier)}
-                                  className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
-                                  title="Edit"
+                                  title="Delete Supplier"
                                 >
-                                  <MdEdit size={18} />
+                                  <MdDelete size={18} />
                                 </button>
-                              )}
-                            </div>
-                          </td>
-                        )}
+                              </Popconfirm>
+                            )}
+                            {!isReadOnlyMode && canWrite && (
+                              <button
+                                onClick={() => handleEditClick(supplier)}
+                                className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
+                                title="Edit"
+                              >
+                                <MdEdit size={18} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
                       </tr>
                     );
                   })}

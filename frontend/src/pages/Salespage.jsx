@@ -16,6 +16,7 @@ import { gettingallproducts } from "../features/productSlice";
 import { PiInvoiceBold } from "react-icons/pi";
 import NoData from "../Components/NoData";
 import { createCustomer, getAllCustomers } from "../features/customerSlice";
+import axiosInstance from "../lib/axios";
 
 function Salespage() {
   const { getallsales, searchdata } = useSelector((state) => state.sales);
@@ -43,6 +44,7 @@ function Salespage() {
   const [cartItems, setCartItems] = useState([]);
   const [showBillModal, setShowBillModal] = useState(false);
   const [billSale, setBillSale] = useState(null);
+  const [payments, setPayments] = useState([]);
 
   const [selectedSales, setselectedSales] = useState(null);
   const { getAllCustomer } = useSelector((state) => state.customer);
@@ -62,6 +64,18 @@ function Salespage() {
   useEffect(() => {
     dispatch(gettingallSales());
   }, [dispatch]);
+
+  useEffect(() => {
+    const fetchPayments = async () => {
+      try {
+        const res = await axiosInstance.get("/payment");
+        setPayments(res.data.payments || []);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    fetchPayments();
+  }, [getallsales]);
 
   useEffect(() => {
     if (query.trim() !== "") {
@@ -145,167 +159,339 @@ function Salespage() {
 
   const handlePrintBill = () => {
     if (!billSale) return;
+
     const items = Array.isArray(billSale.products) ? billSale.products : [];
+
     const rows = items
       .map((item, index) => {
         const name = item.product?.name || "Product";
+        const description = item.product?.description || "";
         const company = item.product?.company || item.product?.brand || "";
         const code = item.productCode?.code || "-";
+
         const qty = Number(item.quantity || 0);
         const price = Number(item.price || 0);
-        const description = item.product.description || "-";
-        const total = price * qty;
-        const fullName = company ? `${name} • ${company}` : name;
+        const total = qty * price;
+
         return `
-          <tr>
-            <td>${index + 1}</td>
-            <td>${fullName}</td>
-            <td>${code}</td>
-            <td>${description}</td>
-            <td class="num">${qty}</td>
-            <td class="num">Rs ${price.toLocaleString()}</td>
-            <td class="num">Rs ${total.toLocaleString()}</td>
-          </tr>
-        `;
+        <tr>
+          <td>${index + 1}</td>
+
+          <td>
+            <div class="product-name">${name}</div>
+            ${
+              description
+                ? `<div class="product-desc">${description}</div>`
+                : ""
+            }
+            ${company ? `<div class="product-company">${company}</div>` : ""}
+          </td>
+
+          <td><span class="badge">${code}</span></td>
+
+          <td class="num">${qty}</td>
+          <td class="num">Rs ${price.toLocaleString()}</td>
+          <td class="num">Rs ${total.toLocaleString()}</td>
+        </tr>
+      `;
       })
       .join("");
 
     const customerPhone =
       billSale.customer?.contactInfo?.phone || billSale.customer?.phone || "-";
+
     const customerAddress =
       billSale.customer?.contactInfo?.address ||
       billSale.customer?.address ||
       "-";
+
     const createdAt = billSale.createdAt
       ? new Date(billSale.createdAt).toLocaleString()
       : new Date().toLocaleString();
 
+    // ✅ PUT YOUR LOGO URL HERE
+    const logoUrl = "https://via.placeholder.com/80x80?text=Logo";
+
     const printWindow = window.open("", "_blank", "width=900,height=650");
+
     if (!printWindow) {
-      toast.error("Popup blocked. Please allow popups to print.");
+      toast.error("Popup blocked. Please allow popups.");
       return;
     }
 
     printWindow.document.write(`
-      <html>
-        <head>
-          <title>Sales Invoice</title>
-          <style>
-            * { box-sizing: border-box; }
-            body { font-family: "Inter", "Segoe UI", Arial, sans-serif; margin: 0; padding: 32px; color: #0f172a; }
-            .sheet { max-width: 820px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; padding: 28px; }
-            .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 16px; }
-            .brand { display: flex; flex-direction: column; gap: 6px; }
-            .brand h1 { font-size: 22px; margin: 0; letter-spacing: 0.3px; color: #0f766e; }
-            .brand span { font-size: 12px; color: #475569; }
-            .meta { text-align: right; font-size: 12px; color: #475569; }
-            .meta strong { color: #0f172a; }
-            .section { margin-top: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-            .card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; background: #f8fafc; }
-            .card h3 { margin: 0 0 6px 0; font-size: 12px; text-transform: uppercase; color: #0f766e; letter-spacing: 0.6px; }
-            .card p { margin: 2px 0; font-size: 13px; color: #0f172a; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
-            thead th { background: #0f766e; color: white; padding: 10px; text-align: left; }
-            tbody td { padding: 10px; border-bottom: 1px solid #e2e8f0; }
-            tbody tr:nth-child(even) { background: #f8fafc; }
-            .num { text-align: right; }
-            .totals { margin-top: 16px; display: flex; justify-content: flex-end; }
-            .totals table { width: 280px; border-collapse: collapse; }
-            .totals td { padding: 6px 0; font-size: 13px; }
-            .totals .label { color: #475569; }
-            .totals .value { text-align: right; font-weight: 600; }
-            .grand { font-size: 15px; color: #0f172a; }
-            .footer { margin-top: 24px; font-size: 11px; color: #64748b; text-align: center; }
-          </style>
-        </head>
-        <body>
-          <div class="sheet">
-            <div class="header">
-              <div class="brand">
-                <h1>Sales Invoice</h1>
-                <span>DevSouq ERP • Sales Department</span>
-              </div>
-              <div class="meta">
-                <div><strong>Date:</strong> ${createdAt}</div>
-                <div><strong>Status:</strong> ${billSale.status}</div>
-                <div><strong>Payment:</strong> ${billSale.paymentStatus || "-"}</div>
-              </div>
-            </div>
+<html>
+<head>
+  <title>Invoice</title>
 
-            <div class="section">
-              <div class="card">
-                <h3>Customer</h3>
-                <p><strong>${billSale.customerName || "Customer"}</strong></p>
-                <p>Phone: ${customerPhone}</p>
-                <p>Address: ${customerAddress}</p>
-              </div>
-              <div class="card">
-                <h3>Sale Info</h3>
-                <p>Payment Method: ${billSale.paymentMethod || "-"}</p>
-                <p>Items: ${items.length}</p>
-                <p>Total Quantity: ${items.reduce(
-                  (sum, item) => sum + Number(item.quantity || 0),
-                  0,
-                )}</p>
-              </div>
-            </div>
+  <style>
+    * { box-sizing: border-box; }
 
-            <table>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Product</th>
-                  <th>Code</th>
-                  <th>Description</th>
-                  <th class="num">Qty</th>
-                  <th class="num">Unit Price</th>
-                  <th class="num">Line Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${rows || ""}
-              </tbody>
-            </table>
+    @page {
+      size: A5;
+      margin: 0;
+    }
 
-            <div class="totals">
-              <table>
-                <tr>
-                  <td class="label">Subtotal</td>
-                  <td class="value">Rs ${Number(
-                    billSale.totalAmount || 0,
-                  ).toLocaleString()}</td>
-                </tr>
-                <tr>
-                  <td class="label">Tax</td>
-                  <td class="value">Rs 0</td>
-                </tr>
-                <tr>
-                  <td class="label">Discount</td>
-                  <td class="value">Rs 0</td>
-                </tr>
-                <tr>
-                  <td class="label grand">Total</td>
-                  <td class="value grand">Rs ${Number(
-                    billSale.totalAmount || 0,
-                  ).toLocaleString()}</td>
-                </tr>
-              </table>
-            </div>
+    html, body {
+      width: 148mm;
+      height: 210mm;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent;
+    }
 
-            <div class="footer">
-              Thank you for your business. This invoice is system generated.
-            </div>
-          </div>
-          <script>
-            window.onload = () => {
-              window.focus();
-              window.print();
-              setTimeout(() => window.close(), 200);
-            };
-          </script>
-        </body>
-      </html>
-    `);
+    body {
+      font-family: "Inter", sans-serif;
+      margin: 0;
+      color: #0f172a;
+      background: transparent;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .sheet {
+      width: 148mm;
+      min-height: 210mm;
+      padding: 10mm;
+    }
+
+    @media print {
+      body {
+        display: block;
+        min-height: auto;
+      }
+    }
+
+    /* HEADER */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #0f766e;
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+    }
+
+    .left {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .logo {
+      width: 45px;
+      height: 45px;
+      border-radius: 6px;
+      object-fit: contain;
+      border: 1px solid #e2e8f0;
+    }
+
+    .company h1 {
+      margin: 0;
+      font-size: 16px;
+      color: #0f766e;
+    }
+
+    .company p {
+      margin: 0;
+      font-size: 11px;
+      color: #64748b;
+    }
+
+    .meta {
+      font-size: 11px;
+      text-align: right;
+    }
+
+    /* CARDS */
+    .section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .card {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 8px;
+      background: #f8fafc;
+      font-size: 11px;
+    }
+
+    .card h3 {
+      margin: 0 0 4px;
+      font-size: 10px;
+      color: #0f766e;
+    }
+
+    /* TABLE */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10.5px;
+    }
+
+    thead {
+      background: #0f766e;
+      color: #fff;
+    }
+
+    th, td {
+      padding: 6px;
+    }
+
+    td {
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .num {
+      text-align: right;
+    }
+
+    /* PRODUCT */
+    .product-name {
+      font-weight: 600;
+    }
+
+    .product-desc {
+      font-size: 9px;
+      color: #64748b;
+    }
+
+    .product-company {
+      font-size: 9px;
+      color: #94a3b8;
+    }
+
+    .badge {
+      background: #eef2ff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-size: 9px;
+    }
+
+    /* TOTAL */
+    .totals {
+      margin-top: 10px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .totals table {
+      width: 200px;
+      font-size: 11px;
+    }
+
+    .totals td {
+      padding: 3px 0;
+    }
+
+    .grand {
+      font-weight: 700;
+      border-top: 1px dashed #cbd5e1;
+      padding-top: 5px;
+    }
+
+    .footer {
+      margin-top: 10px;
+      text-align: center;
+      font-size: 9px;
+      color: #94a3b8;
+    }
+
+  </style>
+</head>
+
+<body>
+
+<div class="sheet">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="left">
+      <img src="${logoUrl}" class="logo"/>
+      <div class="company">
+        <h1>Imran Traders</h1>
+        <p>Sales Invoice</p>
+      </div>
+    </div>
+
+    <div class="meta">
+      <div>Date: ${createdAt}</div>
+      <div>Status: ${billSale.status}</div>
+      <div>Payment: ${billSale.paymentStatus || "-"}</div>
+    </div>
+  </div>
+
+  <!-- INFO -->
+  <div class="section">
+    <div class="card">
+      <h3>Customer</h3>
+      <div>${billSale.customerName || "Customer"}</div>
+      <div>${customerPhone}</div>
+      <div>${customerAddress}</div>
+    </div>
+
+    <div class="card">
+      <h3>Order</h3>
+      <div>Method: ${billSale.paymentMethod || "-"}</div>
+      <div>Items: ${items.length}</div>
+      <div>Qty: ${items.reduce((s, i) => s + Number(i.quantity || 0), 0)}</div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Product</th>
+        <th>Code</th>
+        <th class="num">Qty</th>
+        <th class="num">Price</th>
+        <th class="num">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows}
+    </tbody>
+  </table>
+
+  <!-- TOTAL -->
+  <div class="totals">
+    <table>
+      <tr>
+        <td>Subtotal</td>
+        <td class="num">Rs ${Number(billSale.totalAmount || 0).toLocaleString()}</td>
+      </tr>
+      <tr>
+        <td class="grand">Total</td>
+        <td class="num grand">Rs ${Number(billSale.totalAmount || 0).toLocaleString()}</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="footer">
+    Thank you for your business
+  </div>
+
+</div>
+
+<script>
+  window.onload = () => {
+    window.print();
+    setTimeout(() => window.close(), 200);
+  };
+</script>
+
+</body>
+</html>
+`);
+
     printWindow.document.close();
   };
 
@@ -703,6 +889,95 @@ function Salespage() {
   });
   const hasExactMatch = Boolean(exactMatchCustomer);
 
+  const paymentInfoBySaleId = useMemo(() => {
+    const sales = Array.isArray(getallsales) ? getallsales : [];
+    const relevantPayments = Array.isArray(payments)
+      ? payments.filter(
+          (payment) =>
+            payment?.partyType === "customer" &&
+            payment?.type === "received" &&
+            Number(payment.amount) > 0,
+        )
+      : [];
+
+    const resolvePaymentCustomerKey = (payment) => {
+      const customerId =
+        payment?.customerId?._id ||
+        payment?.customerId ||
+        payment?.customer?._id ||
+        "";
+      if (customerId) return String(customerId);
+      const code = normalizeText(payment?.customer?.code);
+      const name = normalizeText(payment?.customer?.name);
+      return code || name ? `${code}|${name}` : "";
+    };
+
+    const resolveSaleCustomerKey = (sale) => {
+      const customerId = sale?.customer?._id || sale?.customer || "";
+      if (customerId) return String(customerId);
+      const name = normalizeText(sale?.customerName);
+      return name ? `|${name}` : "";
+    };
+
+    const invoicePaymentMap = new Map();
+    const customerPaymentPool = new Map();
+
+    relevantPayments.forEach((payment) => {
+      const amount = Number(payment.amount) || 0;
+      if (!amount) return;
+      const invoiceId = payment?.invoice?._id || payment?.invoice || "";
+      if (invoiceId) {
+        const key = String(invoiceId);
+        invoicePaymentMap.set(key, (invoicePaymentMap.get(key) || 0) + amount);
+        return;
+      }
+      const customerKey = resolvePaymentCustomerKey(payment);
+      if (!customerKey) return;
+      customerPaymentPool.set(
+        customerKey,
+        (customerPaymentPool.get(customerKey) || 0) + amount,
+      );
+    });
+
+    const salesSorted = [...sales].sort((a, b) => {
+      const aTime = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return aTime - bTime;
+    });
+
+    const results = new Map();
+
+    salesSorted.forEach((sale) => {
+      const saleId = String(sale?._id || "");
+      const totalAmount = Number(sale?.totalAmount) || 0;
+      const invoiceId = sale?.invoice?._id || sale?.invoice || "";
+      const invoicePaid = invoiceId
+        ? Number(invoicePaymentMap.get(String(invoiceId)) || 0)
+        : 0;
+
+      let paidAmount = Math.min(invoicePaid, totalAmount);
+      let remainingAmount = Math.max(totalAmount - paidAmount, 0);
+
+      if (remainingAmount > 0) {
+        const customerKey = resolveSaleCustomerKey(sale);
+        const poolAmount = Number(customerPaymentPool.get(customerKey) || 0);
+        if (poolAmount > 0) {
+          const applied = Math.min(poolAmount, remainingAmount);
+          paidAmount += applied;
+          remainingAmount -= applied;
+          customerPaymentPool.set(customerKey, poolAmount - applied);
+        }
+      }
+
+      const paymentStatus =
+        remainingAmount <= 0 ? "paid" : paidAmount > 0 ? "partial" : "pending";
+
+      results.set(saleId, { paidAmount, remainingAmount, paymentStatus });
+    });
+
+    return results;
+  }, [getallsales, payments]);
+
   const handleSelectCustomer = (customer) => {
     setCustomerId(customer._id);
     setCustomerSearch(customer.name);
@@ -1096,7 +1371,7 @@ function Salespage() {
                         Sales Invoice
                       </h2>
                       <p className="text-sm text-slate-500">
-                        DevSouq ERP • Sales Department
+                        Imran Trader • Sales Department
                       </p>
                     </div>
                     <div className="text-sm text-slate-600 space-y-1">
@@ -1347,16 +1622,38 @@ function Salespage() {
                     </td>
                     <td className="px-5 py-4">{sale.paymentMethod}</td>
                     <td className="px-5 py-4">
-                      <span
-                        className={`px-3 py-1 text-xs rounded-full font-semibold
-    ${
-      sale.paymentStatus === "paid"
-        ? "bg-green-100 text-green-700"
-        : "bg-yellow-100 text-yellow-700"
-    }`}
-                      >
-                        {sale.paymentStatus}
-                      </span>
+                      {(() => {
+                        const info = paymentInfoBySaleId.get(String(sale._id));
+                        const status =
+                          info?.paymentStatus ||
+                          sale.paymentStatus ||
+                          "pending";
+                        const remaining =
+                          info?.remainingAmount ??
+                          Math.max(Number(sale.totalAmount || 0), 0);
+
+                        const statusClasses =
+                          status === "paid"
+                            ? "bg-green-100 text-green-700"
+                            : status === "partial"
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-yellow-100 text-yellow-700";
+
+                        return (
+                          <div className="flex flex-col gap-1">
+                            <span
+                              className={`px-3 py-1 text-xs rounded-full font-semibold capitalize ${statusClasses}`}
+                            >
+                              {status}
+                            </span>
+                            {status !== "paid" && (
+                              <span className="text-xs text-slate-500">
+                                Remaining: {formatCurrency(remaining)}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>{" "}
                     <td className="px-5 py-4">
                       <div className="flex justify-end gap-2">
@@ -1366,12 +1663,14 @@ function Salespage() {
                         >
                           <MdEdit size={18} />
                         </button>
-                        <div
-                          className="p-2 rounded-lg bg-slate-50 text-slate-300"
-                          title="Invoice auto-generated"
+                        <button
+                          type="button"
+                          onClick={() => openBillPreview(sale)}
+                          className="p-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition"
+                          title="Generate / View Bill"
                         >
                           <PiInvoiceBold size={18} />
-                        </div>
+                        </button>
                       </div>
                     </td>
                   </tr>

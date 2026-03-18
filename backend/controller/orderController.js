@@ -4,6 +4,7 @@ const ProductModel = require("../models/Productmodel");
 const ProductCode = require("../models/ProductCodemodel");
 const Vendor = require("../models/Suppliermodel");
 const Invoice = require("../models/Invoicemodel");
+const Payment = require("../models/Paymentmodel");
 const { getNextInvoiceNumber } = require("../libs/invoiceNumber");
 const {
   createOrderDeliveredStockIn,
@@ -224,9 +225,9 @@ const getOrder = async (req, res) => {
   try {
     const userId = req.user.userId;
     const orders = await Order.find({ user_id: userId })
-      .populate("Product.product", "name")
+      .populate("Product.product", "name description company brand")
       .populate("Product.productCode")
-      .populate("products.product", "name")
+      .populate("products.product", "name description company brand")
       .populate("products.productCode")
       .populate("user", "name email")
       .populate("vendor", "name");
@@ -309,7 +310,13 @@ const searchOrder = async (req, res) => {
         { status: { $regex: query, $options: "i" } },
         { "user.name": { $regex: query, $options: "i" } },
       ],
-    });
+    })
+      .populate("Product.product", "name description company brand")
+      .populate("Product.productCode")
+      .populate("products.product", "name description company brand")
+      .populate("products.productCode")
+      .populate("user", "name email")
+      .populate("vendor", "name");
 
     res.json(searchdata);
   } catch (error) {
@@ -336,6 +343,82 @@ const getOrderStatistics = async (req, res) => {
   } catch (error) {}
 };
 
+const getOrdersByVendor = async (req, res) => {
+  try {
+    const { vendorId } = req.params;
+    const userId = req.user.userId;
+
+    const vendor = await Vendor.findOne({ _id: vendorId, user_id: userId });
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor not found",
+      });
+    }
+
+    const orders = await Order.find({ user_id: userId, vendor: vendorId })
+      .populate("products.product")
+      .populate("products.productCode")
+      .sort({ createdAt: -1 });
+
+    const summary = orders.reduce(
+      (acc, order) => {
+        acc.total += Number(order.totalAmount || 0);
+        acc.count += 1;
+        return acc;
+      },
+      { total: 0, paid: 0, remaining: 0, count: 0 },
+    );
+
+    const payments = await Payment.find({
+      user_id: userId,
+      partyType: "vendor",
+      type: "paid",
+      vendor: vendorId,
+    }).select("amount invoice");
+
+    let paidAmount = 0;
+    const paidInvoiceIds = new Set();
+    payments.forEach((payment) => {
+      paidAmount += Number(payment.amount) || 0;
+      if (payment.invoice) {
+        paidInvoiceIds.add(String(payment.invoice));
+      }
+    });
+
+    const invoices = await Invoice.find({
+      invoiceType: "purchase",
+      user_id: userId,
+      vendor: vendorId,
+    }).select("_id totalAmount status");
+
+    invoices.forEach((invoice) => {
+      if (
+        invoice.status === "paid" &&
+        !paidInvoiceIds.has(String(invoice._id))
+      ) {
+        paidAmount += Number(invoice.totalAmount) || 0;
+      }
+    });
+
+    summary.paid = paidAmount;
+    summary.remaining = Math.max(summary.total - summary.paid, 0);
+
+    return res.status(200).json({
+      success: true,
+      vendor,
+      orders,
+      summary,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching vendor purchase history",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   createOrder,
   searchOrder,
@@ -343,4 +426,5 @@ module.exports = {
   getOrder,
   Removeorder,
   getOrderStatistics,
+  getOrdersByVendor,
 };
