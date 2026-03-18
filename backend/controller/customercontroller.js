@@ -11,6 +11,12 @@ module.exports.createCustomer = async (req, res) => {
         message: "Customer name is required.",
       });
     }
+    if (!contactInfo?.address || !contactInfo.address.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Customer address is required.",
+      });
+    }
 
     const customer = await Customer.create({
       user_id: userId,
@@ -94,10 +100,21 @@ module.exports.editCustomer = async (req, res) => {
       });
     }
 
-    customer.name = name?.trim() || customer.name;
+    const nextName = name?.trim() || customer.name;
+    const nextPhone = contactInfo?.phone ?? customer.contactInfo?.phone ?? "";
+    const nextAddress =
+      contactInfo?.address ?? customer.contactInfo?.address ?? "";
+    if (!String(nextAddress).trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Customer address is required.",
+      });
+    }
+
+    customer.name = nextName;
     customer.contactInfo = {
-      phone: contactInfo?.phone ?? customer.contactInfo?.phone ?? "",
-      address: contactInfo?.address ?? customer.contactInfo?.address ?? "",
+      phone: nextPhone,
+      address: nextAddress,
     };
 
     const updatedCustomer = await customer.save();

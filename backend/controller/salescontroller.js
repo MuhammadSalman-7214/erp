@@ -36,6 +36,12 @@ module.exports.createSale = async (req, res) => {
         message: "Customer not found",
       });
     }
+    if (!customer.contactInfo?.address?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Customer address is required",
+      });
+    }
 
     const customerName = customer.name;
 
@@ -286,6 +292,12 @@ module.exports.updateSale = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Customer not found",
+      });
+    }
+    if (!customer.contactInfo?.address?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Customer address is required",
       });
     }
 

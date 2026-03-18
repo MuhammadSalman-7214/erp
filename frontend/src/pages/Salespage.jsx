@@ -353,6 +353,12 @@ function Salespage() {
       toast.error("Customer is required");
       return;
     }
+    const selectedCustomerAddress =
+      selectedCustomer?.contactInfo?.address?.trim() || "";
+    if (!selectedCustomerAddress) {
+      toast.error("Customer address is required");
+      return;
+    }
     if (!cartItems.length) {
       toast.error("Add at least one product");
       return;
@@ -511,6 +517,10 @@ function Salespage() {
         toast.error("Customer phone is required");
         return;
       }
+      if (!newCustomerData.address.trim()) {
+        toast.error("Customer address is required");
+        return;
+      }
       setIsCreatingCustomer(true);
       try {
         const payload = {
@@ -535,6 +545,16 @@ function Salespage() {
       } finally {
         setIsCreatingCustomer(false);
       }
+    }
+
+    const resolvedCustomer =
+      customers.find((customer) => customer._id === resolvedCustomerId) || null;
+    const resolvedCustomerAddress =
+      resolvedCustomer?.contactInfo?.address?.trim() ||
+      newCustomerData.address.trim();
+    if (!resolvedCustomerAddress) {
+      toast.error("Customer address is required");
+      return;
     }
 
     if (!cartItems.length) {
@@ -653,17 +673,34 @@ function Salespage() {
   const selectedCustomer = customers.find(
     (customer) => customer._id === customerId,
   );
-  const normalizedCustomerSearch = customerSearch.trim().toLowerCase();
-  const filteredCustomers = normalizedCustomerSearch
-    ? customers.filter((customer) => {
-        const name = customer.name?.toLowerCase() || "";
-        return name.includes(normalizedCustomerSearch);
-      })
-    : [];
-  const exactMatchCustomer = customers.find(
-    (customer) =>
-      (customer.name || "").toLowerCase() === normalizedCustomerSearch,
-  );
+  const normalizeText = (value = "") => String(value).trim().toLowerCase();
+  const normalizePhone = (value = "") => String(value).replace(/[^\d+]/g, "");
+  const normalizedCustomerSearch = normalizeText(customerSearch);
+  const normalizedPhoneSearch = normalizePhone(customerSearch);
+  const filteredCustomers =
+    normalizedCustomerSearch || normalizedPhoneSearch
+      ? customers.filter((customer) => {
+          const name = normalizeText(customer.name);
+          const phone = normalizePhone(
+            customer.contactInfo?.phone || customer.phone || "",
+          );
+          return (
+            (normalizedCustomerSearch &&
+              name.includes(normalizedCustomerSearch)) ||
+            (normalizedPhoneSearch && phone.includes(normalizedPhoneSearch))
+          );
+        })
+      : [];
+  const exactMatchCustomer = customers.find((customer) => {
+    const name = normalizeText(customer.name);
+    const phone = normalizePhone(
+      customer.contactInfo?.phone || customer.phone || "",
+    );
+    return (
+      name === normalizedCustomerSearch ||
+      (normalizedPhoneSearch && phone === normalizedPhoneSearch)
+    );
+  });
   const hasExactMatch = Boolean(exactMatchCustomer);
 
   const handleSelectCustomer = (customer) => {
@@ -742,7 +779,7 @@ function Salespage() {
                       }
                     }, 150);
                   }}
-                  placeholder="Search or create customer"
+                  placeholder="Search or create customer (name or phone)"
                   className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
                   required
                 />
@@ -759,6 +796,11 @@ function Salespage() {
                           >
                             <div className="text-sm font-medium text-slate-800">
                               {customer.name}
+                            </div>
+                            <div className="text-xs text-slate-500">
+                              {customer.contactInfo?.phone ||
+                                customer.phone ||
+                                "-"}
                             </div>
                           </button>
                         ))
@@ -800,6 +842,7 @@ function Salespage() {
                         }
                         placeholder="Phone"
                         className="w-full h-10 px-3 border rounded-xl"
+                        required
                       />
                       <input
                         type="text"
@@ -812,6 +855,7 @@ function Salespage() {
                         }
                         placeholder="Address"
                         className="w-full h-10 px-3 border rounded-xl"
+                        required
                       />
                     </div>
                   </div>
