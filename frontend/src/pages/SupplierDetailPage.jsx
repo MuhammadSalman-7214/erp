@@ -3,12 +3,7 @@ import { useParams } from "react-router-dom";
 import axiosInstance from "../lib/axios";
 import FormattedTime from "../lib/FormattedTime";
 import NoData from "../Components/NoData";
-import {
-  TrendingUp,
-  CreditCard,
-  AlertCircle,
-  Clipboard,
-} from "lucide-react";
+import { TrendingUp, CreditCard, AlertCircle, Clipboard } from "lucide-react";
 
 function SupplierDetailPage() {
   const { id } = useParams();
@@ -21,7 +16,14 @@ function SupplierDetailPage() {
     remaining: 0,
     count: 0,
   });
+  const [ledger, setLedger] = useState([]);
+  const [ledgerTotals, setLedgerTotals] = useState({
+    debit: 0,
+    credit: 0,
+    balance: 0,
+  });
   const [loading, setLoading] = useState(true);
+  const [ledgerLoading, setLedgerLoading] = useState(true);
 
   useEffect(() => {
     const fetchVendorOrders = async () => {
@@ -40,7 +42,26 @@ function SupplierDetailPage() {
       }
     };
 
+    const fetchVendorLedger = async () => {
+      try {
+        const response = await axiosInstance.get(
+          `/payment/vendor-ledger/${id}`,
+        );
+        const payload = response.data || {};
+        setLedger(payload.ledger || []);
+        setLedgerTotals(payload.totals || { debit: 0, credit: 0, balance: 0 });
+        if (payload.vendor) {
+          setVendor((prev) => prev || payload.vendor);
+        }
+      } catch (error) {
+        console.error("Failed to load vendor ledger:", error);
+      } finally {
+        setLedgerLoading(false);
+      }
+    };
+
     fetchVendorOrders();
+    fetchVendorLedger();
   }, [id]);
 
   const currency = (value) => `Rs ${Number(value || 0).toLocaleString()}`;
@@ -123,6 +144,94 @@ function SupplierDetailPage() {
               </div>
             ))}
           </div>
+          <div className="bg-white rounded-2xl border shadow-sm overflow-hidden mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-5 border-b">
+              <div>
+                <div className="text-lg font-semibold text-slate-800">
+                  Vendor Ledger
+                </div>
+                <div className="text-sm text-slate-500">
+                  Debit shows what you owe the vendor, credit shows payments.
+                </div>
+              </div>
+              <div className="text-sm text-slate-600 space-x-3">
+                <span>
+                  Debit:{" "}
+                  <span className="font-semibold text-slate-800">
+                    {currency(ledgerTotals.debit)}
+                  </span>
+                </span>
+                <span>
+                  Credit:{" "}
+                  <span className="font-semibold text-slate-800">
+                    {currency(ledgerTotals.credit)}
+                  </span>
+                </span>
+                <span>
+                  Balance:{" "}
+                  <span className="font-semibold text-slate-800">
+                    {currency(ledgerTotals.balance)}
+                  </span>
+                </span>
+              </div>
+            </div>
+            {ledgerLoading ? (
+              <div className="p-6 text-slate-500">Loading ledger...</div>
+            ) : ledger.length === 0 ? (
+              <div className="p-10">
+                <NoData
+                  title="No Ledger Records"
+                  description="Add purchase invoices or vendor payments to see records here."
+                />
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 border-b text-left text-slate-500">
+                    <tr>
+                      <th className="px-5 py-4 font-medium">Date</th>
+                      <th className="px-5 py-4 font-medium">Source</th>
+                      <th className="px-5 py-4 font-medium">Reference</th>
+                      <th className="px-5 py-4 font-medium">Debit</th>
+                      <th className="px-5 py-4 font-medium">Credit</th>
+                      <th className="px-5 py-4 font-medium">Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ledger.map((entry) => (
+                      <tr
+                        key={entry.id}
+                        className="border-b last:border-b-0 hover:bg-slate-50 transition"
+                      >
+                        <td className="px-5 py-4 text-slate-600">
+                          <FormattedTime timestamp={entry.date} />
+                        </td>
+                        <td className="px-5 py-4 text-slate-700 capitalize">
+                          {entry.source?.replace(/_/g, " ") || "-"}
+                        </td>
+                        <td className="px-5 py-4 text-slate-600">
+                          {entry.reference || "-"}
+                        </td>
+                        <td className="px-5 py-4 text-rose-700 font-medium">
+                          {entry.type === "debit"
+                            ? currency(entry.amount)
+                            : "-"}
+                        </td>
+                        <td className="px-5 py-4 text-emerald-700 font-medium">
+                          {entry.type === "credit"
+                            ? currency(entry.amount)
+                            : "-"}
+                        </td>
+                        <td className="px-5 py-4 text-slate-700 font-semibold">
+                          {currency(entry.balance)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
           <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
             {orders.length === 0 ? (
               <div className="p-10">
@@ -133,6 +242,13 @@ function SupplierDetailPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
+                <div className="text-lg font-semibold text-slate-800 mt-3  px-4">
+                  Vendor Orders
+                </div>
+                <div className="text-sm text-slate-500 px-4 mb-2">
+                  Order shows what you owe the vendor.
+                </div>
+
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50 border-b text-left text-slate-500">
                     <tr>
@@ -143,44 +259,45 @@ function SupplierDetailPage() {
                       <th className="px-5 py-4 font-medium">Status</th>
                     </tr>
                   </thead>
+
                   <tbody>
                     {orders.map((order) => {
                       const products = order.products?.length
-                        ? order.products
-                        : order.Product
-                          ? [order.Product]
-                          : [];
-                      const totalQty = products.reduce(
-                        (acc, item) => acc + Number(item.quantity || 0),
+                        ? order.products.map((p) => p.name).join(", ")
+                        : "No items";
+
+                      const totalQty = order.products?.reduce(
+                        (acc, item) => acc + item.quantity,
                         0,
                       );
-                      const itemsLabel = products
-                        .map((item) => {
-                          const name = item.product?.name || "Product";
-                          const company =
-                            item.product?.company || item.product?.brand || "";
-                          return company ? `${name} • ${company}` : name;
-                        })
-                        .join(", ");
+
                       return (
                         <tr
                           key={order._id}
-                          className="border-b last:border-b-0 hover:bg-slate-50 transition"
+                          className="border-b hover:bg-slate-50"
                         >
-                          <td className="px-5 py-4 text-slate-600">
-                            <FormattedTime timestamp={order.createdAt} />
+                          <td className="px-5 py-4">
+                            {new Date(order.createdAt).toLocaleDateString()}
                           </td>
-                          <td className="px-5 py-4 text-slate-800 max-w-xs truncate">
-                            {itemsLabel || "-"}
-                          </td>
-                          <td className="px-5 py-4 text-slate-600">
-                            {totalQty}
-                          </td>
-                          <td className="px-5 py-4 font-semibold text-slate-800">
-                            {currency(order.totalAmount)}
-                          </td>
-                          <td className="px-5 py-4 text-slate-700">
-                            {order.status || "-"}
+
+                          <td className="px-5 py-4">{products}</td>
+
+                          <td className="px-5 py-4">{totalQty || 0}</td>
+
+                          <td className="px-5 py-4">Rs {order.totalAmount}</td>
+
+                          <td className="px-5 py-4">
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                order.status === "completed"
+                                  ? "bg-green-100 text-green-700"
+                                  : order.status === "pending"
+                                    ? "bg-yellow-100 text-yellow-700"
+                                    : "bg-red-100 text-red-700"
+                              }`}
+                            >
+                              {order.status}
+                            </span>
                           </td>
                         </tr>
                       );

@@ -358,4 +358,115 @@ const getPartyBalances = async (req, res) => {
   }
 };
 
-module.exports = { createPayment, getPayments, getPartyBalances };
+const getVendorLedger = async (req, res) => {
+  try {
+    const { vendorId } = req.params;
+    const userId = req.user.userId;
+
+    const vendor = await Vendor.findOne({ _id: vendorId, user_id: userId })
+      .select("_id name openingBalance createdAt");
+    if (!vendor) {
+      return res.status(404).json({ success: false, message: "Vendor not found" });
+    }
+
+    const [invoices, payments] = await Promise.all([
+      Invoice.find({
+        invoiceType: "purchase",
+        user_id: userId,
+        vendor: vendorId,
+      }).select("_id invoiceNumber totalAmount issueDate status createdAt"),
+      Payment.find({
+        partyType: "vendor",
+        type: "paid",
+        user_id: userId,
+        vendor: vendorId,
+      }).select("_id amount method invoice notes paidAt createdAt"),
+    ]);
+
+    const invoiceNumberById = new Map(
+      invoices.map((inv) => [String(inv._id), inv.invoiceNumber || ""]),
+    );
+
+    const ledger = [];
+
+    const openingBalance = Number(vendor.openingBalance) || 0;
+    if (openingBalance !== 0) {
+      ledger.push({
+        id: `opening-${vendor._id}`,
+        date: vendor.createdAt || new Date(0),
+        type: openingBalance >= 0 ? "debit" : "credit",
+        amount: Math.abs(openingBalance),
+        source: "opening_balance",
+        reference: "",
+        notes: "Opening balance",
+      });
+    }
+
+    invoices.forEach((invoice) => {
+      ledger.push({
+        id: String(invoice._id),
+        date: invoice.issueDate || invoice.createdAt || new Date(),
+        type: "debit",
+        amount: Number(invoice.totalAmount) || 0,
+        source: "purchase_invoice",
+        reference: invoice.invoiceNumber || "",
+        status: invoice.status || "",
+      });
+    });
+
+    payments.forEach((payment) => {
+      const invoiceRef = payment.invoice
+        ? invoiceNumberById.get(String(payment.invoice)) || String(payment.invoice)
+        : "";
+      ledger.push({
+        id: String(payment._id),
+        date: payment.paidAt || payment.createdAt || new Date(),
+        type: "credit",
+        amount: Number(payment.amount) || 0,
+        source: "payment",
+        reference: invoiceRef,
+        method: payment.method || "",
+        notes: payment.notes || "",
+      });
+    });
+
+    ledger.sort((a, b) => {
+      const timeDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
+      if (timeDiff !== 0) return timeDiff;
+      return String(a.id).localeCompare(String(b.id));
+    });
+
+    let runningBalance = 0;
+    let totalDebit = 0;
+    let totalCredit = 0;
+
+    const ledgerWithBalance = ledger.map((entry) => {
+      if (entry.type === "debit") {
+        runningBalance += entry.amount;
+        totalDebit += entry.amount;
+      } else {
+        runningBalance -= entry.amount;
+        totalCredit += entry.amount;
+      }
+      return { ...entry, balance: runningBalance };
+    });
+
+    res.status(200).json({
+      success: true,
+      vendor: {
+        id: vendor._id,
+        name: vendor.name,
+      },
+      totals: {
+        debit: totalDebit,
+        credit: totalCredit,
+        balance: runningBalance,
+      },
+      ledger: ledgerWithBalance,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+module.exports = { createPayment, getPayments, getPartyBalances, getVendorLedger };

@@ -8,6 +8,7 @@ const {
   createPayment,
   getPayments,
   getPartyBalances,
+  getVendorLedger,
 } = require("../controller/paymentController");
 
 router.get(
@@ -15,6 +16,12 @@ router.get(
   authmiddleware,
   checkPermission("payment", "read"),
   getPartyBalances,
+);
+router.get(
+  "/vendor-ledger/:vendorId",
+  authmiddleware,
+  checkPermission("payment", "read"),
+  getVendorLedger,
 );
 router.get("/", authmiddleware, checkPermission("payment", "read"), getPayments);
 router.post("/", authmiddleware, checkPermission("payment", "write"), createPayment);

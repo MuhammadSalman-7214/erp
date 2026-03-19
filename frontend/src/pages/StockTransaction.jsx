@@ -263,7 +263,9 @@ function StockTransaction({ readOnly = false }) {
                     ) : null}
                   </td>
                   <td className="px-5 py-4">
-                    {stock.productCode?.code || "-"}
+                    <span className="inline-flex items-center px-3 py-1 text-xs font-extrabold text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full shadow-md">
+                      {stock.productCode?.code || "-"}
+                    </span>{" "}
                   </td>
                   <td className="px-5 py-4">{stock.type}</td>
                   <td className="px-5 py-4">{stock.quantity}</td>
