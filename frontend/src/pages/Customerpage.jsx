@@ -36,13 +36,15 @@ function Customerpage({ readOnly = false }) {
   const [customerBalances, setCustomerBalances] = useState({});
   const [amountFilter, setAmountFilter] = useState("all");
 
+  const getId = (value) => value?._id ?? value?.id ?? value;
+
   const fetchCustomerBalances = async () => {
     try {
       const response = await axiosInstance.get("/payment/summary");
       const customers = response.data?.customers || [];
       const balancesById = customers.reduce((acc, customer) => {
         if (customer.customerId) {
-          acc[customer.customerId] = customer;
+          acc[String(customer.customerId)] = customer;
         }
         return acc;
       }, {});
@@ -132,7 +134,7 @@ function Customerpage({ readOnly = false }) {
       },
     };
 
-    dispatch(editCustomer({ customerId: selectedCustomer._id, updatedData }))
+    dispatch(editCustomer({ customerId: getId(selectedCustomer), updatedData }))
       .unwrap()
       .then(() => {
         toast.success("Customer updated successfully");
@@ -178,7 +180,7 @@ function Customerpage({ readOnly = false }) {
   const filteredCustomers = Array.isArray(displayCustomers)
     ? displayCustomers.filter((customer) => {
         if (amountFilter === "all") return true;
-        const summary = customerBalances[customer._id] || {};
+        const summary = customerBalances[String(getId(customer))] || {};
         const total = Number(summary.totalAmount || 0);
         const paid = Number(summary.paidAmount || 0);
         const remaining = Number(summary.remainingAmount || 0);
@@ -192,7 +194,7 @@ function Customerpage({ readOnly = false }) {
   const summaryTotals = Array.isArray(getAllCustomer)
     ? getAllCustomer.reduce(
         (acc, customer) => {
-          const customerSummary = customerBalances[customer._id] || {};
+          const customerSummary = customerBalances[String(getId(customer))] || {};
           acc.total += Number(customerSummary.totalAmount || 0);
           acc.paid += Number(customerSummary.paidAmount || 0);
           acc.remaining += Number(customerSummary.remainingAmount || 0);
@@ -346,10 +348,11 @@ function Customerpage({ readOnly = false }) {
               </thead>
               <tbody>
                 {filteredCustomers.map((customer) => {
-                  const customerSummary = customerBalances[customer._id] || {};
+                  const customerSummary =
+                    customerBalances[String(getId(customer))] || {};
                   return (
                     <tr
-                      key={customer._id}
+                      key={getId(customer)}
                       className="border-b last:border-b-0 hover:bg-slate-50 transition"
                     >
                       <td className="px-5 py-4">{customer.name}</td>
@@ -368,7 +371,7 @@ function Customerpage({ readOnly = false }) {
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-2">
                           <button
-                            onClick={() => handleViewCustomer(customer._id)}
+                            onClick={() => handleViewCustomer(getId(customer))}
                             className="p-2 rounded-lg bg-slate-100 hover:bg-teal-100 text-emerald-700 transition"
                           >
                             <IoMdEye size={18} />
@@ -387,7 +390,7 @@ function Customerpage({ readOnly = false }) {
                               description="Are you sure to delete this customer?"
                               okText="Delete"
                               cancelText="Cancel"
-                              onConfirm={() => handleRemove(customer._id)}
+                              onConfirm={() => handleRemove(getId(customer))}
                             >
                               <button className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition">
                                 <MdDelete size={18} />

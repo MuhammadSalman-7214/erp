@@ -1,10 +1,5 @@
-const Order = require("../models/Ordermodel");
+const query = require("../libs/dbQuery.js");
 const logActivity = require("../libs/logger");
-const ProductModel = require("../models/Productmodel");
-const ProductCode = require("../models/ProductCodemodel");
-const Vendor = require("../models/Suppliermodel");
-const Invoice = require("../models/Invoicemodel");
-const Payment = require("../models/Paymentmodel");
 const { getNextInvoiceNumber } = require("../libs/invoiceNumber");
 const {
   createOrderDeliveredStockIn,
@@ -21,9 +16,7 @@ const createOrder = async (req, res) => {
       return res.status(400).json({ message: "Product code ID is required" });
     }
 
-    const orderItems = incomingProducts?.length
-      ? incomingProducts
-      : [Product];
+    const orderItems = incomingProducts?.length ? incomingProducts : [Product];
 
     if (!orderItems.length) {
       return res.status(400).json({ message: "At least one product is required" });
@@ -44,23 +37,43 @@ const createOrder = async (req, res) => {
 
       const { product, productCode, price, quantity } = item;
 
-      const productCodeRecord = await ProductCode.findOne({
-        _id: productCode,
-        user_id: userId,
-      });
+      let productCodeRecord;
+      try {
+        const rows = await query(
+          "SELECT * FROM product_codes WHERE id = ? AND user_id = ? LIMIT 1",
+          [productCode, userId],
+        );
+        productCodeRecord = rows[0];
+      } catch (err) {
+        return res.status(500).json({
+          success: false,
+          message: "Database error",
+          error: err,
+        });
+      }
       if (!productCodeRecord) {
         return res.status(404).json({ message: "Product code not found" });
       }
 
-      const productRecord = await ProductModel.findOne({
-        _id: productCodeRecord.product,
-        user_id: userId,
-      });
+      let productRecord;
+      try {
+        const rows = await query(
+          "SELECT * FROM products WHERE id = ? AND user_id = ? LIMIT 1",
+          [productCodeRecord.product, userId],
+        );
+        productRecord = rows[0];
+      } catch (err) {
+        return res.status(500).json({
+          success: false,
+          message: "Database error",
+          error: err,
+        });
+      }
       if (!productRecord) {
         return res.status(404).json({ message: "Product not found" });
       }
 
-      if (product && String(product) !== String(productRecord._id)) {
+      if (product && Number(product) !== Number(productRecord.id)) {
         return res
           .status(400)
           .json({ message: "Product does not match selected product code" });
@@ -69,12 +82,7 @@ const createOrder = async (req, res) => {
       const resolvedUnitPrice =
         price !== undefined && price !== null
           ? Number(price)
-          : Number(
-              productRecord.purchasePrice ??
-                productRecord.pricing?.currentPurchasePrice ??
-                productCodeRecord.purchasePrice ??
-                0,
-            );
+          : Number(productRecord.purchasePrice ?? 0);
 
       if (Number.isNaN(resolvedUnitPrice)) {
         return res.status(400).json({ message: "Price is required" });
@@ -82,8 +90,8 @@ const createOrder = async (req, res) => {
 
       totalOrderAmount += resolvedUnitPrice * Number(quantity);
       resolvedItems.push({
-        product: productRecord._id,
-        productCode: productCodeRecord._id,
+        product: productRecord.id,
+        productCode: productCodeRecord.id,
         quantity: Number(quantity),
         price: resolvedUnitPrice,
         name: productRecord.name,
@@ -97,44 +105,108 @@ const createOrder = async (req, res) => {
       return res.status(400).json({ message: "Vendor is required" });
     }
 
-    const vendorRecord = await Vendor.findOne({
-      _id: vendorId,
-      user_id: userId,
-    });
+    let vendorRecord;
+    try {
+      const rows = await query(
+        "SELECT * FROM vendors WHERE id = ? AND user_id = ? LIMIT 1",
+        [vendorId, userId],
+      );
+      vendorRecord = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
     if (!vendorRecord) {
       return res.status(404).json({ message: "Vendor not found" });
     }
 
-    const firstItem = resolvedItems[0];
-    const newOrder = new Order({
+    let orderInsert;
+    try {
+      orderInsert = await query(
+        "INSERT INTO orders (user_id, user, vendor, supplier, totalAmount, status, stockInRecorded) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [
+          userId,
+          userId,
+          vendorId,
+          supplier || null,
+          totalOrderAmount,
+          status,
+          false,
+        ],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+
+    const orderId = orderInsert.insertId;
+    const itemValues = resolvedItems.map((item) => [
+      orderId,
+      userId,
+      item.product,
+      item.productCode,
+      item.quantity,
+      item.price,
+    ]);
+    try {
+      await query(
+        "INSERT INTO order_items (order_id, user_id, product, productCode, quantity, price) VALUES ?",
+        [itemValues],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+
+    const orderPayload = {
+      id: orderId,
       user_id: userId,
       user: userId,
-      Product: firstItem
-        ? {
-            product: firstItem.product,
-            productCode: firstItem.productCode,
-            price: firstItem.price,
-            quantity: firstItem.quantity,
-          }
-        : undefined,
       products: resolvedItems.map((item) => ({
         product: item.product,
         productCode: item.productCode,
         price: item.price,
         quantity: item.quantity,
       })),
+      Product: resolvedItems[0]
+        ? {
+            product: resolvedItems[0].product,
+            productCode: resolvedItems[0].productCode,
+            price: resolvedItems[0].price,
+            quantity: resolvedItems[0].quantity,
+          }
+        : undefined,
       vendor: vendorId,
       supplier,
       totalAmount: totalOrderAmount,
       status,
-    });
+      stockInRecorded: false,
+    };
 
-    await newOrder.save();
-
-    if (newOrder.status === "delivered") {
-      await createOrderDeliveredStockIn(newOrder, userId);
-      newOrder.stockInRecorded = true;
-      await newOrder.save();
+    if (status === "delivered") {
+      await createOrderDeliveredStockIn(orderPayload, userId);
+      orderPayload.stockInRecorded = true;
+      try {
+        await query(
+          "UPDATE orders SET stockInRecorded = ? WHERE id = ? AND user_id = ?",
+          [true, orderId, userId],
+        );
+      } catch (err) {
+        return res.status(500).json({
+          success: false,
+          message: "Database error",
+          error: err,
+        });
+      }
     }
 
     const invoiceNumber = await getNextInvoiceNumber("PI", userId);
@@ -148,29 +220,74 @@ const createOrder = async (req, res) => {
       };
     });
 
-    const invoice = await Invoice.create({
-      user_id: userId,
-      invoiceNumber,
-      invoiceType: "purchase",
-      vendor: vendorId,
-      items: invoiceItems,
-      taxRate: 0,
-      discount: 0,
-      currency: "Rs",
-      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      paymentMethod: "bank_transfer",
-      status: "sent",
-      subTotal: totalOrderAmount,
-      taxAmount: 0,
-      totalAmount: totalOrderAmount,
-    });
+    let invoiceInsert;
+    try {
+      invoiceInsert = await query(
+        "INSERT INTO invoices (user_id, invoiceNumber, invoiceType, vendor, taxRate, discount, currency, dueDate, paymentMethod, status, subTotal, taxAmount, totalAmount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          userId,
+          invoiceNumber,
+          "purchase",
+          vendorId,
+          0,
+          0,
+          "Rs",
+          new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          "bank_transfer",
+          "sent",
+          totalOrderAmount,
+          0,
+          totalOrderAmount,
+        ],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
-    newOrder.invoice = invoice._id;
-    await newOrder.save();
+    const invoiceId = invoiceInsert.insertId;
+    const invoiceItemValues = invoiceItems.map((item) => [
+      invoiceId,
+      item.name,
+      item.quantity,
+      item.unitPrice,
+      item.total,
+    ]);
+    try {
+      await query(
+        "INSERT INTO invoice_items (invoice_id, name, quantity, unitPrice, total) VALUES ?",
+        [invoiceItemValues],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+
+    orderPayload.invoice = invoiceId;
+    try {
+      await query("UPDATE orders SET invoice = ? WHERE id = ? AND user_id = ?", [
+        invoiceId,
+        orderId,
+        userId,
+      ]);
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+
     res.status(201).json({
       success: true,
       message: "Order created successfully",
-      order: newOrder,
+      order: orderPayload,
     });
   } catch (error) {
     console.error("Error creating order:", error);
@@ -189,26 +306,51 @@ const Removeorder = async (req, res) => {
     const userId = req.user.userId;
     const ipAddress = req.ip;
 
-    const Deletedorder = await Order.findOne({
-      _id: OrdertId,
-      user_id: userId,
-    });
+    let Deletedorder;
+    try {
+      const rows = await query(
+        "SELECT * FROM orders WHERE id = ? AND user_id = ? LIMIT 1",
+        [OrdertId, userId],
+      );
+      Deletedorder = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     if (!Deletedorder) {
       return res.status(404).json({ message: "Order is not found!" });
     }
 
     if (Deletedorder.status === "delivered" || Deletedorder.stockInRecorded) {
-      await rollbackOrderDeliveredStockIn(Deletedorder._id, userId);
+      await rollbackOrderDeliveredStockIn(Deletedorder.id, userId);
     }
 
-    await Order.findOneAndDelete({ _id: OrdertId, user_id: userId });
+    try {
+      await query("DELETE FROM order_items WHERE order_id = ? AND user_id = ?", [
+        OrdertId,
+        userId,
+      ]);
+      await query("DELETE FROM orders WHERE id = ? AND user_id = ?", [
+        OrdertId,
+        userId,
+      ]);
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     await logActivity({
       action: "Delete order",
       description: `Order was deleted.`,
       entity: "order",
-      entityId: Deletedorder._id,
+      entityId: Deletedorder.id,
       userId: userId,
       ipAddress: ipAddress,
     });
@@ -221,19 +363,94 @@ const Removeorder = async (req, res) => {
   }
 };
 
+const hydrateOrderRows = async (orders, userId) => {
+  const hydrated = await Promise.all(
+    orders.map(async (order) => {
+      let items = [];
+      let userDoc = null;
+      let vendorDoc = null;
+      try {
+        items = await query(
+          "SELECT oi.*, p.name, p.description, p.company, p.brand, pc.code, pc.variantName FROM order_items oi LEFT JOIN products p ON p.id = oi.product LEFT JOIN product_codes pc ON pc.id = oi.productCode WHERE oi.order_id = ? AND oi.user_id = ?",
+          [order.id, userId],
+        );
+        const userRows = await query(
+          "SELECT id, name, email FROM users WHERE id = ? LIMIT 1",
+          [order.user],
+        );
+        userDoc = userRows[0] || null;
+        if (order.vendor) {
+          const vendorRows = await query(
+            "SELECT id, name FROM vendors WHERE id = ? AND user_id = ? LIMIT 1",
+            [order.vendor, userId],
+          );
+          vendorDoc = vendorRows[0] || null;
+        }
+      } catch (err) {
+        return {
+          error: err,
+        };
+      }
+
+      const products = items.map((item) => ({
+        product: item.product
+          ? {
+              id: item.product,
+              name: item.name,
+              description: item.description,
+              company: item.company,
+              brand: item.brand,
+            }
+          : null,
+        productCode: item.productCode
+          ? {
+              id: item.productCode,
+              code: item.code,
+              variantName: item.variantName,
+            }
+          : null,
+        quantity: item.quantity,
+        price: item.price,
+      }));
+
+      return {
+        ...order,
+        Product: products[0] || null,
+        products,
+        user: userDoc,
+        vendor: vendorDoc,
+      };
+    }),
+  );
+
+  return hydrated;
+};
+
 const getOrder = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const orders = await Order.find({ user_id: userId })
-      .populate("Product.product", "name description company brand")
-      .populate("Product.productCode")
-      .populate("products.product", "name description company brand")
-      .populate("products.productCode")
-      .populate("user", "name email")
-      .populate("vendor", "name");
-    // .populate("supplier", "name");
+    let orders;
+    try {
+      orders = await query("SELECT * FROM orders WHERE user_id = ?", [userId]);
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
-    res.status(200).json(orders);
+    const hydrated = await hydrateOrderRows(orders, userId);
+    if (hydrated.some((o) => o.error)) {
+      const err = hydrated.find((o) => o.error)?.error;
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+
+    res.status(200).json(hydrated);
   } catch (error) {
     res
       .status(500)
@@ -246,10 +463,20 @@ const updatestatusOrder = async (req, res) => {
     const { OrderId } = req.params;
     const updates = req.body;
     const userId = req.user.userId;
-    const existingOrder = await Order.findOne({
-      _id: OrderId,
-      user_id: userId,
-    });
+    let existingOrder;
+    try {
+      const rows = await query(
+        "SELECT * FROM orders WHERE id = ? AND user_id = ? LIMIT 1",
+        [OrderId, userId],
+      );
+      existingOrder = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     if (!existingOrder) {
       return res.status(404).json({ message: "Order not found" });
@@ -258,28 +485,56 @@ const updatestatusOrder = async (req, res) => {
     const previousStatus = existingOrder.status;
     const nextStatus = updates.status || previousStatus;
 
-    const updatedOrder = await Order.findOneAndUpdate(
-      { _id: OrderId, user_id: userId },
-      updates,
-      { new: true },
+    try {
+      await query(
+        "UPDATE orders SET status = ? WHERE id = ? AND user_id = ?",
+        [nextStatus, OrderId, userId],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+
+    const orderRows = await query(
+      "SELECT * FROM orders WHERE id = ? AND user_id = ? LIMIT 1",
+      [OrderId, userId],
     );
+    const updatedOrder = orderRows[0];
+
+    const items = await query(
+      "SELECT product, productCode, quantity, price FROM order_items WHERE order_id = ? AND user_id = ?",
+      [OrderId, userId],
+    );
+    const orderPayload = {
+      ...updatedOrder,
+      products: items.map((item) => ({
+        product: item.product,
+        productCode: item.productCode,
+        quantity: item.quantity,
+        price: item.price,
+      })),
+      Product: items[0] || null,
+    };
 
     if (
       nextStatus === "delivered" &&
       (previousStatus !== "delivered" || !existingOrder.stockInRecorded)
     ) {
-      await createOrderDeliveredStockIn(updatedOrder, userId);
-      await Order.findOneAndUpdate(
-        { _id: OrderId, user_id: userId },
-        { stockInRecorded: true },
+      await createOrderDeliveredStockIn(orderPayload, userId);
+      await query(
+        "UPDATE orders SET stockInRecorded = ? WHERE id = ? AND user_id = ?",
+        [true, OrderId, userId],
       );
     }
 
     if (previousStatus === "delivered" && nextStatus !== "delivered") {
       await rollbackOrderDeliveredStockIn(OrderId, userId);
-      await Order.findOneAndUpdate(
-        { _id: OrderId, user_id: userId },
-        { stockInRecorded: false },
+      await query(
+        "UPDATE orders SET stockInRecorded = ? WHERE id = ? AND user_id = ?",
+        [false, OrderId, userId],
       );
     }
 
@@ -297,28 +552,38 @@ const updatestatusOrder = async (req, res) => {
 
 const searchOrder = async (req, res) => {
   try {
-    const { query } = req.query;
+    const { query: searchQuery } = req.query;
     const userId = req.user.userId;
 
-    if (!query) {
+    if (!searchQuery) {
       return res.status(400).json({ message: "Query parameter is required" });
     }
 
-    const searchdata = await Order.find({
-      user_id: userId,
-      $or: [
-        { status: { $regex: query, $options: "i" } },
-        { "user.name": { $regex: query, $options: "i" } },
-      ],
-    })
-      .populate("Product.product", "name description company brand")
-      .populate("Product.productCode")
-      .populate("products.product", "name description company brand")
-      .populate("products.productCode")
-      .populate("user", "name email")
-      .populate("vendor", "name");
+    let orders;
+    try {
+      orders = await query(
+        "SELECT o.* FROM orders o LEFT JOIN users u ON u.id = o.user WHERE o.user_id = ? AND (o.status LIKE ? OR u.name LIKE ?)",
+        [userId, `%${searchQuery}%`, `%${searchQuery}%`],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
-    res.json(searchdata);
+    const hydrated = await hydrateOrderRows(orders, userId);
+    if (hydrated.some((o) => o.error)) {
+      const err = hydrated.find((o) => o.error)?.error;
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+
+    res.json(hydrated);
   } catch (error) {
     res
       .status(500)
@@ -329,15 +594,24 @@ const searchOrder = async (req, res) => {
 const getOrderStatistics = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const orderStats = await Order.aggregate([
-      { $match: { user_id: userId } },
-      {
-        $group: {
-          _id: "$status",
-          count: { $sum: 1 },
-        },
-      },
-    ]);
+    let rows;
+    try {
+      rows = await query(
+        "SELECT status, COUNT(*) as count FROM orders WHERE user_id = ? GROUP BY status",
+        [userId],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+
+    const orderStats = rows.map((row) => ({
+      _id: row.status,
+      count: row.count,
+    }));
 
     res.status(200).json(orderStats);
   } catch (error) {}
@@ -348,7 +622,20 @@ const getOrdersByVendor = async (req, res) => {
     const { vendorId } = req.params;
     const userId = req.user.userId;
 
-    const vendor = await Vendor.findOne({ _id: vendorId, user_id: userId });
+    let vendor;
+    try {
+      const rows = await query(
+        "SELECT * FROM vendors WHERE id = ? AND user_id = ? LIMIT 1",
+        [vendorId, userId],
+      );
+      vendor = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
     if (!vendor) {
       return res.status(404).json({
         success: false,
@@ -356,12 +643,22 @@ const getOrdersByVendor = async (req, res) => {
       });
     }
 
-    const orders = await Order.find({ user_id: userId, vendor: vendorId })
-      .populate("products.product")
-      .populate("products.productCode")
-      .sort({ createdAt: -1 });
+    let orders;
+    try {
+      orders = await query(
+        "SELECT * FROM orders WHERE user_id = ? AND vendor = ? ORDER BY createdAt DESC",
+        [userId, vendorId],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+    const hydrated = await hydrateOrderRows(orders, userId);
 
-    const summary = orders.reduce(
+    const summary = hydrated.reduce(
       (acc, order) => {
         acc.total += Number(order.totalAmount || 0);
         acc.count += 1;
@@ -370,12 +667,19 @@ const getOrdersByVendor = async (req, res) => {
       { total: 0, paid: 0, remaining: 0, count: 0 },
     );
 
-    const payments = await Payment.find({
-      user_id: userId,
-      partyType: "vendor",
-      type: "paid",
-      vendor: vendorId,
-    }).select("amount invoice");
+    let payments;
+    try {
+      payments = await query(
+        "SELECT amount, invoice FROM payments WHERE user_id = ? AND partyType = ? AND type = ? AND vendor = ?",
+        [userId, "vendor", "paid", vendorId],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     let paidAmount = 0;
     const paidInvoiceIds = new Set();
@@ -386,17 +690,22 @@ const getOrdersByVendor = async (req, res) => {
       }
     });
 
-    const invoices = await Invoice.find({
-      invoiceType: "purchase",
-      user_id: userId,
-      vendor: vendorId,
-    }).select("_id totalAmount status");
+    let invoices;
+    try {
+      invoices = await query(
+        "SELECT id, totalAmount, status FROM invoices WHERE invoiceType = ? AND user_id = ? AND vendor = ?",
+        ["purchase", userId, vendorId],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     invoices.forEach((invoice) => {
-      if (
-        invoice.status === "paid" &&
-        !paidInvoiceIds.has(String(invoice._id))
-      ) {
+      if (invoice.status === "paid" && !paidInvoiceIds.has(String(invoice.id))) {
         paidAmount += Number(invoice.totalAmount) || 0;
       }
     });
@@ -407,7 +716,7 @@ const getOrdersByVendor = async (req, res) => {
     return res.status(200).json({
       success: true,
       vendor,
-      orders,
+      orders: hydrated,
       summary,
     });
   } catch (error) {

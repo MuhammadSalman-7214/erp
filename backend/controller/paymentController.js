@@ -1,7 +1,4 @@
-const Payment = require("../models/Paymentmodel");
-const Invoice = require("../models/Invoicemodel");
-const Vendor = require("../models/Suppliermodel");
-const Customer = require("../models/Customermodel");
+const query = require("../libs/dbQuery.js");
 
 const normalizeText = (value = "") => String(value).trim().toLowerCase();
 
@@ -44,10 +41,20 @@ const createPayment = async (req, res) => {
     let resolvedVendor = vendor;
 
     if (invoice) {
-      const invoiceDoc = await Invoice.findOne({
-        _id: invoice,
-        user_id: userId,
-      });
+      let invoiceDoc;
+      try {
+        const rows = await query(
+          "SELECT * FROM invoices WHERE id = ? AND user_id = ? LIMIT 1",
+          [invoice, userId],
+        );
+        invoiceDoc = rows[0];
+      } catch (err) {
+        return res.status(500).json({
+          success: false,
+          message: "Database error",
+          error: err,
+        });
+      }
       if (!invoiceDoc) {
         return res.status(404).json({ message: "Invoice not found" });
       }
@@ -58,10 +65,10 @@ const createPayment = async (req, res) => {
         resolvedCustomerId = String(invoiceDoc.customerId);
       }
 
-      if (invoiceDoc.customer?.name && !resolvedCustomer) {
+      if (invoiceDoc.customer_name && !resolvedCustomer) {
         resolvedCustomer = {
-          code: invoiceDoc.customer.code || "",
-          name: invoiceDoc.customer.name || "Customer",
+          code: invoiceDoc.customer_code || "",
+          name: invoiceDoc.customer_name || "Customer",
         };
       }
 
@@ -72,14 +79,36 @@ const createPayment = async (req, res) => {
 
     if (partyType === "customer") {
       if (resolvedCustomerId) {
-        const customerDoc = await Customer.findOne({
-          _id: resolvedCustomerId,
-          user_id: userId,
-        });
+        let customerDoc;
+        const isNumericId =
+          typeof resolvedCustomerId === "number" ||
+          (typeof resolvedCustomerId === "string" &&
+            /^\d+$/.test(resolvedCustomerId));
+        try {
+          if (isNumericId) {
+            const rows = await query(
+              "SELECT * FROM customers WHERE id = ? AND user_id = ? LIMIT 1",
+              [resolvedCustomerId, userId],
+            );
+            customerDoc = rows[0];
+          } else {
+            const rows = await query(
+              "SELECT * FROM customers WHERE user_id = ? AND (name = ? OR customerCode = ?) LIMIT 1",
+              [userId, String(resolvedCustomerId).trim(), String(resolvedCustomerId).trim()],
+            );
+            customerDoc = rows[0];
+          }
+        } catch (err) {
+          return res.status(500).json({
+            success: false,
+            message: "Database error",
+            error: err,
+          });
+        }
         if (!customerDoc) {
           return res.status(404).json({ message: "Customer not found" });
         }
-        resolvedCustomerId = customerDoc._id;
+        resolvedCustomerId = customerDoc.id;
         resolvedCustomer = customerSnapshotFromDoc(customerDoc);
       }
 
@@ -91,53 +120,100 @@ const createPayment = async (req, res) => {
     }
 
     if (partyType === "vendor" && resolvedVendor) {
-      const vendorDoc = await Vendor.findOne({
-        _id: resolvedVendor,
-        user_id: userId,
-      });
+      let vendorDoc;
+      try {
+        const rows = await query(
+          "SELECT id FROM vendors WHERE id = ? AND user_id = ? LIMIT 1",
+          [resolvedVendor, userId],
+        );
+        vendorDoc = rows[0];
+      } catch (err) {
+        return res.status(500).json({
+          success: false,
+          message: "Database error",
+          error: err,
+        });
+      }
       if (!vendorDoc) {
         return res.status(404).json({ message: "Vendor not found" });
       }
     }
 
-    const payment = await Payment.create({
-      user_id: userId,
-      type,
-      amount,
-      method,
-      invoice,
-      invoiceType,
-      partyType,
-      customerId: resolvedCustomerId || undefined,
-      customer: resolvedCustomer,
-      vendor: resolvedVendor,
-      paidAt: paidAt || Date.now(),
-      notes,
-    });
+    let paymentInsert;
+    try {
+      paymentInsert = await query(
+        "INSERT INTO payments (user_id, type, amount, method, invoice, invoiceType, partyType, customerId, customer_code, customer_name, vendor, paidAt, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          userId,
+          type,
+          amount,
+          method || "cash",
+          invoice || null,
+          invoiceType || null,
+          partyType,
+          resolvedCustomerId || null,
+          resolvedCustomer?.code || "",
+          resolvedCustomer?.name || "",
+          resolvedVendor || null,
+          paidAt || new Date(),
+          notes || "",
+        ],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     if (invoice) {
-      const payments = await Payment.aggregate([
-        { $match: { invoice: payment.invoice, user_id: userId } },
-        { $group: { _id: "$invoice", total: { $sum: "$amount" } } },
-      ]);
-
-      const totalPaid = payments?.[0]?.total || 0;
-      const invoiceDoc = await Invoice.findOne({
-        _id: invoice,
-        user_id: userId,
-      });
-      if (invoiceDoc && totalPaid >= invoiceDoc.totalAmount) {
-        await Invoice.findOneAndUpdate(
-          { _id: invoice, user_id: userId },
-          {
-          status: "paid",
-          paidAt: new Date(),
-          },
+      let paymentsTotal;
+      let invoiceDoc;
+      try {
+        const paymentRows = await query(
+          "SELECT SUM(amount) as total FROM payments WHERE invoice = ? AND user_id = ?",
+          [invoice, userId],
+        );
+        paymentsTotal = paymentRows?.[0]?.total || 0;
+        const invoiceRows = await query(
+          "SELECT totalAmount FROM invoices WHERE id = ? AND user_id = ? LIMIT 1",
+          [invoice, userId],
+        );
+        invoiceDoc = invoiceRows[0];
+      } catch (err) {
+        return res.status(500).json({
+          success: false,
+          message: "Database error",
+          error: err,
+        });
+      }
+      if (invoiceDoc && paymentsTotal >= invoiceDoc.totalAmount) {
+        await query(
+          "UPDATE invoices SET status = ?, paidAt = ? WHERE id = ? AND user_id = ?",
+          ["paid", new Date(), invoice, userId],
         );
       }
     }
 
-    res.status(201).json({ success: true, payment });
+    res.status(201).json({
+      success: true,
+      payment: {
+        id: paymentInsert.insertId,
+        user_id: userId,
+        type,
+        amount,
+        method,
+        invoice,
+        invoiceType,
+        partyType,
+        customerId: resolvedCustomerId || undefined,
+        customer: resolvedCustomer,
+        vendor: resolvedVendor,
+        paidAt: paidAt || new Date(),
+        notes,
+      },
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -146,12 +222,79 @@ const createPayment = async (req, res) => {
 const getPayments = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const payments = await Payment.find({ user_id: userId })
-      .populate("invoice")
-      .populate("vendor")
-      .populate("customerId")
-      .sort({ createdAt: -1 });
-    res.status(200).json({ success: true, payments });
+    let payments;
+    try {
+      payments = await query(
+        "SELECT * FROM payments WHERE user_id = ? ORDER BY createdAt DESC",
+        [userId],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+
+    const hydrated = await Promise.all(
+      payments.map(async (payment) => {
+        let invoiceDoc = null;
+        let vendorDoc = null;
+        let customerDoc = null;
+        try {
+          if (payment.invoice) {
+            const invoiceRows = await query(
+              "SELECT * FROM invoices WHERE id = ? AND user_id = ? LIMIT 1",
+              [payment.invoice, userId],
+            );
+            invoiceDoc = invoiceRows[0] || null;
+          }
+          if (payment.vendor) {
+            const vendorRows = await query(
+              "SELECT * FROM vendors WHERE id = ? AND user_id = ? LIMIT 1",
+              [payment.vendor, userId],
+            );
+            vendorDoc = vendorRows[0] || null;
+          }
+          if (payment.customerId) {
+            const customerRows = await query(
+              "SELECT * FROM customers WHERE id = ? AND user_id = ? LIMIT 1",
+              [payment.customerId, userId],
+            );
+            const c = customerRows[0];
+            customerDoc = c
+              ? {
+                  ...c,
+                  contactInfo: {
+                    phone: c.contact_phone || "",
+                    address: c.contact_address || "",
+                  },
+                }
+              : null;
+          }
+        } catch (err) {
+          return { error: err };
+        }
+
+        return {
+          ...payment,
+          invoice: invoiceDoc,
+          vendor: vendorDoc,
+          customerId: customerDoc,
+        };
+      }),
+    );
+
+    const errorEntry = hydrated.find((p) => p?.error);
+    if (errorEntry) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: errorEntry.error,
+      });
+    }
+
+    res.status(200).json({ success: true, payments: hydrated });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -168,26 +311,35 @@ const getPartyBalances = async (req, res) => {
       vendorPayments,
       customerPayments,
     ] = await Promise.all([
-      Vendor.find({ user_id: userId }).select("_id name openingBalance"),
-      Customer.find({ user_id: userId }).select("_id name customerCode openingBalance"),
-      Invoice.find({ invoiceType: "purchase", user_id: userId }).select(
-        "_id vendor totalAmount status",
+      query("SELECT id, name, openingBalance FROM vendors WHERE user_id = ?", [
+        userId,
+      ]),
+      query(
+        "SELECT id, name, customerCode, openingBalance FROM customers WHERE user_id = ?",
+        [userId],
       ),
-      Invoice.find({ invoiceType: "sales", user_id: userId }).select(
-        "_id customerId customer totalAmount status",
+      query(
+        "SELECT id, vendor, totalAmount, status FROM invoices WHERE invoiceType = ? AND user_id = ?",
+        ["purchase", userId],
       ),
-      Payment.find({ partyType: "vendor", type: "paid", user_id: userId }).select(
-        "_id vendor amount invoice",
+      query(
+        "SELECT id, customerId, customer_name, customer_code, totalAmount, status FROM invoices WHERE invoiceType = ? AND user_id = ?",
+        ["sales", userId],
       ),
-      Payment.find({ partyType: "customer", type: "received", user_id: userId }).select(
-        "_id customerId customer amount invoice",
+      query(
+        "SELECT vendor, amount, invoice FROM payments WHERE partyType = ? AND type = ? AND user_id = ?",
+        ["vendor", "paid", userId],
+      ),
+      query(
+        "SELECT customerId, customer_name, customer_code, amount, invoice FROM payments WHERE partyType = ? AND type = ? AND user_id = ?",
+        ["customer", "received", userId],
       ),
     ]);
 
     const vendorMap = new Map();
     for (const vendor of vendors) {
-      vendorMap.set(String(vendor._id), {
-        vendorId: String(vendor._id),
+      vendorMap.set(String(vendor.id), {
+        vendorId: String(vendor.id),
         name: vendor.name || "Vendor",
         openingBalance: Number(vendor.openingBalance) || 0,
         totalAmount: Number(vendor.openingBalance) || 0,
@@ -241,10 +393,7 @@ const getPartyBalances = async (req, res) => {
       const current = vendorMap.get(vendorId);
       current.totalAmount += Number(invoice.totalAmount) || 0;
       current.invoiceCount += 1;
-      if (
-        invoice.status === "paid" &&
-        !purchaseInvoiceIdsWithPayments.has(String(invoice._id))
-      ) {
+      if (invoice.status === "paid" && !purchaseInvoiceIdsWithPayments.has(String(invoice.id))) {
         current.paidAmount += Number(invoice.totalAmount) || 0;
       }
     }
@@ -254,9 +403,9 @@ const getPartyBalances = async (req, res) => {
     const salesInvoiceIdsWithPayments = new Set();
 
     for (const customer of customers) {
-      const customerId = String(customer._id);
+      const customerId = String(customer.id);
       customerMap.set(customerId, {
-        customerId: String(customer._id),
+        customerId: String(customer.id),
         customerCode: customer.customerCode || "",
         customerName: customer.name || "Customer",
         openingBalance: Number(customer.openingBalance) || 0,
@@ -276,8 +425,8 @@ const getPartyBalances = async (req, res) => {
     }
 
     const ensureLegacyCustomer = (details) => {
-      const code = normalizeText(details?.code);
-      const name = normalizeText(details?.name);
+      const code = normalizeText(details?.code || details?.customer_code);
+      const name = normalizeText(details?.name || details?.customer_name);
       const matchedCustomerId =
         customerLookup.get(`combo:${code}|${name}`) ||
         customerLookup.get(`code:${code}`) ||
@@ -285,15 +434,15 @@ const getPartyBalances = async (req, res) => {
       if (matchedCustomerId) return matchedCustomerId;
 
       const key = customerKeyFromFields({
-        code: details?.code,
-        name: details?.name,
+        code: details?.code || details?.customer_code,
+        name: details?.name || details?.customer_name,
       });
       if (!key) return null;
       if (!customerMap.has(key)) {
         customerMap.set(key, {
           customerId: "",
-          customerCode: details?.code || "",
-          customerName: details?.name || "Customer",
+          customerCode: details?.code || details?.customer_code || "",
+          customerName: details?.name || details?.customer_name || "Customer",
           openingBalance: 0,
           totalAmount: 0,
           paidAmount: 0,
@@ -307,7 +456,7 @@ const getPartyBalances = async (req, res) => {
 
     for (const payment of customerPayments) {
       const customerId = payment.customerId ? String(payment.customerId) : "";
-      const customerKey = customerId || ensureLegacyCustomer(payment.customer);
+      const customerKey = customerId || ensureLegacyCustomer(payment);
       if (!customerKey) continue;
 
       const current = customerMap.get(customerKey);
@@ -320,16 +469,13 @@ const getPartyBalances = async (req, res) => {
 
     for (const invoice of salesInvoices) {
       const customerId = invoice.customerId ? String(invoice.customerId) : "";
-      const customerKey = customerId || ensureLegacyCustomer(invoice.customer);
+      const customerKey = customerId || ensureLegacyCustomer(invoice);
       if (!customerKey) continue;
 
       const current = customerMap.get(customerKey);
       current.totalAmount += Number(invoice.totalAmount) || 0;
       current.invoiceCount += 1;
-      if (
-        invoice.status === "paid" &&
-        !salesInvoiceIdsWithPayments.has(String(invoice._id))
-      ) {
+      if (invoice.status === "paid" && !salesInvoiceIdsWithPayments.has(String(invoice.id))) {
         current.paidAmount += Number(invoice.totalAmount) || 0;
       }
     }
@@ -363,28 +509,37 @@ const getVendorLedger = async (req, res) => {
     const { vendorId } = req.params;
     const userId = req.user.userId;
 
-    const vendor = await Vendor.findOne({ _id: vendorId, user_id: userId })
-      .select("_id name openingBalance createdAt");
+    let vendor;
+    try {
+      const rows = await query(
+        "SELECT id, name, openingBalance, createdAt FROM vendors WHERE id = ? AND user_id = ? LIMIT 1",
+        [vendorId, userId],
+      );
+      vendor = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
     if (!vendor) {
       return res.status(404).json({ success: false, message: "Vendor not found" });
     }
 
     const [invoices, payments] = await Promise.all([
-      Invoice.find({
-        invoiceType: "purchase",
-        user_id: userId,
-        vendor: vendorId,
-      }).select("_id invoiceNumber totalAmount issueDate status createdAt"),
-      Payment.find({
-        partyType: "vendor",
-        type: "paid",
-        user_id: userId,
-        vendor: vendorId,
-      }).select("_id amount method invoice notes paidAt createdAt"),
+      query(
+        "SELECT id, invoiceNumber, totalAmount, issueDate, status, createdAt FROM invoices WHERE invoiceType = ? AND user_id = ? AND vendor = ?",
+        ["purchase", userId, vendorId],
+      ),
+      query(
+        "SELECT id, amount, method, invoice, notes, paidAt, createdAt FROM payments WHERE partyType = ? AND type = ? AND user_id = ? AND vendor = ?",
+        ["vendor", "paid", userId, vendorId],
+      ),
     ]);
 
     const invoiceNumberById = new Map(
-      invoices.map((inv) => [String(inv._id), inv.invoiceNumber || ""]),
+      invoices.map((inv) => [String(inv.id), inv.invoiceNumber || ""]),
     );
 
     const ledger = [];
@@ -392,7 +547,7 @@ const getVendorLedger = async (req, res) => {
     const openingBalance = Number(vendor.openingBalance) || 0;
     if (openingBalance !== 0) {
       ledger.push({
-        id: `opening-${vendor._id}`,
+        id: `opening-${vendor.id}`,
         date: vendor.createdAt || new Date(0),
         type: openingBalance >= 0 ? "debit" : "credit",
         amount: Math.abs(openingBalance),
@@ -404,7 +559,7 @@ const getVendorLedger = async (req, res) => {
 
     invoices.forEach((invoice) => {
       ledger.push({
-        id: String(invoice._id),
+        id: String(invoice.id),
         date: invoice.issueDate || invoice.createdAt || new Date(),
         type: "debit",
         amount: Number(invoice.totalAmount) || 0,
@@ -419,7 +574,7 @@ const getVendorLedger = async (req, res) => {
         ? invoiceNumberById.get(String(payment.invoice)) || String(payment.invoice)
         : "";
       ledger.push({
-        id: String(payment._id),
+        id: String(payment.id),
         date: payment.paidAt || payment.createdAt || new Date(),
         type: "credit",
         amount: Number(payment.amount) || 0,
@@ -454,7 +609,7 @@ const getVendorLedger = async (req, res) => {
     res.status(200).json({
       success: true,
       vendor: {
-        id: vendor._id,
+        id: vendor.id,
         name: vendor.name,
       },
       totals: {

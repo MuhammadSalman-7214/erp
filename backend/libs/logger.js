@@ -1,4 +1,4 @@
-const ActivityLog = require("../models/ActivityLogmodel.js");
+const query = require("./dbQuery.js");
 
 const logActivity = async ({
   action,
@@ -8,16 +8,10 @@ const logActivity = async ({
   ipAddress,
 }) => {
   try {
-  const newActivity = new ActivityLog({
-    action,
-    entity,
-    entityId,
-    userId,
-    user_id: userId,
-    ipAddress,
-  });
-
-    await newActivity.save();
+    await query(
+      "INSERT INTO activity_logs (action, entity, entityId, userId, user_id, ipAddress) VALUES (?, ?, ?, ?, ?, ?)",
+      [action, entity, entityId, userId, userId, ipAddress],
+    );
   } catch (error) {
     console.error("Error logging activity:", error);
   }

@@ -33,7 +33,7 @@ const NavItem = ({ to, icon, label, sidebarOpen }) => {
             <span
               className="absolute left-14 top-1/2 -translate-y-1/2
               bg-gray-900 text-white text-xs px-2 py-1 rounded
-              opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-50 pointer-events-none"
+              opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-[99999] pointer-events-none"
             >
               {label}
             </span>
@@ -64,7 +64,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
 
   return (
     <aside
-      className={`fixed top-0 left-0 h-full bg-white border-r shadow-sm z-5
+      className={`fixed top-0 left-0 h-full bg-white border-r shadow-sm z-50
       transition-all duration-300
       ${sidebarOpen ? "w-64" : "w-14"}`}
     >
@@ -331,7 +331,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
 
           {/* Tooltip */}
           {!sidebarOpen && (
-            <span className="absolute left-20 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
+            <span className="absolute left-20 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-[99999]">
               Logout
             </span>
           )}

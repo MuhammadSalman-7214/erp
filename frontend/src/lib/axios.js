@@ -1,4 +1,5 @@
 import axios from "axios";
+import toast from "react-hot-toast";
 
 const fallbackURL = "http://localhost:8009";
 
@@ -18,10 +19,19 @@ axiosInstance.interceptors.response.use(
   (error) => {
     const status = error?.response?.status;
     if (status === 401 || status === 403) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+      const message =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        "Unauthorized";
+      console.error("Auth error:", message, error?.response?.data);
+      debugger;
+      toast.error(message);
       if (typeof window !== "undefined") {
-        window.location.replace("/login");
+        setTimeout(() => {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          window.location.replace("/login");
+        }, 2000);
       }
     }
     return Promise.reject(error);

@@ -15,6 +15,8 @@ function PaymentsPage() {
   const [vendorId, setVendorId] = useState("");
   const [invoiceId, setInvoiceId] = useState("");
 
+  const getId = (value) => value?._id ?? value?.id ?? value;
+
   const fetchPayments = async () => {
     try {
       const res = await axiosInstance.get("/payment");
@@ -161,7 +163,7 @@ function PaymentsPage() {
                 >
                   <option value="">Select Customer</option>
                   {customers.map((customer) => (
-                    <option key={customer._id} value={customer._id}>
+                    <option key={getId(customer)} value={getId(customer)}>
                       {customer.name}
                       {customer.customerCode
                         ? ` (${customer.customerCode})`
@@ -181,7 +183,7 @@ function PaymentsPage() {
               >
                 <option value="">Select Vendor</option>
                 {vendors.map((vendor) => (
-                  <option key={vendor._id} value={vendor._id}>
+                  <option key={getId(vendor)} value={getId(vendor)}>
                     {vendor.name}
                   </option>
                 ))}
@@ -221,7 +223,7 @@ function PaymentsPage() {
               </thead>
               <tbody>
                 {payments.map((payment) => (
-                  <tr key={payment._id} className="border-b last:border-b-0">
+                  <tr key={getId(payment)} className="border-b last:border-b-0">
                     <td className="px-4 py-3 capitalize">{payment.type}</td>
                     <td className="px-4 py-3">
                       Rs{Number(payment.amount).toLocaleString()}

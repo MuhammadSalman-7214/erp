@@ -1,6 +1,4 @@
-const Invoice = require("../models/Invoicemodel");
-const Payment = require("../models/Paymentmodel");
-const ProductCode = require("../models/ProductCodemodel");
+const query = require("../libs/dbQuery.js");
 
 const getDashboardSummary = async (req, res) => {
   try {
@@ -24,84 +22,133 @@ const getDashboardSummary = async (req, res) => {
       59,
       999,
     );
+    const startMs = startOfDay.getTime();
+    const endMs = endOfDay.getTime();
 
-    const [salesInvoices, purchaseInvoices, payments] = await Promise.all([
-      Invoice.find({ invoiceType: "sales", user_id: userId })
-        .select("totalAmount dueDate status createdAt")
-        .lean(),
-      Invoice.find({ invoiceType: "purchase", user_id: userId })
-        .select("totalAmount dueDate status createdAt")
-        .lean(),
-      Payment.find({ user_id: userId })
-        .select("amount type invoice paidAt invoiceType")
-        .lean(),
-    ]);
+    const toTime = (value) => {
+      if (!value) return null;
+      const date = value instanceof Date ? value : new Date(value);
+      const time = date.getTime();
+      return Number.isNaN(time) ? null : time;
+    };
+
+    let salesInvoices;
+    let purchaseInvoices;
+    let payments;
+    try {
+      [salesInvoices, purchaseInvoices, payments] = await Promise.all([
+        query(
+          "SELECT id, totalAmount, dueDate, status, createdAt FROM invoices WHERE invoiceType = ? AND user_id = ?",
+          ["sales", userId],
+        ),
+        query(
+          "SELECT id, totalAmount, dueDate, status, createdAt FROM invoices WHERE invoiceType = ? AND user_id = ?",
+          ["purchase", userId],
+        ),
+        query(
+          "SELECT amount, type, invoice, paidAt, invoiceType FROM payments WHERE user_id = ?",
+          [userId],
+        ),
+      ]);
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     const paymentByInvoice = payments.reduce((acc, payment) => {
       if (!payment.invoice) return acc;
-      const key = payment.invoice.toString();
+      const key = String(payment.invoice);
       acc[key] = (acc[key] || 0) + payment.amount;
       return acc;
     }, {});
 
     const totalReceivable = salesInvoices.reduce((sum, inv) => {
-      const paid = paymentByInvoice[inv._id.toString()] || 0;
+      const paid = paymentByInvoice[String(inv.id)] || 0;
       return sum + Math.max(inv.totalAmount - paid, 0);
     }, 0);
 
     const totalPayable = purchaseInvoices.reduce((sum, inv) => {
-      const paid = paymentByInvoice[inv._id.toString()] || 0;
+      const paid = paymentByInvoice[String(inv.id)] || 0;
       return sum + Math.max(inv.totalAmount - paid, 0);
     }, 0);
 
     const todaysSales = salesInvoices
-      .filter((inv) => inv.createdAt >= startOfDay && inv.createdAt <= endOfDay)
+      .filter((inv) => {
+        const createdAt =
+          toTime(inv.createdAt) ?? toTime(inv.issueDate);
+        return createdAt !== null && createdAt >= startMs && createdAt <= endMs;
+      })
       .reduce((sum, inv) => sum + inv.totalAmount, 0);
 
     const todaysPurchases = purchaseInvoices
-      .filter((inv) => inv.createdAt >= startOfDay && inv.createdAt <= endOfDay)
+      .filter((inv) => {
+        const createdAt =
+          toTime(inv.createdAt) ?? toTime(inv.issueDate);
+        return createdAt !== null && createdAt >= startMs && createdAt <= endMs;
+      })
       .reduce((sum, inv) => sum + inv.totalAmount, 0);
 
     const todaysReceivedPayments = payments
-      .filter(
-        (payment) =>
+      .filter((payment) => {
+        const paidAt =
+          toTime(payment.paidAt) ?? toTime(payment.createdAt);
+        return (
           payment.type === "received" &&
-          payment.paidAt >= startOfDay &&
-          payment.paidAt <= endOfDay,
-      )
+          paidAt !== null &&
+          paidAt >= startMs &&
+          paidAt <= endMs
+        );
+      })
       .reduce((sum, payment) => sum + payment.amount, 0);
 
     const todaysPaidPayments = payments
-      .filter(
-        (payment) =>
+      .filter((payment) => {
+        const paidAt =
+          toTime(payment.paidAt) ?? toTime(payment.createdAt);
+        return (
           payment.type === "paid" &&
-          payment.paidAt >= startOfDay &&
-          payment.paidAt <= endOfDay,
-      )
+          paidAt !== null &&
+          paidAt >= startMs &&
+          paidAt <= endMs
+        );
+      })
       .reduce((sum, payment) => sum + payment.amount, 0);
 
-    const overdueInvoices = await Invoice.find({
-      status: { $nin: ["paid", "cancelled"] },
-      dueDate: { $lt: startOfDay },
-      user_id: userId,
-    })
-      .sort({ dueDate: 1 })
-      .limit(10)
-      .lean();
+    let overdueInvoices;
+    let recentInvoices;
+    let lowStockProducts;
+    try {
+      [overdueInvoices, recentInvoices, lowStockProducts] = await Promise.all([
+        query(
+          "SELECT * FROM invoices WHERE status NOT IN ('paid', 'cancelled') AND dueDate < ? AND user_id = ? ORDER BY dueDate ASC LIMIT 10",
+          [startOfDay, userId],
+        ),
+        query(
+          "SELECT * FROM invoices WHERE user_id = ? ORDER BY createdAt DESC LIMIT 8",
+          [userId],
+        ),
+        query(
+          "SELECT pc.*, p.name AS product_name FROM product_codes pc LEFT JOIN products p ON p.id = pc.product WHERE pc.quantity <= 50 AND pc.user_id = ? ORDER BY pc.quantity ASC LIMIT 8",
+          [userId],
+        ),
+      ]);
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
-    const recentInvoices = await Invoice.find({ user_id: userId })
-      .sort({ createdAt: -1 })
-      .limit(8)
-      .lean();
-
-    const lowStockProducts = await ProductCode.find({
-      quantity: { $lte: 50 },
-      user_id: userId,
-    })
-      .populate("product", "name")
-      .sort({ quantity: 1 })
-      .limit(8)
-      .lean();
+    lowStockProducts = lowStockProducts.map((pc) => ({
+      ...pc,
+      product: pc.product
+        ? { id: pc.product, name: pc.product_name }
+        : null,
+    }));
 
     const cashBankBalance = todaysReceivedPayments - todaysPaidPayments;
 

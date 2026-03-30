@@ -1,4 +1,4 @@
-const Customer = require("../models/Customermodel");
+const query = require("../libs/dbQuery.js");
 
 module.exports.createCustomer = async (req, res) => {
   try {
@@ -18,14 +18,33 @@ module.exports.createCustomer = async (req, res) => {
       });
     }
 
-    const customer = await Customer.create({
+    let insertResult;
+    try {
+      insertResult = await query(
+        "INSERT INTO customers (user_id, name, contact_phone, contact_address) VALUES (?, ?, ?, ?)",
+        [
+          userId,
+          name.trim(),
+          contactInfo?.phone || "",
+          contactInfo?.address || "",
+        ],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+    const customer = {
+      id: insertResult.insertId,
       user_id: userId,
       name: name.trim(),
       contactInfo: {
         phone: contactInfo?.phone || "",
         address: contactInfo?.address || "",
       },
-    });
+    };
 
     res.status(201).json({
       success: true,
@@ -44,10 +63,27 @@ module.exports.createCustomer = async (req, res) => {
 module.exports.getAllCustomers = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const customers = await Customer.find({ user_id: userId }).sort({
-      createdAt: -1,
-    });
-    res.status(200).json(customers);
+    let customers;
+    try {
+      customers = await query(
+        "SELECT * FROM customers WHERE user_id = ? ORDER BY createdAt DESC",
+        [userId],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+    const formatted = customers.map((c) => ({
+      ...c,
+      contactInfo: {
+        phone: c.contact_phone || "",
+        address: c.contact_address || "",
+      },
+    }));
+    res.status(200).json(formatted);
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -61,10 +97,20 @@ module.exports.getCustomerById = async (req, res) => {
   try {
     const { customerId } = req.params;
     const userId = req.user.userId;
-    const customer = await Customer.findOne({
-      _id: customerId,
-      user_id: userId,
-    });
+    let customer;
+    try {
+      const rows = await query(
+        "SELECT * FROM customers WHERE id = ? AND user_id = ? LIMIT 1",
+        [customerId, userId],
+      );
+      customer = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     if (!customer) {
       return res.status(404).json({
@@ -75,7 +121,13 @@ module.exports.getCustomerById = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      customer,
+      customer: {
+        ...customer,
+        contactInfo: {
+          phone: customer.contact_phone || "",
+          address: customer.contact_address || "",
+        },
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -92,7 +144,20 @@ module.exports.editCustomer = async (req, res) => {
     const { name, contactInfo } = req.body;
     const userId = req.user.userId;
 
-    const customer = await Customer.findOne({ _id: id, user_id: userId });
+    let customer;
+    try {
+      const rows = await query(
+        "SELECT * FROM customers WHERE id = ? AND user_id = ? LIMIT 1",
+        [id, userId],
+      );
+      customer = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
     if (!customer) {
       return res.status(404).json({
         success: false,
@@ -101,9 +166,8 @@ module.exports.editCustomer = async (req, res) => {
     }
 
     const nextName = name?.trim() || customer.name;
-    const nextPhone = contactInfo?.phone ?? customer.contactInfo?.phone ?? "";
-    const nextAddress =
-      contactInfo?.address ?? customer.contactInfo?.address ?? "";
+    const nextPhone = contactInfo?.phone ?? customer.contact_phone ?? "";
+    const nextAddress = contactInfo?.address ?? customer.contact_address ?? "";
     if (!String(nextAddress).trim()) {
       return res.status(400).json({
         success: false,
@@ -111,13 +175,36 @@ module.exports.editCustomer = async (req, res) => {
       });
     }
 
-    customer.name = nextName;
-    customer.contactInfo = {
-      phone: nextPhone,
-      address: nextAddress,
-    };
+    let updateResult;
+    try {
+      updateResult = await query(
+        "UPDATE customers SET name = ?, contact_phone = ?, contact_address = ? WHERE id = ? AND user_id = ?",
+        [nextName, nextPhone, nextAddress, id, userId],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+    if (updateResult.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Customer not found",
+      });
+    }
 
-    const updatedCustomer = await customer.save();
+    const updatedCustomer = {
+      ...customer,
+      name: nextName,
+      contact_phone: nextPhone,
+      contact_address: nextAddress,
+      contactInfo: {
+        phone: nextPhone,
+        address: nextAddress,
+      },
+    };
 
     res.status(200).json({
       success: true,
@@ -137,15 +224,38 @@ module.exports.deleteCustomer = async (req, res) => {
   try {
     const { customerId } = req.params;
     const userId = req.user.userId;
-    const customer = await Customer.findOneAndDelete({
-      _id: customerId,
-      user_id: userId,
-    });
+    let customer;
+    try {
+      const rows = await query(
+        "SELECT * FROM customers WHERE id = ? AND user_id = ? LIMIT 1",
+        [customerId, userId],
+      );
+      customer = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     if (!customer) {
       return res.status(404).json({
         success: false,
         message: "Customer not found",
+      });
+    }
+
+    try {
+      await query("DELETE FROM customers WHERE id = ? AND user_id = ?", [
+        customerId,
+        userId,
+      ]);
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
       });
     }
 
@@ -174,17 +284,29 @@ module.exports.searchCustomer = async (req, res) => {
       });
     }
 
-    const customers = await Customer.find({
-      user_id: userId,
-      $or: [
-        { name: { $regex: query, $options: "i" } },
-        { "contactInfo.phone": { $regex: query, $options: "i" } },
-      ],
-    }).sort({ createdAt: -1 });
+    let customers;
+    try {
+      customers = await query(
+        "SELECT * FROM customers WHERE user_id = ? AND (name LIKE ? OR contact_phone LIKE ?) ORDER BY createdAt DESC",
+        [userId, `%${query}%`, `%${query}%`],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     res.status(200).json({
       success: true,
-      customers,
+      customers: customers.map((c) => ({
+        ...c,
+        contactInfo: {
+          phone: c.contact_phone || "",
+          address: c.contact_address || "",
+        },
+      })),
     });
   } catch (error) {
     res.status(500).json({

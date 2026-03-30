@@ -1,6 +1,4 @@
-const ProductModel = require("../models/Productmodel");
-const ProductCode = require("../models/ProductCodemodel");
-const StockTransaction = require("../models/StockTranscationmodel");
+const query = require("./dbQuery.js");
 
 const ORDER_SOURCE = "order";
 const SALE_SOURCE = "sale";
@@ -17,62 +15,60 @@ const createOrderDeliveredStockIn = async (order, userId) => {
   for (const item of items) {
     if (!item?.product || !item?.productCode || !item?.quantity) continue;
 
-    const existing = await StockTransaction.findOne({
-      sourceModel: ORDER_SOURCE,
-      sourceId: order._id,
-      type: "Stock-in",
-      product: item.product,
-      productCode: item.productCode,
-      user_id: userId,
-    });
+    const existing = await query(
+      "SELECT id FROM stock_transactions WHERE sourceModel = ? AND sourceId = ? AND type = ? AND product = ? AND productCode = ? AND user_id = ? LIMIT 1",
+      [
+        ORDER_SOURCE,
+        order.id,
+        "Stock-in",
+        item.product,
+        item.productCode,
+        userId,
+      ],
+    );
 
-    if (existing) continue;
+    if (existing.length) continue;
 
-    await StockTransaction.create({
-      product: item.product,
-      productCode: item.productCode,
-      type: "Stock-in",
-      quantity: item.quantity,
-      vendor: order.vendor || order.supplier || null,
-      supplier: order.supplier || null,
-      sourceModel: ORDER_SOURCE,
-      sourceId: order._id,
-      user_id: userId,
-    });
+    await query(
+      "INSERT INTO stock_transactions (product, productCode, type, quantity, vendor, supplier, sourceModel, sourceId, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [
+        item.product,
+        item.productCode,
+        "Stock-in",
+        item.quantity,
+        order.vendor || order.supplier || null,
+        order.supplier || null,
+        ORDER_SOURCE,
+        order.id,
+        userId,
+      ],
+    );
 
-    await ProductCode.findOneAndUpdate(
-      { _id: item.productCode, user_id: userId },
-      {
-        $inc: { quantity: Number(item.quantity) },
-      },
+    await query(
+      "UPDATE product_codes SET quantity = quantity + ? WHERE id = ? AND user_id = ?",
+      [Number(item.quantity), item.productCode, userId],
     );
   }
 };
 
 const rollbackOrderDeliveredStockIn = async (orderId, userId) => {
-  const transactions = await StockTransaction.find({
-    sourceModel: ORDER_SOURCE,
-    sourceId: orderId,
-    type: "Stock-in",
-    user_id: userId,
-  });
+  const transactions = await query(
+    "SELECT * FROM stock_transactions WHERE sourceModel = ? AND sourceId = ? AND type = ? AND user_id = ?",
+    [ORDER_SOURCE, orderId, "Stock-in", userId],
+  );
 
   for (const tx of transactions) {
-    await ProductCode.findOneAndUpdate(
-      { _id: tx.productCode, user_id: userId },
-      {
-        $inc: { quantity: -Number(tx.quantity) },
-      },
+    await query(
+      "UPDATE product_codes SET quantity = quantity - ? WHERE id = ? AND user_id = ?",
+      [Number(tx.quantity), tx.productCode, userId],
     );
   }
 
   if (transactions.length) {
-    await StockTransaction.deleteMany({
-      sourceModel: ORDER_SOURCE,
-      sourceId: orderId,
-      type: "Stock-in",
-      user_id: userId,
-    });
+    await query(
+      "DELETE FROM stock_transactions WHERE sourceModel = ? AND sourceId = ? AND type = ? AND user_id = ?",
+      [ORDER_SOURCE, orderId, "Stock-in", userId],
+    );
   }
 };
 
@@ -82,10 +78,11 @@ const validateSaleStockAvailability = async (
   userId,
 ) => {
   for (const item of saleProducts) {
-    const productCode = await ProductCode.findOne({
-      _id: item.productCode,
-      user_id: userId,
-    }).select("quantity");
+    const productCodeRows = await query(
+      "SELECT quantity FROM product_codes WHERE id = ? AND user_id = ? LIMIT 1",
+      [item.productCode, userId],
+    );
+    const productCode = productCodeRows[0];
     if (!productCode) {
       const error = new Error(`Product code ${item.productCode} not found`);
       error.statusCode = 404;
@@ -114,37 +111,37 @@ const validateSaleStockAvailability = async (
 
 const createSaleCompletedStockOut = async (sale, userId) => {
   for (const item of sale.products || []) {
-    const existing = await StockTransaction.findOne({
-      sourceModel: SALE_SOURCE,
-      sourceId: sale._id,
-      type: "Stock-out",
-      product: item.product,
-      productCode: item.productCode,
-      user_id: userId,
-    });
-
-    if (existing) continue;
-
-    const updatedProductCode = await ProductCode.findOneAndUpdate(
-      {
-        _id: item.productCode,
-        user_id: userId,
-        quantity: { $gte: Number(item.quantity) },
-      },
-      { $inc: { quantity: -Number(item.quantity) } },
-      { new: true },
+    const existing = await query(
+      "SELECT id FROM stock_transactions WHERE sourceModel = ? AND sourceId = ? AND type = ? AND product = ? AND productCode = ? AND user_id = ? LIMIT 1",
+      [
+        SALE_SOURCE,
+        sale.id,
+        "Stock-out",
+        item.product,
+        item.productCode,
+        userId,
+      ],
     );
 
-    if (!updatedProductCode) {
-      const currentProductCode = await ProductCode.findOne({
-        _id: item.productCode,
-        user_id: userId,
-      }).select("code quantity");
+    if (existing.length) continue;
+
+    const updatedProductCode = await query(
+      "UPDATE product_codes SET quantity = quantity - ? WHERE id = ? AND user_id = ? AND quantity >= ?",
+      [Number(item.quantity), item.productCode, userId, Number(item.quantity)],
+    );
+
+    if (updatedProductCode.affectedRows === 0) {
+      const currentProductCodeRows = await query(
+        "SELECT code, quantity FROM product_codes WHERE id = ? AND user_id = ? LIMIT 1",
+        [item.productCode, userId],
+      );
+      const currentProductCode = currentProductCodeRows[0];
       const available = Number(currentProductCode?.quantity || 0);
-      const currentProduct = await ProductModel.findOne({
-        _id: item.product,
-        user_id: userId,
-      }).select("name");
+      const currentProductRows = await query(
+        "SELECT name FROM products WHERE id = ? AND user_id = ? LIMIT 1",
+        [item.product, userId],
+      );
+      const currentProduct = currentProductRows[0];
       const error = new Error(
         `Only ${available} items available for ${currentProduct?.name || "product"} (${currentProductCode?.code || "code"}). You requested ${item.quantity}.`,
       );
@@ -154,42 +151,39 @@ const createSaleCompletedStockOut = async (sale, userId) => {
       throw error;
     }
 
-    await StockTransaction.create({
-      product: item.product,
-      productCode: item.productCode,
-      type: "Stock-out",
-      quantity: Number(item.quantity),
-      sourceModel: SALE_SOURCE,
-      sourceId: sale._id,
-      user_id: userId,
-    });
+    await query(
+      "INSERT INTO stock_transactions (product, productCode, type, quantity, sourceModel, sourceId, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [
+        item.product,
+        item.productCode,
+        "Stock-out",
+        Number(item.quantity),
+        SALE_SOURCE,
+        sale.id,
+        userId,
+      ],
+    );
   }
 };
 
 const rollbackSaleCompletedStockOut = async (saleId, userId) => {
-  const transactions = await StockTransaction.find({
-    sourceModel: SALE_SOURCE,
-    sourceId: saleId,
-    type: "Stock-out",
-    user_id: userId,
-  });
+  const transactions = await query(
+    "SELECT * FROM stock_transactions WHERE sourceModel = ? AND sourceId = ? AND type = ? AND user_id = ?",
+    [SALE_SOURCE, saleId, "Stock-out", userId],
+  );
 
   for (const tx of transactions) {
-    await ProductCode.findOneAndUpdate(
-      { _id: tx.productCode, user_id: userId },
-      {
-        $inc: { quantity: Number(tx.quantity) },
-      },
+    await query(
+      "UPDATE product_codes SET quantity = quantity + ? WHERE id = ? AND user_id = ?",
+      [Number(tx.quantity), tx.productCode, userId],
     );
   }
 
   if (transactions.length) {
-    await StockTransaction.deleteMany({
-      sourceModel: SALE_SOURCE,
-      sourceId: saleId,
-      type: "Stock-out",
-      user_id: userId,
-    });
+    await query(
+      "DELETE FROM stock_transactions WHERE sourceModel = ? AND sourceId = ? AND type = ? AND user_id = ?",
+      [SALE_SOURCE, saleId, "Stock-out", userId],
+    );
   }
 };
 

@@ -1,58 +1,52 @@
-// const StockTransaction = require("../models/StockTranscationmodel");
-// const createStockInTransaction = async (order) => {
-//   await StockTransaction.create({
-//     product: order.Product.product,
-//     type: "Stock-in",
-//     quantity: order.Product.quantity,
-//     supplier: order.supplier || null,
-//   });
-// };
-
-// module.exports = createStockInTransaction;
-
-const StockTransaction = require("../models/StockTranscationmodel");
-const ProductModel = require("../models/Productmodel");
+const query = require("./dbQuery.js");
 
 const createStockInTransaction = async (order, userId) => {
-  // 1️⃣ Create stock transaction
-  await StockTransaction.create({
-    product: order.Product.product,
-    type: "Stock-in",
-    quantity: order.Product.quantity,
-    vendor: order.vendor || order.supplier || null,
-    supplier: order.supplier || null,
-    user_id: userId,
-  });
+  // Create stock transaction
+  await query(
+    "INSERT INTO stock_transactions (product, type, quantity, vendor, supplier, user_id) VALUES (?, ?, ?, ?, ?, ?)",
+    [
+      order.Product.product,
+      "Stock-in",
+      order.Product.quantity,
+      order.vendor || order.supplier || null,
+      order.supplier || null,
+      userId,
+    ],
+  );
 
-  // 2️⃣ Increase product stock
-  await ProductModel.findOneAndUpdate(
-    { _id: order.Product.product, user_id: userId },
-    { $inc: { quantity: order.Product.quantity } },
-    { new: true },
+  // Increase product stock
+  await query(
+    "UPDATE products SET quantity = quantity + ? WHERE id = ? AND user_id = ?",
+    [order.Product.quantity, order.Product.product, userId],
   );
 };
+
 const removeStockTransaction = async (order, userId) => {
-  // 1️⃣ Find the stock-in transaction for this order
-  const stock = await StockTransaction.findOne({
-    product: order.Product.product,
-    type: "Stock-in",
-    $or: [
-      { vendor: order.vendor || null },
-      { supplier: order.supplier || null },
+  // Find the stock-in transaction for this order
+  const stockRows = await query(
+    "SELECT * FROM stock_transactions WHERE product = ? AND type = ? AND user_id = ? AND (vendor = ? OR supplier = ?) LIMIT 1",
+    [
+      order.Product.product,
+      "Stock-in",
+      userId,
+      order.vendor || null,
+      order.supplier || null,
     ],
-    user_id: userId,
-  });
+  );
+  const stock = stockRows[0];
 
   if (!stock) return;
 
-  // 2️⃣ Decrease product quantity
-  await ProductModel.findOneAndUpdate(
-    { _id: order.Product.product, user_id: userId },
-    { $inc: { quantity: -stock.quantity } },
-    { new: true },
+  // Decrease product quantity
+  await query(
+    "UPDATE products SET quantity = quantity - ? WHERE id = ? AND user_id = ?",
+    [stock.quantity, order.Product.product, userId],
   );
 
-  // 3️⃣ Remove the stock transaction
-  await StockTransaction.findOneAndDelete({ _id: stock._id, user_id: userId });
+  // Remove the stock transaction
+  await query("DELETE FROM stock_transactions WHERE id = ? AND user_id = ?", [
+    stock.id,
+    userId,
+  ]);
 };
 module.exports = { createStockInTransaction, removeStockTransaction };

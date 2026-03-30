@@ -1,5 +1,6 @@
 const express = require("express");
-const { MongoDBconfig } = require("./libs/mongoconfig.js");
+const db = require("./db");
+const initDb = require("./libs/initDb");
 const { Server } = require("socket.io");
 const http = require("http");
 const cors = require("cors");
@@ -81,7 +82,9 @@ app.use("/api/payment", paymentRouter);
 app.use("/api/dashboard", dashboardRouter);
 
 server.listen(PORT, () => {
-  MongoDBconfig();
+  initDb()
+    .then(() => console.log("Database tables ensured"))
+    .catch((err) => console.error("Database init error:", err));
   console.log(`The server is running at port ${PORT}`);
 });
 

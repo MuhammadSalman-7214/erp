@@ -19,6 +19,7 @@ import { createCustomer, getAllCustomers } from "../features/customerSlice";
 import axiosInstance from "../lib/axios";
 
 function Salespage() {
+  const getId = (value) => value?._id ?? value?.id ?? value;
   const { getallsales, searchdata } = useSelector((state) => state.sales);
 
   const { getallproduct } = useSelector((state) => state.product);
@@ -103,8 +104,8 @@ function Salespage() {
         const codeValue = String(code.code || "").toLowerCase();
         if (!codeValue.includes(q)) return;
         results.push({
-          productId: product._id,
-          codeId: code._id,
+          productId: getId(product),
+          codeId: getId(code),
           code: code.code,
           description: product.description,
           name: product.name,
@@ -128,7 +129,7 @@ function Salespage() {
     const map = new Map();
     getallproduct.forEach((product) => {
       (product.productCodes || []).forEach((code) => {
-        map.set(String(code._id), Number(code.quantity || 0));
+        map.set(String(getId(code)), Number(code.quantity || 0));
       });
     });
     return map;
@@ -498,11 +499,11 @@ function Salespage() {
   const buildCartItemsFromSale = (sale) => {
     const products = Array.isArray(sale?.products) ? sale.products : [];
     return products.map((item) => {
-      const productId = item.product?._id || item.product;
-      const codeId = item.productCode?._id || item.productCode;
-      const productRecord = getallproduct.find((p) => p._id === productId);
+      const productId = getId(item.product) || item.product;
+      const codeId = getId(item.productCode) || item.productCode;
+      const productRecord = getallproduct.find((p) => getId(p) === productId);
       const codeRecord = productRecord?.productCodes?.find(
-        (code) => code._id === codeId,
+        (code) => getId(code) === codeId,
       );
       const resolvedUnitPrice = Number(
         item.price ??
@@ -600,7 +601,7 @@ function Salespage() {
       status: Status,
     };
 
-    dispatch(EditSales({ salesId: selectedSales._id, updatedData }))
+    dispatch(EditSales({ salesId: getId(selectedSales), updatedData }))
       .unwrap()
       .then(() => {
         toast.success("Sale updated successfully");
@@ -718,12 +719,12 @@ function Salespage() {
         };
         const result = await dispatch(createCustomer(payload)).unwrap();
         const newCustomer = result?.customer;
-        if (!newCustomer?._id) {
+        if (!getId(newCustomer)) {
           toast.error("Failed to create customer");
           return;
         }
-        resolvedCustomerId = newCustomer._id;
-        setCustomerId(newCustomer._id);
+        resolvedCustomerId = getId(newCustomer);
+        setCustomerId(getId(newCustomer));
         setCustomerSearch(newCustomer.name);
       } catch (error) {
         toast.error(error || "Failed to create customer");
@@ -734,7 +735,8 @@ function Salespage() {
     }
 
     const resolvedCustomer =
-      customers.find((customer) => customer._id === resolvedCustomerId) || null;
+      customers.find((customer) => getId(customer) === resolvedCustomerId) ||
+      null;
     const resolvedCustomerAddress =
       resolvedCustomer?.contactInfo?.address?.trim() ||
       newCustomerData.address.trim();
@@ -838,7 +840,7 @@ function Salespage() {
   };
   const handleEditClick = (sales) => {
     setselectedSales(sales);
-    setCustomerId(sales.customer?._id || sales.customer || "");
+    setCustomerId(getId(sales.customer) || sales.customer || "");
     setCustomerSearch(sales.customer?.name || sales.customerName || "");
     setNewCustomerData({
       phone: "",
@@ -857,7 +859,7 @@ function Salespage() {
 
   const customers = Array.isArray(getAllCustomer) ? getAllCustomer : [];
   const selectedCustomer = customers.find(
-    (customer) => customer._id === customerId,
+    (customer) => getId(customer) === customerId,
   );
   const normalizeText = (value = "") => String(value).trim().toLowerCase();
   const normalizePhone = (value = "") => String(value).replace(/[^\d+]/g, "");
@@ -902,9 +904,9 @@ function Salespage() {
 
     const resolvePaymentCustomerKey = (payment) => {
       const customerId =
-        payment?.customerId?._id ||
+        getId(payment?.customerId) ||
         payment?.customerId ||
-        payment?.customer?._id ||
+        getId(payment?.customer) ||
         "";
       if (customerId) return String(customerId);
       const code = normalizeText(payment?.customer?.code);
@@ -913,7 +915,7 @@ function Salespage() {
     };
 
     const resolveSaleCustomerKey = (sale) => {
-      const customerId = sale?.customer?._id || sale?.customer || "";
+      const customerId = getId(sale?.customer) || sale?.customer || "";
       if (customerId) return String(customerId);
       const name = normalizeText(sale?.customerName);
       return name ? `|${name}` : "";
@@ -925,7 +927,7 @@ function Salespage() {
     relevantPayments.forEach((payment) => {
       const amount = Number(payment.amount) || 0;
       if (!amount) return;
-      const invoiceId = payment?.invoice?._id || payment?.invoice || "";
+      const invoiceId = getId(payment?.invoice) || payment?.invoice || "";
       if (invoiceId) {
         const key = String(invoiceId);
         invoicePaymentMap.set(key, (invoicePaymentMap.get(key) || 0) + amount);
@@ -948,9 +950,9 @@ function Salespage() {
     const results = new Map();
 
     salesSorted.forEach((sale) => {
-      const saleId = String(sale?._id || "");
+      const saleId = String(getId(sale) || "");
       const totalAmount = Number(sale?.totalAmount) || 0;
-      const invoiceId = sale?.invoice?._id || sale?.invoice || "";
+      const invoiceId = getId(sale?.invoice) || sale?.invoice || "";
       const invoicePaid = invoiceId
         ? Number(invoicePaymentMap.get(String(invoiceId)) || 0)
         : 0;
@@ -979,7 +981,7 @@ function Salespage() {
   }, [getallsales, payments]);
 
   const handleSelectCustomer = (customer) => {
-    setCustomerId(customer._id);
+    setCustomerId(getId(customer));
     setCustomerSearch(customer.name);
     setNewCustomerData({
       phone: "",
@@ -1063,7 +1065,7 @@ function Salespage() {
                     {filteredCustomers.length > 0
                       ? filteredCustomers.map((customer) => (
                           <button
-                            key={customer._id}
+                            key={getId(customer)}
                             type="button"
                             onMouseDown={(e) => e.preventDefault()}
                             onClick={() => handleSelectCustomer(customer)}
@@ -1452,7 +1454,7 @@ function Salespage() {
                           const price = Number(item.price || 0);
                           return (
                             <tr
-                              key={item.productCode?._id || idx}
+                              key={getId(item.productCode) || idx}
                               className="border-b last:border-b-0"
                             >
                               <td className="px-4 py-3 text-slate-500">
@@ -1560,7 +1562,7 @@ function Salespage() {
               <tbody>
                 {displaySales.map((sale, index) => (
                   <tr
-                    key={sale._id}
+                  key={getId(sale)}
                     className="border-b last:border-b-0 hover:bg-slate-50 transition"
                   >
                     <td className="px-5 py-4 text-slate-500">{index + 1}</td>
@@ -1568,7 +1570,7 @@ function Salespage() {
                     <td className="px-5 py-4">
                       {(sale.products || []).map((item) => (
                         <div
-                          key={item.productCode?._id || item._id}
+                          key={getId(item.productCode) || getId(item)}
                           className="flex items-center gap-2 px-3 py-2 mb-1 last:mb-0 rounded-md bg-slate-50 border border-slate-300"
                         >
                           <div className="flex-1 min-w-0">
@@ -1623,7 +1625,9 @@ function Salespage() {
                     <td className="px-5 py-4">{sale.paymentMethod}</td>
                     <td className="px-5 py-4">
                       {(() => {
-                        const info = paymentInfoBySaleId.get(String(sale._id));
+                        const info = paymentInfoBySaleId.get(
+                          String(getId(sale)),
+                        );
                         const status =
                           info?.paymentStatus ||
                           sale.paymentStatus ||

@@ -11,6 +11,8 @@ const initialState = {
   editedCustomer: null,
 };
 
+const getId = (value) => value?._id ?? value?.id ?? value;
+
 export const createCustomer = createAsyncThunk(
   "customer/create",
   async (customer, { rejectWithValue }) => {
@@ -131,7 +133,7 @@ const customerSlice = createSlice({
       .addCase(removeCustomer.fulfilled, (state, action) => {
         state.isCustomerRemove = false;
         state.getAllCustomer = state.getAllCustomer?.filter(
-          (customer) => customer._id !== action.meta.arg,
+          (customer) => getId(customer) !== action.meta.arg,
         );
       })
       .addCase(removeCustomer.rejected, (state, action) => {
@@ -144,7 +146,8 @@ const customerSlice = createSlice({
       .addCase(editCustomer.fulfilled, (state, action) => {
         state.editedCustomer = action.payload.customer;
         const index = state.getAllCustomer?.findIndex(
-          (customer) => customer._id === action.payload.customer._id,
+          (customer) =>
+            getId(customer) === getId(action.payload.customer),
         );
         if (index !== undefined && index > -1) {
           state.getAllCustomer[index] = action.payload.customer;

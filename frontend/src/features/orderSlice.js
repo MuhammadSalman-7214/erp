@@ -15,6 +15,8 @@ const initialState = {
   statusgraph: [],
   errorGraph: null,
 };
+
+const getId = (value) => value?._id ?? value?.id ?? value;
 export const createdOrder = createAsyncThunk(
   "order/createorder",
   async (order, { rejectWithValue }) => {
@@ -152,7 +154,7 @@ const orderSlice = createSlice({
       .addCase(Removedorder.fulfilled, (state, action) => {
         state.isorderremove = false;
         state.getorder = state.getorder.filter(
-          (order) => order._id !== action.meta.arg,
+          (order) => getId(order) !== action.meta.arg,
         );
       })
 

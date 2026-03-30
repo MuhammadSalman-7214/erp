@@ -102,6 +102,11 @@ function Dashboardpage() {
     fetchSummary();
   }, []);
 
+  const safeNumber = (value) => {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : 0;
+  };
+
   return (
     <div className="min-h-[92vh] bg-gradient-to-br from-gray-50 to-gray-100 p-6">
       {/* Welcome Section */}
@@ -162,7 +167,7 @@ function Dashboardpage() {
               {icon}
             </div>
             <div className="text-2xl font-bold text-gray-900">
-              Rs {Number(value).toLocaleString()}
+              Rs {safeNumber(value).toLocaleString()}
             </div>
           </div>
         ))}
@@ -239,7 +244,8 @@ function Dashboardpage() {
             <CreditCard className="w-5 h-5 text-emerald-600" />
           </div>
           <div className="text-2xl font-bold text-emerald-700">
-            Rs {Number(summary?.todaysReceivedPayments ?? 0).toLocaleString()}
+            Rs{" "}
+            {safeNumber(summary?.todaysReceivedPayments ?? 0).toLocaleString()}
           </div>
         </div>
         <div className="rounded-xl p-5 border-2 border-rose-200 bg-gradient-to-br from-rose-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
@@ -250,7 +256,7 @@ function Dashboardpage() {
             <DollarSign className="w-5 h-5 text-rose-600" />
           </div>
           <div className="text-2xl font-bold text-rose-700">
-            Rs {Number(summary?.todaysPaidPayments ?? 0).toLocaleString()}
+            Rs {safeNumber(summary?.todaysPaidPayments ?? 0).toLocaleString()}
           </div>
         </div>
       </div>

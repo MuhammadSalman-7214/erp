@@ -1,7 +1,5 @@
-const Product = require("../models/Productmodel");
-const Category = require("../models/ Categorymodel");
+const query = require("../libs/dbQuery.js");
 const logActivity = require("../libs/logger");
-const StockTransaction = require("../models/StockTranscationmodel");
 
 module.exports.createCategory = async (req, res) => {
   try {
@@ -15,22 +13,30 @@ module.exports.createCategory = async (req, res) => {
         .json({ message: "Please provide all necessary information." });
     }
 
-    const newCategory = new Category({
-      user_id: userId,
-      name,
-    });
+    let insertResult;
+    try {
+      insertResult = await query(
+        "INSERT INTO categories (user_id, name) VALUES (?, ?)",
+        [userId, name],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     await logActivity({
       action: "Add Category",
       description: `Category "${name} was added`,
       entity: "category",
-      entityId: newCategory._id,
+      entityId: insertResult.insertId,
       userId: userId,
       ipAddress: ipAddress,
     });
 
-    await newCategory.save();
-    res.status(201).json(newCategory);
+    res.status(201).json({ id: insertResult.insertId, user_id: userId, name });
   } catch (error) {
     res
       .status(500)
@@ -43,20 +49,43 @@ module.exports.RemoveCategory = async (req, res) => {
     const { CategoryId } = req.params;
     const userId = req.user.userId;
     const ipAddress = req.ip;
-    const DeletedCategory = await Category.findOneAndDelete({
-      _id: CategoryId,
-      user_id: userId,
-    });
+    let DeletedCategory;
+    try {
+      const rows = await query(
+        "SELECT * FROM categories WHERE id = ? AND user_id = ? LIMIT 1",
+        [CategoryId, userId],
+      );
+      DeletedCategory = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     if (!DeletedCategory) {
       return res.status(404).json({ message: "Category is not found!" });
+    }
+
+    try {
+      await query("DELETE FROM categories WHERE id = ? AND user_id = ?", [
+        CategoryId,
+        userId,
+      ]);
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
     }
 
     await logActivity({
       action: "Delete Category",
       description: `Category "${DeletedCategory.name}" was deleted.`,
       entity: "category",
-      entityId: DeletedCategory._id,
+      entityId: DeletedCategory.id,
       userId: userId,
       ipAddress: ipAddress,
     });
@@ -72,7 +101,19 @@ module.exports.RemoveCategory = async (req, res) => {
 module.exports.getCategory = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const allCategory = await Category.find({ user_id: userId });
+    let allCategory;
+    try {
+      allCategory = await query(
+        "SELECT * FROM categories WHERE user_id = ?",
+        [userId],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     // if (!allCategory || allCategory.length === 0) {
     //   return res.status(404).json({ message: "Categories not found" });
@@ -80,12 +121,13 @@ module.exports.getCategory = async (req, res) => {
 
     const categoriesWithCount = await Promise.all(
       allCategory.map(async (category) => {
-        const count = await Product.countDocuments({
-          Category: category._id,
-          user_id: userId,
-        });
+        const countRows = await query(
+          "SELECT COUNT(*) as count FROM products WHERE Category = ? AND user_id = ?",
+          [category.id, userId],
+        );
+        const count = countRows[0]?.count || 0;
         return {
-          ...category.toObject(),
+          ...category,
           productCount: count,
         };
       }),
@@ -105,21 +147,44 @@ module.exports.updateCategory = async (req, res) => {
     const { CategoryId } = req.params;
     const userId = req.user.userId;
     const ipAddress = req.ip;
-    const updatingCategory = await Category.findOneAndUpdate(
-      { _id: CategoryId, user_id: userId },
-      updatedCategory,
-      { new: true },
-    );
+    let updateResult;
+    try {
+      updateResult = await query(
+        "UPDATE categories SET name = ? WHERE id = ? AND user_id = ?",
+        [updatedCategory?.name, CategoryId, userId],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
-    if (!updatingCategory) {
+    if (updateResult.affectedRows === 0) {
       return res.status(400).json({ message: "Category is not found" });
+    }
+
+    let updatingCategory;
+    try {
+      const rows = await query(
+        "SELECT * FROM categories WHERE id = ? AND user_id = ? LIMIT 1",
+        [CategoryId, userId],
+      );
+      updatingCategory = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
     }
 
     await logActivity({
       action: "Update Category",
       description: `Category "${updatingCategory.name}" was updated.`,
       entity: "category",
-      entityId: updatingCategory._id,
+      entityId: updatingCategory.id,
       userId: userId,
       ipAddress: ipAddress,
     });
@@ -141,12 +206,19 @@ module.exports.Searchcategory = async (req, res) => {
       return res.status(400).json({ message: "Query parameter is required" });
     }
 
-    const category = await Category.find({
-      user_id: userId,
-      $or: [
-        { name: { $regex: query, $options: "i" } },
-      ],
-    });
+    let category;
+    try {
+      category = await query(
+        "SELECT * FROM categories WHERE user_id = ? AND name LIKE ?",
+        [userId, `%${query}%`],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     res.json(category);
   } catch (error) {

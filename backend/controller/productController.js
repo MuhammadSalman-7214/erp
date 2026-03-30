@@ -1,7 +1,5 @@
-const Product = require("../models/Productmodel");
-const ProductCode = require("../models/ProductCodemodel");
-const CategoryCode = require("../models/CategoryCodemodel");
-const CategoryModel = require("../models/ Categorymodel");
+const { v4: uuidv4 } = require("uuid");
+const query = require("../libs/dbQuery.js");
 const logActivity = require("../libs/logger");
 
 const toNumberOrUndefined = (value) => {
@@ -10,15 +8,25 @@ const toNumberOrUndefined = (value) => {
   return Number.isNaN(parsed) ? undefined : parsed;
 };
 
+const safeJsonParse = (value, fallback) => {
+  if (!value) return fallback;
+  try {
+    return typeof value === "string" ? JSON.parse(value) : value;
+  } catch {
+    return fallback;
+  }
+};
+
 const attachProductCodes = async (products, userId) => {
   const productList = Array.isArray(products) ? products : [];
   if (!productList.length) return [];
 
-  const productIds = productList.map((product) => product._id);
-  const codes = await ProductCode.find({
-    user_id: userId,
-    product: { $in: productIds },
-  }).lean();
+  const productIds = productList.map((product) => product.id);
+  const placeholders = productIds.map(() => "?").join(", ");
+  const codes = await query(
+    `SELECT * FROM product_codes WHERE user_id = ? AND product IN (${placeholders})`,
+    [userId, ...productIds],
+  );
 
   const codesByProduct = codes.reduce((acc, code) => {
     const key = String(code.product);
@@ -28,14 +36,19 @@ const attachProductCodes = async (products, userId) => {
   }, {});
 
   return productList.map((product) => {
-    const base = product.toObject ? product.toObject() : product;
-    const productCodes = codesByProduct[String(product._id)] || [];
+    const productCodes = codesByProduct[String(product.id)] || [];
     const totalQuantity = productCodes.reduce(
       (sum, code) => sum + Number(code.quantity || 0),
       0,
     );
 
-    return { ...base, productCodes, totalQuantity };
+    return {
+      ...product,
+      pricing: safeJsonParse(product.pricing, undefined),
+      priceHistory: safeJsonParse(product.priceHistory, []),
+      productCodes,
+      totalQuantity,
+    };
   });
 };
 
@@ -57,33 +70,16 @@ const resolveIncomingCodes = (body) => {
   return [];
 };
 
-const ensureCategoryCodes = async ({
-  userId,
-  categoryId,
-  codes = [],
-}) => {
+const ensureCategoryCodes = async ({ userId, categoryId, codes = [] }) => {
   if (!categoryId || !codes.length) return;
 
   const operations = codes.map((code) => {
     const normalizedCode = String(code.code || "").trim();
     const normalizedVariant = String(code.variantName || "").trim();
     if (!normalizedCode) return null;
-    return CategoryCode.updateOne(
-      {
-        user_id: userId,
-        category: categoryId,
-        code: normalizedCode,
-        variantName: normalizedVariant,
-      },
-      {
-        $setOnInsert: {
-          user_id: userId,
-          category: categoryId,
-          code: normalizedCode,
-          variantName: normalizedVariant,
-        },
-      },
-      { upsert: true },
+    return query(
+      "INSERT INTO category_codes (user_id, category, code, variantName) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE code = code",
+      [userId, categoryId, normalizedCode, normalizedVariant],
     );
   });
 
@@ -148,12 +144,29 @@ module.exports.Addproduct = async (req, res) => {
       });
     }
 
+    let resolvedCategoryId = Category || null;
     if (Category) {
-      const categoryRecord = await CategoryModel.findOne({
-        _id: Category,
-        user_id: userId,
-      });
-      if (!categoryRecord) {
+      if (typeof Category === "string" && Category.trim() !== "") {
+        const numericId = Number(Category);
+        if (!Number.isNaN(numericId) && String(numericId) === Category.trim()) {
+          resolvedCategoryId = numericId;
+        } else {
+          try {
+            const rows = await query(
+              "SELECT id FROM categories WHERE name = ? AND user_id = ? LIMIT 1",
+              [Category.trim(), userId],
+            );
+            resolvedCategoryId = rows[0]?.id || null;
+          } catch (err) {
+            return res.status(500).json({
+              success: false,
+              message: "Database error",
+              error: err,
+            });
+          }
+        }
+      }
+      if (!resolvedCategoryId) {
         return res.status(404).json({ error: "Category not found" });
       }
     }
@@ -164,64 +177,95 @@ module.exports.Addproduct = async (req, res) => {
     const resolvedPurchasePrice = toNumberOrUndefined(purchasePrice);
     const resolvedTradePrice = toNumberOrUndefined(tradePrice);
 
-    const createdProduct = new Product({
-      user_id: userId,
-      name,
-      description: description || "",
-      company: resolvedCompany,
-      brand: brand || resolvedCompany,
-      Category,
-      purchasePrice: resolvedPurchasePrice ?? 0,
-      tradePrice: resolvedTradePrice ?? 0,
-      salePrice: resolvedSalePrice ?? 0,
-      pricing:
-        resolvedSalePrice === undefined &&
-        resolvedPurchasePrice === undefined &&
-        resolvedTradePrice === undefined
-          ? undefined
-          : {
-              currentPurchasePrice: resolvedPurchasePrice,
-              currentSalesPrice: resolvedSalePrice,
-              currentTradePrice: resolvedTradePrice,
-            },
-      priceHistory:
-        resolvedSalePrice === undefined &&
-        resolvedPurchasePrice === undefined &&
-        resolvedTradePrice === undefined
-          ? []
-          : [
-              ...(resolvedPurchasePrice === undefined
-                ? []
-                : [{ type: "purchase", price: resolvedPurchasePrice }]),
-              ...(resolvedTradePrice === undefined
-                ? []
-                : [{ type: "trade", price: resolvedTradePrice }]),
-              ...(resolvedSalePrice === undefined
-                ? []
-                : [{ type: "sales", price: resolvedSalePrice }]),
-            ],
-      Price: resolvedSalePrice === undefined ? undefined : resolvedSalePrice,
-      // sku will be auto-generated
-    });
+    const pricing =
+      resolvedSalePrice === undefined &&
+      resolvedPurchasePrice === undefined &&
+      resolvedTradePrice === undefined
+        ? undefined
+        : {
+            currentPurchasePrice: resolvedPurchasePrice,
+            currentSalesPrice: resolvedSalePrice,
+            currentTradePrice: resolvedTradePrice,
+          };
 
-    await createdProduct.save();
+    const priceHistory =
+      resolvedSalePrice === undefined &&
+      resolvedPurchasePrice === undefined &&
+      resolvedTradePrice === undefined
+        ? []
+        : [
+            ...(resolvedPurchasePrice === undefined
+              ? []
+              : [{ type: "purchase", price: resolvedPurchasePrice }]),
+            ...(resolvedTradePrice === undefined
+              ? []
+              : [{ type: "trade", price: resolvedTradePrice }]),
+            ...(resolvedSalePrice === undefined
+              ? []
+              : [{ type: "sales", price: resolvedSalePrice }]),
+          ];
 
-    const createdCodes = hasCodes
-      ? await ProductCode.insertMany(
-          normalizedCodes.map((code) => ({
-            user_id: userId,
-            product: createdProduct._id,
-            code: code.code,
-            variantName: code.variantName,
-            quantity: Number(code.quantity || 0),
-          })),
-        )
-      : [];
+    let createdProductId;
+    try {
+      const result = await query(
+        "INSERT INTO products (user_id, name, description, company, brand, Category, purchasePrice, tradePrice, salePrice, pricing, priceHistory, Price, sku, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          userId,
+          name,
+          description || "",
+          resolvedCompany,
+          brand || resolvedCompany,
+          resolvedCategoryId || null,
+          resolvedPurchasePrice ?? 0,
+          resolvedTradePrice ?? 0,
+          resolvedSalePrice ?? 0,
+          pricing ? JSON.stringify(pricing) : null,
+          JSON.stringify(priceHistory || []),
+          resolvedSalePrice === undefined ? null : resolvedSalePrice,
+          uuidv4(),
+          new Date(),
+        ],
+      );
+      createdProductId = result.insertId;
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
-    if (Category && createdCodes.length) {
+    let createdCodes = [];
+    if (hasCodes) {
+      const values = normalizedCodes.map((code) => [
+        userId,
+        createdProductId,
+        code.code,
+        code.variantName,
+        Number(code.quantity || 0),
+      ]);
+      try {
+        await query(
+          "INSERT INTO product_codes (user_id, product, code, variantName, quantity) VALUES ?",
+          [values],
+        );
+        createdCodes = await query(
+          "SELECT * FROM product_codes WHERE user_id = ? AND product = ?",
+          [userId, createdProductId],
+        );
+      } catch (err) {
+        return res.status(500).json({
+          success: false,
+          message: "Database error",
+          error: err,
+        });
+      }
+    }
+
+    if (resolvedCategoryId && createdCodes.length) {
       await ensureCategoryCodes({
         userId,
-        categoryId: Category,
+        categoryId: resolvedCategoryId,
         codes: createdCodes,
       });
     }
@@ -230,7 +274,7 @@ module.exports.Addproduct = async (req, res) => {
       action: "Add Product",
       description: `Product ${name} was added`,
       entity: "product",
-      entityId: createdProduct._id,
+      entityId: createdProductId,
       userId: userId,
       ipAddress: ipAddress,
     });
@@ -238,7 +282,19 @@ module.exports.Addproduct = async (req, res) => {
     res.status(201).json({
       message: "Product created successfully",
       product: {
-        ...(createdProduct.toObject?.() || createdProduct),
+        id: createdProductId,
+        user_id: userId,
+        name,
+        description: description || "",
+        company: resolvedCompany,
+        brand: brand || resolvedCompany,
+        Category: resolvedCategoryId,
+        purchasePrice: resolvedPurchasePrice ?? 0,
+        tradePrice: resolvedTradePrice ?? 0,
+        salePrice: resolvedSalePrice ?? 0,
+        pricing,
+        priceHistory,
+        Price: resolvedSalePrice === undefined ? undefined : resolvedSalePrice,
         productCodes: createdCodes,
         totalQuantity: createdCodes.reduce(
           (sum, code) => sum + Number(code.quantity || 0),
@@ -256,12 +312,40 @@ module.exports.Addproduct = async (req, res) => {
 module.exports.getProduct = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const Products = await Product.find({ user_id: userId }).populate(
-      "Category",
-    );
+    let Products;
+    try {
+      Products = await query(
+        "SELECT p.*, c.id AS category_id, c.name AS category_name FROM products p LEFT JOIN categories c ON c.id = p.Category WHERE p.user_id = ?",
+        [userId],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
-    const enrichedProducts = await attachProductCodes(Products, userId);
-    const totalProduct = await Product.countDocuments({ user_id: userId });
+    const productsWithCategory = Products.map((p) => ({
+      ...p,
+      Category: p.category_id ? { id: p.category_id, name: p.category_name } : null,
+    }));
+
+    const enrichedProducts = await attachProductCodes(productsWithCategory, userId);
+    let totalProduct;
+    try {
+      const rows = await query(
+        "SELECT COUNT(*) as count FROM products WHERE user_id = ?",
+        [userId],
+      );
+      totalProduct = rows[0]?.count || 0;
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
     res.status(200).json({ Products: enrichedProducts, totalProduct });
   } catch (error) {
     res
@@ -275,22 +359,47 @@ module.exports.RemoveProduct = async (req, res) => {
     const { productId } = req.params;
     const userId = req.user.userId;
     const ipAddress = req.ip;
-    const deletedProduct = await Product.findOneAndDelete({
-      _id: productId,
-      user_id: userId,
-    });
+    let deletedProduct;
+    try {
+      const rows = await query(
+        "SELECT * FROM products WHERE id = ? AND user_id = ? LIMIT 1",
+        [productId, userId],
+      );
+      deletedProduct = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     if (!deletedProduct) {
       return res.status(404).json({ message: "Product not found!" });
     }
 
-    await ProductCode.deleteMany({ product: productId, user_id: userId });
+    try {
+      await query("DELETE FROM product_codes WHERE product = ? AND user_id = ?", [
+        productId,
+        userId,
+      ]);
+      await query("DELETE FROM products WHERE id = ? AND user_id = ?", [
+        productId,
+        userId,
+      ]);
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     await logActivity({
       action: "Delete Product",
       description: `Product ${deletedProduct.name}" was deleted.`,
       entity: "product",
-      entityId: deletedProduct._id,
+      entityId: deletedProduct.id,
       userId: userId,
       ipAddress: ipAddress,
     });
@@ -318,29 +427,59 @@ module.exports.EditProduct = async (req, res) => {
       Price,
     } = req.body;
     const { id } = req.params;
-    const userId = req.user.userId; // or _id if that's how your token stores it
+    const userId = req.user.userId;
     const ipAddress = req.ip;
     if (!name) {
       return res.status(400).json({ message: "Required fields missing" });
     }
 
+    let resolvedCategoryId = Category ?? null;
     if (Category) {
-      const categoryRecord = await CategoryModel.findOne({
-        _id: Category,
-        user_id: userId,
-      });
-      if (!categoryRecord) {
+      if (typeof Category === "string" && Category.trim() !== "") {
+        const numericId = Number(Category);
+        if (!Number.isNaN(numericId) && String(numericId) === Category.trim()) {
+          resolvedCategoryId = numericId;
+        } else {
+          try {
+            const rows = await query(
+              "SELECT id FROM categories WHERE name = ? AND user_id = ? LIMIT 1",
+              [Category.trim(), userId],
+            );
+            resolvedCategoryId = rows[0]?.id || null;
+          } catch (err) {
+            return res.status(500).json({
+              success: false,
+              message: "Database error",
+              error: err,
+            });
+          }
+        }
+      }
+      if (!resolvedCategoryId) {
         return res.status(404).json({ message: "Category not found" });
       }
     }
 
-    const existingProduct = await Product.findOne({
-      _id: id,
-      user_id: userId,
-    });
+    let existingProduct;
+    try {
+      const rows = await query(
+        "SELECT * FROM products WHERE id = ? AND user_id = ? LIMIT 1",
+        [id, userId],
+      );
+      existingProduct = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
     if (!existingProduct) {
       return res.status(404).json({ message: "Product not found." });
     }
+
+    const currentPricing = safeJsonParse(existingProduct.pricing, {});
+    const currentHistory = safeJsonParse(existingProduct.priceHistory, []);
 
     const hasSalePrice =
       salePrice !== undefined || salesPrice !== undefined || Price !== undefined;
@@ -365,100 +504,113 @@ module.exports.EditProduct = async (req, res) => {
         existingProduct.company ||
         existingProduct.brand,
       brand: brand || existingProduct.brand,
-      Category: Category ?? existingProduct.Category,
+      Category: resolvedCategoryId ?? existingProduct.Category,
+      salePrice:
+        resolvedSalePrice !== undefined ? resolvedSalePrice : existingProduct.salePrice,
+      purchasePrice:
+        resolvedPurchasePrice !== undefined
+          ? resolvedPurchasePrice
+          : existingProduct.purchasePrice,
+      tradePrice:
+        resolvedTradePrice !== undefined
+          ? resolvedTradePrice
+          : existingProduct.tradePrice,
+      Price:
+        resolvedSalePrice !== undefined ? resolvedSalePrice : existingProduct.Price,
     };
 
+    let nextPricing = { ...currentPricing };
     if (hasSalePrice && resolvedSalePrice !== undefined) {
-      updates.pricing = {
-        ...existingProduct.pricing,
-        currentSalesPrice: resolvedSalePrice,
-      };
-      updates.salePrice = resolvedSalePrice;
-      updates.Price = resolvedSalePrice;
+      nextPricing = { ...nextPricing, currentSalesPrice: resolvedSalePrice };
     }
-
     if (hasPurchasePrice && resolvedPurchasePrice !== undefined) {
-      updates.pricing = {
-        ...updates.pricing,
-        currentPurchasePrice: resolvedPurchasePrice,
-      };
-      updates.purchasePrice = resolvedPurchasePrice;
+      nextPricing = { ...nextPricing, currentPurchasePrice: resolvedPurchasePrice };
     }
-
     if (hasTradePrice && resolvedTradePrice !== undefined) {
-      updates.pricing = {
-        ...updates.pricing,
-        currentTradePrice: resolvedTradePrice,
-      };
-      updates.tradePrice = resolvedTradePrice;
+      nextPricing = { ...nextPricing, currentTradePrice: resolvedTradePrice };
     }
 
+    let nextHistory = [...currentHistory];
     if (
       hasSalePrice &&
       resolvedSalePrice !== undefined &&
-      resolvedSalePrice !== existingProduct.pricing?.currentSalesPrice
+      resolvedSalePrice !== currentPricing?.currentSalesPrice
     ) {
-      updates.priceHistory = [
-        ...(existingProduct.priceHistory || []),
-        { type: "sales", price: resolvedSalePrice },
-      ];
+      nextHistory = [...nextHistory, { type: "sales", price: resolvedSalePrice }];
     }
-
     if (
       hasPurchasePrice &&
       resolvedPurchasePrice !== undefined &&
-      resolvedPurchasePrice !== existingProduct.pricing?.currentPurchasePrice
+      resolvedPurchasePrice !== currentPricing?.currentPurchasePrice
     ) {
-      updates.priceHistory = [
-        ...(updates.priceHistory || existingProduct.priceHistory || []),
+      nextHistory = [
+        ...nextHistory,
         { type: "purchase", price: resolvedPurchasePrice },
       ];
     }
-
     if (
       hasTradePrice &&
       resolvedTradePrice !== undefined &&
-      resolvedTradePrice !== existingProduct.pricing?.currentTradePrice
+      resolvedTradePrice !== currentPricing?.currentTradePrice
     ) {
-      updates.priceHistory = [
-        ...(updates.priceHistory || existingProduct.priceHistory || []),
-        { type: "trade", price: resolvedTradePrice },
-      ];
+      nextHistory = [...nextHistory, { type: "trade", price: resolvedTradePrice }];
     }
 
-    const updatedProduct = await Product.findOneAndUpdate(
-      { _id: id, user_id: userId },
-      updates,
-      { new: true },
-    );
-
-    if (!updatedProduct) {
-      return res.status(404).json({ message: "Product not found." });
+    try {
+      await query(
+        "UPDATE products SET name = ?, description = ?, company = ?, brand = ?, Category = ?, purchasePrice = ?, tradePrice = ?, salePrice = ?, pricing = ?, priceHistory = ?, Price = ? WHERE id = ? AND user_id = ?",
+        [
+          updates.name,
+          updates.description,
+          updates.company,
+          updates.brand,
+          updates.Category || null,
+          updates.purchasePrice,
+          updates.tradePrice,
+          updates.salePrice,
+          JSON.stringify(nextPricing || {}),
+          JSON.stringify(nextHistory || []),
+          updates.Price,
+          id,
+          userId,
+        ],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
     }
 
-    if (updatedProduct.Category) {
-      const productCodes = await ProductCode.find({
-        user_id: userId,
-        product: updatedProduct._id,
-      }).select("code variantName");
+    if (updates.Category) {
+      const productCodes = await query(
+        "SELECT code, variantName FROM product_codes WHERE user_id = ? AND product = ?",
+        [userId, id],
+      );
 
       await ensureCategoryCodes({
         userId,
-        categoryId: updatedProduct.Category,
+        categoryId: updates.Category,
         codes: productCodes,
       });
     }
 
     await logActivity({
       action: "Update Product",
-      description: `Product "${updatedProduct.name}" was updated.`,
+      description: `Product "${updates.name}" was updated.`,
       entity: "product",
-      entityId: updatedProduct._id,
+      entityId: id,
       userId,
       ipAddress,
     });
 
-    res.status(200).json(updatedProduct);
+    res.status(200).json({
+      ...existingProduct,
+      ...updates,
+      pricing: nextPricing,
+      priceHistory: nextHistory,
+    });
   } catch (error) {
     console.error("Error updating product:", error);
     res
@@ -469,32 +621,58 @@ module.exports.EditProduct = async (req, res) => {
 
 module.exports.SearchProduct = async (req, res) => {
   try {
-    const { query } = req.query;
+    const { query: searchQuery } = req.query;
     const userId = req.user.userId;
 
-    if (!query) {
+    if (!searchQuery) {
       return res.status(400).json({ message: "Query parameter is required" });
     }
 
-    const productCodeMatches = await ProductCode.find({
-      user_id: userId,
-      $or: [
-        { code: { $regex: query, $options: "i" } },
-        { variantName: { $regex: query, $options: "i" } },
-      ],
-    }).select("product");
+    let productCodeMatches;
+    try {
+      productCodeMatches = await query(
+        "SELECT product FROM product_codes WHERE user_id = ? AND (code LIKE ? OR variantName LIKE ?)",
+        [userId, `%${searchQuery}%`, `%${searchQuery}%`],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     const productIds = productCodeMatches.map((code) => code.product);
+    const placeholders = productIds.length
+      ? productIds.map(() => "?").join(", ")
+      : null;
 
-    const products = await Product.find({
-      user_id: userId,
-      $or: [
-        { name: { $regex: query, $options: "i" } },
-        { _id: { $in: productIds } },
-      ],
-    }).populate("Category");
+    let products;
+    try {
+      if (placeholders) {
+        products = await query(
+          `SELECT p.*, c.id AS category_id, c.name AS category_name FROM products p LEFT JOIN categories c ON c.id = p.Category WHERE p.user_id = ? AND (p.name LIKE ? OR p.id IN (${placeholders}))`,
+          [userId, `%${searchQuery}%`, ...productIds],
+        );
+      } else {
+        products = await query(
+          "SELECT p.*, c.id AS category_id, c.name AS category_name FROM products p LEFT JOIN categories c ON c.id = p.Category WHERE p.user_id = ? AND p.name LIKE ?",
+          [userId, `%${searchQuery}%`],
+        );
+      }
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
-    const enrichedProducts = await attachProductCodes(products, userId);
+    const productsWithCategory = products.map((p) => ({
+      ...p,
+      Category: p.category_id ? { id: p.category_id, name: p.category_name } : null,
+    }));
+    const enrichedProducts = await attachProductCodes(productsWithCategory, userId);
 
     res.json(enrichedProducts);
   } catch (error) {
@@ -508,31 +686,36 @@ module.exports.SearchProduct = async (req, res) => {
 module.exports.getTopProductsByQuantity = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const topProducts = await ProductCode.aggregate([
-      { $match: { user_id: userId } },
-      {
-        $group: {
-          _id: "$product",
-          quantity: { $sum: "$quantity" },
-        },
-      },
-      { $sort: { quantity: -1 } },
-      { $limit: 10 },
-    ]);
+    let topProducts;
+    try {
+      topProducts = await query(
+        "SELECT product, SUM(quantity) as quantity FROM product_codes WHERE user_id = ? GROUP BY product ORDER BY quantity DESC LIMIT 10",
+        [userId],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
-    const productIds = topProducts.map((item) => item._id);
-    const products = await Product.find({
-      _id: { $in: productIds },
-      user_id: userId,
-    }).select("name");
+    const productIds = topProducts.map((item) => item.product);
+    const placeholders = productIds.map(() => "?").join(", ");
+    const products = productIds.length
+      ? await query(
+          `SELECT id, name FROM products WHERE id IN (${placeholders}) AND user_id = ?`,
+          [...productIds, userId],
+        )
+      : [];
     const productById = products.reduce((acc, product) => {
-      acc[String(product._id)] = product;
+      acc[String(product.id)] = product;
       return acc;
     }, {});
 
     const resolved = topProducts.map((item) => ({
-      _id: item._id,
-      name: productById[String(item._id)]?.name || "Product",
+      _id: item.product,
+      name: productById[String(item.product)]?.name || "Product",
       quantity: item.quantity,
     }));
 
@@ -550,18 +733,37 @@ module.exports.getProductCodesByProduct = async (req, res) => {
     const userId = req.user.userId;
     const { productId } = req.params;
 
-    const product = await Product.findOne({
-      _id: productId,
-      user_id: userId,
-    });
+    let product;
+    try {
+      const rows = await query(
+        "SELECT id FROM products WHERE id = ? AND user_id = ? LIMIT 1",
+        [productId, userId],
+      );
+      product = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    const codes = await ProductCode.find({
-      product: productId,
-      user_id: userId,
-    }).sort({ createdAt: -1 });
+    let codes;
+    try {
+      codes = await query(
+        "SELECT * FROM product_codes WHERE product = ? AND user_id = ? ORDER BY createdAt DESC",
+        [productId, userId],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     res.status(200).json({ success: true, productCodes: codes });
   } catch (error) {
@@ -581,32 +783,66 @@ module.exports.addProductCode = async (req, res) => {
       return res.status(400).json({ message: "Product code is required" });
     }
 
-    const product = await Product.findOne({
-      _id: productId,
-      user_id: userId,
-    });
+    let product;
+    try {
+      const rows = await query(
+        "SELECT * FROM products WHERE id = ? AND user_id = ? LIMIT 1",
+        [productId, userId],
+      );
+      product = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    const existing = await ProductCode.findOne({
-      user_id: userId,
-      product: productId,
-      code,
-    });
+    let existing;
+    try {
+      const rows = await query(
+        "SELECT id FROM product_codes WHERE user_id = ? AND product = ? AND code = ? LIMIT 1",
+        [userId, productId, code],
+      );
+      existing = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
     if (existing) {
       return res
         .status(400)
         .json({ message: "Product code already exists for this product" });
     }
 
-    const created = await ProductCode.create({
+    let insertResult;
+    try {
+      insertResult = await query(
+        "INSERT INTO product_codes (user_id, product, code, variantName, quantity) VALUES (?, ?, ?, ?, ?)",
+        [userId, productId, code, variantName || "", Number(quantity || 0)],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+
+    const created = {
+      id: insertResult.insertId,
       user_id: userId,
-      product: productId,
+      product: Number(productId),
       code,
       variantName: variantName || "",
       quantity: Number(quantity || 0),
-    });
+    };
 
     if (product.Category) {
       await ensureCategoryCodes({
@@ -630,22 +866,40 @@ module.exports.updateProductCode = async (req, res) => {
     const { codeId } = req.params;
     const { code, variantName, quantity } = req.body || {};
 
-    const currentRecord = await ProductCode.findOne({
-      _id: codeId,
-      user_id: userId,
-    }).select("product code variantName");
+    let currentRecord;
+    try {
+      const rows = await query(
+        "SELECT product, code, variantName FROM product_codes WHERE id = ? AND user_id = ? LIMIT 1",
+        [codeId, userId],
+      );
+      currentRecord = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     if (!currentRecord) {
       return res.status(404).json({ message: "Product code not found" });
     }
 
     if (code) {
-      const existing = await ProductCode.findOne({
-        _id: { $ne: codeId },
-        user_id: userId,
-        product: currentRecord.product,
-        code,
-      });
+      let existing;
+      try {
+        const rows = await query(
+          "SELECT id FROM product_codes WHERE id <> ? AND user_id = ? AND product = ? AND code = ? LIMIT 1",
+          [codeId, userId, currentRecord.product, code],
+        );
+        existing = rows[0];
+      } catch (err) {
+        return res.status(500).json({
+          success: false,
+          message: "Database error",
+          error: err,
+        });
+      }
       if (existing) {
         return res.status(400).json({
           message: "Product code already exists for this product",
@@ -653,27 +907,37 @@ module.exports.updateProductCode = async (req, res) => {
       }
     }
 
-    const updates = {};
-    if (code !== undefined) updates.code = code;
-    if (variantName !== undefined) updates.variantName = variantName;
-    if (quantity !== undefined) updates.quantity = Number(quantity);
+    const updates = {
+      code: code !== undefined ? code : currentRecord.code,
+      variantName:
+        variantName !== undefined ? variantName : currentRecord.variantName,
+      quantity: quantity !== undefined ? Number(quantity) : undefined,
+    };
 
-    const updated = await ProductCode.findOneAndUpdate(
-      { _id: codeId, user_id: userId },
-      {
-        ...updates,
-      },
-      { new: true },
-    );
-
-    if (!updated) {
-      return res.status(404).json({ message: "Product code not found" });
+    try {
+      await query(
+        "UPDATE product_codes SET code = ?, variantName = ?, quantity = COALESCE(?, quantity) WHERE id = ? AND user_id = ?",
+        [updates.code, updates.variantName, updates.quantity, codeId, userId],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
     }
 
-    const productRecord = await Product.findOne({
-      _id: updated.product,
-      user_id: userId,
-    }).select("Category");
+    const updatedRows = await query(
+      "SELECT * FROM product_codes WHERE id = ? AND user_id = ? LIMIT 1",
+      [codeId, userId],
+    );
+    const updated = updatedRows[0];
+
+    const productRecordRows = await query(
+      "SELECT Category FROM products WHERE id = ? AND user_id = ? LIMIT 1",
+      [updated.product, userId],
+    );
+    const productRecord = productRecordRows[0];
 
     if (productRecord?.Category) {
       await ensureCategoryCodes({
@@ -696,13 +960,36 @@ module.exports.deleteProductCode = async (req, res) => {
     const userId = req.user.userId;
     const { codeId } = req.params;
 
-    const deleted = await ProductCode.findOneAndDelete({
-      _id: codeId,
-      user_id: userId,
-    });
+    let deleted;
+    try {
+      const rows = await query(
+        "SELECT id FROM product_codes WHERE id = ? AND user_id = ? LIMIT 1",
+        [codeId, userId],
+      );
+      deleted = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     if (!deleted) {
       return res.status(404).json({ message: "Product code not found" });
+    }
+
+    try {
+      await query("DELETE FROM product_codes WHERE id = ? AND user_id = ?", [
+        codeId,
+        userId,
+      ]);
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
     }
 
     res.status(200).json({ success: true, message: "Product code deleted" });

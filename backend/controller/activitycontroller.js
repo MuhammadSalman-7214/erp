@@ -1,4 +1,4 @@
-const ActivityLog = require("../models/ActivityLogmodel.js");
+const query = require("../libs/dbQuery.js");
 
 module.exports.createActivityLog = async (req, res) => {
   try {
@@ -18,23 +18,34 @@ module.exports.createActivityLog = async (req, res) => {
         });
     }
 
-    const newActivity = new ActivityLog({
-      action,
-      userId: userId,
-      user_id: userId,
-      entity,
-      entityId,
-      ipAddress: req.ip,
-    });
-
-    await newActivity.save();
+    let insertResult;
+    try {
+      insertResult = await query(
+        "INSERT INTO activity_logs (action, userId, user_id, entity, entityId, ipAddress) VALUES (?, ?, ?, ?, ?, ?)",
+        [action, userId, userId, entity, entityId, req.ip],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     res
       .status(201)
       .json({
         success: true,
         message: "Activity log created successfully.",
-        activity: newActivity,
+        activity: {
+          id: insertResult.insertId,
+          action,
+          userId,
+          user_id: userId,
+          entity,
+          entityId,
+          ipAddress: req.ip,
+        },
       });
   } catch (error) {
     res
@@ -46,9 +57,19 @@ module.exports.createActivityLog = async (req, res) => {
 module.exports.getAllActivityLogs = async (req, res) => {
   try {
     const userId = req.user?.userId;
-    const logs = await ActivityLog.find({ user_id: userId }).sort({
-      createdAt: -1,
-    });
+    let logs;
+    try {
+      logs = await query(
+        "SELECT * FROM activity_logs WHERE user_id = ? ORDER BY createdAt DESC",
+        [userId],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     res.status(200).json({ success: true, logs });
   } catch (error) {

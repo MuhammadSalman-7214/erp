@@ -1,6 +1,4 @@
-const Invoice = require("../models/Invoicemodel");
-const Customer = require("../models/Customermodel");
-const Vendor = require("../models/Suppliermodel");
+const query = require("../libs/dbQuery.js");
 const { getNextInvoiceNumber } = require("../libs/invoiceNumber");
 
 /**
@@ -36,10 +34,11 @@ const resolveCustomerPayload = async ({
   }
 
   if (customerId) {
-    const customerDoc = await Customer.findOne({
-      _id: customerId,
-      user_id: userId,
-    });
+    const rows = await query(
+      "SELECT * FROM customers WHERE id = ? AND user_id = ? LIMIT 1",
+      [customerId, userId],
+    );
+    const customerDoc = rows[0];
     if (!customerDoc) {
       const error = new Error("Customer not found");
       error.statusCode = 404;
@@ -47,12 +46,12 @@ const resolveCustomerPayload = async ({
     }
 
     return {
-      resolvedCustomerId: customerDoc._id,
+      resolvedCustomerId: customerDoc.id,
       resolvedCustomerSnapshot: {
         code: customerDoc.customerCode || "",
         name: customerDoc.name,
-        phone: customerDoc.contactInfo?.phone || "",
-        address: customerDoc.contactInfo?.address || "",
+        phone: customerDoc.contact_phone || "",
+        address: customerDoc.contact_address || "",
       },
     };
   }
@@ -107,38 +106,107 @@ module.exports.createInvoice = async (req, res) => {
       });
 
     if (vendor) {
-      const vendorDoc = await Vendor.findOne({ _id: vendor, user_id: userId });
+      let vendorDoc;
+      try {
+        const rows = await query(
+          "SELECT id FROM vendors WHERE id = ? AND user_id = ? LIMIT 1",
+          [vendor, userId],
+        );
+        vendorDoc = rows[0];
+      } catch (err) {
+        return res.status(500).json({
+          success: false,
+          message: "Database error",
+          error: err,
+        });
+      }
       if (!vendorDoc) {
         return res.status(404).json({ message: "Vendor not found" });
       }
     }
 
-    const invoice = await Invoice.create({
-      user_id: userId,
-      invoiceNumber: resolvedInvoiceNumber,
-      invoiceType,
-      customerId: resolvedCustomerId,
-      customer: resolvedCustomerSnapshot,
-      vendor,
-      items: items.map((item) => ({
-        name: item.name,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        total: item.quantity * item.unitPrice,
-      })),
-      taxRate,
-      discount,
-      currency,
-      dueDate,
-      notes,
-      paymentMethod,
-      status,
-      ...totals,
-    });
+    let insertResult;
+    try {
+      insertResult = await query(
+        "INSERT INTO invoices (user_id, invoiceNumber, invoiceType, customerId, customer_code, customer_name, customer_phone, customer_address, vendor, subTotal, taxRate, taxAmount, discount, totalAmount, currency, status, issueDate, dueDate, paymentMethod, paidAt, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          userId,
+          resolvedInvoiceNumber,
+          invoiceType,
+          resolvedCustomerId || null,
+          resolvedCustomerSnapshot?.code || "",
+          resolvedCustomerSnapshot?.name || "",
+          resolvedCustomerSnapshot?.phone || "",
+          resolvedCustomerSnapshot?.address || "",
+          vendor || null,
+          totals.subTotal,
+          taxRate ?? 0,
+          totals.taxAmount,
+          discount ?? 0,
+          totals.totalAmount,
+          currency || "Rs",
+          status || "draft",
+          new Date(),
+          dueDate,
+          paymentMethod || null,
+          null,
+          notes || "",
+        ],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+
+    const invoiceId = insertResult.insertId;
+    const itemValues = items.map((item) => [
+      invoiceId,
+      item.name,
+      item.quantity,
+      item.unitPrice,
+      item.quantity * item.unitPrice,
+    ]);
+    try {
+      await query(
+        "INSERT INTO invoice_items (invoice_id, name, quantity, unitPrice, total) VALUES ?",
+        [itemValues],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     res.status(201).json({
       success: true,
-      data: invoice,
+      data: {
+        id: invoiceId,
+        user_id: userId,
+        invoiceNumber: resolvedInvoiceNumber,
+        invoiceType,
+        customerId: resolvedCustomerId,
+        customer: resolvedCustomerSnapshot,
+        vendor,
+        items: itemValues.map((v) => ({
+          name: v[1],
+          quantity: v[2],
+          unitPrice: v[3],
+          total: v[4],
+        })),
+        taxRate: taxRate ?? 0,
+        discount: discount ?? 0,
+        currency: currency || "Rs",
+        dueDate,
+        notes: notes || "",
+        paymentMethod: paymentMethod || null,
+        status: status || "draft",
+        ...totals,
+      },
     });
   } catch (error) {
     const statusCode = error.statusCode || 500;
@@ -152,17 +220,79 @@ module.exports.createInvoice = async (req, res) => {
 module.exports.getAllInvoices = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const invoices = await Invoice.find({ user_id: userId })
-      .populate("vendor")
-      .populate("customerId")
-      .sort({
-        createdAt: -1,
+    let invoices;
+    try {
+      invoices = await query("SELECT * FROM invoices WHERE user_id = ? ORDER BY createdAt DESC", [
+        userId,
+      ]);
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
       });
+    }
+
+    const invoicesWithDetails = await Promise.all(
+      invoices.map(async (inv) => {
+        let vendorDoc = null;
+        let customerDoc = null;
+        let items = [];
+        try {
+          if (inv.vendor) {
+            const vendorRows = await query(
+              "SELECT * FROM vendors WHERE id = ? AND user_id = ? LIMIT 1",
+              [inv.vendor, userId],
+            );
+            vendorDoc = vendorRows[0] || null;
+          }
+          if (inv.customerId) {
+            const customerRows = await query(
+              "SELECT * FROM customers WHERE id = ? AND user_id = ? LIMIT 1",
+              [inv.customerId, userId],
+            );
+            const customerRow = customerRows[0];
+            customerDoc = customerRow
+              ? {
+                  ...customerRow,
+                  contactInfo: {
+                    phone: customerRow.contact_phone || "",
+                    address: customerRow.contact_address || "",
+                  },
+                }
+              : null;
+          }
+          items = await query(
+            "SELECT name, quantity, unitPrice, total FROM invoice_items WHERE invoice_id = ?",
+            [inv.id],
+          );
+        } catch (err) {
+          return res.status(500).json({
+            success: false,
+            message: "Database error",
+            error: err,
+          });
+        }
+
+        return {
+          ...inv,
+          customer: {
+            code: inv.customer_code || "",
+            name: inv.customer_name || "",
+            phone: inv.customer_phone || "",
+            address: inv.customer_address || "",
+          },
+          customerId: customerDoc,
+          vendor: vendorDoc,
+          items,
+        };
+      }),
+    );
 
     res.status(200).json({
       success: true,
-      count: invoices.length,
-      data: invoices,
+      count: invoicesWithDetails.length,
+      data: invoicesWithDetails,
     });
   } catch (error) {
     res.status(500).json({
@@ -175,20 +305,78 @@ module.exports.getAllInvoices = async (req, res) => {
 module.exports.getInvoiceById = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const invoice = await Invoice.findOne({
-      _id: req.params.id,
-      user_id: userId,
-    })
-      .populate("vendor")
-      .populate("customerId");
+    let invoice;
+    try {
+      const rows = await query(
+        "SELECT * FROM invoices WHERE id = ? AND user_id = ? LIMIT 1",
+        [req.params.id, userId],
+      );
+      invoice = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     if (!invoice) {
       return res.status(404).json({ message: "Invoice not found" });
     }
 
+    let vendorDoc = null;
+    let customerDoc = null;
+    let items = [];
+    try {
+      if (invoice.vendor) {
+        const vendorRows = await query(
+          "SELECT * FROM vendors WHERE id = ? AND user_id = ? LIMIT 1",
+          [invoice.vendor, userId],
+        );
+        vendorDoc = vendorRows[0] || null;
+      }
+      if (invoice.customerId) {
+        const customerRows = await query(
+          "SELECT * FROM customers WHERE id = ? AND user_id = ? LIMIT 1",
+          [invoice.customerId, userId],
+        );
+        const customerRow = customerRows[0];
+        customerDoc = customerRow
+          ? {
+              ...customerRow,
+              contactInfo: {
+                phone: customerRow.contact_phone || "",
+                address: customerRow.contact_address || "",
+              },
+            }
+          : null;
+      }
+      items = await query(
+        "SELECT name, quantity, unitPrice, total FROM invoice_items WHERE invoice_id = ?",
+        [invoice.id],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+
     res.status(200).json({
       success: true,
-      data: invoice,
+      data: {
+        ...invoice,
+        customer: {
+          code: invoice.customer_code || "",
+          name: invoice.customer_name || "",
+          phone: invoice.customer_phone || "",
+          address: invoice.customer_address || "",
+        },
+        customerId: customerDoc,
+        vendor: vendorDoc,
+        items,
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -201,59 +389,161 @@ module.exports.getInvoiceById = async (req, res) => {
 module.exports.updateInvoice = async (req, res) => {
   try {
     const userId = req.user.userId;
-    let invoice = await Invoice.findOne({
-      _id: req.params.id,
-      user_id: userId,
-    });
+    let invoice;
+    try {
+      const rows = await query(
+        "SELECT * FROM invoices WHERE id = ? AND user_id = ? LIMIT 1",
+        [req.params.id, userId],
+      );
+      invoice = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     if (!invoice) {
       return res.status(404).json({ message: "Invoice not found" });
     }
 
-    const items = req.body.items || invoice.items;
+    let items = req.body.items;
+    if (!Array.isArray(items)) {
+      try {
+        items = await query(
+          "SELECT name, quantity, unitPrice, total FROM invoice_items WHERE invoice_id = ?",
+          [req.params.id],
+        );
+      } catch (err) {
+        return res.status(500).json({
+          success: false,
+          message: "Database error",
+          error: err,
+        });
+      }
+    }
     const taxRate = req.body.taxRate ?? invoice.taxRate;
     const discount = req.body.discount ?? invoice.discount;
 
-    const totals = calculateTotals(items, taxRate, discount);
+    const totals = calculateTotals(items.length ? items : [], taxRate, discount);
 
     const { resolvedCustomerId, resolvedCustomerSnapshot } =
       await resolveCustomerPayload({
         invoiceType: req.body.invoiceType || invoice.invoiceType,
         customerId: req.body.customerId || invoice.customerId,
-        customer: req.body.customer || invoice.customer,
+        customer: req.body.customer || {
+          code: invoice.customer_code || "",
+          name: invoice.customer_name || "",
+          phone: invoice.customer_phone || "",
+          address: invoice.customer_address || "",
+        },
         userId,
       });
 
     if (req.body.vendor) {
-      const vendorDoc = await Vendor.findOne({
-        _id: req.body.vendor,
-        user_id: userId,
-      });
+      let vendorDoc;
+      try {
+        const rows = await query(
+          "SELECT id FROM vendors WHERE id = ? AND user_id = ? LIMIT 1",
+          [req.body.vendor, userId],
+        );
+        vendorDoc = rows[0];
+      } catch (err) {
+        return res.status(500).json({
+          success: false,
+          message: "Database error",
+          error: err,
+        });
+      }
       if (!vendorDoc) {
         return res.status(404).json({ message: "Vendor not found" });
       }
     }
 
-    invoice = await Invoice.findOneAndUpdate(
-      { _id: req.params.id, user_id: userId },
-      {
-        ...req.body,
-        customerId: resolvedCustomerId,
-        customer: resolvedCustomerSnapshot,
-        items: items.map((item) => ({
-          name: item.name,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          total: item.quantity * item.unitPrice,
-        })),
-        ...totals,
-      },
-      { new: true, runValidators: true },
+    try {
+      await query(
+        "UPDATE invoices SET invoiceNumber = ?, invoiceType = ?, customerId = ?, customer_code = ?, customer_name = ?, customer_phone = ?, customer_address = ?, vendor = ?, subTotal = ?, taxRate = ?, taxAmount = ?, discount = ?, totalAmount = ?, currency = ?, dueDate = ?, notes = ?, paymentMethod = ?, status = ? WHERE id = ? AND user_id = ?",
+        [
+          req.body.invoiceNumber || invoice.invoiceNumber,
+          req.body.invoiceType || invoice.invoiceType,
+          resolvedCustomerId || null,
+          resolvedCustomerSnapshot?.code || "",
+          resolvedCustomerSnapshot?.name || "",
+          resolvedCustomerSnapshot?.phone || "",
+          resolvedCustomerSnapshot?.address || "",
+          req.body.vendor ?? invoice.vendor ?? null,
+          totals.subTotal,
+          taxRate ?? 0,
+          totals.taxAmount,
+          discount ?? 0,
+          totals.totalAmount,
+          req.body.currency || invoice.currency || "Rs",
+          req.body.dueDate || invoice.dueDate,
+          req.body.notes ?? invoice.notes ?? "",
+          req.body.paymentMethod ?? invoice.paymentMethod ?? null,
+          req.body.status ?? invoice.status ?? "draft",
+          req.params.id,
+          userId,
+        ],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+
+    if (Array.isArray(req.body.items)) {
+      try {
+        await query("DELETE FROM invoice_items WHERE invoice_id = ?", [
+          req.params.id,
+        ]);
+        if (req.body.items.length) {
+          const itemValues = req.body.items.map((item) => [
+            req.params.id,
+            item.name,
+            item.quantity,
+            item.unitPrice,
+            item.quantity * item.unitPrice,
+          ]);
+          await query(
+            "INSERT INTO invoice_items (invoice_id, name, quantity, unitPrice, total) VALUES ?",
+            [itemValues],
+          );
+        }
+      } catch (err) {
+        return res.status(500).json({
+          success: false,
+          message: "Database error",
+          error: err,
+        });
+      }
+    }
+
+    const updatedRows = await query(
+      "SELECT * FROM invoices WHERE id = ? AND user_id = ? LIMIT 1",
+      [req.params.id, userId],
+    );
+    const updated = updatedRows[0];
+    const updatedItems = await query(
+      "SELECT name, quantity, unitPrice, total FROM invoice_items WHERE invoice_id = ?",
+      [req.params.id],
     );
 
     res.status(200).json({
       success: true,
-      data: invoice,
+      data: {
+        ...updated,
+        customer: {
+          code: updated.customer_code || "",
+          name: updated.customer_name || "",
+          phone: updated.customer_phone || "",
+          address: updated.customer_address || "",
+        },
+        items: updatedItems,
+      },
     });
   } catch (error) {
     const statusCode = error.statusCode || 500;
@@ -267,13 +557,39 @@ module.exports.updateInvoice = async (req, res) => {
 module.exports.deleteInvoice = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const invoice = await Invoice.findOneAndDelete({
-      _id: req.params.id,
-      user_id: userId,
-    });
+    let invoice;
+    try {
+      const rows = await query(
+        "SELECT id FROM invoices WHERE id = ? AND user_id = ? LIMIT 1",
+        [req.params.id, userId],
+      );
+      invoice = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     if (!invoice) {
       return res.status(404).json({ message: "Invoice not found" });
+    }
+
+    try {
+      await query("DELETE FROM invoice_items WHERE invoice_id = ?", [
+        req.params.id,
+      ]);
+      await query("DELETE FROM invoices WHERE id = ? AND user_id = ?", [
+        req.params.id,
+        userId,
+      ]);
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
     }
 
     res.status(200).json({
@@ -291,21 +607,29 @@ module.exports.deleteInvoice = async (req, res) => {
 module.exports.markInvoiceAsPaid = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const invoice = await Invoice.findOneAndUpdate(
-      {
-        _id: req.params.id,
-        user_id: userId,
-      },
-      {
-        status: "paid",
-        paidAt: new Date(),
-      },
-      { new: true },
-    );
+    let updateResult;
+    try {
+      updateResult = await query(
+        "UPDATE invoices SET status = ?, paidAt = ? WHERE id = ? AND user_id = ?",
+        ["paid", new Date(), req.params.id, userId],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
-    if (!invoice) {
+    if (updateResult.affectedRows === 0) {
       return res.status(404).json({ message: "Invoice not found" });
     }
+
+    const rows = await query(
+      "SELECT * FROM invoices WHERE id = ? AND user_id = ? LIMIT 1",
+      [req.params.id, userId],
+    );
+    const invoice = rows[0];
 
     res.status(200).json({
       success: true,

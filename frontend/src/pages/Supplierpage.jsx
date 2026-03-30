@@ -47,6 +47,8 @@ function Supplierpage({ readOnly = false }) {
   const [product, setProduct] = useState("");
   const [vendorBalances, setVendorBalances] = useState({});
 
+  const getId = (value) => value?._id ?? value?.id ?? value;
+
   const { getallproduct } = useSelector((state) => state.product);
 
   const fetchVendorBalances = async () => {
@@ -54,7 +56,9 @@ function Supplierpage({ readOnly = false }) {
       const response = await axiosInstance.get("/payment/summary");
       const vendors = response.data?.vendors || [];
       const balancesById = vendors.reduce((acc, vendor) => {
-        acc[vendor.vendorId] = vendor;
+        if (vendor.vendorId) {
+          acc[String(vendor.vendorId)] = vendor;
+        }
         return acc;
       }, {});
       setVendorBalances(balancesById);
@@ -124,7 +128,7 @@ function Supplierpage({ readOnly = false }) {
       productsSupplied: product ? [product] : [],
     };
 
-    dispatch(EditSupplier({ supplierId: selectedSupplier._id, updatedData }))
+    dispatch(EditSupplier({ supplierId: getId(selectedSupplier), updatedData }))
       .unwrap()
       .then(() => {
         toast.success("Vendor updated successfully");
@@ -207,7 +211,8 @@ function Supplierpage({ readOnly = false }) {
   const summaryTotals = Array.isArray(getallSupplier)
     ? getallSupplier.reduce(
         (acc, supplier) => {
-          const vendorSummary = vendorBalances[supplier._id] || {};
+          const vendorSummary =
+            vendorBalances[String(getId(supplier))] || {};
           acc.total += Number(vendorSummary.totalAmount || 0);
           acc.paid += Number(vendorSummary.paidAmount || 0);
           acc.remaining += Number(vendorSummary.remainingAmount || 0);
@@ -398,7 +403,7 @@ function Supplierpage({ readOnly = false }) {
               >
                 <option value="">Select a product</option>
                 {getallproduct?.map((product) => (
-                  <option key={product._id} value={product._id}>
+                  <option key={getId(product)} value={getId(product)}>
                     {product.name}
                     {product.company || product.brand
                       ? ` • ${product.company || product.brand}`
@@ -448,10 +453,11 @@ function Supplierpage({ readOnly = false }) {
 
                 <tbody>
                   {displaySuppliers.map((supplier, index) => {
-                    const vendorSummary = vendorBalances[supplier._id] || {};
+                    const vendorSummary =
+                      vendorBalances[String(getId(supplier))] || {};
                     return (
                       <tr
-                        key={supplier._id}
+                        key={getId(supplier)}
                         className="border-b last:border-b-0 hover:bg-slate-50 transition"
                       >
                         <td className="px-5 py-4 text-slate-500">
@@ -493,7 +499,7 @@ function Supplierpage({ readOnly = false }) {
                         <td className="px-5 py-4">
                           <div className="flex gap-2">
                             <button
-                              onClick={() => handleViewSupplier(supplier._id)}
+                              onClick={() => handleViewSupplier(getId(supplier))}
                               className="p-2 rounded-lg bg-slate-100 hover:bg-teal-100 text-emerald-700 transition"
                               title="View Details"
                             >
@@ -523,7 +529,7 @@ function Supplierpage({ readOnly = false }) {
                                   className: "font-medium",
                                 }}
                                 placement="topRight"
-                                onConfirm={() => handleRemove(supplier._id)}
+                                onConfirm={() => handleRemove(getId(supplier))}
                               >
                                 <button
                                   className="

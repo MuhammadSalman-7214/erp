@@ -115,6 +115,8 @@ function Productpage({ readOnly = false }) {
     return Number.isNaN(parsed) ? undefined : parsed;
   };
 
+  const getId = (value) => value?._id ?? value?.id ?? value;
+
   const handleEditSubmit = (event) => {
     event.preventDefault();
 
@@ -135,7 +137,7 @@ function Productpage({ readOnly = false }) {
       salePrice: normalizePrice(salePrice),
       dateAdded: selectedProduct.dateAdded || new Date().toISOString(),
     };
-    dispatch(EditProduct({ id: selectedProduct._id, updatedData }))
+    dispatch(EditProduct({ id: getId(selectedProduct), updatedData }))
       .unwrap()
       .then(() => {
         toast.success("Product updated successfully");
@@ -198,7 +200,7 @@ function Productpage({ readOnly = false }) {
     setName(product.name);
     setDescription(product.description || "");
     setCompany(product.company || product.brand || "");
-    setCategory(product.Category?._id || "");
+    setCategory(getId(product.Category) || "");
     setPurchasePrice(
       product.purchasePrice ?? product.pricing?.currentPurchasePrice ?? "",
     );
@@ -295,7 +297,7 @@ function Productpage({ readOnly = false }) {
 
   const codeProduct = useMemo(
     () =>
-      getallproduct.find((product) => product._id === codeProductId) || null,
+      getallproduct.find((product) => getId(product) === codeProductId) || null,
     [getallproduct, codeProductId],
   );
 
@@ -443,7 +445,7 @@ function Productpage({ readOnly = false }) {
                     const isCodeDelete = Boolean(code && codeCount > 1);
                     return (
                       <tr
-                        key={`${product._id}-${code?._id || "no-code"}-${index}`}
+                        key={`${getId(product)}-${getId(code) || "no-code"}-${index}`}
                         className="border-b last:border-b-0 hover:bg-slate-50 transition"
                       >
                         <td className="px-5 py-4 text-slate-500">
@@ -526,8 +528,8 @@ function Productpage({ readOnly = false }) {
                                   placement="topRight"
                                   onConfirm={() =>
                                     handleRowDelete({
-                                      productId: product._id,
-                                      codeId: code?._id,
+                                      productId: getId(product),
+                                      codeId: getId(code),
                                       codeCount,
                                     })
                                   }
@@ -551,7 +553,7 @@ function Productpage({ readOnly = false }) {
                               )}
                               {canWrite && (
                                 <button
-                                  onClick={() => openCodeModal(product._id)}
+                                  onClick={() => openCodeModal(getId(product))}
                                   className="px-3 py-2 rounded-lg bg-slate-100 hover:bg-orange-100 text-orange-500 text-xs font-semibold transition"
                                   title="Manage Codes"
                                 >
@@ -631,7 +633,7 @@ function Productpage({ readOnly = false }) {
               >
                 <option value="">Select category</option>
                 {getallCategory?.map((c) => (
-                  <option key={c._id} value={c._id}>
+                  <option key={getId(c)} value={getId(c)}>
                     {c.name}
                   </option>
                 ))}
@@ -741,7 +743,7 @@ function Productpage({ readOnly = false }) {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     {codeProduct.productCodes.map((code) => (
                       <div
-                        key={code._id}
+                        key={getId(code)}
                         className="group relative rounded-xl bg-gradient-to-br from-white to-slate-100 
           p-4 shadow-sm hover:shadow-xl transition-all duration-300 
           hover:-translate-y-1 border border-slate-200 
@@ -761,7 +763,7 @@ function Productpage({ readOnly = false }) {
                         {/* Bottom Actions */}
                         <div className="pt-4 mt-4 border-t flex justify-center">
                           <button
-                            onClick={() => handleDeleteCode(code._id)}
+                            onClick={() => handleDeleteCode(getId(code))}
                             className="flex w-full items-center justify-center gap-1 px-3 py-2 rounded-lg 
               bg-red-200 text-red-600 hover:bg-red-300 
               text-xs font-semibold transition"

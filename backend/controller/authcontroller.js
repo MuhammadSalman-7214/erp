@@ -1,4 +1,4 @@
-const User = require("../models/Usermodel.js");
+const query = require("../libs/dbQuery.js");
 const bcrypt = require("bcryptjs");
 const generateToken = require("../libs/Tokengenerator.js");
 const Cloundinary = require("../libs/Cloundinary.js");
@@ -7,9 +7,22 @@ const logActivity = require("../libs/logger.js");
 module.exports.signup = async (req, res) => {
   try {
     const { name, email, password, ProfilePic, role } = req.body;
+    const resolvedRole = role || "admin";
 
-    const duplicatedUser = await User.findOne({ email });
-    if (duplicatedUser) {
+    let duplicatedUser;
+    try {
+      duplicatedUser = await query(
+        "SELECT * FROM users WHERE email = ? LIMIT 1",
+        [email],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+    if (duplicatedUser.length > 0) {
       return res.status(400).json({ message: "Email already exists" });
     }
     // if (role === "admin") {
@@ -22,21 +35,32 @@ module.exports.signup = async (req, res) => {
     // }
     const hashedpassword = await bcrypt.hash(password, 10);
 
-    const newUser = new User({
+    let insertResult;
+    try {
+      insertResult = await query(
+        "INSERT INTO users (name, email, password, ProfilePic, role) VALUES (?, ?, ?, ?, ?)",
+        [name, email, hashedpassword, "", resolvedRole],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+    const savedUser = {
+      id: insertResult.insertId,
       name,
       email,
-      password: hashedpassword,
+      role: resolvedRole,
       ProfilePic: "",
-      role,
-    });
-
-    const savedUser = await newUser.save();
+    };
     const token = await generateToken(savedUser, res);
 
     res.status(201).json({
       message: "Signup successful",
       savedUser: {
-        id: savedUser._id,
+        id: savedUser.id,
         name: savedUser.name,
         email: savedUser.email,
         role: savedUser.role,
@@ -49,8 +73,8 @@ module.exports.signup = async (req, res) => {
       action: "User Signup",
       description: `User ${name} signed up.`,
       entity: "user",
-      entityId: savedUser._id,
-      userId: savedUser._id,
+      entityId: savedUser.id,
+      userId: savedUser.id,
       ipAddress: req.ip,
     });
   } catch (error) {
@@ -63,7 +87,20 @@ module.exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
     const ipAddress = req.ip;
-    const duplicatedUser = await User.findOne({ email });
+    let duplicatedUser;
+    try {
+      const rows = await query(
+        "SELECT * FROM users WHERE email = ? LIMIT 1",
+        [email],
+      );
+      duplicatedUser = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     if (!duplicatedUser) {
       return res.status(400).json({
@@ -86,8 +123,8 @@ module.exports.login = async (req, res) => {
       action: "User Login",
       description: `User ${duplicatedUser.name} logged in.`,
       entity: "user",
-      entityId: duplicatedUser._id,
-      userId: duplicatedUser._id,
+      entityId: duplicatedUser.id,
+      userId: duplicatedUser.id,
       ipAddress: ipAddress,
     });
     return res.status(201).json({
@@ -123,7 +160,7 @@ module.exports.logout = async (req, res) => {
 module.exports.updateProfile = async (req, res) => {
   try {
     const { ProfilePic } = req.body;
-    const userId = req.user?._id;
+    const userId = req.user?.userId;
     const ipAddress = req.ip;
 
     if (!userId) {
@@ -137,14 +174,37 @@ module.exports.updateProfile = async (req, res) => {
           upload_preset: "upload",
         });
 
-        const updatedUser = await User.findOneAndUpdate(
-          { _id: userId },
-          { ProfilePic: uploadResponse.secure_url },
-          { new: true },
-        );
+        let updateResult;
+        try {
+          updateResult = await query(
+            "UPDATE users SET ProfilePic = ? WHERE id = ?",
+            [uploadResponse.secure_url, userId],
+          );
+        } catch (err) {
+          return res.status(500).json({
+            success: false,
+            message: "Database error",
+            error: err,
+          });
+        }
 
-        if (!updatedUser) {
+        if (updateResult.affectedRows === 0) {
           return res.status(404).json({ message: "User not found" });
+        }
+
+        let updatedUser;
+        try {
+          const rows = await query(
+            "SELECT id, name, email, role, ProfilePic FROM users WHERE id = ?",
+            [userId],
+          );
+          updatedUser = rows[0];
+        } catch (err) {
+          return res.status(500).json({
+            success: false,
+            message: "Database error",
+            error: err,
+          });
         }
 
         return res.status(200).json({
@@ -169,7 +229,19 @@ module.exports.updateProfile = async (req, res) => {
 
 module.exports.staffuser = async (req, res) => {
   try {
-    const staffuser = await User.find({ role: "staff" }).select("-password");
+    let staffuser;
+    try {
+      staffuser = await query(
+        "SELECT id, name, email, role, ProfilePic FROM users WHERE role = ?",
+        ["staff"],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     if (staffuser.length === 0) {
       return res
@@ -186,9 +258,19 @@ module.exports.staffuser = async (req, res) => {
 
 module.exports.manageruser = async (req, res) => {
   try {
-    const manageruser = await User.find({ role: "manager" }).select(
-      "-password",
-    );
+    let manageruser;
+    try {
+      manageruser = await query(
+        "SELECT id, name, email, role, ProfilePic FROM users WHERE role = ?",
+        ["manager"],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     if (manageruser.length === 0) {
       return res
@@ -205,7 +287,19 @@ module.exports.manageruser = async (req, res) => {
 
 module.exports.adminuser = async (req, res) => {
   try {
-    const adminuser = await User.find({ role: "admin" }).select("-password");
+    let adminuser;
+    try {
+      adminuser = await query(
+        "SELECT id, name, email, role, ProfilePic FROM users WHERE role = ?",
+        ["admin"],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     if (adminuser.length === 0) {
       return res
@@ -228,9 +322,18 @@ module.exports.removeuser = async (req, res) => {
       return res.status(400).json({ message: "User ID is required" });
     }
 
-    const deleteUser = await User.findByIdAndDelete(UserId);
+    let deleteUser;
+    try {
+      deleteUser = await query("DELETE FROM users WHERE id = ?", [UserId]);
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
-    if (!deleteUser) {
+    if (deleteUser.affectedRows === 0) {
       return res.status(404).json({ message: "User not found" });
     }
 

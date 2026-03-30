@@ -18,6 +18,7 @@ import { Popconfirm } from "antd";
 import { gettingallSupplier } from "../features/SupplierSlice";
 
 function Orderpage() {
+  const getId = (value) => value?._id ?? value?.id ?? value;
   const {
     getorder,
     isgetorder,
@@ -88,8 +89,8 @@ function Orderpage() {
         const codeValue = String(code.code || "").toLowerCase();
         if (!codeValue.includes(q)) return;
         results.push({
-          productId: product._id,
-          codeId: code._id,
+          productId: getId(product),
+          codeId: getId(code),
           code: code.code,
           name: product.name,
           description: product.description,
@@ -115,11 +116,13 @@ function Orderpage() {
           : [];
 
     return list.map((item) => {
-      const productId = item.product?._id || item.product;
-      const codeId = item.productCode?._id || item.productCode;
-      const productRecord = getallproduct.find((p) => p._id === productId);
+      const productId = getId(item.product) || item.product;
+      const codeId = getId(item.productCode) || item.productCode;
+      const productRecord = getallproduct.find(
+        (p) => getId(p) === productId,
+      );
       const codeRecord = productRecord?.productCodes?.find(
-        (code) => code._id === codeId,
+        (code) => getId(code) === codeId,
       );
       const resolvedUnitPrice = Number(
         item.price ??
@@ -163,9 +166,11 @@ function Orderpage() {
     }
 
     const resolvedProducts = cartItems.map((item) => {
-      const productRecord = getallproduct.find((p) => p._id === item.productId);
+      const productRecord = getallproduct.find(
+        (p) => getId(p) === item.productId,
+      );
       const codeRecord = productRecord?.productCodes?.find(
-        (code) => code._id === item.codeId,
+        (code) => getId(code) === item.codeId,
       );
       const resolvedUnitPrice = Number(
         item.unitPrice ??
@@ -196,7 +201,9 @@ function Orderpage() {
       totalAmount,
     };
 
-    dispatch(updatestatusOrder({ OrderId: selectedOrder._id, updatedData }))
+    dispatch(
+      updatestatusOrder({ OrderId: getId(selectedOrder), updatedData }),
+    )
       .unwrap()
       .then(() => {
         toast.success("Order updated successfully");
@@ -476,7 +483,7 @@ function Orderpage() {
               >
                 <option value="">Select a Vendor</option>
                 {getallSupplier?.map((supplier) => (
-                  <option key={supplier._id} value={supplier._id}>
+                  <option key={getId(supplier)} value={getId(supplier)}>
                     {supplier.name}
                   </option>
                 ))}
@@ -526,7 +533,7 @@ function Orderpage() {
             <tbody>
               {displayOrder.map((order, index) => (
                 <tr
-                  key={order._id}
+                  key={getId(order) || index}
                   className="border-b last:border-b-0 hover:bg-slate-50 transition"
                 >
                   <td className="px-5 py-4">{index + 1}</td>
@@ -538,7 +545,7 @@ function Orderpage() {
                         : []
                     ).map((item) => (
                       <div
-                        key={item.productCode?._id || item.productCode}
+                        key={getId(item.productCode) || item.productCode}
                         className="flex items-center gap-2 px-3 py-2 mb-1 last:mb-0 rounded-md bg-slate-50 border border-slate-300"
                       >
                         <div className="flex-1 min-w-0">
@@ -606,7 +613,7 @@ function Orderpage() {
                         className: "font-medium",
                       }}
                       placement="topRight"
-                      onConfirm={() => handleRemove(order._id)}
+                      onConfirm={() => handleRemove(getId(order))}
                     >
                       <button
                         className="

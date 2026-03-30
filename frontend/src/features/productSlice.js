@@ -17,6 +17,8 @@ const initialState = {
   isproductcodedelete: false,
 };
 
+const getId = (value) => value?._id ?? value?.id ?? value;
+
 export const Addproduct = createAsyncThunk(
   "product/addproduct",
   async (product, { rejectWithValue }) => {
@@ -220,7 +222,7 @@ const productSlice = createSlice({
       .addCase(Removeproduct.fulfilled, (state, action) => {
         state.isproductremove = false;
         state.getallproduct = state.getallproduct.filter(
-          (product) => product._id !== action.meta.arg,
+          (product) => getId(product) !== action.meta.arg,
         );
       })
       .addCase(Removeproduct.rejected, (state) => {
@@ -276,7 +278,7 @@ const productSlice = createSlice({
         const { productId, productCode } = action.payload || {};
         if (!productId || !productCode) return;
         const productIndex = state.getallproduct.findIndex(
-          (product) => product._id === productId,
+          (product) => getId(product) === productId,
         );
         if (productIndex !== -1) {
           const existing = state.getallproduct[productIndex].productCodes || [];
@@ -302,12 +304,14 @@ const productSlice = createSlice({
         const productCode = action.payload;
         if (!productCode?.product) return;
         const productIndex = state.getallproduct.findIndex(
-          (product) => String(product._id) === String(productCode.product),
+          (product) => String(getId(product)) === String(productCode.product),
         );
         if (productIndex === -1) return;
         const codes = state.getallproduct[productIndex].productCodes || [];
         const updatedCodes = codes.map((code) =>
-          String(code._id) === String(productCode._id) ? productCode : code,
+          String(getId(code)) === String(getId(productCode))
+            ? productCode
+            : code,
         );
         state.getallproduct[productIndex].productCodes = updatedCodes;
         state.getallproduct[productIndex].totalQuantity = updatedCodes.reduce(
@@ -328,12 +332,12 @@ const productSlice = createSlice({
         const { codeId, productId } = action.payload || {};
         if (!codeId || !productId) return;
         const productIndex = state.getallproduct.findIndex(
-          (product) => String(product._id) === String(productId),
+          (product) => String(getId(product)) === String(productId),
         );
         if (productIndex === -1) return;
         const codes = state.getallproduct[productIndex].productCodes || [];
         const updatedCodes = codes.filter(
-          (code) => String(code._id) !== String(codeId),
+          (code) => String(getId(code)) !== String(codeId),
         );
         state.getallproduct[productIndex].productCodes = updatedCodes;
         state.getallproduct[productIndex].totalQuantity = updatedCodes.reduce(

@@ -1,9 +1,4 @@
-const Sale = require("../models/Salesmodel.js");
-const ProductModel = require("../models/Productmodel.js");
-const ProductCode = require("../models/ProductCodemodel");
-const Invoice = require("../models/Invoicemodel");
-const Customer = require("../models/Customermodel");
-const Payment = require("../models/Paymentmodel");
+const query = require("../libs/dbQuery.js");
 const { getNextInvoiceNumber } = require("../libs/invoiceNumber");
 const {
   validateSaleStockAvailability,
@@ -11,8 +6,67 @@ const {
   rollbackSaleCompletedStockOut,
 } = require("../libs/stockLifecycle");
 
-// Create Sale
-// controller/salescontroller.js
+const hydrateSales = async (sales, userId) => {
+  const hydrated = await Promise.all(
+    sales.map(async (sale) => {
+      let items = [];
+      let customer = null;
+      try {
+        items = await query(
+          "SELECT si.*, p.name AS product_name, p.description, p.company, p.brand, pc.code AS productCode_code, pc.variantName AS productCode_variantName FROM sale_items si LEFT JOIN products p ON p.id = si.product LEFT JOIN product_codes pc ON pc.id = si.productCode WHERE si.sale_id = ? AND si.user_id = ?",
+          [sale.id, userId],
+        );
+        if (sale.customer) {
+          const customerRows = await query(
+            "SELECT * FROM customers WHERE id = ? AND user_id = ? LIMIT 1",
+            [sale.customer, userId],
+          );
+          const c = customerRows[0];
+          customer = c
+            ? {
+                ...c,
+                contactInfo: {
+                  phone: c.contact_phone || "",
+                  address: c.contact_address || "",
+                },
+              }
+            : null;
+        }
+      } catch (err) {
+        return { error: err };
+      }
+
+      const products = items.map((item) => ({
+        product: item.product
+          ? {
+              id: item.product,
+              name: item.product_name,
+              description: item.description,
+              company: item.company,
+              brand: item.brand,
+            }
+          : null,
+        productCode: item.productCode
+          ? {
+              id: item.productCode,
+              code: item.productCode_code,
+              variantName: item.productCode_variantName,
+            }
+          : null,
+        quantity: item.quantity,
+        price: item.price,
+      }));
+
+      return {
+        ...sale,
+        products,
+        customer,
+      };
+    }),
+  );
+
+  return hydrated;
+};
 
 module.exports.createSale = async (req, res) => {
   try {
@@ -26,17 +80,27 @@ module.exports.createSale = async (req, res) => {
       });
     }
 
-    const customer = await Customer.findOne({
-      _id: customerId,
-      user_id: userId,
-    });
+    let customer;
+    try {
+      const rows = await query(
+        "SELECT * FROM customers WHERE id = ? AND user_id = ? LIMIT 1",
+        [customerId, userId],
+      );
+      customer = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
     if (!customer) {
       return res.status(404).json({
         success: false,
         message: "Customer not found",
       });
     }
-    if (!customer.contactInfo?.address?.trim()) {
+    if (!customer.contact_address || !String(customer.contact_address).trim()) {
       return res.status(400).json({
         success: false,
         message: "Customer address is required",
@@ -45,7 +109,6 @@ module.exports.createSale = async (req, res) => {
 
     const customerName = customer.name;
 
-    // Validation: Make sure products array is provided and has at least one item
     if (!products || !Array.isArray(products) || products.length === 0) {
       return res.status(400).json({
         success: false,
@@ -53,7 +116,6 @@ module.exports.createSale = async (req, res) => {
       });
     }
 
-    // Validate each product object
     for (const item of products) {
       if (!item.productCode || !item.quantity) {
         return res.status(400).json({
@@ -63,14 +125,23 @@ module.exports.createSale = async (req, res) => {
       }
     }
 
-    // Before creating the sale
     const resolvedProducts = [];
     let totalAmount = 0;
     for (const item of products) {
-      const productCodeRecord = await ProductCode.findOne({
-        _id: item.productCode,
-        user_id: userId,
-      });
+      let productCodeRecord;
+      try {
+        const rows = await query(
+          "SELECT * FROM product_codes WHERE id = ? AND user_id = ? LIMIT 1",
+          [item.productCode, userId],
+        );
+        productCodeRecord = rows[0];
+      } catch (err) {
+        return res.status(500).json({
+          success: false,
+          message: "Database error",
+          error: err,
+        });
+      }
       if (!productCodeRecord) {
         return res.status(404).json({
           success: false,
@@ -78,10 +149,20 @@ module.exports.createSale = async (req, res) => {
         });
       }
 
-      const productRecord = await ProductModel.findOne({
-        _id: productCodeRecord.product,
-        user_id: userId,
-      });
+      let productRecord;
+      try {
+        const rows = await query(
+          "SELECT * FROM products WHERE id = ? AND user_id = ? LIMIT 1",
+          [productCodeRecord.product, userId],
+        );
+        productRecord = rows[0];
+      } catch (err) {
+        return res.status(500).json({
+          success: false,
+          message: "Database error",
+          error: err,
+        });
+      }
       if (!productRecord) {
         return res.status(404).json({
           success: false,
@@ -89,7 +170,7 @@ module.exports.createSale = async (req, res) => {
         });
       }
 
-      if (item.product && String(item.product) !== String(productRecord._id)) {
+      if (item.product && Number(item.product) !== Number(productRecord.id)) {
         return res.status(400).json({
           success: false,
           message: "Product does not match selected product code",
@@ -97,11 +178,7 @@ module.exports.createSale = async (req, res) => {
       }
 
       const defaultUnitPrice =
-        Number(productRecord.salePrice) ||
-        productRecord.pricing?.currentSalesPrice ||
-        productRecord.Price ||
-        Number(productCodeRecord.salePrice) ||
-        0;
+        Number(productRecord.salePrice) || Number(productRecord.Price) || 0;
       const requestedPrice = Number(item.price);
       const unitPrice =
         Number.isFinite(requestedPrice) && requestedPrice >= 0
@@ -109,8 +186,8 @@ module.exports.createSale = async (req, res) => {
           : defaultUnitPrice;
       totalAmount += unitPrice * item.quantity;
       resolvedProducts.push({
-        product: productRecord._id,
-        productCode: productCodeRecord._id,
+        product: productRecord.id,
+        productCode: productCodeRecord.id,
         quantity: item.quantity,
         price: unitPrice,
       });
@@ -121,30 +198,72 @@ module.exports.createSale = async (req, res) => {
       await validateSaleStockAvailability(resolvedProducts, [], userId);
     }
 
-    // Create sale
-    const sale = await Sale.create({
-      user_id: userId,
-      customer: customer._id,
-      customerName,
-      products: resolvedProducts,
-      paymentMethod,
-      // paymentStatus,
-      status: resolvedSaleStatus,
-      totalAmount,
-      stockOutRecorded: false,
-    });
+    let saleInsert;
+    try {
+      saleInsert = await query(
+        "INSERT INTO sales (user_id, customer, customerName, paymentMethod, status, totalAmount, stockOutRecorded) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [
+          userId,
+          customerId,
+          customerName,
+          paymentMethod || null,
+          resolvedSaleStatus,
+          totalAmount,
+          false,
+        ],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+    const saleId = saleInsert.insertId;
+
+    const saleItemValues = resolvedProducts.map((item) => [
+      saleId,
+      userId,
+      item.product,
+      item.productCode,
+      item.quantity,
+      item.price,
+    ]);
+    try {
+      await query(
+        "INSERT INTO sale_items (sale_id, user_id, product, productCode, quantity, price) VALUES ?",
+        [saleItemValues],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     const invoiceItems = [];
-
     for (let i = 0; i < resolvedProducts.length; i += 1) {
-      const productRecord = await ProductModel.findOne({
-        _id: resolvedProducts[i].product,
-        user_id: userId,
-      });
-      const productCodeRecord = await ProductCode.findOne({
-        _id: resolvedProducts[i].productCode,
-        user_id: userId,
-      });
+      let productRecord;
+      let productCodeRecord;
+      try {
+        const productRows = await query(
+          "SELECT name FROM products WHERE id = ? AND user_id = ? LIMIT 1",
+          [resolvedProducts[i].product, userId],
+        );
+        productRecord = productRows[0];
+        const codeRows = await query(
+          "SELECT code, variantName FROM product_codes WHERE id = ? AND user_id = ? LIMIT 1",
+          [resolvedProducts[i].productCode, userId],
+        );
+        productCodeRecord = codeRows[0];
+      } catch (err) {
+        return res.status(500).json({
+          success: false,
+          message: "Database error",
+          error: err,
+        });
+      }
       const variantLabel = productCodeRecord?.variantName
         ? ` - ${productCodeRecord.variantName}`
         : "";
@@ -165,46 +284,96 @@ module.exports.createSale = async (req, res) => {
     const resolvedPaymentMethod =
       paymentMethodMap[paymentMethod] || paymentMethod || "cash";
 
-    const invoice = await Invoice.create({
-      user_id: userId,
-      invoiceNumber,
-      invoiceType: "sales",
-      customerId: customer._id,
-      customer: {
-        name: customerName,
-        phone: customer.contactInfo?.phone || "",
-        address: customer.contactInfo?.address || "",
-      },
-      items: invoiceItems,
-      taxRate: 0,
-      discount: 0,
-      currency: "Rs",
-      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      paymentMethod: resolvedPaymentMethod,
-      // status: paymentStatus === "paid" ? "paid" : "sent",
-      status: "sent",
-      subTotal: totalAmount,
-      taxAmount: 0,
-      totalAmount,
-    });
-
-    sale.invoice = invoice._id;
-    if (resolvedSaleStatus === "completed") {
-      await createSaleCompletedStockOut(sale, userId);
-      sale.stockOutRecorded = true;
+    let invoiceInsert;
+    try {
+      invoiceInsert = await query(
+        "INSERT INTO invoices (user_id, invoiceNumber, invoiceType, customerId, customer_name, customer_phone, customer_address, taxRate, discount, currency, dueDate, paymentMethod, status, subTotal, taxAmount, totalAmount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          userId,
+          invoiceNumber,
+          "sales",
+          customerId,
+          customerName,
+          customer.contact_phone || "",
+          customer.contact_address || "",
+          0,
+          0,
+          "Rs",
+          new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          resolvedPaymentMethod,
+          "sent",
+          totalAmount,
+          0,
+          totalAmount,
+        ],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
     }
-    await sale.save();
-    const populatedSale = await Sale.findOne({
-      _id: sale._id,
-      user_id: userId,
-    })
-      .populate("products.product")
-      .populate("products.productCode")
-      .populate("customer");
+
+    const invoiceId = invoiceInsert.insertId;
+    const invoiceItemValues = invoiceItems.map((item) => [
+      invoiceId,
+      item.name,
+      item.quantity,
+      item.unitPrice,
+      item.total,
+    ]);
+    try {
+      await query(
+        "INSERT INTO invoice_items (invoice_id, name, quantity, unitPrice, total) VALUES ?",
+        [invoiceItemValues],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+
+    if (resolvedSaleStatus === "completed") {
+      await createSaleCompletedStockOut(
+        {
+          id: saleId,
+          products: resolvedProducts,
+        },
+        userId,
+      );
+      await query(
+        "UPDATE sales SET stockOutRecorded = ? WHERE id = ? AND user_id = ?",
+        [true, saleId, userId],
+      );
+    }
+
+    try {
+      await query("UPDATE sales SET invoice = ? WHERE id = ? AND user_id = ?", [
+        invoiceId,
+        saleId,
+        userId,
+      ]);
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+
+    const salesRows = await query(
+      "SELECT * FROM sales WHERE id = ? AND user_id = ? LIMIT 1",
+      [saleId, userId],
+    );
+    const populatedSale = await hydrateSales(salesRows, userId);
+
     res.status(201).json({
       success: true,
       message: "Sale created successfully",
-      sale: populatedSale,
+      sale: populatedSale[0],
     });
   } catch (error) {
     console.error("Create Sale Error:", error);
@@ -224,16 +393,32 @@ module.exports.createSale = async (req, res) => {
   }
 };
 
-// Get All Sales
 module.exports.getAllSales = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const sales = await Sale.find({ user_id: userId })
-      .populate("products.product")
-      .populate("products.productCode")
-      .populate("customer")
-      .sort({ createdAt: -1 });
-    res.status(200).json({ success: true, sales });
+    let sales;
+    try {
+      sales = await query("SELECT * FROM sales WHERE user_id = ? ORDER BY createdAt DESC", [
+        userId,
+      ]);
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+
+    const hydrated = await hydrateSales(sales, userId);
+    const errorEntry = hydrated.find((s) => s?.error);
+    if (errorEntry) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: errorEntry.error,
+      });
+    }
+    res.status(200).json({ success: true, sales: hydrated });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -243,20 +428,38 @@ module.exports.getAllSales = async (req, res) => {
   }
 };
 
-// Get Sale By ID
 module.exports.getSaleById = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.userId;
-    const sale = await Sale.findOne({ _id: id, user_id: userId })
-      .populate("products.product")
-      .populate("products.productCode")
-      .populate("customer");
+    let sale;
+    try {
+      const rows = await query(
+        "SELECT * FROM sales WHERE id = ? AND user_id = ? LIMIT 1",
+        [id, userId],
+      );
+      sale = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
     if (!sale)
       return res
         .status(404)
         .json({ success: false, message: "Sale not found" });
-    res.status(200).json({ success: true, sale });
+    const hydrated = await hydrateSales([sale], userId);
+    const errorEntry = hydrated.find((s) => s?.error);
+    if (errorEntry) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: errorEntry.error,
+      });
+    }
+    res.status(200).json({ success: true, sale: hydrated[0] });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -266,12 +469,10 @@ module.exports.getSaleById = async (req, res) => {
   }
 };
 
-// Update Sale
 module.exports.updateSale = async (req, res) => {
   try {
     const { id } = req.params;
     const updatedData = req.body;
-    // Disable payment status updates from sales flow
     if (Object.prototype.hasOwnProperty.call(updatedData, "paymentStatus")) {
       delete updatedData.paymentStatus;
     }
@@ -284,17 +485,27 @@ module.exports.updateSale = async (req, res) => {
       });
     }
 
-    const customer = await Customer.findOne({
-      _id: updatedData.customerId,
-      user_id: userId,
-    });
+    let customer;
+    try {
+      const rows = await query(
+        "SELECT * FROM customers WHERE id = ? AND user_id = ? LIMIT 1",
+        [updatedData.customerId, userId],
+      );
+      customer = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
     if (!customer) {
       return res.status(404).json({
         success: false,
         message: "Customer not found",
       });
     }
-    if (!customer.contactInfo?.address?.trim()) {
+    if (!customer.contact_address || !String(customer.contact_address).trim()) {
       return res.status(400).json({
         success: false,
         message: "Customer address is required",
@@ -308,8 +519,20 @@ module.exports.updateSale = async (req, res) => {
       });
     }
 
-    // 1️⃣ Fetch existing sale
-    const existingSale = await Sale.findOne({ _id: id, user_id: userId });
+    let existingSale;
+    try {
+      const rows = await query(
+        "SELECT * FROM sales WHERE id = ? AND user_id = ? LIMIT 1",
+        [id, userId],
+      );
+      existingSale = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
     if (!existingSale) {
       return res.status(404).json({
         success: false,
@@ -319,7 +542,6 @@ module.exports.updateSale = async (req, res) => {
 
     const resolvedStatus = updatedData.status || existingSale.status || "pending";
 
-    // 2️⃣ Validate NEW products & availability
     let updatedTotalAmount = 0;
     const resolvedProducts = [];
 
@@ -331,10 +553,20 @@ module.exports.updateSale = async (req, res) => {
         });
       }
 
-      const productCodeRecord = await ProductCode.findOne({
-        _id: item.productCode,
-        user_id: userId,
-      });
+      let productCodeRecord;
+      try {
+        const rows = await query(
+          "SELECT * FROM product_codes WHERE id = ? AND user_id = ? LIMIT 1",
+          [item.productCode, userId],
+        );
+        productCodeRecord = rows[0];
+      } catch (err) {
+        return res.status(500).json({
+          success: false,
+          message: "Database error",
+          error: err,
+        });
+      }
       if (!productCodeRecord) {
         return res.status(404).json({
           success: false,
@@ -342,10 +574,20 @@ module.exports.updateSale = async (req, res) => {
         });
       }
 
-      const productRecord = await ProductModel.findOne({
-        _id: productCodeRecord.product,
-        user_id: userId,
-      });
+      let productRecord;
+      try {
+        const rows = await query(
+          "SELECT * FROM products WHERE id = ? AND user_id = ? LIMIT 1",
+          [productCodeRecord.product, userId],
+        );
+        productRecord = rows[0];
+      } catch (err) {
+        return res.status(500).json({
+          success: false,
+          message: "Database error",
+          error: err,
+        });
+      }
       if (!productRecord) {
         return res.status(404).json({
           success: false,
@@ -354,11 +596,7 @@ module.exports.updateSale = async (req, res) => {
       }
 
       const defaultUnitPrice =
-        Number(productRecord.salePrice) ||
-        productRecord.pricing?.currentSalesPrice ||
-        productRecord.Price ||
-        Number(productCodeRecord.salePrice) ||
-        0;
+        Number(productRecord.salePrice) || Number(productRecord.Price) || 0;
       const requestedPrice = Number(item.price);
       const unitPrice =
         Number.isFinite(requestedPrice) && requestedPrice >= 0
@@ -366,51 +604,89 @@ module.exports.updateSale = async (req, res) => {
           : defaultUnitPrice;
       updatedTotalAmount += item.quantity * unitPrice;
       resolvedProducts.push({
-        product: productRecord._id,
-        productCode: productCodeRecord._id,
+        product: productRecord.id,
+        productCode: productCodeRecord.id,
         quantity: item.quantity,
         price: unitPrice,
       });
     }
 
     if (resolvedStatus === "completed") {
+      const oldCompletedItems = await query(
+        "SELECT product, productCode, quantity, price FROM sale_items WHERE sale_id = ? AND user_id = ?",
+        [id, userId],
+      );
       await validateSaleStockAvailability(
         resolvedProducts,
-        existingSale.status === "completed" ? existingSale.products : [],
+        existingSale.status === "completed" ? oldCompletedItems : [],
         userId,
       );
     }
 
     if (existingSale.status === "completed") {
-      await rollbackSaleCompletedStockOut(existingSale._id, userId);
+      await rollbackSaleCompletedStockOut(existingSale.id, userId);
     }
 
-    // 3️⃣ Update sale
-    const updatedSale = await Sale.findOneAndUpdate(
-      { _id: id, user_id: userId },
-      {
-        ...updatedData,
-        customer: customer._id,
-        customerName: customer.name,
-        products: resolvedProducts,
-        totalAmount: updatedTotalAmount,
-        status: resolvedStatus,
-        stockOutRecorded: false,
-      },
-      { new: true },
-    );
+    try {
+      await query(
+        "UPDATE sales SET customer = ?, customerName = ?, paymentMethod = ?, status = ?, totalAmount = ?, stockOutRecorded = ? WHERE id = ? AND user_id = ?",
+        [
+          customer.id,
+          customer.name,
+          updatedData.paymentMethod || existingSale.paymentMethod,
+          resolvedStatus,
+          updatedTotalAmount,
+          false,
+          id,
+          userId,
+        ],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+
+    try {
+      await query("DELETE FROM sale_items WHERE sale_id = ? AND user_id = ?", [
+        id,
+        userId,
+      ]);
+      const saleItemValues = resolvedProducts.map((item) => [
+        id,
+        userId,
+        item.product,
+        item.productCode,
+        item.quantity,
+        item.price,
+      ]);
+      await query(
+        "INSERT INTO sale_items (sale_id, user_id, product, productCode, quantity, price) VALUES ?",
+        [saleItemValues],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
 
     if (existingSale.invoice) {
       const invoiceItems = [];
       for (const item of resolvedProducts) {
-        const productRecord = await ProductModel.findOne({
-          _id: item.product,
-          user_id: userId,
-        });
-        const productCodeRecord = await ProductCode.findOne({
-          _id: item.productCode,
-          user_id: userId,
-        });
+        const productRows = await query(
+          "SELECT name FROM products WHERE id = ? AND user_id = ? LIMIT 1",
+          [item.product, userId],
+        );
+        const codeRows = await query(
+          "SELECT code, variantName FROM product_codes WHERE id = ? AND user_id = ? LIMIT 1",
+          [item.productCode, userId],
+        );
+        const productRecord = productRows[0];
+        const productCodeRecord = codeRows[0];
         const variantLabel = productCodeRecord?.variantName
           ? ` - ${productCodeRecord.variantName}`
           : "";
@@ -422,38 +698,72 @@ module.exports.updateSale = async (req, res) => {
         });
       }
 
-      await Invoice.findOneAndUpdate(
-        { _id: existingSale.invoice, user_id: userId },
-        {
-          customerId: customer._id,
-          customer: {
-            name: customer.name,
-            phone: customer.contactInfo?.phone || "",
-            address: customer.contactInfo?.address || "",
-          },
-          items: invoiceItems,
-          subTotal: updatedTotalAmount,
-          totalAmount: updatedTotalAmount,
-        },
-      );
+      try {
+        await query(
+          "UPDATE invoices SET customerId = ?, customer_name = ?, customer_phone = ?, customer_address = ?, subTotal = ?, totalAmount = ? WHERE id = ? AND user_id = ?",
+          [
+            customer.id,
+            customer.name,
+            customer.contact_phone || "",
+            customer.contact_address || "",
+            updatedTotalAmount,
+            updatedTotalAmount,
+            existingSale.invoice,
+            userId,
+          ],
+        );
+        await query("DELETE FROM invoice_items WHERE invoice_id = ?", [
+          existingSale.invoice,
+        ]);
+        const invoiceItemValues = invoiceItems.map((item) => [
+          existingSale.invoice,
+          item.name,
+          item.quantity,
+          item.unitPrice,
+          item.total,
+        ]);
+        await query(
+          "INSERT INTO invoice_items (invoice_id, name, quantity, unitPrice, total) VALUES ?",
+          [invoiceItemValues],
+        );
+      } catch (err) {
+        return res.status(500).json({
+          success: false,
+          message: "Database error",
+          error: err,
+        });
+      }
     }
 
     if (resolvedStatus === "completed") {
-      await createSaleCompletedStockOut(updatedSale, userId);
-      updatedSale.stockOutRecorded = true;
-      await updatedSale.save();
+      await createSaleCompletedStockOut(
+        { id, products: resolvedProducts },
+        userId,
+      );
+      await query(
+        "UPDATE sales SET stockOutRecorded = ? WHERE id = ? AND user_id = ?",
+        [true, id, userId],
+      );
     }
 
-    // 4️⃣ Populate for frontend
-    const populatedSale = await Sale.findOne({ _id: id, user_id: userId })
-      .populate("products.product")
-      .populate("products.productCode")
-      .populate("customer");
+    const updatedRows = await query(
+      "SELECT * FROM sales WHERE id = ? AND user_id = ? LIMIT 1",
+      [id, userId],
+    );
+    const populatedSale = await hydrateSales(updatedRows, userId);
+    const errorEntry = populatedSale.find((s) => s?.error);
+    if (errorEntry) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: errorEntry.error,
+      });
+    }
 
     res.status(200).json({
       success: true,
       message: "Sale updated successfully",
-      sale: populatedSale,
+      sale: populatedSale[0],
     });
   } catch (error) {
     console.error("Update Sale Error:", error);
@@ -473,32 +783,31 @@ module.exports.updateSale = async (req, res) => {
   }
 };
 
-// Search Sales
 module.exports.SearchSales = async (req, res) => {
   try {
-    const { query } = req.query;
+    const { query: searchQuery } = req.query;
     const userId = req.user.userId;
 
-    if (!query || query.trim() === "") {
-      const allSales = await Sale.find({ user_id: userId })
-        .populate("products.product")
-        .populate("products.productCode")
-        .populate("customer");
-      return res.status(200).json({ success: true, sales: allSales });
+    let sales;
+    if (!searchQuery || searchQuery.trim() === "") {
+      sales = await query("SELECT * FROM sales WHERE user_id = ?", [userId]);
+    } else {
+      sales = await query(
+        "SELECT * FROM sales WHERE user_id = ? AND (customerName LIKE ? OR paymentMethod LIKE ?)",
+        [userId, `%${searchQuery}%`, `%${searchQuery}%`],
+      );
     }
 
-    const searchdata = await Sale.find({
-      user_id: userId,
-      $or: [
-        { customerName: { $regex: query, $options: "i" } },
-        { paymentMethod: { $regex: query, $options: "i" } },
-      ],
-    })
-      .populate("products.product")
-      .populate("products.productCode")
-      .populate("customer");
-
-    res.status(200).json({ success: true, sales: searchdata });
+    const hydrated = await hydrateSales(sales, userId);
+    const errorEntry = hydrated.find((s) => s?.error);
+    if (errorEntry) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: errorEntry.error,
+      });
+    }
+    res.status(200).json({ success: true, sales: hydrated });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -508,16 +817,25 @@ module.exports.SearchSales = async (req, res) => {
   }
 };
 
-// Get Sales By Customer
 module.exports.getSalesByCustomer = async (req, res) => {
   try {
     const { customerId } = req.params;
     const userId = req.user.userId;
 
-    const customer = await Customer.findOne({
-      _id: customerId,
-      user_id: userId,
-    });
+    let customer;
+    try {
+      const rows = await query(
+        "SELECT * FROM customers WHERE id = ? AND user_id = ? LIMIT 1",
+        [customerId, userId],
+      );
+      customer = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
     if (!customer) {
       return res.status(404).json({
         success: false,
@@ -525,11 +843,19 @@ module.exports.getSalesByCustomer = async (req, res) => {
       });
     }
 
-    const sales = await Sale.find({ user_id: userId, customer: customerId })
-      .populate("products.product")
-      .populate("products.productCode")
-      .populate("customer")
-      .sort({ createdAt: -1 });
+    const salesRows = await query(
+      "SELECT * FROM sales WHERE user_id = ? AND customer = ? ORDER BY createdAt DESC",
+      [userId, customerId],
+    );
+    const sales = await hydrateSales(salesRows, userId);
+    const errorEntry = sales.find((s) => s?.error);
+    if (errorEntry) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: errorEntry.error,
+      });
+    }
 
     const summary = sales.reduce(
       (acc, sale) => {
@@ -545,25 +871,17 @@ module.exports.getSalesByCustomer = async (req, res) => {
     const normalizedCustomerName = normalizeText(customer?.name);
     const normalizedCustomerCode = normalizeText(customer?.customerCode);
 
-    const payments = await Payment.find({
-      user_id: userId,
-      partyType: "customer",
-      type: "received",
-      $or: [
-        { customerId: customerId },
-        { customerId: { $exists: false } },
-        { customerId: null },
-      ],
-    }).select("amount customer customerId invoice");
+    const payments = await query(
+      "SELECT amount, customer_name, customer_code, customerId, invoice FROM payments WHERE user_id = ? AND partyType = ? AND type = ?",
+      [userId, "customer", "received"],
+    );
 
     let paidAmount = 0;
     const paidInvoiceIds = new Set();
     payments.forEach((payment) => {
-      const paymentCustomerId = payment.customerId
-        ? String(payment.customerId)
-        : "";
-      const paymentName = normalizeText(payment.customer?.name);
-      const paymentCode = normalizeText(payment.customer?.code);
+      const paymentCustomerId = payment.customerId ? String(payment.customerId) : "";
+      const paymentName = normalizeText(payment.customer_name);
+      const paymentCode = normalizeText(payment.customer_code);
 
       const matchesCustomer =
         paymentCustomerId === String(customerId) ||
@@ -578,21 +896,13 @@ module.exports.getSalesByCustomer = async (req, res) => {
       }
     });
 
-    const invoices = await Invoice.find({
-      invoiceType: "sales",
-      user_id: userId,
-      $or: [
-        { customerId: customerId },
-        { "customer.name": customer?.name || "" },
-        { "customer.code": customer?.customerCode || "" },
-      ],
-    }).select("_id totalAmount status");
+    const invoices = await query(
+      "SELECT id, totalAmount, status FROM invoices WHERE invoiceType = ? AND user_id = ? AND (customerId = ? OR customer_name = ? OR customer_code = ?)",
+      ["sales", userId, customerId, customer?.name || "", customer?.customerCode || ""],
+    );
 
     invoices.forEach((invoice) => {
-      if (
-        invoice.status === "paid" &&
-        !paidInvoiceIds.has(String(invoice._id))
-      ) {
+      if (invoice.status === "paid" && !paidInvoiceIds.has(String(invoice.id))) {
         paidAmount += Number(invoice.totalAmount) || 0;
       }
     });
@@ -602,7 +912,13 @@ module.exports.getSalesByCustomer = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      customer,
+      customer: {
+        ...customer,
+        contactInfo: {
+          phone: customer.contact_phone || "",
+          address: customer.contact_address || "",
+        },
+      },
       sales,
       summary,
     });
