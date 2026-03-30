@@ -3,26 +3,10 @@ import { useNavigate } from "react-router-dom";
 import axiosInstance from "../lib/axios";
 import { toast } from "react-hot-toast";
 import { MdDelete } from "react-icons/md";
-import { useSelector } from "react-redux";
 import { IoMdAdd } from "react-icons/io";
 
 function CreateInvoicePage() {
   const navigate = useNavigate();
-  const { user } = useSelector((state) => state.auth);
-
-  const dashboardBasePath = (() => {
-    switch (user?.role) {
-      case "admin":
-        return "/AdminDashboard";
-      case "manager":
-        return "/ManagerDashboard";
-      case "staff":
-        return "/StaffDashboard";
-      default:
-        return "/";
-    }
-  })();
-
   const [invoiceType, setInvoiceType] = useState("sales");
   const [customers, setCustomers] = useState([]);
   const [customerId, setCustomerId] = useState("");
@@ -115,7 +99,7 @@ function CreateInvoicePage() {
         currency: "Rs",
       });
       toast.success("Invoice created successfully");
-      navigate(`${dashboardBasePath}/invoices`);
+      navigate("/invoices");
     } catch (err) {
       console.error(err);
       toast.error("Failed to create invoice");
@@ -343,7 +327,7 @@ function CreateInvoicePage() {
               Create Invoice
             </button>
             <button
-              onClick={() => navigate(`${dashboardBasePath}/invoices`)}
+              onClick={() => navigate("/invoices")}
               className="px-6 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500"
             >
               Cancel

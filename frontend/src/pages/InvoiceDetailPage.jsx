@@ -5,27 +5,12 @@ import axiosInstance from "../lib/axios";
 import { toast } from "react-hot-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { useSelector } from "react-redux";
 
 function InvoiceDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { user } = useSelector((state) => state.auth);
-
-  const dashboardBasePath = (() => {
-    switch (user?.role) {
-      case "admin":
-        return "/AdminDashboard";
-      case "manager":
-        return "/ManagerDashboard";
-      case "staff":
-        return "/StaffDashboard";
-      default:
-        return "/";
-    }
-  })();
   useEffect(() => {
     const fetchInvoice = async () => {
       try {
@@ -141,7 +126,7 @@ function InvoiceDetailPage() {
       {/* ACTION BAR (outside invoice) */}
       <div className="flex justify-between items-center mb-4 print:hidden">
         <button
-          onClick={() => navigate(`${dashboardBasePath}/invoices`)}
+          onClick={() => navigate("/invoices")}
           className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
         >
           ← Back
@@ -149,9 +134,7 @@ function InvoiceDetailPage() {
 
         <div className="flex gap-2">
           <button
-            onClick={() =>
-              navigate(`${dashboardBasePath}/editInvoice/${invoice._id}`)
-            }
+            onClick={() => navigate(`/editInvoice/${invoice._id}`)}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             Edit

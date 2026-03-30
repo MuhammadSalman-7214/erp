@@ -55,7 +55,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
     dispatch(logout())
       .then(() => {
         toast.success("Logout successfully");
-        navigator("/");
+        navigator("/login");
       })
       .catch((error) => {
         toast.error("Error in logout");
@@ -82,7 +82,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
 
       <nav className="space-y-1 p-2">
         <NavItem
-          to="/ManagerDashboard"
+          to="/"
           icon={<RiDashboard3Fill />}
           label="Dashboard"
           sidebarOpen={sidebarOpen}
@@ -91,83 +91,83 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
         {user?.role === "manager" && (
           <>
             <NavItem
-              to="/ManagerDashboard/product"
+              to="/product"
               icon={<AiOutlineProduct />}
               label="Product"
               sidebarOpen={sidebarOpen}
             />
             {/* 
             <NavItem
-              to="/ManagerDashboard/activity-log"
+              to="/activity-log"
               icon={<RxActivityLog />}
               label="Activity Log"
               sidebarOpen={sidebarOpen}
             /> */}
 
             <NavItem
-              to="/ManagerDashboard/supplier"
+              to="/supplier"
               icon={<TfiSupport />}
               label="Vendor"
               sidebarOpen={sidebarOpen}
             />
             <NavItem
-              to="/ManagerDashboard/customer"
+              to="/customer"
               icon={<LuUsers />}
               label="Customer"
               sidebarOpen={sidebarOpen}
             />
 
             <NavItem
-              to="/ManagerDashboard/sales"
+              to="/sales"
               icon={<MdPointOfSale />}
               label="Sales"
               sidebarOpen={sidebarOpen}
             />
 
             <NavItem
-              to="/ManagerDashboard/invoices"
+              to="/invoices"
               icon={<PiInvoiceBold />}
               label="Invoices"
               sidebarOpen={sidebarOpen}
             />
 
             <NavItem
-              to="/ManagerDashboard/payments"
+              to="/payments"
               icon={<PiInvoiceBold />}
               label="Payments"
               sidebarOpen={sidebarOpen}
             />
 
             <NavItem
-              to="/ManagerDashboard/order"
+              to="/order"
               icon={<FiShoppingCart />}
               label="Order"
               sidebarOpen={sidebarOpen}
             />
 
             <NavItem
-              to="/ManagerDashboard/stock-transaction"
+              to="/stock-transaction"
               icon={<RiStockLine />}
               label="Stock Transaction"
               sidebarOpen={sidebarOpen}
             />
 
             <NavItem
-              to="/ManagerDashboard/NotificationPageRead"
+              to="/notifications"
               icon={<IoNotificationsOutline />}
               label="Notifications"
               sidebarOpen={sidebarOpen}
             />
 
             <NavItem
-              to="/ManagerDashboard/category"
+              to="/category"
               icon={<MdOutlineCategory />}
               label="Category"
               sidebarOpen={sidebarOpen}
             />
 
             <NavItem
-              to="/ManagerDashboard/Userstatus"
+              to="/Userstatus"
               icon={<LuUsers />}
               label="Users"
               sidebarOpen={sidebarOpen}
@@ -178,75 +178,75 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
         {user?.role === "admin" && (
           <>
             <NavItem
-              to="/AdminDashboard/product"
+              to="/product"
               icon={<AiOutlineProduct />}
               label="Product"
               sidebarOpen={sidebarOpen}
             />
 
             {/* <NavItem
-              to="/AdminDashboard/activity-log"
+              to="/activity-log"
               icon={<RxActivityLog />}
               label="Activity Log"
               sidebarOpen={sidebarOpen}
             /> */}
 
             <NavItem
-              to="/AdminDashboard/order"
+              to="/order"
               icon={<FiShoppingCart />}
               label="Purchase Order"
               sidebarOpen={sidebarOpen}
             />
 
             <NavItem
-              to="/AdminDashboard/sales"
+              to="/sales"
               icon={<MdPointOfSale />}
               label="Sales"
               sidebarOpen={sidebarOpen}
             />
 
             <NavItem
-              to="/AdminDashboard/invoices"
+              to="/invoices"
               icon={<PiInvoiceBold />}
               label="Invoices"
               sidebarOpen={sidebarOpen}
             />
 
             <NavItem
-              to="/AdminDashboard/payments"
+              to="/payments"
               icon={<PiInvoiceBold />}
               label="Payments"
               sidebarOpen={sidebarOpen}
             />
 
             <NavItem
-              to="/AdminDashboard/stock-transaction"
+              to="/stock-transaction"
               icon={<RiStockLine />}
               label="Stock Transaction"
               sidebarOpen={sidebarOpen}
             />
             <NavItem
-              to="/AdminDashboard/supplier"
+              to="/supplier"
               icon={<TfiSupport />}
               label="Vendor"
               sidebarOpen={sidebarOpen}
             />
             <NavItem
-              to="/AdminDashboard/customer"
+              to="/customer"
               icon={<LuUsers />}
               label="Customer"
               sidebarOpen={sidebarOpen}
             />
             {/* 
             <NavItem
-              to="/AdminDashboard/notifications"
+              to="/notifications"
               icon={<IoNotificationsOutline />}
               label="Create Notifications"
               sidebarOpen={sidebarOpen}
             /> */}
 
             <NavItem
-              to="/AdminDashboard/category"
+              to="/category"
               icon={<MdOutlineCategory />}
               label="Category"
               sidebarOpen={sidebarOpen}
@@ -257,62 +257,62 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
         {user?.role === "staff" && (
           <ul className="space-y-2">
             <NavItem
-              to="/StaffDashboard/product"
+              to="/product"
               icon={<AiOutlineProduct />}
               label="Product"
               sidebarOpen={sidebarOpen}
             />
 
             {/* <NavItem
-              to="/StaffDashboard/activity-log"
+              to="/activity-log"
               icon={<RxActivityLog />}
               label="Activity Log"
               sidebarOpen={sidebarOpen}
             /> */}
 
             <NavItem
-              to="/StaffDashboard/supplier"
+              to="/supplier"
               icon={<TfiSupport />}
               label="Vendor"
               sidebarOpen={sidebarOpen}
             />
             <NavItem
-              to="/StaffDashboard/customer"
+              to="/customer"
               icon={<LuUsers />}
               label="Customer"
               sidebarOpen={sidebarOpen}
             />
 
             <NavItem
-              to="/StaffDashboard/sales"
+              to="/sales"
               icon={<MdPointOfSale />}
               label="Sales"
               sidebarOpen={sidebarOpen}
             />
 
             <NavItem
-              to="/StaffDashboard/order"
+              to="/order"
               icon={<FiShoppingCart />}
               label="Order"
               sidebarOpen={sidebarOpen}
             />
 
             <NavItem
-              to="/StaffDashboard/payments"
+              to="/payments"
               icon={<PiInvoiceBold />}
               label="Payments"
               sidebarOpen={sidebarOpen}
             />
 
             {/* <NavItem
-              to="/StaffDashboard/stock-transaction"
+              to="/stock-transaction"
               icon={<RiStockLine />}
               label="Stock Transaction"
               sidebarOpen={sidebarOpen}
             /> */}
 
             <NavItem
-              to="/StaffDashboard/NotificationPageRead"
+              to="/notifications"
               icon={<IoNotificationsOutline />}
               label="Notifications"
               sidebarOpen={sidebarOpen}

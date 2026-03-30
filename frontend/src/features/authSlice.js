@@ -57,6 +57,9 @@ export const logout = createAsyncThunk(
     try {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
+      if (typeof window !== "undefined") {
+        window.location.replace("/login");
+      }
       // localStorage.removeItem("authUser");
       return null;
     } catch (error) {

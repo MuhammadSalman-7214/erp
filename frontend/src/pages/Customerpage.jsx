@@ -20,26 +20,12 @@ import {
 function Customerpage({ readOnly = false }) {
   const dispatch = useDispatch();
   const { getAllCustomer, searchData } = useSelector((state) => state.customer);
-  const { user } = useSelector((state) => state.auth);
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
   const navigate = useNavigate();
 
   const isReadOnlyMode = readOnly || checkReadOnly("customer");
   const canWrite = hasPermission("customer", "write");
   const canDelete = hasPermission("customer", "delete");
-
-  const dashboardBasePath = (() => {
-    switch (user?.role) {
-      case "admin":
-        return "/AdminDashboard";
-      case "manager":
-        return "/ManagerDashboard";
-      case "staff":
-        return "/StaffDashboard";
-      default:
-        return "";
-    }
-  })();
 
   const [query, setQuery] = useState("");
   const [name, setName] = useState("");
@@ -172,7 +158,7 @@ function Customerpage({ readOnly = false }) {
   };
 
   const handleViewCustomer = (customerId) => {
-    navigate(`${dashboardBasePath}/customer/${customerId}`);
+    navigate(`/customer/${customerId}`);
   };
 
   const handleEditClick = (customer) => {

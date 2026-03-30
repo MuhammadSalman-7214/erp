@@ -5,18 +5,6 @@ import { Link } from "react-router-dom";
 function TopNavbar() {
   const { user } = useSelector((state) => state.auth);
 
-  const dashboardBasePath = (() => {
-    switch (user?.role) {
-      case "admin":
-        return "/AdminDashboard";
-      case "manager":
-        return "/ManagerDashboard";
-      case "staff":
-        return "/StaffDashboard";
-      default:
-        return "/";
-    }
-  })();
   return (
     <nav className="bg-white w-full h-[72px] flex items-center justify-between px-8 border-b border-gray-200 shadow-sm">
       {/* LEFT */}
@@ -38,7 +26,7 @@ function TopNavbar() {
       <div className="flex items-center gap-4">
         <div className="h-8 w-[1px] bg-gray-200" /> {/* Divider */}
         <Link
-          to={`${dashboardBasePath}/Profilepage`}
+          to="/Profilepage"
           className="flex items-center gap-3 hover:bg-gray-50 px-3 py-2 rounded-lg transition"
         >
           <img

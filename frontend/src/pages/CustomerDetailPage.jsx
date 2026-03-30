@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useParams } from "react-router-dom";
 import axiosInstance from "../lib/axios";
 import FormattedTime from "../lib/FormattedTime";
 import NoData from "../Components/NoData";
@@ -13,9 +12,6 @@ import {
 
 function CustomerDetailPage() {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const { user } = useSelector((state) => state.auth);
-
   const [customer, setCustomer] = useState(null);
   const [sales, setSales] = useState([]);
   const [summary, setSummary] = useState({
@@ -25,19 +21,6 @@ function CustomerDetailPage() {
     count: 0,
   });
   const [loading, setLoading] = useState(true);
-
-  const dashboardBasePath = (() => {
-    switch (user?.role) {
-      case "admin":
-        return "/AdminDashboard";
-      case "manager":
-        return "/ManagerDashboard";
-      case "staff":
-        return "/StaffDashboard";
-      default:
-        return "";
-    }
-  })();
 
   useEffect(() => {
     const fetchCustomerSales = async () => {

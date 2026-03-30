@@ -1,5 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { useSelector } from "react-redux";
+import React, { useEffect, useState } from "react";
 import axiosInstance from "../lib/axios";
 import { useNavigate } from "react-router-dom";
 import {
@@ -15,25 +14,11 @@ import {
 } from "lucide-react";
 
 function Dashboardpage() {
-  const { user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
   const [summary, setSummary] = useState(null);
   const [recentInvoices, setRecentInvoices] = useState([]);
   const [overdueInvoices, setOverdueInvoices] = useState([]);
   const [lowStockProducts, setLowStockProducts] = useState([]);
-
-  const dashboardBasePath = useMemo(() => {
-    switch (user?.role) {
-      case "admin":
-        return "/AdminDashboard";
-      case "manager":
-        return "/ManagerDashboard";
-      case "staff":
-        return "/StaffDashboard";
-      default:
-        return "/";
-    }
-  }, [user?.role]);
 
   const accentStyles = {
     emerald: {
@@ -71,31 +56,31 @@ function Dashboardpage() {
   const dashboardCards = [
     {
       label: "New Sale",
-      path: `${dashboardBasePath}/sales`,
+      path: "/sales",
       icon: ShoppingCart,
       accent: "emerald",
     },
     {
       label: "New Purchase",
-      path: `${dashboardBasePath}/order`,
+      path: "/order",
       icon: Clipboard,
       accent: "blue",
     },
     {
       label: "Receive Payment",
-      path: `${dashboardBasePath}/payments`,
+      path: "/payments",
       icon: CreditCard,
       accent: "teal",
     },
     {
       label: "Make Payment",
-      path: `${dashboardBasePath}/payments`,
+      path: "/payments",
       icon: DollarSign,
       accent: "amber",
     },
     {
       label: "Add Product",
-      path: `${dashboardBasePath}/product`,
+      path: "/product",
       icon: Package,
       accent: "purple",
     },

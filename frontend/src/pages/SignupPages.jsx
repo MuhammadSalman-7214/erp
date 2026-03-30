@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { signup } from "../features/authSlice";
@@ -6,11 +6,13 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import toast from "react-hot-toast";
+import { IoEyeOffOutline, IoEyeOutline } from "react-icons/io5";
 
 function SignupPage() {
   const { user, isUserSignup } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
 
   const schema = yup.object().shape({
     name: yup.string().required("Name is required"),
@@ -35,19 +37,11 @@ function SignupPage() {
       const result = await dispatch(signup(data)).unwrap();
 
       // Redirect based on role after successful signup
-      const roleRedirects = {
-        admin: "/AdminDashboard",
-        manager: "/ManagerDashboard",
-        staff: "/StaffDashboard",
-      };
-
       const userRole = result?.user?.role || data.role;
-      const redirectPath = roleRedirects[userRole] || "/";
-
       toast.success(
         `Account created successfully! Welcome, ${result?.user?.name || data.name}!`,
       );
-      navigate(redirectPath);
+      navigate("/");
     } catch (error) {
       toast.error(error || "Signup failed. Please try again.");
     }
@@ -56,12 +50,7 @@ function SignupPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (user?.role) {
-      const roleRedirects = {
-        admin: "/AdminDashboard",
-        manager: "/ManagerDashboard",
-        staff: "/StaffDashboard",
-      };
-      navigate(roleRedirects[user.role] || "/signup");
+      navigate("/");
     }
   }, [user, navigate]);
 
@@ -124,13 +113,27 @@ function SignupPage() {
               >
                 Password
               </label>
-              <input
-                id="password"
-                type="password"
-                {...register("password")}
-                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-                placeholder="Enter your password"
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  {...register("password")}
+                  className="w-full p-3 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  placeholder="Enter your password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-teal-600"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <IoEyeOffOutline size={20} />
+                  ) : (
+                    <IoEyeOutline size={20} />
+                  )}
+                </button>
+              </div>
               {errors.password && (
                 <p className="text-red-500 text-sm mt-1">
                   {errors.password.message}
@@ -157,12 +160,12 @@ function SignupPage() {
               )}
             </div> */}
 
-            <div className="flex items-center mb-6">
+            {/* <div className="flex items-center mb-6">
               <input type="checkbox" id="terms" className="mr-2" />
               <label htmlFor="terms" className="text-gray-600 text-sm">
                 Agree to terms and conditions
               </label>
-            </div>
+            </div> */}
 
             <button
               type="submit"

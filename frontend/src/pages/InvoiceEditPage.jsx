@@ -99,7 +99,7 @@ function InvoiceEditPage() {
         dueDate,
       });
       toast.success("Invoice updated successfully");
-      navigate(`/ManagerDashboard/invoice/${id}`);
+      navigate(`/invoice/${id}`);
     } catch (err) {
       console.error(err);
       toast.error("Failed to update invoice");
@@ -307,7 +307,7 @@ function InvoiceEditPage() {
               Save Changes
             </button>
             <button
-              onClick={() => navigate(`/ManagerDashboard/invoice/${id}`)}
+              onClick={() => navigate(`/invoice/${id}`)}
               className="px-6 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 transition"
             >
               Cancel

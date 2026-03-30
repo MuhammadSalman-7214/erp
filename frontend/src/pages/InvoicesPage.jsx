@@ -5,7 +5,6 @@ import { MdDelete, MdEdit, MdVisibility } from "react-icons/md";
 import axiosInstance from "../lib/axios";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
 import NoData from "../Components/NoData";
 import { Popconfirm } from "antd";
 
@@ -13,20 +12,6 @@ function InvoicesPage() {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { user } = useSelector((state) => state.auth);
-
-  const dashboardBasePath = (() => {
-    switch (user?.role) {
-      case "admin":
-        return "/AdminDashboard";
-      case "manager":
-        return "/ManagerDashboard";
-      case "staff":
-        return "/StaffDashboard";
-      default:
-        return "/";
-    }
-  })();
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
 
@@ -103,7 +88,7 @@ function InvoicesPage() {
         </select>
 
         <button
-          onClick={() => navigate(`${dashboardBasePath}/createInvoice`)}
+          onClick={() => navigate("/createInvoice")}
           className="bg-teal-800 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
         >
           <IoMdAdd size={18} />
@@ -185,9 +170,7 @@ function InvoicesPage() {
                     <td className="px-5 py-4">
                       <div className="flex justify-end gap-2">
                         <button
-                          onClick={() =>
-                            navigate(`${dashboardBasePath}/invoice/${inv._id}`)
-                          }
+                          onClick={() => navigate(`/invoice/${inv._id}`)}
                           className="p-2 rounded-lg bg-slate-100 hover:bg-teal-100 text-teal-600 transition"
                           title="View"
                         >
@@ -195,11 +178,7 @@ function InvoicesPage() {
                         </button>
 
                         <button
-                          onClick={() =>
-                            navigate(
-                              `${dashboardBasePath}/editInvoice/${inv._id}`,
-                            )
-                          }
+                          onClick={() => navigate(`/editInvoice/${inv._id}`)}
                           className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
                           title="Edit"
                         >

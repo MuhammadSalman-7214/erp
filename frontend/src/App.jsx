@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { BrowserRouter as Router, Navigate, Route, Routes } from "react-router-dom";
+import { useSelector } from "react-redux";
 import HomePage from "./pages/HomePage";
 import SignupPage from "./pages/SignupPages";
 import ServicePage from "./pages/ServicePage";
@@ -30,6 +31,36 @@ import Customerpage from "./pages/Customerpage";
 import CustomerDetailPage from "./pages/CustomerDetailPage";
 import SupplierDetailPage from "./pages/SupplierDetailPage";
 
+const RoleDashboardLayout = () => {
+  const { user } = useSelector((state) => state.auth);
+
+  if (user?.role === "admin") return <AdminDashboard />;
+  if (user?.role === "manager") return <ManagerDashboard />;
+  if (user?.role === "staff") return <StaffDashboard />;
+
+  return <Navigate to="/login" replace />;
+};
+
+const ProductByRole = () => {
+  const { user } = useSelector((state) => state.auth);
+  return user?.role === "staff" ? <Productpage readOnly /> : <Productpage />;
+};
+
+const SupplierByRole = () => {
+  const { user } = useSelector((state) => state.auth);
+  return user?.role === "staff" ? <Supplierpage readOnly /> : <Supplierpage />;
+};
+
+const CustomerByRole = () => {
+  const { user } = useSelector((state) => state.auth);
+  return user?.role === "staff" ? <Customerpage readOnly /> : <Customerpage />;
+};
+
+const NotificationsByRole = () => {
+  const { user } = useSelector((state) => state.auth);
+  return user?.role === "admin" ? <Notificationpage /> : <NotificationPageRead />;
+};
+
 function App() {
   return (
     <Router>
@@ -37,153 +68,97 @@ function App() {
         <Toaster />
         <Routes>
           {/* Public Routes */}
-          <Route path="/" element={<HomePage />} />
-          <Route path="/about" element={<ServicePage />} />
-          <Route path="/signup" element={<SignupPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/about" element={<ServicePage />} />
+          <Route path="/home" element={<HomePage />} />
 
-          {/* ========== MANAGER DASHBOARD ========== */}
+          {/* Protected App Routes (role-based) */}
           <Route
-            path="/ManagerDashboard"
+            path="/"
             element={
-              <ProtectedRoute allowedRoles={["manager"]}>
-                <ManagerDashboard />
+              <ProtectedRoute>
+                <RoleDashboardLayout />
               </ProtectedRoute>
             }
           >
-            {/* Dashboard - Manager */}
             <Route index element={<Dashboardpage />} />
-
-            {/* Product - Manager (full access) */}
-            <Route path="product" element={<Productpage />} />
-
-            {/* Order - Manager */}
+            <Route path="product" element={<ProductByRole />} />
             <Route path="order" element={<Orderpage />} />
-
-            {/* Sales - Manager */}
             <Route path="sales" element={<Salespage />} />
-
-            {/* Stock Transaction - Manager */}
-            <Route path="stock-transaction" element={<StockTransaction />} />
-
-            {/* Category - Manager */}
-            <Route path="category" element={<Categorypage />} />
-
-            <Route path="invoices" element={<InvoicesPage />} />
-            <Route path="createInvoice" element={<CreateInvoicePage />} />
-            <Route path="invoice/:id" element={<InvoiceDetailPage />} />
-            <Route path="editInvoice/:id" element={<InvoiceEditPage />} />
-            <Route path="payments" element={<PaymentsPage />} />
-
-            {/* Notifications (Read) - Manager */}
             <Route
-              path="NotificationPageRead"
-              element={<NotificationPageRead />}
+              path="stock-transaction"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                  <StockTransaction />
+                </ProtectedRoute>
+              }
             />
-
-            {/* Profile - Manager */}
-            <Route path="Profilepage" element={<Profilepage />} />
-
-            {/* Supplier - Manager */}
-            <Route path="supplier" element={<Supplierpage />} />
-            <Route path="supplier/:id" element={<SupplierDetailPage />} />
-            <Route path="customer" element={<Customerpage />} />
-            <Route path="customer/:id" element={<CustomerDetailPage />} />
-
-            {/* User Status - Manager */}
-            <Route path="Userstatus" element={<Userstatus />} />
-          </Route>
-
-          {/* ========== ADMIN DASHBOARD ========== */}
-          <Route
-            path="/AdminDashboard"
-            element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <AdminDashboard />
-              </ProtectedRoute>
-            }
-          >
-            {/* Dashboard - Admin */}
-            <Route index element={<Dashboardpage />} />
-
-            {/* Product - Admin */}
-            <Route path="product" element={<Productpage />} />
-
-            {/* Order - Admin */}
-            <Route path="order" element={<Orderpage />} />
-
-            {/* Sales - Admin */}
-            <Route path="sales" element={<Salespage />} />
-
-            {/* Stock Transaction - Admin */}
-            <Route path="stock-transaction" element={<StockTransaction />} />
-
-            {/* Category - Admin */}
-            <Route path="category" element={<Categorypage />} />
-
-            <Route path="invoices" element={<InvoicesPage />} />
-            <Route path="createInvoice" element={<CreateInvoicePage />} />
-            <Route path="invoice/:id" element={<InvoiceDetailPage />} />
-            <Route path="editInvoice/:id" element={<InvoiceEditPage />} />
-            <Route path="payments" element={<PaymentsPage />} />
-
-            {/* Notifications (Create) - Admin */}
-            <Route path="notifications" element={<Notificationpage />} />
-
-            {/* Profile - Admin */}
-            <Route path="Profilepage" element={<Profilepage />} />
-
-            {/* Supplier - Admin */}
-            <Route path="supplier" element={<Supplierpage />} />
-            <Route path="supplier/:id" element={<SupplierDetailPage />} />
-            <Route path="customer" element={<Customerpage />} />
-            <Route path="customer/:id" element={<CustomerDetailPage />} />
-
-            {/* Activity Log - Admin Only */}
-            <Route path="activity-log" element={<Activitylogpage />} />
-
-            {/* User Status - Admin */}
-            <Route path="Userstatus" element={<Userstatus />} />
-          </Route>
-
-          {/* ========== STAFF DASHBOARD ========== */}
-          <Route
-            path="/StaffDashboard"
-            element={
-              <ProtectedRoute allowedRoles={["staff"]}>
-                <StaffDashboard />
-              </ProtectedRoute>
-            }
-          >
-            {/* Dashboard - Staff */}
-            <Route index element={<Dashboardpage />} />
-
-            {/* Product - Staff (read-only) */}
-            <Route path="product" element={<Productpage readOnly />} />
-
-            {/* Order - Staff */}
-            <Route path="order" element={<Orderpage />} />
-
-            {/* Sales - Staff */}
-            <Route path="sales" element={<Salespage />} />
-
-            <Route path="payments" element={<PaymentsPage />} />
-
-            {/* Notifications (Read) - Staff */}
             <Route
-              path="NotificationPageRead"
-              element={<NotificationPageRead />}
+              path="category"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                  <Categorypage />
+                </ProtectedRoute>
+              }
             />
-
-            {/* Profile - Staff */}
+            <Route
+              path="invoices"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                  <InvoicesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="createInvoice"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                  <CreateInvoicePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="invoice/:id"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                  <InvoiceDetailPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="editInvoice/:id"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                  <InvoiceEditPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="payments" element={<PaymentsPage />} />
+            <Route path="notifications" element={<NotificationsByRole />} />
             <Route path="Profilepage" element={<Profilepage />} />
-
-            {/* Supplier - Staff (read-only) */}
-            <Route path="supplier" element={<Supplierpage readOnly />} />
+            <Route path="supplier" element={<SupplierByRole />} />
             <Route path="supplier/:id" element={<SupplierDetailPage />} />
-            <Route path="customer" element={<Customerpage readOnly />} />
+            <Route path="customer" element={<CustomerByRole />} />
             <Route path="customer/:id" element={<CustomerDetailPage />} />
+            <Route
+              path="Userstatus"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                  <Userstatus />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="activity-log"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <Activitylogpage />
+                </ProtectedRoute>
+              }
+            />
           </Route>
+
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </div>

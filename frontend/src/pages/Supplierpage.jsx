@@ -31,7 +31,6 @@ function Supplierpage({ readOnly = false }) {
 
   const { getallSupplier, editedsupplier, iscreatedsupplier, searchdata } =
     useSelector((state) => state.supplier);
-  const { user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -49,19 +48,6 @@ function Supplierpage({ readOnly = false }) {
   const [vendorBalances, setVendorBalances] = useState({});
 
   const { getallproduct } = useSelector((state) => state.product);
-
-  const dashboardBasePath = (() => {
-    switch (user?.role) {
-      case "admin":
-        return "/AdminDashboard";
-      case "manager":
-        return "/ManagerDashboard";
-      case "staff":
-        return "/StaffDashboard";
-      default:
-        return "";
-    }
-  })();
 
   const fetchVendorBalances = async () => {
     try {
@@ -213,7 +199,7 @@ function Supplierpage({ readOnly = false }) {
   };
 
   const handleViewSupplier = (supplierId) => {
-    navigate(`${dashboardBasePath}/supplier/${supplierId}`);
+    navigate(`/supplier/${supplierId}`);
   };
 
   const displaySuppliers = query.trim() !== "" ? searchdata : getallSupplier;
