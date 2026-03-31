@@ -39,7 +39,7 @@ function NotificationPageRead() {
         {notifications.length > 0 ? (
           notifications.map((notification) => (
             <div
-              key={notification._id}
+              key={notification.id}
               className="flex items-center px-6 py-4 border-b last:border-b-0 hover:bg-slate-50 transition"
             >
               <img

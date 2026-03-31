@@ -36,7 +36,7 @@ function InvoiceEditPage() {
         setInvoice(inv);
         setCustomers(customersRes.data || []);
         setInvoiceType(inv.invoiceType || "sales");
-        setCustomerId(inv.customerId?._id || inv.customerId || "");
+        setCustomerId(inv.customerId?.id || inv.customerId || "");
         setVendorName(inv.vendor?.name || "");
         setItems(inv.items);
         setTaxRate(inv.taxRate);
@@ -67,10 +67,7 @@ function InvoiceEditPage() {
   const removeItem = (index) => setItems(items.filter((_, i) => i !== index));
 
   const addItem = () =>
-    setItems([
-      ...items,
-      { name: "", quantity: 1, unitPrice: 0, total: 0 },
-    ]);
+    setItems([...items, { name: "", quantity: 1, unitPrice: 0, total: 0 }]);
 
   /* ================= UPDATE INVOICE ================= */
   const handleUpdate = async () => {
@@ -145,7 +142,7 @@ function InvoiceEditPage() {
               >
                 <option value="">Select Customer</option>
                 {customers.map((customer) => (
-                  <option key={customer._id} value={customer._id}>
+                  <option key={customer.id} value={customer.id}>
                     {customer.name}
                     {customer.customerCode ? ` (${customer.customerCode})` : ""}
                   </option>

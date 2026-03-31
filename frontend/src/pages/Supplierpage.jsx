@@ -47,7 +47,7 @@ function Supplierpage({ readOnly = false }) {
   const [product, setProduct] = useState("");
   const [vendorBalances, setVendorBalances] = useState({});
 
-  const getId = (value) => value?._id ?? value?.id ?? value;
+  const getId = (value) => value?.id ?? value?.id ?? value;
 
   const { getallproduct } = useSelector((state) => state.product);
 
@@ -211,8 +211,7 @@ function Supplierpage({ readOnly = false }) {
   const summaryTotals = Array.isArray(getallSupplier)
     ? getallSupplier.reduce(
         (acc, supplier) => {
-          const vendorSummary =
-            vendorBalances[String(getId(supplier))] || {};
+          const vendorSummary = vendorBalances[String(getId(supplier))] || {};
           acc.total += Number(vendorSummary.totalAmount || 0);
           acc.paid += Number(vendorSummary.paidAmount || 0);
           acc.remaining += Number(vendorSummary.remainingAmount || 0);
@@ -441,11 +440,11 @@ function Supplierpage({ readOnly = false }) {
                     <th className="px-5 py-4 font-medium">Name</th>
                     <th className="px-5 py-4 font-medium">Phone</th>
                     <th className="px-5 py-4 font-medium">Address</th>
-                    <th className="px-5 py-4 font-medium">Opening</th>
+                    {/* <th className="px-5 py-4 font-medium">Opening</th> */}
                     <th className="px-5 py-4 font-medium">Total Owed</th>
                     <th className="px-5 py-4 font-medium">Paid</th>
                     <th className="px-5 py-4 font-medium">Remaining</th>
-                    <th className="px-5 py-4 font-medium">Terms</th>
+                    {/* <th className="px-5 py-4 font-medium">Terms</th> */}
                     <th className="px-5 py-4 font-medium">Date</th>
                     <th className="px-5 py-4 font-medium">Actions</th>
                   </tr>
@@ -475,9 +474,9 @@ function Supplierpage({ readOnly = false }) {
                           {supplier.contactInfo?.address || "-"}
                         </td>
 
-                        <td className="px-5 py-4 text-slate-600">
+                        {/* <td className="px-5 py-4 text-slate-600">
                           {supplier.openingBalance ?? 0}
-                        </td>
+                        </td> */}
                         <td className="px-5 py-4 text-slate-600 font-medium">
                           {currency(vendorSummary.totalAmount)}
                         </td>
@@ -488,9 +487,9 @@ function Supplierpage({ readOnly = false }) {
                           {currency(vendorSummary.remainingAmount)}
                         </td>
 
-                        <td className="px-5 py-4 text-slate-600">
+                        {/* <td className="px-5 py-4 text-slate-600">
                           {supplier.paymentTerms || "-"}
-                        </td>
+                        </td> */}
 
                         <td className="px-5 py-4 text-slate-600">
                           <FormattedTime timestamp={supplier.createdAt} />
@@ -499,7 +498,9 @@ function Supplierpage({ readOnly = false }) {
                         <td className="px-5 py-4">
                           <div className="flex gap-2">
                             <button
-                              onClick={() => handleViewSupplier(getId(supplier))}
+                              onClick={() =>
+                                handleViewSupplier(getId(supplier))
+                              }
                               className="p-2 rounded-lg bg-slate-100 hover:bg-teal-100 text-emerald-700 transition"
                               title="View Details"
                             >

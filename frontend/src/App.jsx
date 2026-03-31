@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { BrowserRouter as Router, Navigate, Route, Routes } from "react-router-dom";
 import { useSelector } from "react-redux";
 import HomePage from "./pages/HomePage";
@@ -62,6 +63,50 @@ const NotificationsByRole = () => {
 };
 
 function App() {
+  useEffect(() => {
+    const uppercaseInputTypes = new Set([
+      "",
+      "text",
+      "search",
+      "tel",
+      "url",
+    ]);
+
+    const handleInput = (event) => {
+      const target = event.target;
+      const isInput = target instanceof HTMLInputElement;
+      const isTextarea = target instanceof HTMLTextAreaElement;
+      if (!isInput && !isTextarea) return;
+
+      if (isInput) {
+        const type = String(target.type || "").toLowerCase();
+        if (!uppercaseInputTypes.has(type)) return;
+      }
+
+      const nextValue = String(target.value || "").toUpperCase();
+      if (target.value === nextValue) return;
+
+      const selectionStart = target.selectionStart;
+      const selectionEnd = target.selectionEnd;
+      target.value = nextValue;
+
+      if (
+        typeof selectionStart === "number" &&
+        typeof selectionEnd === "number" &&
+        typeof target.setSelectionRange === "function"
+      ) {
+        const nextPosition = Math.min(nextValue.length, selectionEnd);
+        target.setSelectionRange(
+          Math.min(selectionStart, nextPosition),
+          nextPosition,
+        );
+      }
+    };
+
+    document.addEventListener("input", handleInput, true);
+    return () => document.removeEventListener("input", handleInput, true);
+  }, []);
+
   return (
     <Router>
       <div>

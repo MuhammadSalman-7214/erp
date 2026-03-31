@@ -53,7 +53,7 @@ function StockTransaction({ readOnly = false }) {
   }, [dispatch]);
 
   const selectedProductRecord = useMemo(
-    () => getallproduct.find((p) => p._id === product),
+    () => getallproduct.find((p) => p.id === product),
     [getallproduct, product],
   );
   const availableCodes = selectedProductRecord?.productCodes || [];
@@ -88,6 +88,16 @@ function StockTransaction({ readOnly = false }) {
   };
 
   const displaystock = query.trim() !== "" ? searchdata : getallStocks;
+  const getRowStyle = (type = "") => {
+    const normalizedType = String(type).trim().toLowerCase();
+    if (normalizedType === "stock-in") {
+      return "bg-emerald-50/70 hover:bg-emerald-100/80 border-emerald-200";
+    }
+    if (normalizedType === "stock-out") {
+      return "bg-amber-50/70 hover:bg-amber-100/80 border-amber-200";
+    }
+    return "bg-white hover:bg-slate-50 border-slate-200";
+  };
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
       {/* <Stocktanscationgraph /> */}
@@ -148,7 +158,7 @@ function StockTransaction({ readOnly = false }) {
               >
                 <option value="">Select a product</option>
                 {getallproduct?.map((product) => (
-                  <option key={product._id} value={product._id}>
+                  <option key={product.id} value={product.id}>
                     {product.name}
                     {product.company || product.brand
                       ? ` • ${product.company || product.brand}`
@@ -167,7 +177,7 @@ function StockTransaction({ readOnly = false }) {
               >
                 <option value="">Select a product code</option>
                 {availableCodes.map((code) => (
-                  <option key={code._id} value={code._id}>
+                  <option key={code.id} value={code.id}>
                     {code.code}
                     {code.variantName ? ` (${code.variantName})` : ""}
                   </option>
@@ -201,15 +211,15 @@ function StockTransaction({ readOnly = false }) {
             </div>
 
             <div className="mb-4">
-              <label>Supplier</label>
+              <label>Vendor</label>
               <select
                 value={supplier}
                 onChange={(e) => setsupplier(e.target.value)}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2"
               >
-                <option value="">Select a Supplier</option>
+                <option value="">Select a Vendor</option>
                 {getallSupplier?.map((supplier) => (
-                  <option key={supplier._id} value={supplier._id}>
+                  <option key={supplier.id} value={supplier.id}>
                     {supplier.name}
                   </option>
                 ))}
@@ -238,15 +248,17 @@ function StockTransaction({ readOnly = false }) {
                 <th className="px-5 py-4 font-medium">Product Code</th>
                 <th className="px-5 py-4 font-medium">Type</th>
                 <th className="px-5 py-4 font-medium">Quantity</th>
-                <th className="px-5 py-4 font-medium">Vendor</th>
+                <th className="px-5 py-4 font-medium">Vendor/Customer</th>
               </tr>
             </thead>
 
             <tbody>
               {displaystock.map((stock, index) => (
                 <tr
-                  key={stock._id}
-                  className="border-b last:border-b-0 hover:bg-slate-50 transition"
+                  key={stock.id}
+                  className={`border-b last:border-b-0 transition ${getRowStyle(
+                    stock.type,
+                  )}`}
                 >
                   <td className="px-5 py-4">{index + 1}</td>
                   <td className="px-5 py-4">
@@ -269,7 +281,18 @@ function StockTransaction({ readOnly = false }) {
                   </td>
                   <td className="px-5 py-4">{stock.type}</td>
                   <td className="px-5 py-4">{stock.quantity}</td>
-                  <td className="px-5 py-4">{stock.vendor?.name || "N/A"}</td>
+                  <td className="px-5 py-4">
+                    {stock.type === "Stock-out"
+                      ? stock.customer?.name ||
+                        stock.customerName ||
+                        stock.vendor?.name ||
+                        stock.supplier?.name ||
+                        "N/A"
+                      : stock.vendor?.name ||
+                        stock.supplier?.name ||
+                        stock.customer?.name ||
+                        "N/A"}
+                  </td>
                 </tr>
               ))}
             </tbody>

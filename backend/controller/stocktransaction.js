@@ -1,29 +1,86 @@
 const query = require("../libs/dbQuery.js");
 
-const hydrateTransactions = (rows) =>
-  rows.map((row) => ({
-    ...row,
-    product: row.product_id
-      ? {
-          id: row.product_id,
-          name: row.product_name,
-          description: row.product_description,
-          company: row.product_company,
-          brand: row.product_brand,
+const hydrateTransactions = async (rows) =>
+  Promise.all(
+    rows.map(async (row) => {
+      let customer = null;
+
+      if (row.sourceModel === "sale" && row.sourceId) {
+        try {
+          const saleRows = await query(
+            "SELECT customer, customerName FROM sales WHERE id = ? AND user_id = ? LIMIT 1",
+            [row.sourceId, row.user_id],
+          );
+          const sale = saleRows[0];
+          if (sale?.customer) {
+            const customerRows = await query(
+              "SELECT id, name, contact_phone, contact_address, customerCode FROM customers WHERE id = ? AND user_id = ? LIMIT 1",
+              [sale.customer, row.user_id],
+            );
+            const customerRecord = customerRows[0];
+            customer = customerRecord
+              ? {
+                  id: customerRecord.id,
+                  name: customerRecord.name || sale.customerName || "Customer",
+                  customerCode: customerRecord.customerCode || "",
+                  contactInfo: {
+                    phone: customerRecord.contact_phone || "",
+                    address: customerRecord.contact_address || "",
+                  },
+                }
+              : sale.customerName
+                ? {
+                    id: sale.customer,
+                    name: sale.customerName,
+                    customerCode: "",
+                    contactInfo: {
+                      phone: "",
+                      address: "",
+                    },
+                  }
+                : null;
+          } else if (sale?.customerName) {
+            customer = {
+              id: null,
+              name: sale.customerName,
+              customerCode: "",
+              contactInfo: {
+                phone: "",
+                address: "",
+              },
+            };
+          }
+        } catch (error) {
+          customer = null;
         }
-      : null,
-    productCode: row.productCode_id
-      ? {
-          id: row.productCode_id,
-          code: row.productCode_code,
-          variantName: row.productCode_variantName,
-        }
-      : null,
-    vendor: row.vendor_id ? { id: row.vendor_id, name: row.vendor_name } : null,
-    supplier: row.supplier_id
-      ? { id: row.supplier_id, name: row.supplier_name }
-      : null,
-  }));
+      }
+
+      return {
+        ...row,
+        product: row.product_id
+          ? {
+              id: row.product_id,
+              name: row.product_name,
+              description: row.product_description,
+              company: row.product_company,
+              brand: row.product_brand,
+            }
+          : null,
+        productCode: row.productCode_id
+          ? {
+              id: row.productCode_id,
+              code: row.productCode_code,
+              variantName: row.productCode_variantName,
+            }
+          : null,
+        vendor: row.vendor_id ? { id: row.vendor_id, name: row.vendor_name } : null,
+        supplier: row.supplier_id
+          ? { id: row.supplier_id, name: row.supplier_name }
+          : null,
+        customer,
+      };
+    }),
+  );
 
 module.exports.createStockTransaction = async (req, res) => {
   try {
@@ -167,7 +224,7 @@ module.exports.createStockTransaction = async (req, res) => {
       });
     }
 
-    const populatedTransaction = hydrateTransactions(transactionRows)[0];
+    const populatedTransaction = (await hydrateTransactions(transactionRows))[0];
 
     res.status(201).json({
       success: true,
@@ -199,9 +256,11 @@ module.exports.getAllStockTransactions = async (req, res) => {
       });
     }
 
+    const hydratedTransactions = await hydrateTransactions(transactions);
+
     res.status(200).json({
       success: true,
-      transactions: hydrateTransactions(transactions),
+      transactions: hydratedTransactions,
     });
   } catch (error) {
     console.error("Get All Stock Transactions Error:", error);
@@ -238,9 +297,11 @@ module.exports.getStockTransactionsByProductCode = async (req, res) => {
       });
     }
 
+    const hydratedTransactions = await hydrateTransactions(transactions);
+
     res.status(200).json({
       success: true,
-      transactions: hydrateTransactions(transactions),
+      transactions: hydratedTransactions,
     });
   } catch (error) {
     console.error("Get Stock Transactions By Product Code Error:", error);
@@ -277,9 +338,11 @@ module.exports.getStockTransactionsBySupplier = async (req, res) => {
       });
     }
 
+    const hydratedTransactions = await hydrateTransactions(transactions);
+
     res.status(200).json({
       success: true,
-      transactions: hydrateTransactions(transactions),
+      transactions: hydratedTransactions,
     });
   } catch (error) {
     console.error("Get Stock Transactions By Supplier Error:", error);
@@ -320,9 +383,11 @@ module.exports.searchStocks = async (req, res) => {
       });
     }
 
+    const hydratedTransactions = await hydrateTransactions(transactions);
+
     res.status(200).json({
       success: true,
-      transactions: hydrateTransactions(transactions),
+      transactions: hydratedTransactions,
     });
   } catch (error) {
     console.error("Search Stock Transactions Error:", error);

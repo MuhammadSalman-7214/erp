@@ -159,7 +159,7 @@ function NotificationPage() {
         {notifications.length > 0 ? (
           notifications.map((notification) => (
             <div
-              key={notification._id}
+              key={notification.id}
               className="flex items-center px-6 py-4 border-b last:border-b-0 hover:bg-slate-50 transition"
             >
               <img
@@ -179,7 +179,7 @@ function NotificationPage() {
               </div>
 
               <button
-                onClick={() => dispatch(deleteNotification(notification._id))}
+                onClick={() => dispatch(deleteNotification(notification.id))}
                 className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition"
                 title="Delete"
               >

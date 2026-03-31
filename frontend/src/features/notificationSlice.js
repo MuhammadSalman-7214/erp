@@ -85,7 +85,7 @@ const notificationSlice = createSlice({
       .addCase(deleteNotification.fulfilled, (state, action) => {
         toast.success("Notification deleted successfully");
         state.notifications = state.notifications.filter(
-          (notification) => notification._id !== action.payload,
+          (notification) => notification.id !== action.payload,
         );
       })
       .addCase(deleteNotification.rejected, (state, action) => {

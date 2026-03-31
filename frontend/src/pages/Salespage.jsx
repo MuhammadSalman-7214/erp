@@ -19,7 +19,7 @@ import { createCustomer, getAllCustomers } from "../features/customerSlice";
 import axiosInstance from "../lib/axios";
 
 function Salespage() {
-  const getId = (value) => value?._id ?? value?.id ?? value;
+  const getId = (value) => value?.id ?? value?.id ?? value;
   const { getallsales, searchdata } = useSelector((state) => state.sales);
 
   const { getallproduct } = useSelector((state) => state.product);
@@ -972,7 +972,7 @@ function Salespage() {
       }
 
       const paymentStatus =
-        remainingAmount <= 0 ? "paid" : paidAmount > 0 ? "partial" : "pending";
+        remainingAmount <= 0 ? "paid" : paidAmount > 0 ? "partial" : "unpaid";
 
       results.set(saleId, { paidAmount, remainingAmount, paymentStatus });
     });
@@ -1562,7 +1562,7 @@ function Salespage() {
               <tbody>
                 {displaySales.map((sale, index) => (
                   <tr
-                  key={getId(sale)}
+                    key={getId(sale)}
                     className="border-b last:border-b-0 hover:bg-slate-50 transition"
                   >
                     <td className="px-5 py-4 text-slate-500">{index + 1}</td>
@@ -1631,7 +1631,7 @@ function Salespage() {
                         const status =
                           info?.paymentStatus ||
                           sale.paymentStatus ||
-                          "pending";
+                          "unpaid";
                         const remaining =
                           info?.remainingAmount ??
                           Math.max(Number(sale.totalAmount || 0), 0);

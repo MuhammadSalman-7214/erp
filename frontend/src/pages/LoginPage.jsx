@@ -125,7 +125,7 @@ function LoginPage() {
             </button>
           </form>
 
-          <div className="text-center mt-6">
+          {/* <div className="text-center mt-6">
             <p>
               Don't have an account?{" "}
               <Link
@@ -135,7 +135,7 @@ function LoginPage() {
                 Click here
               </Link>
             </p>
-          </div>
+          </div> */}
         </div>
       </div>
 

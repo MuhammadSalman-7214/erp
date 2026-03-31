@@ -36,7 +36,7 @@ function Customerpage({ readOnly = false }) {
   const [customerBalances, setCustomerBalances] = useState({});
   const [amountFilter, setAmountFilter] = useState("all");
 
-  const getId = (value) => value?._id ?? value?.id ?? value;
+  const getId = (value) => value?.id ?? value?.id ?? value;
 
   const fetchCustomerBalances = async () => {
     try {
@@ -194,7 +194,8 @@ function Customerpage({ readOnly = false }) {
   const summaryTotals = Array.isArray(getAllCustomer)
     ? getAllCustomer.reduce(
         (acc, customer) => {
-          const customerSummary = customerBalances[String(getId(customer))] || {};
+          const customerSummary =
+            customerBalances[String(getId(customer))] || {};
           acc.total += Number(customerSummary.totalAmount || 0);
           acc.paid += Number(customerSummary.paidAmount || 0);
           acc.remaining += Number(customerSummary.remainingAmount || 0);

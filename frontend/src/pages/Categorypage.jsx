@@ -63,7 +63,7 @@ function Categorypage() {
 
     if (selectedProduct) {
       // Update existing category
-      dispatch(UpdateCategory({ id: selectedProduct._id, data: CategoryData }))
+      dispatch(UpdateCategory({ id: selectedProduct.id, data: CategoryData }))
         .unwrap()
         .then(() => {
           toast.success("Category updated successfully");
@@ -206,7 +206,7 @@ function Categorypage() {
                 <tbody>
                   {displayCategory.map((Category, index) => (
                     <tr
-                      key={Category._id}
+                      key={Category.id}
                       className="border-b last:border-b-0 hover:bg-slate-50 transition"
                     >
                       <td className="px-5 py-4 text-slate-500">{index + 1}</td>
@@ -244,7 +244,7 @@ function Categorypage() {
                               className: "font-medium",
                             }}
                             placement="topRight"
-                            onConfirm={() => handleremove(Category._id)}
+                            onConfirm={() => handleremove(Category.id)}
                           >
                             <button
                               className="

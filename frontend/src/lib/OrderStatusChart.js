@@ -32,7 +32,7 @@ function OrderStatusChart() {
   }, [dispatch]);
   // If statusgraph is empty, chart will render but with no bars
   const chartData = {
-    labels: statusgraph.map((stat) => stat._id) || [],
+    labels: statusgraph.map((stat) => stat.id) || [],
     datasets: [
       {
         label: "Order Count",
@@ -59,7 +59,7 @@ function OrderStatusChart() {
     return <div className="text-red-500">Error: {errorGraph}</div>;
 
   const data = {
-    labels: statusgraph.map((stat) => stat._id), // Order statuses
+    labels: statusgraph.map((stat) => stat.id), // Order statuses
     datasets: [
       {
         label: "Order Count",

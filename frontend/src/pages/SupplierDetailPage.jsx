@@ -273,7 +273,7 @@ function SupplierDetailPage() {
 
                       return (
                         <tr
-                          key={order._id}
+                          key={order.id}
                           className="border-b hover:bg-slate-50"
                         >
                           <td className="px-5 py-4">

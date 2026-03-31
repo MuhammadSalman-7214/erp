@@ -4,6 +4,7 @@ import axiosInstance from "../lib/axios";
 import { toast } from "react-hot-toast";
 import { MdDelete } from "react-icons/md";
 import { IoMdAdd } from "react-icons/io";
+import { formatFixed } from "../lib/formatNumber";
 
 function CreateInvoicePage() {
   const navigate = useNavigate();
@@ -64,10 +65,7 @@ function CreateInvoicePage() {
   };
 
   const addItem = () =>
-    setItems([
-      ...items,
-      { name: "", quantity: 1, unitPrice: 0, total: 0 },
-    ]);
+    setItems([...items, { name: "", quantity: 1, unitPrice: 0, total: 0 }]);
 
   const removeItem = (index) => setItems(items.filter((_, i) => i !== index));
 
@@ -169,9 +167,11 @@ function CreateInvoicePage() {
                 >
                   <option value="">Select Customer</option>
                   {customers.map((customer) => (
-                    <option key={customer._id} value={customer._id}>
+                    <option key={customer.id} value={customer.id}>
                       {customer.name}
-                      {customer.customerCode ? ` (${customer.customerCode})` : ""}
+                      {customer.customerCode
+                        ? ` (${customer.customerCode})`
+                        : ""}
                     </option>
                   ))}
                 </select>
@@ -190,7 +190,7 @@ function CreateInvoicePage() {
                 >
                   <option value="">Select Vendor</option>
                   {vendors.map((vendor) => (
-                    <option key={vendor._id} value={vendor._id}>
+                    <option key={vendor.id} value={vendor.id}>
                       {vendor.name}
                     </option>
                   ))}
@@ -279,10 +279,10 @@ function CreateInvoicePage() {
           </div>
 
           <div className="text-right mb-6 space-y-1">
-            <p className="text-gray-600">Subtotal: Rs {subTotal.toFixed(2)}</p>
-            <p className="text-gray-600">Tax: Rs {taxAmount.toFixed(2)}</p>
+            <p className="text-gray-600">Subtotal: Rs {formatFixed(subTotal)}</p>
+            <p className="text-gray-600">Tax: Rs {formatFixed(taxAmount)}</p>
             <p className="text-lg font-semibold">
-              Total: Rs {totalAmount.toFixed(2)}
+              Total: Rs {formatFixed(totalAmount)}
             </p>
           </div>
 

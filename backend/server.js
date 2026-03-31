@@ -9,7 +9,7 @@ const productrouter = require("./Routers/ProductRouter.js");
 const authrouter = require("./Routers/authRouther.js");
 const orderrouter = require("./Routers/orderRouter.js");
 const categoryrouter = require("./Routers/categoryRouter.js");
-const notificationrouter = require("./Routers/notificationRouters.js");
+// const notificationrouter = require("./Routers/notificationRouters.js");
 const activityrouter = require("./Routers/activityRouter.js");
 const inventoryrouter = require("./Routers/inventoryRouter.js");
 const salesrouter = require("./Routers/salesRouter.js");
@@ -21,18 +21,18 @@ const paymentRouter = require("./Routers/paymentRouter.js");
 const dashboardRouter = require("./Routers/dashboardRouter.js");
 
 require("dotenv").config();
-const PORT = process.env.PORT || 3003;
+const PORT = process.env.PORT;
 console.log("🚀 ~ PORT:", PORT);
 
 const app = express();
 const server = http.createServer(app);
 
-const allowedOrigins = ["http://localhost:3000", "https://erp.dgexpense.com"];
+const allowedOrigins = ["http://localhost:3000", "https://imrantraders.shop"];
 
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
   },
 });
@@ -70,7 +70,7 @@ app.use("/api/auth", authrouter);
 app.use("/api/product", productrouter);
 app.use("/api/order", orderrouter);
 app.use("/api/category", categoryrouter);
-app.use("/api/notification", notificationrouter);
+// app.use("/api/notification", notificationrouter);
 app.use("/api/activitylogs", activityrouter);
 app.use("/api/inventory", inventoryrouter);
 app.use("/api/sales", salesrouter);

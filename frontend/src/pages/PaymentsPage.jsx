@@ -15,7 +15,7 @@ function PaymentsPage() {
   const [vendorId, setVendorId] = useState("");
   const [invoiceId, setInvoiceId] = useState("");
 
-  const getId = (value) => value?._id ?? value?.id ?? value;
+  const getId = (value) => value?.id ?? value?.id ?? value;
 
   const fetchPayments = async () => {
     try {
@@ -92,6 +92,17 @@ function PaymentsPage() {
       console.error(error);
       toast.error("Failed to record payment");
     }
+  };
+
+  const getRowStyle = (paymentType = "") => {
+    const normalizedType = String(paymentType).trim().toLowerCase();
+    if (normalizedType === "received") {
+      return "bg-amber-50/70 hover:bg-amber-100/80 border-amber-200";
+    }
+    if (normalizedType === "paid") {
+      return "bg-emerald-50/70 hover:bg-emerald-100/80 border-emerald-200";
+    }
+    return "bg-white hover:bg-slate-50 border-slate-200";
   };
 
   return (
@@ -223,7 +234,12 @@ function PaymentsPage() {
               </thead>
               <tbody>
                 {payments.map((payment) => (
-                  <tr key={getId(payment)} className="border-b last:border-b-0">
+                  <tr
+                    key={getId(payment)}
+                    className={`border-b last:border-b-0 transition ${getRowStyle(
+                      payment.type,
+                    )}`}
+                  >
                     <td className="px-4 py-3 capitalize">{payment.type}</td>
                     <td className="px-4 py-3">
                       Rs{Number(payment.amount).toLocaleString()}

@@ -18,7 +18,7 @@ import { Popconfirm } from "antd";
 import { gettingallSupplier } from "../features/SupplierSlice";
 
 function Orderpage() {
-  const getId = (value) => value?._id ?? value?.id ?? value;
+  const getId = (value) => value?.id ?? value?.id ?? value;
   const {
     getorder,
     isgetorder,
@@ -52,6 +52,10 @@ function Orderpage() {
       delivered: "bg-teal-50 text-teal-700",
     };
     return mapping[status] || "bg-gray-200 text-gray-800";
+  };
+  const isLockedOrder = (order) => {
+    const status = String(order?.status || "").trim().toLowerCase();
+    return status === "shipped" || status === "delivered";
   };
 
   useEffect(() => {
@@ -118,9 +122,7 @@ function Orderpage() {
     return list.map((item) => {
       const productId = getId(item.product) || item.product;
       const codeId = getId(item.productCode) || item.productCode;
-      const productRecord = getallproduct.find(
-        (p) => getId(p) === productId,
-      );
+      const productRecord = getallproduct.find((p) => getId(p) === productId);
       const codeRecord = productRecord?.productCodes?.find(
         (code) => getId(code) === codeId,
       );
@@ -201,9 +203,7 @@ function Orderpage() {
       totalAmount,
     };
 
-    dispatch(
-      updatestatusOrder({ OrderId: getId(selectedOrder), updatedData }),
-    )
+    dispatch(updatestatusOrder({ OrderId: getId(selectedOrder), updatedData }))
       .unwrap()
       .then(() => {
         toast.success("Order updated successfully");
@@ -304,6 +304,10 @@ function Orderpage() {
   };
 
   const handleEditClick = (order) => {
+    if (isLockedOrder(order)) {
+      toast.error("Shipped or delivered purchase orders cannot be updated");
+      return;
+    }
     setselectedOrder(order);
     setsupplier(order.supplier || "");
     setCartItems(buildCartItemsFromOrder(order));
@@ -314,6 +318,13 @@ function Orderpage() {
   };
 
   const handleRemove = async (OrderId) => {
+    const targetOrder = (Array.isArray(displayOrder) ? displayOrder : []).find(
+      (order) => String(getId(order)) === String(OrderId),
+    );
+    if (isLockedOrder(targetOrder)) {
+      toast.error("Shipped or delivered purchase orders cannot be deleted");
+      return;
+    }
     dispatch(Removedorder(OrderId))
       .unwrap()
       .then(() => {
@@ -590,33 +601,43 @@ function Orderpage() {
                     <FormattedTime timestamp={order.createdAt} />
                   </td>
                   <td className="px-5 py-4 ">
-                    <Popconfirm
-                      title={
-                        <div className="flex flex-col gap-1 max-w-xs">
-                          <span className="font-semibold text-red-600 text-sm">
-                            Confirm Permanent Deletion
-                          </span>
-                          <span className="text-xs text-gray-600 leading-snug">
-                            This action will permanently delete this order and
-                            all related transaction records. This operation
-                            cannot be undone.
-                          </span>
-                        </div>
-                      }
-                      okText="Yes, Delete"
-                      cancelText="Cancel"
-                      okButtonProps={{
-                        danger: true,
-                        className: "font-semibold",
-                      }}
-                      cancelButtonProps={{
-                        className: "font-medium",
-                      }}
-                      placement="topRight"
-                      onConfirm={() => handleRemove(getId(order))}
-                    >
+                    {isLockedOrder(order) ? (
                       <button
-                        className="
+                        type="button"
+                        className="p-2 rounded-lg bg-slate-100 text-slate-300 cursor-not-allowed mr-2"
+                        title="Locked after shipped or delivered"
+                        disabled
+                      >
+                        <MdDelete size={18} />
+                      </button>
+                    ) : (
+                      <Popconfirm
+                        title={
+                          <div className="flex flex-col gap-1 max-w-xs">
+                            <span className="font-semibold text-red-600 text-sm">
+                              Confirm Permanent Deletion
+                            </span>
+                            <span className="text-xs text-gray-600 leading-snug">
+                              This action will permanently delete this order and
+                              all related transaction records. This operation
+                              cannot be undone.
+                            </span>
+                          </div>
+                        }
+                        okText="Yes, Delete"
+                        cancelText="Cancel"
+                        okButtonProps={{
+                          danger: true,
+                          className: "font-semibold",
+                        }}
+                        cancelButtonProps={{
+                          className: "font-medium",
+                        }}
+                        placement="topRight"
+                        onConfirm={() => handleRemove(getId(order))}
+                      >
+                        <button
+                          className="
       p-2 rounded-lg
       bg-slate-100
       hover:bg-red-100
@@ -625,14 +646,20 @@ function Orderpage() {
       hover:shadow-sm
       mr-2
     "
-                        title="Delete Order"
-                      >
-                        <MdDelete size={18} />
-                      </button>
-                    </Popconfirm>
+                          title="Delete Order"
+                        >
+                          <MdDelete size={18} />
+                        </button>
+                      </Popconfirm>
+                    )}
                     <button
                       onClick={() => handleEditClick(order)}
-                      className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
+                      disabled={isLockedOrder(order)}
+                      className={`p-2 rounded-lg transition ${
+                        isLockedOrder(order)
+                          ? "bg-slate-100 text-slate-300 cursor-not-allowed"
+                          : "bg-slate-100 hover:bg-blue-100 text-blue-600"
+                      }`}
                       title="Edit"
                     >
                       <MdEdit size={18} />

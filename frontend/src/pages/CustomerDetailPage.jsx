@@ -3,12 +3,7 @@ import { useParams } from "react-router-dom";
 import axiosInstance from "../lib/axios";
 import FormattedTime from "../lib/FormattedTime";
 import NoData from "../Components/NoData";
-import {
-  TrendingUp,
-  CreditCard,
-  AlertCircle,
-  Clipboard,
-} from "lucide-react";
+import { TrendingUp, CreditCard, AlertCircle, Clipboard } from "lucide-react";
 
 function CustomerDetailPage() {
   const { id } = useParams();
@@ -43,6 +38,12 @@ function CustomerDetailPage() {
   }, [id]);
 
   const currency = (value) => `Rs ${Number(value || 0).toLocaleString()}`;
+  const getPaymentStatusBadge = (status) => {
+    const normalized = String(status || "unpaid").toLowerCase();
+    if (normalized === "paid") return "bg-green-100 text-green-700";
+    if (normalized === "partial") return "bg-blue-100 text-blue-700";
+    return "bg-yellow-100 text-yellow-700";
+  };
 
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
@@ -140,7 +141,7 @@ function CustomerDetailPage() {
                       <th className="px-5 py-4 font-medium">Qty</th>
                       <th className="px-5 py-4 font-medium">Total</th>
                       <th className="px-5 py-4 font-medium">Payment</th>
-                      <th className="px-5 py-4 font-medium">Status</th>
+                      <th className="px-5 py-4 font-medium">Sale Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -159,7 +160,7 @@ function CustomerDetailPage() {
                         .join(", ");
                       return (
                         <tr
-                          key={sale._id}
+                          key={sale.id}
                           className="border-b last:border-b-0 hover:bg-slate-50 transition"
                         >
                           <td className="px-5 py-4 text-slate-600">
@@ -175,7 +176,11 @@ function CustomerDetailPage() {
                             {currency(sale.totalAmount)}
                           </td>
                           <td className="px-5 py-4 text-slate-700">
-                            {sale.paymentStatus || "-"}
+                            <span
+                              className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold capitalize ${getPaymentStatusBadge(sale.paymentStatus)}`}
+                            >
+                              {sale.paymentStatus || "unpaid"}
+                            </span>
                           </td>
                           <td className="px-5 py-4 text-slate-700">
                             {sale.status || "-"}

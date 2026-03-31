@@ -5,6 +5,7 @@ import axiosInstance from "../lib/axios";
 import { toast } from "react-hot-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { formatFixed } from "../lib/formatNumber";
 
 function InvoiceDetailPage() {
   const { id } = useParams();
@@ -70,8 +71,8 @@ function InvoiceDetailPage() {
       idx + 1,
       item.name,
       item.quantity,
-      `${invoice.currency} ${item.unitPrice.toFixed(2)}`,
-      `${invoice.currency} ${item.total.toFixed(2)}`,
+      `${invoice.currency} ${formatFixed(item.unitPrice)}`,
+      `${invoice.currency} ${formatFixed(item.total)}`,
     ]);
 
     autoTable(doc, {
@@ -87,23 +88,23 @@ function InvoiceDetailPage() {
     const finalY = doc.lastAutoTable.finalY || 200;
     doc.setFontSize(12);
     doc.text(
-      `Subtotal: ${invoice.currency} ${invoice.subTotal.toFixed(2)}`,
+      `Subtotal: ${invoice.currency} ${formatFixed(invoice.subTotal)}`,
       400,
       finalY + 20,
     );
     doc.text(
-      `Tax (${invoice.taxRate}%): ${invoice.currency} ${invoice.taxAmount.toFixed(2)}`,
+      `Tax (${invoice.taxRate}%): ${invoice.currency} ${formatFixed(invoice.taxAmount)}`,
       400,
       finalY + 35,
     );
     doc.text(
-      `Discount: ${invoice.currency} ${invoice.discount.toFixed(2)}`,
+      `Discount: ${invoice.currency} ${formatFixed(invoice.discount)}`,
       400,
       finalY + 50,
     );
     doc.setFontSize(14);
     doc.text(
-      `Total: ${invoice.currency} ${invoice.totalAmount.toFixed(2)}`,
+      `Total: ${invoice.currency} ${formatFixed(invoice.totalAmount)}`,
       400,
       finalY + 70,
     );
@@ -134,7 +135,7 @@ function InvoiceDetailPage() {
 
         <div className="flex gap-2">
           <button
-            onClick={() => navigate(`/editInvoice/${invoice._id}`)}
+            onClick={() => navigate(`/editInvoice/${invoice.id}`)}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             Edit
@@ -259,10 +260,10 @@ function InvoiceDetailPage() {
                     {item.quantity}
                   </td>
                   <td className="px-4 py-2 border text-right">
-                    {invoice.currency} {item.unitPrice.toFixed(2)}
+                    {invoice.currency} {formatFixed(item.unitPrice)}
                   </td>
                   <td className="px-4 py-2 border text-right">
-                    {invoice.currency} {item.total.toFixed(2)}
+                    {invoice.currency} {formatFixed(item.total)}
                   </td>
                 </tr>
               ))}
@@ -276,28 +277,28 @@ function InvoiceDetailPage() {
             <div className="flex justify-between">
               <span>Subtotal</span>
               <span>
-                {invoice.currency} {invoice.subTotal.toFixed(2)}
+                {invoice.currency} {formatFixed(invoice.subTotal)}
               </span>
             </div>
 
             <div className="flex justify-between">
               <span>Tax ({invoice.taxRate}%)</span>
               <span>
-                {invoice.currency} {invoice.taxAmount.toFixed(2)}
+                {invoice.currency} {formatFixed(invoice.taxAmount)}
               </span>
             </div>
 
             <div className="flex justify-between">
               <span>Discount</span>
               <span>
-                {invoice.currency} {invoice.discount.toFixed(2)}
+                {invoice.currency} {formatFixed(invoice.discount)}
               </span>
             </div>
 
             <div className="flex justify-between border-t pt-2 font-bold text-lg">
               <span>Total</span>
               <span>
-                {invoice.currency} {invoice.totalAmount.toFixed(2)}
+                {invoice.currency} {formatFixed(invoice.totalAmount)}
               </span>
             </div>
           </div>

@@ -64,7 +64,7 @@ function Userstatus() {
                   </div>
 
                   <button
-                    onClick={() => handleremove(user._id)}
+                    onClick={() => handleremove(user.id)}
                     className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition"
                     title="Delete"
                   >
@@ -101,7 +101,7 @@ function Userstatus() {
                   </div>
 
                   <button
-                    onClick={() => handleremove(user._id)}
+                    onClick={() => handleremove(user.id)}
                     className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition"
                     title="Delete"
                   >
@@ -136,7 +136,7 @@ function Userstatus() {
                     </div>
                   </div>
                   <button
-                    onClick={() => handleremove(user._id)}
+                    onClick={() => handleremove(user.id)}
                     className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition"
                     title="Delete"
                   >

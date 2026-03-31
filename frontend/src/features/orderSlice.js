@@ -16,7 +16,7 @@ const initialState = {
   errorGraph: null,
 };
 
-const getId = (value) => value?._id ?? value?.id ?? value;
+const getId = (value) => value?.id ?? value?.id ?? value;
 export const createdOrder = createAsyncThunk(
   "order/createorder",
   async (order, { rejectWithValue }) => {

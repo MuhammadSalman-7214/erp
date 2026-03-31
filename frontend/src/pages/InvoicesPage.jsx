@@ -127,7 +127,7 @@ function InvoicesPage() {
               <tbody>
                 {displayInvoices.map((inv, index) => (
                   <tr
-                    key={inv._id}
+                    key={inv.id}
                     className="border-b last:border-b-0 hover:bg-slate-50 transition"
                   >
                     <td className="px-5 py-4 text-slate-500">{index + 1}</td>
@@ -170,7 +170,7 @@ function InvoicesPage() {
                     <td className="px-5 py-4">
                       <div className="flex justify-end gap-2">
                         <button
-                          onClick={() => navigate(`/invoice/${inv._id}`)}
+                          onClick={() => navigate(`/invoice/${inv.id}`)}
                           className="p-2 rounded-lg bg-slate-100 hover:bg-teal-100 text-teal-600 transition"
                           title="View"
                         >
@@ -178,7 +178,7 @@ function InvoicesPage() {
                         </button>
 
                         <button
-                          onClick={() => navigate(`/editInvoice/${inv._id}`)}
+                          onClick={() => navigate(`/editInvoice/${inv.id}`)}
                           className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
                           title="Edit"
                         >
@@ -207,7 +207,7 @@ function InvoicesPage() {
                             className: "font-medium",
                           }}
                           placement="topRight"
-                          onConfirm={() => deleteInvoice(inv._id)}
+                          onConfirm={() => deleteInvoice(inv.id)}
                         >
                           <button
                             className="

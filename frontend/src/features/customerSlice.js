@@ -11,7 +11,7 @@ const initialState = {
   editedCustomer: null,
 };
 
-const getId = (value) => value?._id ?? value?.id ?? value;
+const getId = (value) => value?.id ?? value?.id ?? value;
 
 export const createCustomer = createAsyncThunk(
   "customer/create",
@@ -146,8 +146,7 @@ const customerSlice = createSlice({
       .addCase(editCustomer.fulfilled, (state, action) => {
         state.editedCustomer = action.payload.customer;
         const index = state.getAllCustomer?.findIndex(
-          (customer) =>
-            getId(customer) === getId(action.payload.customer),
+          (customer) => getId(customer) === getId(action.payload.customer),
         );
         if (index !== undefined && index > -1) {
           state.getAllCustomer[index] = action.payload.customer;

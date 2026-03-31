@@ -40,13 +40,19 @@ const SalesChart = () => {
   // Update chart data and messages when sales data changes
   useEffect(() => {
     if (getallsales && getallsales.length > 0) {
+      const normalizeStatus = (status = "") =>
+        String(status).trim().toLowerCase();
       // Extract labels (dates) and datasets from sales data
       const labels = getallsales.map((sale) =>
         new Date(sale.createdAt).toLocaleDateString(),
       );
       const totalSales = getallsales.map((sale) => sale.totalAmount);
       const paymentStatuses = getallsales.map((sale) =>
-        sale.paymentStatus === "Paid" ? 1 : 0,
+        normalizeStatus(sale.paymentStatus) === "paid"
+          ? 1
+          : normalizeStatus(sale.paymentStatus) === "partial"
+            ? 0.5
+            : 0,
       );
 
       // Prepare customer messages for display
@@ -72,7 +78,7 @@ const SalesChart = () => {
             tension: 0.1,
           },
           {
-            label: "Payment Status (Paid = 1, Unpaid = 0)",
+            label: "Payment Status (Paid = 1, Partial = 0.5, Unpaid = 0)",
             data: paymentStatuses,
             borderColor: "rgba(255, 99, 132, 1)",
             backgroundColor: "rgba(255, 99, 132, 0.2)",

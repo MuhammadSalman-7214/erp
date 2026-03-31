@@ -6,6 +6,205 @@ const {
   rollbackSaleCompletedStockOut,
 } = require("../libs/stockLifecycle");
 
+const normalizeText = (value = "") => String(value).trim().toLowerCase();
+
+const formatCustomerKey = (code = "", name = "") => {
+  const normalizedCode = normalizeText(code);
+  const normalizedName = normalizeText(name);
+  return normalizedCode || normalizedName
+    ? `legacy:${normalizedCode}|${normalizedName}`
+    : "";
+};
+
+const getSaleCustomerKeys = (sale) => {
+  const keys = [];
+  const customerId = sale?.customer?.id ?? sale?.customer ?? "";
+  if (customerId) {
+    keys.push(`id:${customerId}`);
+  }
+
+  const customerName = sale?.customer?.name || sale?.customerName || "";
+  if (customerName) {
+    keys.push(`name:${normalizeText(customerName)}`);
+  }
+
+  const customerCode = sale?.customer?.customerCode || sale?.customer_code || "";
+  const legacyKey = formatCustomerKey(customerCode, customerName);
+  if (legacyKey) {
+    keys.push(legacyKey);
+  }
+
+  return [...new Set(keys)];
+};
+
+const getPaymentCustomerKeys = (payment) => {
+  const keys = [];
+  const customerId = payment?.customerId ?? "";
+  if (customerId) {
+    keys.push(`id:${customerId}`);
+  }
+
+  const customerName = payment?.customer_name || payment?.customer?.name || "";
+  if (customerName) {
+    keys.push(`name:${normalizeText(customerName)}`);
+  }
+
+  const customerCode = payment?.customer_code || payment?.customer?.code || "";
+  const legacyKey = formatCustomerKey(customerCode, customerName);
+  if (legacyKey) {
+    keys.push(legacyKey);
+  }
+
+  return [...new Set(keys)];
+};
+
+const getPaymentStatus = (paidAmount, totalAmount) => {
+  const total = Math.max(Number(totalAmount) || 0, 0);
+  const paid = Math.max(Number(paidAmount) || 0, 0);
+
+  if (total <= 0 || paid >= total) {
+    return "paid";
+  }
+  if (paid <= 0) {
+    return "unpaid";
+  }
+  return "partial";
+};
+
+const attachCustomerPaymentStatus = async (sales, userId) => {
+  if (!Array.isArray(sales) || sales.length === 0) {
+    return sales;
+  }
+
+  const [payments, invoices] = await Promise.all([
+    query(
+      "SELECT amount, invoice, customerId, customer_code, customer_name FROM payments WHERE user_id = ? AND partyType = ? AND type = ?",
+      [userId, "customer", "received"],
+    ),
+    query(
+      "SELECT id, totalAmount, status FROM invoices WHERE invoiceType = ? AND user_id = ?",
+      ["sales", userId],
+    ),
+  ]);
+
+  const invoiceById = new Map(
+    invoices.map((invoice) => [String(invoice.id), invoice]),
+  );
+  const invoicePaymentTotals = new Map();
+  const customerBuckets = new Map();
+  const customerAliases = new Map();
+
+  const ensureBucket = (sale) => {
+    const keys = getSaleCustomerKeys(sale);
+    const matchedBucketKey = keys.find((key) => customerAliases.has(key));
+    const bucketKey = matchedBucketKey || keys[0];
+
+    if (!bucketKey) {
+      return null;
+    }
+
+    if (!customerBuckets.has(bucketKey)) {
+      customerBuckets.set(bucketKey, {
+        sales: [],
+        pool: 0,
+      });
+    }
+
+    const bucket = customerBuckets.get(bucketKey);
+    bucket.sales.push(sale);
+
+    keys.forEach((key) => {
+      customerAliases.set(key, bucketKey);
+    });
+
+    return bucketKey;
+  };
+
+  sales.forEach((sale) => {
+    ensureBucket(sale);
+  });
+
+  payments.forEach((payment) => {
+    const amount = Number(payment.amount) || 0;
+    if (!amount) {
+      return;
+    }
+
+    if (payment.invoice) {
+      const invoiceKey = String(payment.invoice);
+      invoicePaymentTotals.set(
+        invoiceKey,
+        (invoicePaymentTotals.get(invoiceKey) || 0) + amount,
+      );
+      return;
+    }
+
+    const paymentKeys = getPaymentCustomerKeys(payment);
+    const bucketKey = paymentKeys
+      .map((key) => customerAliases.get(key))
+      .find(Boolean);
+
+    if (!bucketKey || !customerBuckets.has(bucketKey)) {
+      return;
+    }
+
+    const bucket = customerBuckets.get(bucketKey);
+    bucket.pool += amount;
+  });
+
+  const statusBySaleId = new Map();
+
+  for (const bucket of customerBuckets.values()) {
+    let customerPool = bucket.pool;
+    const sortedSales = [...bucket.sales].sort((a, b) => {
+      const aTime = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+      if (aTime !== bTime) {
+        return aTime - bTime;
+      }
+      return Number(a?.id || 0) - Number(b?.id || 0);
+    });
+
+    sortedSales.forEach((sale) => {
+      const totalAmount = Number(sale.totalAmount) || 0;
+      const invoiceId = sale.invoice ? String(sale.invoice) : "";
+      const invoiceRecord = invoiceId ? invoiceById.get(invoiceId) : null;
+      const invoicePaid = invoiceId
+        ? Math.min(Number(invoicePaymentTotals.get(invoiceId) || 0), totalAmount)
+        : 0;
+
+      let paidAmount = invoicePaid;
+      if (invoiceRecord && normalizeText(invoiceRecord.status) === "paid") {
+        paidAmount = Math.max(paidAmount, totalAmount);
+      }
+
+      let remainingAmount = Math.max(totalAmount - paidAmount, 0);
+
+      if (remainingAmount > 0 && customerPool > 0) {
+        const applied = Math.min(customerPool, remainingAmount);
+        paidAmount += applied;
+        remainingAmount -= applied;
+        customerPool -= applied;
+      }
+
+      statusBySaleId.set(String(sale.id), {
+        paymentStatus: getPaymentStatus(paidAmount, totalAmount),
+        paidAmount,
+        remainingAmount,
+      });
+    });
+  }
+
+  return sales.map((sale) => ({
+    ...sale,
+    ...(statusBySaleId.get(String(sale.id)) || {
+      paymentStatus: getPaymentStatus(0, sale.totalAmount),
+      paidAmount: 0,
+      remainingAmount: Math.max(Number(sale.totalAmount) || 0, 0),
+    }),
+  }));
+};
+
 const hydrateSales = async (sales, userId) => {
   const hydrated = await Promise.all(
     sales.map(async (sale) => {
@@ -65,7 +264,12 @@ const hydrateSales = async (sales, userId) => {
     }),
   );
 
-  return hydrated;
+  const errorEntry = hydrated.find((sale) => sale?.error);
+  if (errorEntry) {
+    return hydrated;
+  }
+
+  return attachCustomerPaymentStatus(hydrated, userId);
 };
 
 module.exports.createSale = async (req, res) => {
@@ -201,13 +405,14 @@ module.exports.createSale = async (req, res) => {
     let saleInsert;
     try {
       saleInsert = await query(
-        "INSERT INTO sales (user_id, customer, customerName, paymentMethod, status, totalAmount, stockOutRecorded) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO sales (user_id, customer, customerName, paymentMethod, status, paymentStatus, totalAmount, stockOutRecorded) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         [
           userId,
           customerId,
           customerName,
           paymentMethod || null,
           resolvedSaleStatus,
+          "unpaid",
           totalAmount,
           false,
         ],

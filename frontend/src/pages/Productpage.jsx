@@ -115,7 +115,7 @@ function Productpage({ readOnly = false }) {
     return Number.isNaN(parsed) ? undefined : parsed;
   };
 
-  const getId = (value) => value?._id ?? value?.id ?? value;
+  const getId = (value) => value?.id ?? value?.id ?? value;
 
   const handleEditSubmit = (event) => {
     event.preventDefault();

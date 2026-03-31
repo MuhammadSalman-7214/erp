@@ -124,7 +124,7 @@ const initDb = async () => {
       customer INT,
       customerName VARCHAR(255),
       totalAmount DECIMAL(12,2) DEFAULT 0,
-      paymentStatus VARCHAR(50),
+      paymentStatus VARCHAR(50) DEFAULT 'unpaid',
       paymentMethod VARCHAR(50),
       invoice INT,
       status VARCHAR(50),

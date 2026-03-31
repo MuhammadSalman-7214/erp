@@ -125,7 +125,7 @@ const supplierSlice = createSlice({
           return;
         }
         const exists = state.getallSupplier.some(
-          (vendor) => vendor._id === newVendor._id,
+          (vendor) => vendor.id === newVendor.id,
         );
         if (!exists) {
           state.getallSupplier = [newVendor, ...state.getallSupplier];
@@ -154,7 +154,7 @@ const supplierSlice = createSlice({
       .addCase(deleteSupplier.fulfilled, (state, action) => {
         state.isSupplierremove = false;
         state.getallSupplier = state.getallSupplier.filter(
-          (supplier) => supplier._id !== action.meta.arg,
+          (supplier) => supplier.id !== action.meta.arg,
         );
       })
 
@@ -169,7 +169,7 @@ const supplierSlice = createSlice({
       .addCase(EditSupplier.fulfilled, (state, action) => {
         state.editedsupplier = action.payload.vendor;
         const index = state.getallSupplier.findIndex(
-          (s) => s._id === action.payload.vendor._id,
+          (s) => s.id === action.payload.vendor.id,
         );
         if (index !== -1) {
           state.getallSupplier[index] = action.payload.vendor;

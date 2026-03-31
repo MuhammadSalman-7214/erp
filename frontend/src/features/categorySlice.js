@@ -123,13 +123,13 @@ const categorySlice = createSlice({
       .addCase(RemoveCategory.fulfilled, (state, action) => {
         state.iscategoryremove = true;
         state.getallCategory = state.getallCategory.filter(
-          (category) => category._id !== action.meta.arg,
+          (category) => category.id !== action.meta.arg,
         );
       })
       .addCase(UpdateCategory.fulfilled, (state, action) => {
         const updatedCategory = action.payload;
         state.getallCategory = state.getallCategory.map((cat) =>
-          cat._id === updatedCategory._id ? updatedCategory : cat,
+          cat.id === updatedCategory.id ? updatedCategory : cat,
         );
         state.iscreatedCategory = false; // optional: reset form state flags
       })

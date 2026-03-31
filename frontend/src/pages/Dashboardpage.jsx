@@ -278,7 +278,7 @@ function Dashboardpage() {
             <ul className="space-y-3">
               {recentInvoices.map((inv) => (
                 <li
-                  key={inv._id}
+                  key={inv.id}
                   className="flex justify-between items-center p-3 bg-gray-50 rounded-lg hover:bg-teal-50 transition-colors duration-200"
                 >
                   <span className="text-sm font-medium text-gray-700">
@@ -310,7 +310,7 @@ function Dashboardpage() {
             <ul className="space-y-3">
               {overdueInvoices.map((inv) => (
                 <li
-                  key={inv._id}
+                  key={inv.id}
                   className="flex justify-between items-center p-3 bg-red-50 rounded-lg hover:bg-red-100 transition-colors duration-200"
                 >
                   <span className="text-sm font-medium text-gray-700">
@@ -342,7 +342,7 @@ function Dashboardpage() {
             <ul className="space-y-3">
               {lowStockProducts.map((product) => (
                 <li
-                  key={product._id}
+                  key={product.id}
                   className="flex justify-between items-center p-3 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors duration-200"
                 >
                   <span className="text-sm font-medium text-gray-700">

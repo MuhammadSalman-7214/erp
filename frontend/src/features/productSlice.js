@@ -17,7 +17,7 @@ const initialState = {
   isproductcodedelete: false,
 };
 
-const getId = (value) => value?._id ?? value?.id ?? value;
+const getId = (value) => value?.id ?? value?.id ?? value;
 
 export const Addproduct = createAsyncThunk(
   "product/addproduct",
@@ -49,11 +49,9 @@ export const EditProduct = createAsyncThunk(
     try {
       const token = localStorage.getItem("token");
 
-      const response = await axiosInstance.put(
-        `/product/${id}`,
-        updatedData,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      const response = await axiosInstance.put(`/product/${id}`, updatedData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       return response.data;
     } catch (error) {

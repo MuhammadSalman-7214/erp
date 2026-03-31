@@ -75,7 +75,7 @@ function Activitylogpage() {
               <tbody>
                 {currentLogs.map((log, index) => (
                   <tr
-                    key={log._id}
+                    key={log.id}
                     className="border-b last:border-b-0 hover:bg-slate-50 transition"
                   >
                     <td className="px-5 py-4 text-slate-500">
@@ -97,7 +97,6 @@ function Activitylogpage() {
                     </td>
 
                     <td className="px-5 py-4 text-slate-700">{log.entity}</td>
-
 
                     <td className="px-5 py-4 text-slate-600">
                       <FormattedTime timestamp={log.createdAt} />

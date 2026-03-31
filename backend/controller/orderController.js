@@ -6,6 +6,11 @@ const {
   rollbackOrderDeliveredStockIn,
 } = require("../libs/stockLifecycle");
 
+const isLockedOrderStatus = (status = "") => {
+  const normalized = String(status).trim().toLowerCase();
+  return normalized === "shipped" || normalized === "delivered";
+};
+
 const createOrder = async (req, res) => {
   try {
     const { Product, products, status, supplier, vendor } = req.body;
@@ -325,8 +330,11 @@ const Removeorder = async (req, res) => {
       return res.status(404).json({ message: "Order is not found!" });
     }
 
-    if (Deletedorder.status === "delivered" || Deletedorder.stockInRecorded) {
-      await rollbackOrderDeliveredStockIn(Deletedorder.id, userId);
+    if (isLockedOrderStatus(Deletedorder.status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Shipped or delivered purchase orders cannot be deleted.",
+      });
     }
 
     try {
@@ -480,6 +488,13 @@ const updatestatusOrder = async (req, res) => {
 
     if (!existingOrder) {
       return res.status(404).json({ message: "Order not found" });
+    }
+
+    if (isLockedOrderStatus(existingOrder.status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Shipped or delivered purchase orders cannot be updated.",
+      });
     }
 
     const previousStatus = existingOrder.status;
@@ -715,7 +730,13 @@ const getOrdersByVendor = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      vendor,
+      vendor: {
+        ...vendor,
+        contactInfo: {
+          phone: vendor.contact_phone || "",
+          address: vendor.contact_address || "",
+        },
+      },
       orders: hydrated,
       summary,
     });
