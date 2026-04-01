@@ -36,6 +36,7 @@ function Salespage() {
     address: "",
   });
   const [Payment, setPayment] = useState("");
+  const [receivedAmount, setReceivedAmount] = useState("");
   // const [paymentStatus, setpaymentStatus] = useState("");
   const [Status, setStatus] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
@@ -146,6 +147,12 @@ function Salespage() {
       ),
     [cartItems],
   );
+  const parsedReceivedAmount = Number(receivedAmount || 0);
+  const remainingAfterReceive = Math.max(
+    cartSubTotal -
+      (Number.isFinite(parsedReceivedAmount) ? parsedReceivedAmount : 0),
+    0,
+  );
 
   const openBillPreview = (sale) => {
     if (!sale) return;
@@ -162,6 +169,15 @@ function Salespage() {
     if (!billSale) return;
 
     const items = Array.isArray(billSale.products) ? billSale.products : [];
+    const totalAmount = Number(billSale.totalAmount || 0);
+    const receivedAmountValue = Number(
+      billSale.paidAmount ??
+        totalAmount - Number(billSale.remainingAmount || 0),
+    );
+    const remainingAmountValue = Number(
+      billSale.remainingAmount ??
+        Math.max(totalAmount - receivedAmountValue, 0),
+    );
 
     const rows = items
       .map((item, index) => {
@@ -442,6 +458,8 @@ function Salespage() {
       <div>Method: ${billSale.paymentMethod || "-"}</div>
       <div>Items: ${items.length}</div>
       <div>Qty: ${items.reduce((s, i) => s + Number(i.quantity || 0), 0)}</div>
+      <div>Received: Rs ${receivedAmountValue.toLocaleString()}</div>
+      <div>Remaining: Rs ${remainingAmountValue.toLocaleString()}</div>
     </div>
   </div>
 
@@ -467,11 +485,19 @@ function Salespage() {
     <table>
       <tr>
         <td>Subtotal</td>
-        <td class="num">Rs ${Number(billSale.totalAmount || 0).toLocaleString()}</td>
+        <td class="num">Rs ${totalAmount.toLocaleString()}</td>
+      </tr>
+      <tr>
+        <td>Received</td>
+        <td class="num">Rs ${receivedAmountValue.toLocaleString()}</td>
+      </tr>
+      <tr>
+        <td>Remaining</td>
+        <td class="num">Rs ${remainingAmountValue.toLocaleString()}</td>
       </tr>
       <tr>
         <td class="grand">Total</td>
-        <td class="num grand">Rs ${Number(billSale.totalAmount || 0).toLocaleString()}</td>
+        <td class="num grand">Rs ${totalAmount.toLocaleString()}</td>
       </tr>
     </table>
   </div>
@@ -566,6 +592,11 @@ function Salespage() {
     );
     if (invalidPrice) {
       toast.error("Valid price is required for all items");
+      return;
+    }
+
+    if (Number(receivedAmount || 0) > cartSubTotal) {
+      toast.error("Received amount cannot be greater than cart total");
       return;
     }
 
@@ -796,6 +827,7 @@ function Salespage() {
         };
       }),
       paymentMethod: Payment,
+      receivedAmount: Number(receivedAmount || 0),
       // paymentStatus,
       status: Status,
     };
@@ -827,6 +859,7 @@ function Salespage() {
       address: "",
     });
     setPayment("");
+    setReceivedAmount("");
     // setpaymentStatus("");
     setStatus("");
     setCartItems([]);
@@ -850,6 +883,7 @@ function Salespage() {
     setCodeQuery("");
     setShowCodeOptions(false);
     setPayment(sales.paymentMethod || "");
+    setReceivedAmount("");
     // setpaymentStatus(sales.paymentStatus || "");
     setStatus(sales.status || "");
     setIsFormVisible(true);
@@ -1004,6 +1038,7 @@ function Salespage() {
         />
         <button
           onClick={() => {
+            resetForm();
             setIsFormVisible(true);
             setselectedSales(null);
           }}
@@ -1288,7 +1323,35 @@ function Salespage() {
                     </div>
                   );
                 })}
+                <div className="flex items-center justify-between px-3 py-3 bg-slate-50 border-t text-sm">
+                  <span className="font-semibold text-slate-700">
+                    Cart Total
+                  </span>
+                  <span className="font-bold text-slate-900">
+                    {formatCurrency(cartSubTotal)}
+                  </span>
+                </div>
               </div>
+
+              {!selectedSales && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-gray-700 font-medium">
+                    Receive Amount
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={receivedAmount}
+                    onChange={(e) => setReceivedAmount(e.target.value)}
+                    className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                    placeholder="Enter amount received"
+                  />
+                  <div className="text-xs text-slate-500">
+                    Remaining: {formatCurrency(remainingAfterReceive)}
+                  </div>
+                </div>
+              )}
 
               <div className="flex flex-col gap-1">
                 <label className="text-gray-700 font-medium">
@@ -1420,6 +1483,14 @@ function Salespage() {
                         Sale Info
                       </h4>
                       <p className="text-sm text-slate-600">
+                        Received Amount:{" "}
+                        {formatCurrency(billSale.paidAmount || 0)}
+                      </p>
+                      <p className="text-sm text-slate-600">
+                        Remaining Amount:{" "}
+                        {formatCurrency(billSale.remainingAmount || 0)}
+                      </p>
+                      <p className="text-sm text-slate-600">
                         Payment Method: {billSale.paymentMethod || "-"}
                       </p>
                       <p className="text-sm text-slate-600">
@@ -1494,13 +1565,23 @@ function Salespage() {
                         <span>{formatCurrency(billSale.totalAmount)}</span>
                       </div>
                       <div className="flex justify-between">
+                        <span>Received</span>
+                        <span>{formatCurrency(billSale.paidAmount || 0)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Remaining</span>
+                        <span>
+                          {formatCurrency(billSale.remainingAmount || 0)}
+                        </span>
+                      </div>
+                      {/* <div className="flex justify-between">
                         <span>Tax</span>
                         <span>Rs 0</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Discount</span>
                         <span>Rs 0</span>
-                      </div>
+                      </div> */}
                       <div className="flex justify-between text-base font-semibold text-slate-800 border-t pt-2">
                         <span>Total</span>
                         <span>{formatCurrency(billSale.totalAmount)}</span>
@@ -1629,9 +1710,7 @@ function Salespage() {
                           String(getId(sale)),
                         );
                         const status =
-                          info?.paymentStatus ||
-                          sale.paymentStatus ||
-                          "unpaid";
+                          info?.paymentStatus || sale.paymentStatus || "unpaid";
                         const remaining =
                           info?.remainingAmount ??
                           Math.max(Number(sale.totalAmount || 0), 0);

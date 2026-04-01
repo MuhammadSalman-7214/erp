@@ -274,7 +274,7 @@ const hydrateSales = async (sales, userId) => {
 
 module.exports.createSale = async (req, res) => {
   try {
-    const { customerId, products, paymentMethod, status } = req.body;
+    const { customerId, products, paymentMethod, status, receivedAmount } = req.body;
     const userId = req.user.userId;
 
     if (!customerId) {
@@ -398,6 +398,14 @@ module.exports.createSale = async (req, res) => {
     }
 
     const resolvedSaleStatus = status || "pending";
+    const parsedReceivedAmount = Math.max(Number(receivedAmount) || 0, 0);
+    if (parsedReceivedAmount > totalAmount) {
+      return res.status(400).json({
+        success: false,
+        message: "Received amount cannot be greater than the sale total",
+      });
+    }
+
     if (resolvedSaleStatus === "completed") {
       await validateSaleStockAvailability(resolvedProducts, [], userId);
     }
@@ -567,6 +575,35 @@ module.exports.createSale = async (req, res) => {
         message: "Database error",
         error: err,
       });
+    }
+
+    if (parsedReceivedAmount > 0) {
+      try {
+        await query(
+          "INSERT INTO payments (user_id, type, amount, method, invoice, invoiceType, partyType, customerId, customer_code, customer_name, vendor, paidAt, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [
+            userId,
+            "received",
+            parsedReceivedAmount,
+            paymentMethod || "cash",
+            invoiceId,
+            "sales",
+            "customer",
+            customerId,
+            customer.customerCode || "",
+            customerName,
+            null,
+            new Date(),
+            "Received against sales order",
+          ],
+        );
+      } catch (err) {
+        return res.status(500).json({
+          success: false,
+          message: "Database error",
+          error: err,
+        });
+      }
     }
 
     const salesRows = await query(
