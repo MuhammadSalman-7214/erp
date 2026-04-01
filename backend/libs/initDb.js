@@ -9,6 +9,7 @@ const initDb = async () => {
       password VARCHAR(255) NOT NULL,
       ProfilePic TEXT,
       role VARCHAR(50),
+      isActive TINYINT(1) NOT NULL DEFAULT 1,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )`,
@@ -269,6 +270,16 @@ const initDb = async () => {
 
   for (const sql of statements) {
     await query(sql);
+  }
+
+  try {
+    await query(
+      "ALTER TABLE users ADD COLUMN isActive TINYINT(1) NOT NULL DEFAULT 1",
+    );
+  } catch (error) {
+    if (error?.errno !== 1060) {
+      throw error;
+    }
   }
 };
 

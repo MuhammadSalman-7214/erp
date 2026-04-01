@@ -8,6 +8,11 @@ import { login } from "../features/authSlice";
 import toast from "react-hot-toast";
 import { IoEyeOffOutline, IoEyeOutline } from "react-icons/io5";
 
+const getDashboardPath = (role) => {
+  if (role === "super_admin") return "/super-admin";
+  return "/";
+};
+
 function LoginPage() {
   const { user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
@@ -36,7 +41,7 @@ function LoginPage() {
 
       const userRole = result?.user?.role;
       toast.success(`Welcome back, ${result?.user?.name || "User"}!`);
-      navigate("/", {
+      navigate(getDashboardPath(userRole), {
         replace: true,
       });
     } catch (error) {
@@ -48,7 +53,7 @@ function LoginPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (user?.role) {
-      navigate("/", { replace: true });
+      navigate(getDashboardPath(user.role), { replace: true });
     }
   }, [user, navigate]);
 
@@ -69,7 +74,11 @@ function LoginPage() {
               <input
                 type="email"
                 {...register("email")}
-                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck={false}
+                style={{ textTransform: "none" }}
+                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 !normal-case"
                 placeholder="you@example.com"
               />
               {errors.email && (
@@ -87,7 +96,11 @@ function LoginPage() {
                 <input
                   type={showPassword ? "text" : "password"}
                   {...register("password")}
-                  className="w-full p-3 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  style={{ textTransform: "none" }}
+                  className="w-full p-3 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 !normal-case"
                   placeholder="Enter your password"
                 />
                 <button

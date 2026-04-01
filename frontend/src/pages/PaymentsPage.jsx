@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import axiosInstance from "../lib/axios";
 import toast from "react-hot-toast";
 import NoData from "../Components/NoData";
@@ -14,8 +14,14 @@ function PaymentsPage() {
   const [customerId, setCustomerId] = useState("");
   const [vendorId, setVendorId] = useState("");
   const [invoiceId, setInvoiceId] = useState("");
+  const [customerQuery, setCustomerQuery] = useState("");
+  const [vendorQuery, setVendorQuery] = useState("");
+  const [showCustomerOptions, setShowCustomerOptions] = useState(false);
+  const [showVendorOptions, setShowVendorOptions] = useState(false);
 
   const getId = (value) => value?.id ?? value?.id ?? value;
+
+  const normalize = (value) => String(value || "").toLowerCase().trim();
 
   const fetchPayments = async () => {
     try {
@@ -48,10 +54,62 @@ function PaymentsPage() {
   useEffect(() => {
     if (type === "received") {
       setPartyType("customer");
+      setVendorId("");
+      setVendorQuery("");
+      setShowVendorOptions(false);
     } else {
       setPartyType("vendor");
+      setCustomerId("");
+      setCustomerQuery("");
+      setShowCustomerOptions(false);
     }
   }, [type]);
+
+  const filteredCustomers = useMemo(() => {
+    const query = normalize(customerQuery);
+    if (!query) return customers;
+
+    return customers.filter((customer) => {
+      const name = normalize(customer.name);
+      const code = normalize(customer.customerCode);
+      const phone = normalize(customer.contactInfo?.phone);
+      return (
+        name.includes(query) || code.includes(query) || phone.includes(query)
+      );
+    });
+  }, [customers, customerQuery]);
+
+  const filteredVendors = useMemo(() => {
+    const query = normalize(vendorQuery);
+    if (!query) return vendors;
+
+    return vendors.filter((vendor) => {
+      const name = normalize(vendor.name);
+      const code = normalize(vendor.vendorCode);
+      const phone = normalize(vendor.contactInfo?.phone);
+      return (
+        name.includes(query) || code.includes(query) || phone.includes(query)
+      );
+    });
+  }, [vendors, vendorQuery]);
+
+  const selectCustomer = (customer) => {
+    const id = getId(customer);
+    setCustomerId(id);
+    setCustomerQuery(
+      `${customer.name}${customer.customerCode ? ` (${customer.customerCode})` : ""}`,
+    );
+    setShowCustomerOptions(false);
+  };
+
+  const selectVendor = (vendor) => {
+    const id = getId(vendor);
+    setVendorId(id);
+    setVendorQuery(
+      `${vendor.name}${vendor.vendorCode ? ` (${vendor.vendorCode})` : ""}`,
+    );
+    setShowVendorOptions(false);
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -86,6 +144,10 @@ function PaymentsPage() {
       setAmount("");
       setCustomerId("");
       setVendorId("");
+      setCustomerQuery("");
+      setVendorQuery("");
+      setShowCustomerOptions(false);
+      setShowVendorOptions(false);
       setInvoiceId("");
       fetchPayments();
     } catch (error) {
@@ -165,40 +227,75 @@ function PaymentsPage() {
 
           {partyType === "customer" ? (
             <>
-              <div>
+              <div className="relative">
                 <label className="text-sm font-medium">Customer</label>
-                <select
-                  value={customerId}
-                  onChange={(e) => setCustomerId(e.target.value)}
+                <input
+                  type="text"
+                  value={customerQuery}
+                  onChange={(e) => {
+                    setCustomerQuery(e.target.value);
+                    setCustomerId("");
+                    setShowCustomerOptions(true);
+                  }}
+                  onFocus={() => setShowCustomerOptions(true)}
+                  onBlur={() =>
+                    setTimeout(() => setShowCustomerOptions(false), 150)
+                  }
                   className="w-full h-10 px-3 border rounded-xl mt-1"
-                >
-                  <option value="">Select Customer</option>
-                  {customers.map((customer) => (
-                    <option key={getId(customer)} value={getId(customer)}>
-                      {customer.name}
-                      {customer.customerCode
-                        ? ` (${customer.customerCode})`
-                        : ""}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Search customer..."
+                />
+                {showCustomerOptions && filteredCustomers.length > 0 && (
+                  <div className="absolute z-50 mt-1 w-full max-h-56 overflow-auto rounded-lg border bg-white shadow">
+                    {filteredCustomers.map((customer) => (
+                      <button
+                        key={getId(customer)}
+                        type="button"
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => selectCustomer(customer)}
+                      >
+                        {customer.name}
+                        {customer.customerCode
+                          ? ` (${customer.customerCode})`
+                          : ""}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </>
           ) : (
-            <div className="md:col-span-2">
+            <div className="md:col-span-2 relative">
               <label className="text-sm font-medium">Vendor</label>
-              <select
-                value={vendorId}
-                onChange={(e) => setVendorId(e.target.value)}
+              <input
+                type="text"
+                value={vendorQuery}
+                onChange={(e) => {
+                  setVendorQuery(e.target.value);
+                  setVendorId("");
+                  setShowVendorOptions(true);
+                }}
+                onFocus={() => setShowVendorOptions(true)}
+                onBlur={() => setTimeout(() => setShowVendorOptions(false), 150)}
                 className="w-full h-10 px-3 border rounded-xl mt-1"
-              >
-                <option value="">Select Vendor</option>
-                {vendors.map((vendor) => (
-                  <option key={getId(vendor)} value={getId(vendor)}>
-                    {vendor.name}
-                  </option>
-                ))}
-              </select>
+                placeholder="Search vendor..."
+              />
+              {showVendorOptions && filteredVendors.length > 0 && (
+                <div className="absolute z-50 mt-1 w-full max-h-56 overflow-auto rounded-lg border bg-white shadow">
+                  {filteredVendors.map((vendor) => (
+                    <button
+                      key={getId(vendor)}
+                      type="button"
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => selectVendor(vendor)}
+                    >
+                      {vendor.name}
+                      {vendor.vendorCode ? ` (${vendor.vendorCode})` : ""}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

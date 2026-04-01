@@ -363,7 +363,7 @@ function Orderpage() {
       {/* Overlay */}
       {isFormVisible && (
         <div
-          className="fixed inset-0 bg-black/40 z-40"
+          className="fixed inset-0 bg-black/40 z-[60]"
           onClick={() => {
             setIsFormVisible(false);
             resetForm();
@@ -373,7 +373,7 @@ function Orderpage() {
 
       {/* Form slide-in */}
       {isFormVisible && (
-        <div className="fixed top-0 right-0 w-full sm:w-[420px] h-full bg-white p-6 border-l shadow-2xl z-50 overflow-y-auto">
+        <div className="fixed top-0 right-0 w-full sm:w-[420px] h-full bg-white p-6 border-l shadow-2xl z-[70] overflow-y-auto">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">
               {selectedOrder

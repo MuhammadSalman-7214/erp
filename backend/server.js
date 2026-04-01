@@ -27,7 +27,27 @@ console.log("🚀 ~ PORT:", PORT);
 const app = express();
 const server = http.createServer(app);
 
-const allowedOrigins = ["http://localhost:3000", "https://imrantraders.shop"];
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://imrantraders.shop",
+  "https://www.imrantraders.shop",
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true); // allowed
+      } else {
+        return callback(null, false);
+      }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    credentials: true,
+  }),
+);
 
 const io = new Server(server, {
   cors: {
@@ -36,23 +56,6 @@ const io = new Server(server, {
     credentials: true,
   },
 });
-
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // Allow requests with no origin (like Postman, mobile apps)
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      } else {
-        return callback(new Error("Not allowed by CORS"));
-      }
-    },
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-    credentials: true,
-  }),
-);
 
 io.on("connection", (socket) => {
   console.log("A user connected");
@@ -66,6 +69,9 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.json());
 app.set("io", io);
 app.use(cookieParser());
+app.get("/", (req, res) => {
+  res.send("API is running 🚀");
+});
 app.use("/api/auth", authrouter);
 app.use("/api/product", productrouter);
 app.use("/api/order", orderrouter);

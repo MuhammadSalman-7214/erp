@@ -8,6 +8,11 @@ import * as yup from "yup";
 import toast from "react-hot-toast";
 import { IoEyeOffOutline, IoEyeOutline } from "react-icons/io5";
 
+const getDashboardPath = (role) => {
+  if (role === "super_admin") return "/super-admin";
+  return "/";
+};
+
 function SignupPage() {
   const { user, isUserSignup } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
@@ -37,11 +42,11 @@ function SignupPage() {
       const result = await dispatch(signup(data)).unwrap();
 
       // Redirect based on role after successful signup
-      const userRole = result?.user?.role || data.role;
+      const userRole = result?.savedUser?.role || result?.user?.role || data.role;
       toast.success(
-        `Account created successfully! Welcome, ${result?.user?.name || data.name}!`,
+        `Account created successfully! Welcome, ${result?.savedUser?.name || result?.user?.name || data.name}!`,
       );
-      navigate("/");
+      navigate(getDashboardPath(userRole));
     } catch (error) {
       toast.error(error || "Signup failed. Please try again.");
     }
@@ -50,7 +55,7 @@ function SignupPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (user?.role) {
-      navigate("/");
+      navigate(getDashboardPath(user.role));
     }
   }, [user, navigate]);
 

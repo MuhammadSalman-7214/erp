@@ -1,5 +1,6 @@
 // middleware/Authmiddleware.js
 const jwt = require("jsonwebtoken");
+const query = require("../libs/dbQuery");
 
 // Authentication middleware
 const authmiddleware = async (req, res, next) => {
@@ -11,7 +12,28 @@ const authmiddleware = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    const rows = await query(
+      "SELECT id, role, isActive FROM users WHERE id = ? LIMIT 1",
+      [decoded.userId],
+    );
+
+    if (!rows.length) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    const currentUser = rows[0];
+    req.user = {
+      userId: currentUser.id,
+      role: currentUser.role,
+      isActive: currentUser.isActive,
+    };
+
+    if (Number(currentUser.isActive) === 0) {
+      return res
+        .status(403)
+        .json({ message: "your account is in active plz contact administration" });
+    }
+
     next();
   } catch (error) {
     return res.status(401).json({ message: "Invalid or expired token" });
@@ -44,6 +66,20 @@ const checkPermission = (resource, action = "read") => {
 
     // Define permissions matrix
     const permissions = {
+      super_admin: {
+        dashboard: ["read", "write"],
+        product: ["read", "write", "delete"],
+        activityLog: ["read", "write", "delete"],
+        supplier: ["read", "write", "delete"],
+        customer: ["read", "write", "delete"],
+        payment: ["read", "write", "delete"],
+        invoice: ["read", "write", "delete"],
+        sales: ["read", "write", "delete"],
+        order: ["read", "write", "delete"],
+        stockTransaction: ["read", "write", "delete"],
+        notification: ["read", "write", "delete"],
+        category: ["read", "write", "delete"],
+      },
       admin: {
         dashboard: ["read", "write"],
         product: ["read", "write", "delete"],
@@ -111,12 +147,15 @@ const adminmiddleware = checkRole("admin");
 // Manager or Admin middleware
 const managermiddleware = checkRole("admin", "manager");
 
+const superadminmiddleware = checkRole("super_admin");
+
 // All authenticated users middleware (already covered by authmiddleware)
 
 module.exports = {
   authmiddleware,
   adminmiddleware,
   managermiddleware,
+  superadminmiddleware,
   checkRole,
   checkPermission,
 };

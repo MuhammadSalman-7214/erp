@@ -1015,12 +1015,12 @@ function Salespage() {
 
       {/* OVERLAY */}
       {isFormVisible && (
-        <div className="fixed inset-0 bg-black/40 z-40" onClick={closeForm} />
+        <div className="fixed inset-0 bg-black/40 z-[60]" onClick={closeForm} />
       )}
 
       {/* FORM SLIDE-IN */}
       {isFormVisible && (
-        <div className="fixed top-0 right-0 w-full sm:w-[420px] h-full bg-white border-l shadow-2xl z-50 flex flex-col">
+        <div className="fixed top-0 right-0 w-full sm:w-[420px] h-full bg-white border-l shadow-2xl z-[70] flex flex-col">
           {/* Header */}
           <div className="flex justify-between items-center p-6 border-b">
             <h2 className="text-xl font-semibold">
@@ -1343,10 +1343,10 @@ function Salespage() {
       {showBillModal && billSale && (
         <>
           <div
-            className="fixed inset-0 bg-black/50 z-50"
+            className="fixed inset-0 bg-black/50 z-[60]"
             onClick={closeBillPreview}
           />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
             <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl border overflow-hidden">
               <div className="flex items-center justify-between px-6 py-4 border-b bg-slate-50">
                 <div>

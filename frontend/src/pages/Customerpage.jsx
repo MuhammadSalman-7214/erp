@@ -275,11 +275,11 @@ function Customerpage({ readOnly = false }) {
       </div>
 
       {isFormVisible && (
-        <div className="fixed inset-0 bg-black/40 z-40" onClick={closeForm} />
+        <div className="fixed inset-0 bg-black/40 z-[60]" onClick={closeForm} />
       )}
 
       {isFormVisible && canWrite && (
-        <div className="fixed top-0 right-0 w-full sm:w-[420px] h-full bg-white p-6 border-l shadow-2xl z-50">
+        <div className="fixed top-0 right-0 w-full sm:w-[420px] h-full bg-white p-6 border-l shadow-2xl z-[70]">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">
               {selectedCustomer ? "Edit Customer" : "Create Customer"}

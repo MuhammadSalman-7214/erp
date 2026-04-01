@@ -575,12 +575,12 @@ function Productpage({ readOnly = false }) {
 
       {/* OVERLAY */}
       {isFormVisible && (
-        <div className="fixed inset-0 bg-black/40 z-40" onClick={closeForm} />
+        <div className="fixed inset-0 bg-black/40 z-[60]" onClick={closeForm} />
       )}
 
       {/* SLIDE-IN DRAWER */}
       {isFormVisible && (
-        <div className="fixed top-0 right-0 w-full sm:w-[480px] h-full bg-white p-6 border-l shadow-2xl z-50 overflow-y-auto">
+        <div className="fixed top-0 right-0 w-full sm:w-[480px] h-full bg-white p-6 border-l shadow-2xl z-[70] overflow-y-auto">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">
               {selectedProduct ? "Edit Product" : "Create Product"}
@@ -680,13 +680,13 @@ function Productpage({ readOnly = false }) {
 
       {isCodeModalOpen && (
         <div
-          className="fixed inset-0 bg-black/40 z-40"
+          className="fixed inset-0 bg-black/40 z-[60]"
           onClick={closeCodeModal}
         />
       )}
 
       {isCodeModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
           <div
             className="w-full max-w-2xl bg-white rounded-2xl shadow-xl border"
             onClick={(e) => e.stopPropagation()}

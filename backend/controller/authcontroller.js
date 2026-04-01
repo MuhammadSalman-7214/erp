@@ -38,8 +38,8 @@ module.exports.signup = async (req, res) => {
     let insertResult;
     try {
       insertResult = await query(
-        "INSERT INTO users (name, email, password, ProfilePic, role) VALUES (?, ?, ?, ?, ?)",
-        [name, email, hashedpassword, "", resolvedRole],
+        "INSERT INTO users (name, email, password, ProfilePic, role, isActive) VALUES (?, ?, ?, ?, ?, ?)",
+        [name, email, hashedpassword, "", resolvedRole, 1],
       );
     } catch (err) {
       return res.status(500).json({
@@ -54,6 +54,7 @@ module.exports.signup = async (req, res) => {
       email,
       role: resolvedRole,
       ProfilePic: "",
+      isActive: 1,
     };
     const token = await generateToken(savedUser, res);
 
@@ -65,6 +66,7 @@ module.exports.signup = async (req, res) => {
         email: savedUser.email,
         role: savedUser.role,
         ProfilePic: savedUser.ProfilePic,
+        isActive: savedUser.isActive,
         token,
       },
     });
@@ -108,6 +110,12 @@ module.exports.login = async (req, res) => {
       });
     }
 
+    if (Number(duplicatedUser.isActive) === 0) {
+      return res.status(403).json({
+        message: "your account is in active plz contact administration",
+      });
+    }
+
     const hasedpassword = await bcrypt.compare(
       password,
       duplicatedUser.password,
@@ -135,6 +143,7 @@ module.exports.login = async (req, res) => {
         email: duplicatedUser.email,
         role: duplicatedUser.role,
         ProfilePic: duplicatedUser.ProfilePic,
+        isActive: duplicatedUser.isActive,
         token,
       },
     });
@@ -195,7 +204,7 @@ module.exports.updateProfile = async (req, res) => {
         let updatedUser;
         try {
           const rows = await query(
-            "SELECT id, name, email, role, ProfilePic FROM users WHERE id = ?",
+            "SELECT id, name, email, role, ProfilePic, isActive FROM users WHERE id = ?",
             [userId],
           );
           updatedUser = rows[0];
@@ -232,7 +241,7 @@ module.exports.staffuser = async (req, res) => {
     let staffuser;
     try {
       staffuser = await query(
-        "SELECT id, name, email, role, ProfilePic FROM users WHERE role = ?",
+        "SELECT id, name, email, role, ProfilePic, isActive FROM users WHERE role = ?",
         ["staff"],
       );
     } catch (err) {
@@ -261,7 +270,7 @@ module.exports.manageruser = async (req, res) => {
     let manageruser;
     try {
       manageruser = await query(
-        "SELECT id, name, email, role, ProfilePic FROM users WHERE role = ?",
+        "SELECT id, name, email, role, ProfilePic, isActive FROM users WHERE role = ?",
         ["manager"],
       );
     } catch (err) {
@@ -290,7 +299,7 @@ module.exports.adminuser = async (req, res) => {
     let adminuser;
     try {
       adminuser = await query(
-        "SELECT id, name, email, role, ProfilePic FROM users WHERE role = ?",
+        "SELECT id, name, email, role, ProfilePic, isActive FROM users WHERE role = ?",
         ["admin"],
       );
     } catch (err) {
@@ -311,6 +320,59 @@ module.exports.adminuser = async (req, res) => {
   } catch (error) {
     console.log("Error in get admin Controller:", error.message);
     res.status(500).json({ message: "Internal Server Error", error });
+  }
+};
+
+module.exports.superadminAdmins = async (req, res) => {
+  try {
+    const admins = await query(
+      "SELECT id, name, email, role, ProfilePic, isActive, createdAt FROM users WHERE role = ? ORDER BY createdAt DESC",
+      ["admin"],
+    );
+
+    return res.status(200).json(admins);
+  } catch (error) {
+    console.error("Error in super admin admin list:", error.message);
+    return res.status(500).json({ message: "Internal Server Error", error });
+  }
+};
+
+module.exports.toggleAdminStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ message: "Admin ID is required" });
+    }
+
+    const rows = await query(
+      "SELECT id, name, email, role, isActive FROM users WHERE id = ? AND role = ? LIMIT 1",
+      [id, "admin"],
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ message: "Admin user not found" });
+    }
+
+    const nextStatus = Number(rows[0].isActive) === 1 ? 0 : 1;
+
+    await query("UPDATE users SET isActive = ? WHERE id = ?", [
+      nextStatus,
+      id,
+    ]);
+
+    const updatedRows = await query(
+      "SELECT id, name, email, role, ProfilePic, isActive, createdAt FROM users WHERE id = ? LIMIT 1",
+      [id],
+    );
+
+    return res.status(200).json({
+      message: `Admin ${nextStatus ? "activated" : "deactivated"} successfully`,
+      admin: updatedRows[0],
+    });
+  } catch (error) {
+    console.error("Error toggling admin status:", error.message);
+    return res.status(500).json({ message: "Internal Server Error", error });
   }
 };
 
