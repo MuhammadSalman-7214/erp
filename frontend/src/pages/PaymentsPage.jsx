@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import axiosInstance from "../lib/axios";
 import toast from "react-hot-toast";
 import NoData from "../Components/NoData";
+import useKeyboardDropdown from "../hooks/useKeyboardDropdown";
 
 function PaymentsPage() {
   const [payments, setPayments] = useState([]);
@@ -110,6 +111,28 @@ function PaymentsPage() {
     );
     setShowVendorOptions(false);
   };
+
+  const {
+    activeIndex: customerActiveIndex,
+    onKeyDown: onCustomerKeyDown,
+    setActiveIndex: setCustomerActiveIndex,
+  } = useKeyboardDropdown({
+    options: filteredCustomers,
+    isOpen: showCustomerOptions && customerQuery.trim() !== "",
+    onSelect: (customer) => selectCustomer(customer),
+    onClose: () => setShowCustomerOptions(false),
+  });
+
+  const {
+    activeIndex: vendorActiveIndex,
+    onKeyDown: onVendorKeyDown,
+    setActiveIndex: setVendorActiveIndex,
+  } = useKeyboardDropdown({
+    options: filteredVendors,
+    isOpen: showVendorOptions && vendorQuery.trim() !== "",
+    onSelect: (vendor) => selectVendor(vendor),
+    onClose: () => setShowVendorOptions(false),
+  });
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -237,9 +260,16 @@ function PaymentsPage() {
                     setCustomerId("");
                     setShowCustomerOptions(true);
                   }}
-                  onFocus={() => setShowCustomerOptions(true)}
+                  onFocus={() => {
+                    setShowCustomerOptions(true);
+                    setCustomerActiveIndex(0);
+                  }}
+                  onKeyDownCapture={onCustomerKeyDown}
                   onBlur={() =>
-                    setTimeout(() => setShowCustomerOptions(false), 150)
+                    setTimeout(() => {
+                      setShowCustomerOptions(false);
+                      setCustomerActiveIndex(-1);
+                    }, 150)
                   }
                   className="w-full h-10 px-3 border rounded-xl mt-1"
                   placeholder="Search customer..."
@@ -250,7 +280,14 @@ function PaymentsPage() {
                       <button
                         key={getId(customer)}
                         type="button"
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50"
+                        className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 ${
+                          customerActiveIndex ===
+                          filteredCustomers.findIndex(
+                            (item) => getId(item) === getId(customer),
+                          )
+                            ? "bg-slate-50"
+                            : ""
+                        }`}
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => selectCustomer(customer)}
                       >
@@ -275,8 +312,17 @@ function PaymentsPage() {
                   setVendorId("");
                   setShowVendorOptions(true);
                 }}
-                onFocus={() => setShowVendorOptions(true)}
-                onBlur={() => setTimeout(() => setShowVendorOptions(false), 150)}
+                onFocus={() => {
+                  setShowVendorOptions(true);
+                  setVendorActiveIndex(0);
+                }}
+                onKeyDownCapture={onVendorKeyDown}
+                onBlur={() =>
+                  setTimeout(() => {
+                    setShowVendorOptions(false);
+                    setVendorActiveIndex(-1);
+                  }, 150)
+                }
                 className="w-full h-10 px-3 border rounded-xl mt-1"
                 placeholder="Search vendor..."
               />
@@ -286,7 +332,14 @@ function PaymentsPage() {
                     <button
                       key={getId(vendor)}
                       type="button"
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50"
+                      className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 ${
+                        vendorActiveIndex ===
+                        filteredVendors.findIndex(
+                          (item) => getId(item) === getId(vendor),
+                        )
+                          ? "bg-slate-50"
+                          : ""
+                      }`}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => selectVendor(vendor)}
                     >

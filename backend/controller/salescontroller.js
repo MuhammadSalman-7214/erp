@@ -410,12 +410,15 @@ module.exports.createSale = async (req, res) => {
       await validateSaleStockAvailability(resolvedProducts, [], userId);
     }
 
+    const saleInvoiceNumber = await getNextInvoiceNumber("SI", userId);
+
     let saleInsert;
     try {
       saleInsert = await query(
-        "INSERT INTO sales (user_id, customer, customerName, paymentMethod, status, paymentStatus, totalAmount, stockOutRecorded) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO sales (user_id, invoiceNumber, customer, customerName, paymentMethod, status, paymentStatus, totalAmount, stockOutRecorded) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
           userId,
+          saleInvoiceNumber,
           customerId,
           customerName,
           paymentMethod || null,
@@ -488,7 +491,6 @@ module.exports.createSale = async (req, res) => {
       });
     }
 
-    const invoiceNumber = await getNextInvoiceNumber("SI", userId);
     const paymentMethodMap = {
       creditcard: "card",
       banktransfer: "bank_transfer",
@@ -503,7 +505,7 @@ module.exports.createSale = async (req, res) => {
         "INSERT INTO invoices (user_id, invoiceNumber, invoiceType, customerId, customer_name, customer_phone, customer_address, taxRate, discount, currency, dueDate, paymentMethod, status, subTotal, taxAmount, totalAmount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
           userId,
-          invoiceNumber,
+          saleInvoiceNumber,
           "sales",
           customerId,
           customerName,
@@ -1029,14 +1031,33 @@ module.exports.SearchSales = async (req, res) => {
   try {
     const { query: searchQuery } = req.query;
     const userId = req.user.userId;
+    const likeQuery = `%${String(searchQuery || "").trim()}%`;
 
     let sales;
     if (!searchQuery || searchQuery.trim() === "") {
       sales = await query("SELECT * FROM sales WHERE user_id = ?", [userId]);
     } else {
       sales = await query(
-        "SELECT * FROM sales WHERE user_id = ? AND (customerName LIKE ? OR paymentMethod LIKE ?)",
-        [userId, `%${searchQuery}%`, `%${searchQuery}%`],
+        `SELECT * FROM sales s
+         WHERE s.user_id = ?
+           AND (
+             s.invoiceNumber LIKE ?
+             OR s.customerName LIKE ?
+             OR s.paymentMethod LIKE ?
+             OR EXISTS (
+               SELECT 1
+               FROM sale_items si
+               LEFT JOIN products p ON p.id = si.product
+               LEFT JOIN product_codes pc ON pc.id = si.productCode
+               WHERE si.sale_id = s.id
+                 AND si.user_id = s.user_id
+                 AND (
+                   p.name LIKE ?
+                   OR pc.code LIKE ?
+                 )
+             )
+           )`,
+        [userId, likeQuery, likeQuery, likeQuery, likeQuery, likeQuery],
       );
     }
 

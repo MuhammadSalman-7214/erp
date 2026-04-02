@@ -1,17 +1,36 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import TopNavbar from "../Components/TopNavbar";
+import { jsPDF } from "jspdf";
+import { autoTable } from "jspdf-autotable";
 import axiosInstance from "../lib/axios";
 import { toast } from "react-hot-toast";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import { formatFixed } from "../lib/formatNumber";
+import { formatCurrency } from "../lib/formatNumber";
+import {
+  buildInvoicePrintHtml,
+  combineInvoicePagesHtml,
+} from "../lib/invoicePrintTemplate";
+
+const sanitizeFileName = (value) =>
+  String(value || "invoice")
+    .replace(/[^a-z0-9-_]+/gi, "_")
+    .replace(/^_+|_+$/g, "") || "invoice";
+
+const formatDateLabel = (value) => {
+  if (!value) return "-";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "-" : date.toLocaleDateString();
+};
+
+const splitLongText = (doc, text, width) =>
+  doc.splitTextToSize(String(text || "-"), width);
 
 function InvoiceDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [receivedAmount, setReceivedAmount] = useState(0);
+  const [remainingAmount, setRemainingAmount] = useState(0);
   useEffect(() => {
     const fetchInvoice = async () => {
       try {
@@ -27,96 +46,322 @@ function InvoiceDetailPage() {
     fetchInvoice();
   }, [id]);
 
-  // ===== PDF GENERATION =====
-  const downloadInvoice = () => {
+  useEffect(() => {
+    const fetchPayments = async () => {
+      if (!invoice?.id) return;
+      try {
+        const res = await axiosInstance.get("/payment");
+        const payments = res.data.payments || [];
+        const matchingPayments = payments.filter(
+          (payment) => String(payment.invoice) === String(invoice.id),
+        );
+        const paid = matchingPayments.reduce(
+          (sum, payment) => sum + Number(payment.amount || 0),
+          0,
+        );
+        const total = Number(invoice.totalAmount || 0);
+        setReceivedAmount(paid);
+        setRemainingAmount(Math.max(total - paid, 0));
+      } catch (err) {
+        console.error(err);
+        setReceivedAmount(0);
+        setRemainingAmount(Number(invoice?.totalAmount || 0));
+      }
+    };
+
+    fetchPayments();
+  }, [invoice]);
+
+  const isPurchaseInvoice = invoice?.invoiceType === "purchase";
+  const showGatePass = !isPurchaseInvoice;
+
+  const buildPrintOptions = (showPrices = true) => {
+    if (!invoice) return null;
+
+    const party = isPurchaseInvoice ? invoice.vendor : invoice.customerId || invoice.customer;
+
+    return {
+      documentTitle: showPrices
+        ? isPurchaseInvoice
+          ? "Purchase Invoice"
+          : "Sales Invoice"
+        : "Gate Pass",
+      companyName: "Imran Traders",
+      slogan: "Billing and stock management",
+      invoiceLabel: "Invoice #",
+      invoiceNumber: invoice.invoiceNumber || "-",
+      issueLabel: "Date",
+      issueDate: invoice.issueDate,
+      dueLabel: "Due Date",
+      dueDate: invoice.dueDate,
+      partyLabel: showPrices ? "Invoice To" : "Gate Pass",
+      partyName: party?.name || (isPurchaseInvoice ? "Vendor" : "Customer"),
+      partyPhone:
+        party?.contactInfo?.phone || party?.phone || invoice.customer?.phone || "",
+      partyAddress:
+        party?.contactInfo?.address ||
+        party?.address ||
+        invoice.customer?.address ||
+        "",
+      paymentMethod: invoice.paymentMethod || "-",
+      status: invoice.status || "-",
+      items: (invoice.items || []).map((item) => ({
+        name: item.name,
+        quantity: Number(item.quantity || 0),
+        unitPrice: Number(item.unitPrice || 0),
+        total: Number(item.total || item.quantity * item.unitPrice || 0),
+      })),
+      showPrices,
+      currency: invoice.currency || "Rs",
+      subTotal: invoice.subTotal,
+      discount: invoice.discount,
+      totalAmount: invoice.totalAmount,
+      receivedAmount,
+      remainingAmount,
+      notes: invoice.notes || "",
+    };
+  };
+
+  const invoicePreviewHtml = useMemo(() => {
+    const options = buildPrintOptions(true);
+    return options ? buildInvoicePrintHtml(options) : "";
+  }, [invoice, receivedAmount, remainingAmount]);
+
+  const gatePassPreviewHtml = useMemo(() => {
+    if (!showGatePass) return "";
+    const options = buildPrintOptions(false);
+    return options ? buildInvoicePrintHtml(options) : "";
+  }, [invoice, receivedAmount, remainingAmount, showGatePass]);
+
+  const combinedPrintHtml = useMemo(() => {
+    if (!invoicePreviewHtml || !gatePassPreviewHtml) return invoicePreviewHtml;
+    return combineInvoicePagesHtml(invoicePreviewHtml, gatePassPreviewHtml);
+  }, [invoicePreviewHtml, gatePassPreviewHtml]);
+
+  const printInvoice = async () => {
     if (!invoice) return;
 
-    const doc = new jsPDF("p", "pt", "a4");
-    doc.setFontSize(18);
-    doc.text("Invoice", 40, 40);
-    doc.setFontSize(12);
-    doc.text(`Invoice Number: ${invoice.invoiceNumber}`, 40, 65);
-    doc.text(
-      `Issue Date: ${new Date(invoice.issueDate).toLocaleDateString()}`,
-      40,
-      80,
-    );
-    doc.text(
-      `Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}`,
-      40,
-      95,
-    );
-
-    // Client Info
-    doc.setFontSize(14);
-    doc.text("Bill To:", 40, 125);
-    doc.setFontSize(12);
-    const isPurchase = invoice.invoiceType === "purchase";
-    const party = isPurchase
-      ? invoice.vendor
-      : invoice.customerId || invoice.customer;
-    const partyLines = [
-      party?.name,
-      isPurchase
-        ? party?.contactInfo?.phone
-        : party?.contactInfo?.phone || party?.phone,
-      isPurchase
-        ? party?.contactInfo?.address
-        : party?.contactInfo?.address || party?.address,
-    ].filter(Boolean);
-    partyLines.forEach((line, i) => doc.text(line, 40, 140 + i * 15));
-
-    // Table Items
-    const tableData = invoice.items.map((item, idx) => [
-      idx + 1,
-      item.name,
-      item.quantity,
-      `${invoice.currency} ${formatFixed(item.unitPrice)}`,
-      `${invoice.currency} ${formatFixed(item.total)}`,
-    ]);
-
-    autoTable(doc, {
-      startY: 200,
-      head: [["#", "Name", "Qty", "Unit Price", "Total"]],
-      body: tableData,
-      theme: "grid",
-      headStyles: { fillColor: [240, 240, 240] },
-      styles: { fontSize: 10 },
-    });
-
-    // Totals
-    const finalY = doc.lastAutoTable.finalY || 200;
-    doc.setFontSize(12);
-    doc.text(
-      `Subtotal: ${invoice.currency} ${formatFixed(invoice.subTotal)}`,
-      400,
-      finalY + 20,
-    );
-    doc.text(
-      `Tax (${invoice.taxRate}%): ${invoice.currency} ${formatFixed(invoice.taxAmount)}`,
-      400,
-      finalY + 35,
-    );
-    doc.text(
-      `Discount: ${invoice.currency} ${formatFixed(invoice.discount)}`,
-      400,
-      finalY + 50,
-    );
-    doc.setFontSize(14);
-    doc.text(
-      `Total: ${invoice.currency} ${formatFixed(invoice.totalAmount)}`,
-      400,
-      finalY + 70,
-    );
-
-    // Notes
-    if (invoice.notes) {
-      doc.setFontSize(12);
-      doc.text("Notes:", 40, finalY + 100);
-      doc.text(invoice.notes, 40, finalY + 115);
+    const printWindow = window.open("", "_blank", "width=900,height=650");
+    if (!printWindow) {
+      toast.error("Popup blocked. Please allow popups.");
+      return;
     }
 
-    doc.save(`${invoice.invoiceNumber}.pdf`);
+    printWindow.document.write(combinedPrintHtml);
+    printWindow.document.close();
+    printWindow.onload = () => {
+      printWindow.focus();
+      printWindow.print();
+      setTimeout(() => printWindow.close(), 200);
+    };
+  };
+
+  const downloadInvoice = async () => {
+    if (!invoice) return;
+
+    const fileName = `${sanitizeFileName(
+      invoice.invoiceNumber || invoice.id || "invoice",
+    )}.pdf`;
+
+    try {
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a5",
+      });
+
+      pdf.setProperties({
+        title: fileName,
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const marginX = 10;
+      const contentWidth = pageWidth - marginX * 2;
+      let y = 12;
+
+      const addWrappedText = (
+        text,
+        x,
+        currentY,
+        width = contentWidth,
+        lineHeight = 4.5,
+        fontSize = 9,
+        style = "normal",
+      ) => {
+        pdf.setFont("helvetica", style);
+        pdf.setFontSize(fontSize);
+        const lines = splitLongText(pdf, text, width);
+        pdf.text(lines, x, currentY);
+        return currentY + lines.length * lineHeight;
+      };
+
+      const addLine = (currentY) => {
+        pdf.setDrawColor(203, 213, 225);
+        pdf.line(marginX, currentY, pageWidth - marginX, currentY);
+      };
+
+      pdf.setTextColor(15, 23, 42);
+      y = addWrappedText("Imran Traders", marginX, y, contentWidth, 5, 16, "bold");
+      y = addWrappedText("Billing and stock management", marginX, y + 1, contentWidth, 4, 9);
+
+      const title = isPurchaseInvoice ? "Purchase Invoice" : "Sales Invoice";
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(13);
+      pdf.text(title, pageWidth - marginX, 14, { align: "right" });
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8.5);
+      pdf.text(`Invoice #: ${invoice.invoiceNumber || "-"}`, pageWidth - marginX, 19, {
+        align: "right",
+      });
+      pdf.text(`Date: ${formatDateLabel(invoice.issueDate)}`, pageWidth - marginX, 23, {
+        align: "right",
+      });
+
+      y = Math.max(y + 4, 30);
+      addLine(y);
+      y += 7;
+
+      const party = isPurchaseInvoice ? invoice.vendor : invoice.customerId || invoice.customer;
+      const partyLabel = isPurchaseInvoice ? "Vendor" : "Customer";
+      const detailsLeft = [
+        [partyLabel, party?.name || (isPurchaseInvoice ? "Vendor" : "Customer")],
+        ["Phone", party?.contactInfo?.phone || party?.phone || invoice.customer?.phone || "-"],
+        ["Address", party?.contactInfo?.address || party?.address || invoice.customer?.address || "-"],
+        ["Payment", invoice.paymentMethod || "-"],
+      ];
+
+      pdf.setFontSize(9);
+      let detailsY = y;
+      detailsLeft.forEach(([label, value]) => {
+        pdf.setFont("helvetica", "bold");
+        pdf.text(`${label}:`, marginX, detailsY);
+        pdf.setFont("helvetica", "normal");
+        const wrapped = splitLongText(pdf, value, 65);
+        pdf.text(wrapped, marginX + 18, detailsY);
+        detailsY += Math.max(wrapped.length * 4.2, 4.2);
+      });
+
+      const metaX = pageWidth / 2 + 4;
+      let metaY = y;
+      const metaRows = [
+        ["Status", invoice.status || "-"],
+        ["Currency", invoice.currency || "Rs"],
+        ["Due Date", formatDateLabel(invoice.dueDate)],
+      ];
+      metaRows.forEach(([label, value]) => {
+        pdf.setFont("helvetica", "bold");
+        pdf.text(`${label}:`, metaX, metaY);
+        pdf.setFont("helvetica", "normal");
+        const wrapped = splitLongText(pdf, value, 40);
+        pdf.text(wrapped, metaX + 18, metaY);
+        metaY += Math.max(wrapped.length * 4.2, 4.2);
+      });
+
+      y = Math.max(detailsY, metaY) + 5;
+      addLine(y);
+      y += 6;
+
+      const rows = (invoice.items || []).map((item, index) => [
+        String(index + 1),
+        String(item.name || "-"),
+        String(Number(item.quantity || 0)),
+        formatCurrency(item.unitPrice || 0, invoice.currency || "Rs"),
+        formatCurrency(item.total || item.quantity * item.unitPrice || 0, invoice.currency || "Rs"),
+      ]);
+
+      autoTable(pdf, {
+        startY: y,
+        margin: { left: marginX, right: marginX },
+        head: [["No", "Item Description", "Qty", "Price", "Total"]],
+        body: rows.length
+          ? rows
+          : [["-", "No items", "-", "-", "-"]],
+        styles: {
+          font: "helvetica",
+          fontSize: 8,
+          cellPadding: 1.5,
+          overflow: "linebreak",
+          valign: "middle",
+        },
+        headStyles: {
+          fillColor: [15, 118, 110],
+          textColor: 255,
+          fontStyle: "bold",
+        },
+        columnStyles: {
+          0: { cellWidth: 10, halign: "center" },
+          2: { cellWidth: 12, halign: "center" },
+          3: { cellWidth: 20, halign: "right" },
+          4: { cellWidth: 22, halign: "right" },
+        },
+        theme: "grid",
+      });
+
+      const tableEndY = pdf.lastAutoTable?.finalY || y;
+      let summaryY = tableEndY + 6;
+      if (summaryY > pageHeight - 35) {
+        pdf.addPage();
+        summaryY = 14;
+      }
+
+      const summaryX = pageWidth - marginX - 42;
+      const summary = [
+        ["Sub Total", formatCurrency(invoice.subTotal || 0, invoice.currency || "Rs")],
+        ["Received", formatCurrency(receivedAmount || 0, invoice.currency || "Rs")],
+        ["Remaining", formatCurrency(remainingAmount || 0, invoice.currency || "Rs")],
+        ["Discount", formatCurrency(invoice.discount || 0, invoice.currency || "Rs")],
+      ];
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8.5);
+      summary.forEach(([label, value]) => {
+        pdf.text(label, summaryX, summaryY);
+        pdf.text(value, pageWidth - marginX, summaryY, { align: "right" });
+        summaryY += 4.8;
+      });
+
+      pdf.setFillColor(15, 118, 110);
+      pdf.rect(summaryX - 2, summaryY - 1.2, 44, 6, "F");
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Total Bill", summaryX, summaryY + 2.6);
+      pdf.text(
+        formatCurrency(invoice.totalAmount || 0, invoice.currency || "Rs"),
+        pageWidth - marginX,
+        summaryY + 2.6,
+        { align: "right" },
+      );
+
+      const notes = String(invoice.notes || "").trim();
+      if (notes) {
+        const notesY = summaryY + 10;
+        if (notesY > pageHeight - 15) {
+          pdf.addPage();
+          y = 14;
+        } else {
+          y = notesY;
+        }
+
+        pdf.setTextColor(15, 23, 42);
+        pdf.setFont("helvetica", "bold");
+        pdf.text("Notes:", marginX, y);
+        pdf.setFont("helvetica", "normal");
+        pdf.text(splitLongText(pdf, notes, contentWidth), marginX, y + 4);
+      }
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      pdf.setTextColor(71, 85, 105);
+      pdf.text("Thank you for your business.", pageWidth / 2, pageHeight - 8, {
+        align: "center",
+      });
+
+      pdf.save(fileName);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to download invoice");
+    }
   };
 
   if (loading) return <p className="p-6">Loading invoice...</p>;
@@ -142,167 +387,33 @@ function InvoiceDetailPage() {
           </button>
 
           <button
-            onClick={downloadInvoice}
+            onClick={printInvoice}
             className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
           >
-            Download PDF
+            Print Invoice
+          </button>
+
+          <button
+            onClick={downloadInvoice}
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+          >
+            Download Invoice
           </button>
         </div>
       </div>
 
       {/* INVOICE CARD */}
-      <div className="bg-white rounded-xl shadow p-8 print:shadow-none print:p-0">
-        {/* Header */}
-        <div className="flex justify-between items-start border-b pb-4 mb-6">
-          {/* LEFT SIDE */}
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Invoice</h1>
-            <p className="text-gray-500">{invoice.invoiceNumber}</p>
-          </div>
-
-          {/* RIGHT SIDE */}
-          <div className="text-right text-sm text-gray-600 space-y-1">
-            <p>
-              <span className="font-semibold">Issue Date:</span>{" "}
-              {new Date(invoice.issueDate).toLocaleDateString()}
-            </p>
-            <p>
-              <span className="font-semibold">Due Date:</span>{" "}
-              {new Date(invoice.dueDate).toLocaleDateString()}
-            </p>
+      <div className="relative bg-white rounded-xl shadow p-8 print:shadow-none print:p-0">
+        <div className="print:hidden">
+          <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+              <iframe
+              title={showGatePass ? "Invoice and Gate Pass Preview" : "Invoice Preview"}
+              srcDoc={combinedPrintHtml}
+              className="h-[297mm] w-full border-0"
+            />
           </div>
         </div>
-
-        {/* Invoice Info */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-8 text-gray-700">
-          {/* BILL TO */}
-          <div>
-            <h3 className="text-sm font-semibold text-gray-500 mb-2">
-              {invoice.invoiceType === "purchase" ? "Vendor" : "Customer"}
-            </h3>
-
-            <p className="font-semibold text-gray-900">
-              {invoice.invoiceType === "purchase"
-                ? invoice.vendor?.name
-                : invoice.customerId?.name || invoice.customer?.name}
-            </p>
-
-            {(invoice.customerId?.contactInfo?.phone ||
-              invoice.customer?.phone) && (
-              <p className="text-gray-600 text-sm">
-                {invoice.customerId?.contactInfo?.phone ||
-                  invoice.customer?.phone}
-              </p>
-            )}
-
-            {(invoice.customerId?.contactInfo?.address ||
-              invoice.customer?.address) && (
-              <p className="text-gray-600 text-sm">
-                {invoice.customerId?.contactInfo?.address ||
-                  invoice.customer?.address}
-              </p>
-            )}
-
-            <p className="text-sm mt-2">
-              <span className="font-semibold">Status:</span> {invoice.status}
-            </p>
-
-            <p className="text-sm">
-              <span className="font-semibold">Payment Method:</span>{" "}
-              {invoice.paymentMethod}
-            </p>
-          </div>
-
-          {/* INVOICE META */}
-          <div className="text-sm text-gray-600 space-y-1">
-            <p>
-              <span className="font-semibold">Invoice #:</span>{" "}
-              {invoice.invoiceNumber}
-            </p>
-            <p>
-              <span className="font-semibold">Issue Date:</span>{" "}
-              {new Date(invoice.issueDate).toLocaleDateString()}
-            </p>
-            <p>
-              <span className="font-semibold">Due Date:</span>{" "}
-              {new Date(invoice.dueDate).toLocaleDateString()}
-            </p>
-          </div>
-        </div>
-
-        {/* Notes */}
-        {invoice.notes && (
-          <div className="mb-6">
-            <h2 className="font-semibold text-gray-800 mb-1">Notes</h2>
-            <p className="text-gray-600">{invoice.notes}</p>
-          </div>
-        )}
-
-        {/* Items Table */}
-        <h2 className="text-lg font-semibold text-gray-800 mb-3">Items</h2>
-        <div className="overflow-hidden rounded-lg border mb-8">
-          <table className="min-w-full border-collapse border text-sm">
-            <thead className="bg-slate-50 text-gray-600 text-sm">
-              <tr>
-                <th className="px-4 py-2 border text-left">#</th>
-                <th className="px-4 py-2 border text-left">Name</th>
-                <th className="px-4 py-2 border text-right">Quantity</th>
-                <th className="px-4 py-2 border text-right">Unit Price</th>
-                <th className="px-4 py-2 border text-right">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoice.items.map((item, idx) => (
-                <tr key={idx} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 border">{idx + 1}</td>
-                  <td className="px-4 py-2 border">{item.name}</td>
-                  <td className="px-4 py-2 border text-right">
-                    {item.quantity}
-                  </td>
-                  <td className="px-4 py-2 border text-right">
-                    {invoice.currency} {formatFixed(item.unitPrice)}
-                  </td>
-                  <td className="px-4 py-2 border text-right">
-                    {invoice.currency} {formatFixed(item.total)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Totals */}
-        <div className="flex justify-end">
-          <div className="w-72 space-y-2 text-sm text-gray-700">
-            <div className="flex justify-between">
-              <span>Subtotal</span>
-              <span>
-                {invoice.currency} {formatFixed(invoice.subTotal)}
-              </span>
-            </div>
-
-            <div className="flex justify-between">
-              <span>Tax ({invoice.taxRate}%)</span>
-              <span>
-                {invoice.currency} {formatFixed(invoice.taxAmount)}
-              </span>
-            </div>
-
-            <div className="flex justify-between">
-              <span>Discount</span>
-              <span>
-                {invoice.currency} {formatFixed(invoice.discount)}
-              </span>
-            </div>
-
-            <div className="flex justify-between border-t pt-2 font-bold text-lg">
-              <span>Total</span>
-              <span>
-                {invoice.currency} {formatFixed(invoice.totalAmount)}
-              </span>
-            </div>
-          </div>
-        </div>
+        <div className="hidden print:block" />
       </div>
     </div>
   );

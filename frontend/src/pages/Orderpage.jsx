@@ -16,6 +16,7 @@ import { gettingallproducts } from "../features/productSlice";
 import NoData from "../Components/NoData";
 import { Popconfirm } from "antd";
 import { gettingallSupplier } from "../features/SupplierSlice";
+import useKeyboardDropdown from "../hooks/useKeyboardDropdown";
 
 function Orderpage() {
   const getId = (value) => value?.id ?? value?.id ?? value;
@@ -232,6 +233,17 @@ function Orderpage() {
     setShowCodeOptions(false);
   };
 
+  const {
+    activeIndex: codeActiveIndex,
+    onKeyDown: onCodeKeyDown,
+    setActiveIndex: setCodeActiveIndex,
+  } = useKeyboardDropdown({
+    options: codeOptions,
+    isOpen: showCodeOptions && codeOptions.length > 0,
+    onSelect: (option) => addToCart(option),
+    onClose: () => setShowCodeOptions(false),
+  });
+
   const updateCartQuantity = (codeId, value) => {
     setCartItems((prev) =>
       prev.map((item) =>
@@ -400,7 +412,11 @@ function Orderpage() {
                     setCodeQuery(e.target.value);
                     setShowCodeOptions(true);
                   }}
-                  onFocus={() => setShowCodeOptions(true)}
+                  onFocus={() => {
+                    setShowCodeOptions(true);
+                    setCodeActiveIndex(0);
+                  }}
+                  onKeyDownCapture={onCodeKeyDown}
                   className="w-full h-10 px-2 border-2 rounded-lg mt-2"
                   placeholder="Type product code"
                 />
@@ -410,7 +426,15 @@ function Orderpage() {
                       <button
                         key={`${option.codeId}`}
                         type="button"
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50"
+                        onMouseDown={(e) => e.preventDefault()}
+                        className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 ${
+                          codeActiveIndex ===
+                          codeOptions.findIndex(
+                            (item) => item.codeId === option.codeId,
+                          )
+                            ? "bg-slate-50"
+                            : ""
+                        }`}
                         onClick={() => addToCart(option)}
                       >
                         {option.code} - {option.name}

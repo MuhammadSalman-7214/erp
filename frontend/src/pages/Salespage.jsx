@@ -17,6 +17,11 @@ import { PiInvoiceBold } from "react-icons/pi";
 import NoData from "../Components/NoData";
 import { createCustomer, getAllCustomers } from "../features/customerSlice";
 import axiosInstance from "../lib/axios";
+import {
+  buildInvoicePrintHtml,
+  combineInvoicePagesHtml,
+} from "../lib/invoicePrintTemplate";
+import useKeyboardDropdown from "../hooks/useKeyboardDropdown";
 
 function Salespage() {
   const getId = (value) => value?.id ?? value?.id ?? value;
@@ -522,6 +527,109 @@ function Salespage() {
     printWindow.document.close();
   };
 
+  const handlePrintBillModern = () => {
+    if (!billSale) return;
+
+    const items = Array.isArray(billSale.products) ? billSale.products : [];
+    const totalAmount = Number(billSale.totalAmount || 0);
+    const receivedAmountValue = Number(
+      billSale.paidAmount ??
+        totalAmount - Number(billSale.remainingAmount || 0),
+    );
+    const remainingAmountValue = Number(
+      billSale.remainingAmount ??
+        Math.max(totalAmount - receivedAmountValue, 0),
+    );
+
+    const invoiceHtml = buildInvoicePrintHtml({
+      documentTitle: "Sales Invoice",
+      companyName: "Imran Traders",
+      slogan: "",
+      invoiceLabel: "Invoice #",
+      invoiceNumber: billSale.invoiceNumber || billSale.id || "-",
+      issueLabel: "Date",
+      issueDate: billSale.createdAt || new Date().toISOString(),
+      partyLabel: "Invoice To",
+      partyName: billSale.customerName || "Customer",
+      partyPhone:
+        billSale.customer?.contactInfo?.phone || billSale.customer?.phone || "",
+      partyAddress:
+        billSale.customer?.contactInfo?.address ||
+        billSale.customer?.address ||
+        "",
+      paymentMethod: billSale.paymentMethod || "-",
+      status: billSale.status || "-",
+      items: items.map((item) => {
+        const qty = Number(item.quantity || 0);
+        const unitPrice = Number(item.price || 0);
+        return {
+          name: item.product?.name || "Product",
+          description: "",
+          company: "",
+          code: item.productCode?.code || "",
+          quantity: qty,
+          unitPrice,
+          total: qty * unitPrice,
+        };
+      }),
+      currency: "Rs",
+      subTotal: totalAmount,
+      totalAmount,
+      receivedAmount: receivedAmountValue,
+      remainingAmount: remainingAmountValue,
+      notes: billSale.notes || "",
+    });
+
+    const gatePassHtml = buildInvoicePrintHtml({
+      documentTitle: "Gate Pass",
+      companyName: "Imran Traders",
+      slogan: "",
+      invoiceLabel: "Gate Pass #",
+      invoiceNumber: billSale.invoiceNumber || billSale.id || "-",
+      issueLabel: "Date",
+      issueDate: billSale.createdAt || new Date().toISOString(),
+      partyLabel: "Gate Pass",
+      partyName: billSale.customerName || "Customer",
+      partyPhone:
+        billSale.customer?.contactInfo?.phone || billSale.customer?.phone || "",
+      partyAddress:
+        billSale.customer?.contactInfo?.address ||
+        billSale.customer?.address ||
+        "",
+      paymentMethod: billSale.paymentMethod || "-",
+      status: billSale.status || "-",
+      items: items.map((item) => ({
+        name: item.product?.name || "Product",
+        quantity: Number(item.quantity || 0),
+        code: item.productCode?.code || "",
+      })),
+      showPrices: false,
+      showSummaryBox: false,
+      currency: "Rs",
+      subTotal: totalAmount,
+      totalAmount,
+      receivedAmount: receivedAmountValue,
+      remainingAmount: remainingAmountValue,
+      notes: billSale.notes || "",
+    });
+
+    const html = combineInvoicePagesHtml(invoiceHtml, gatePassHtml);
+
+    const printWindow = window.open("", "_blank", "width=900,height=650");
+    if (!printWindow) {
+      toast.error("Popup blocked. Please allow popups.");
+      return;
+    }
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.onload = () => {
+      printWindow.focus();
+      printWindow.print();
+      setTimeout(() => printWindow.close(), 200);
+    };
+  };
+
   const buildCartItemsFromSale = (sale) => {
     const products = Array.isArray(sale?.products) ? sale.products : [];
     return products.map((item) => {
@@ -1014,6 +1122,93 @@ function Salespage() {
     return results;
   }, [getallsales, payments]);
 
+  const billPreviewHtml = useMemo(() => {
+    if (!billSale) return "";
+
+    const items = Array.isArray(billSale.products) ? billSale.products : [];
+    const totalAmount = Number(billSale.totalAmount || 0);
+    const receivedAmountValue = Number(
+      billSale.paidAmount ??
+        totalAmount - Number(billSale.remainingAmount || 0),
+    );
+    const remainingAmountValue = Number(
+      billSale.remainingAmount ??
+        Math.max(totalAmount - receivedAmountValue, 0),
+    );
+
+    const invoiceHtml = buildInvoicePrintHtml({
+      documentTitle: "Sales Invoice",
+      companyName: "Imran Traders",
+      slogan: "",
+      invoiceLabel: "Invoice #",
+      invoiceNumber: billSale.invoiceNumber || billSale.id || "-",
+      issueLabel: "Date",
+      issueDate: billSale.createdAt || new Date().toISOString(),
+      partyLabel: "Invoice To",
+      partyName: billSale.customerName || "Customer",
+      partyPhone:
+        billSale.customer?.contactInfo?.phone || billSale.customer?.phone || "",
+      partyAddress:
+        billSale.customer?.contactInfo?.address ||
+        billSale.customer?.address ||
+        "",
+      paymentMethod: billSale.paymentMethod || "-",
+      status: billSale.status || "-",
+      items: items.map((item) => {
+        const qty = Number(item.quantity || 0);
+        const unitPrice = Number(item.price || 0);
+        return {
+          name: item.product?.name || "Product",
+          description: "",
+          company: "",
+          code: item.productCode?.code || "",
+          quantity: qty,
+          unitPrice,
+          total: qty * unitPrice,
+        };
+      }),
+      currency: "Rs",
+      subTotal: totalAmount,
+      totalAmount,
+      receivedAmount: receivedAmountValue,
+      remainingAmount: remainingAmountValue,
+      notes: billSale.notes || "",
+    });
+    const gatePassHtml = buildInvoicePrintHtml({
+      documentTitle: "Gate Pass",
+      companyName: "Imran Traders",
+      slogan: "",
+      invoiceLabel: "Gate Pass #",
+      invoiceNumber: billSale.invoiceNumber || billSale.id || "-",
+      issueLabel: "Date",
+      issueDate: billSale.createdAt || new Date().toISOString(),
+      partyLabel: "Gate Pass",
+      partyName: billSale.customerName || "Customer",
+      partyPhone:
+        billSale.customer?.contactInfo?.phone || billSale.customer?.phone || "",
+      partyAddress:
+        billSale.customer?.contactInfo?.address ||
+        billSale.customer?.address ||
+        "",
+      paymentMethod: billSale.paymentMethod || "-",
+      status: billSale.status || "-",
+      items: items.map((item) => ({
+        name: item.product?.name || "Product",
+        quantity: Number(item.quantity || 0),
+        code: item.productCode?.code || "",
+      })),
+      showPrices: false,
+      currency: "Rs",
+      subTotal: totalAmount,
+      totalAmount,
+      receivedAmount: receivedAmountValue,
+      remainingAmount: remainingAmountValue,
+      notes: billSale.notes || "",
+    });
+
+    return combineInvoicePagesHtml(invoiceHtml, gatePassHtml);
+  }, [billSale]);
+
   const handleSelectCustomer = (customer) => {
     setCustomerId(getId(customer));
     setCustomerSearch(customer.name);
@@ -1023,6 +1218,28 @@ function Salespage() {
     });
     setShowCustomerOptions(false);
   };
+
+  const {
+    activeIndex: customerActiveIndex,
+    onKeyDown: onCustomerKeyDown,
+    setActiveIndex: setCustomerActiveIndex,
+  } = useKeyboardDropdown({
+    options: filteredCustomers,
+    isOpen: showCustomerOptions && customerSearch.trim() !== "",
+    onSelect: (customer) => handleSelectCustomer(customer),
+    onClose: () => setShowCustomerOptions(false),
+  });
+
+  const {
+    activeIndex: codeActiveIndex,
+    onKeyDown: onCodeKeyDown,
+    setActiveIndex: setCodeActiveIndex,
+  } = useKeyboardDropdown({
+    options: codeOptions,
+    isOpen: showCodeOptions && codeOptions.length > 0,
+    onSelect: (option) => addToCart(option),
+    onClose: () => setShowCodeOptions(false),
+  });
 
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
@@ -1081,7 +1298,11 @@ function Salespage() {
                     setCustomerId("");
                     setShowCustomerOptions(true);
                   }}
-                  onFocus={() => setShowCustomerOptions(true)}
+                  onFocus={() => {
+                    setShowCustomerOptions(true);
+                    setCustomerActiveIndex(0);
+                  }}
+                  onKeyDownCapture={onCustomerKeyDown}
                   onBlur={() => {
                     setTimeout(() => {
                       if (!customerId && exactMatchCustomer) {
@@ -1089,6 +1310,7 @@ function Salespage() {
                       } else {
                         setShowCustomerOptions(false);
                       }
+                      setCustomerActiveIndex(-1);
                     }, 150);
                   }}
                   placeholder="Search or create customer (name or phone)"
@@ -1104,7 +1326,14 @@ function Salespage() {
                             type="button"
                             onMouseDown={(e) => e.preventDefault()}
                             onClick={() => handleSelectCustomer(customer)}
-                            className="w-full text-left px-3 py-2 hover:bg-slate-100"
+                            className={`w-full text-left px-3 py-2 hover:bg-slate-100 ${
+                              customerActiveIndex ===
+                              filteredCustomers.findIndex(
+                                (item) => getId(item) === getId(customer),
+                              )
+                                ? "bg-slate-100"
+                                : ""
+                            }`}
                           >
                             <div className="text-sm font-medium text-slate-800">
                               {customer.name}
@@ -1183,7 +1412,11 @@ function Salespage() {
                       setCodeQuery(e.target.value);
                       setShowCodeOptions(true);
                     }}
-                    onFocus={() => setShowCodeOptions(true)}
+                    onFocus={() => {
+                      setShowCodeOptions(true);
+                      setCodeActiveIndex(0);
+                    }}
+                    onKeyDownCapture={onCodeKeyDown}
                     className="w-full h-10 px-2 border-2 rounded-lg mt-2"
                     placeholder="Type product code"
                   />
@@ -1193,9 +1426,17 @@ function Salespage() {
                         <button
                           key={`${option.codeId}`}
                           type="button"
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50"
-                          onClick={() => addToCart(option)}
-                        >
+                          onMouseDown={(e) => e.preventDefault()}
+                          className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 ${
+                            codeActiveIndex ===
+                            codeOptions.findIndex(
+                              (item) => item.codeId === option.codeId,
+                            )
+                            ? "bg-slate-50"
+                            : ""
+                        }`}
+                        onClick={() => addToCart(option)}
+                      >
                           <div className="flex items-center justify-between gap-3">
                             <div className="min-w-0">
                               <div className="truncate">
@@ -1410,7 +1651,7 @@ function Salespage() {
             onClick={closeBillPreview}
           />
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-            <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl border overflow-hidden">
+            <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl border overflow-hidden">
               <div className="flex items-center justify-between px-6 py-4 border-b bg-slate-50">
                 <div>
                   <h3 className="text-lg font-semibold text-slate-800">
@@ -1428,6 +1669,16 @@ function Salespage() {
                 </button>
               </div>
 
+              <div className="absolute inset-x-0 top-[57px] bottom-[72px] z-20 bg-slate-100 p-4">
+                <div className="mx-auto h-full w-full max-w-[900px] overflow-hidden rounded-xl border bg-white shadow-sm">
+                  <iframe
+                    title="Sales Bill Preview"
+                    srcDoc={billPreviewHtml}
+                    className="h-full w-full border-0"
+                  />
+                </div>
+              </div>
+
               <div className="p-6 max-h-[70vh] overflow-y-auto">
                 <div className="rounded-2xl border border-slate-200 p-6 bg-white shadow-sm">
                   <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 border-b pb-4 mb-4">
@@ -1435,9 +1686,7 @@ function Salespage() {
                       <h2 className="text-2xl font-semibold text-teal-700">
                         Sales Invoice
                       </h2>
-                      <p className="text-sm text-slate-500">
-                        Imran Trader • Sales Department
-                      </p>
+                      <p className="text-sm text-slate-500">Imran Trader</p>
                     </div>
                     <div className="text-sm text-slate-600 space-y-1">
                       <div>
@@ -1604,7 +1853,7 @@ function Salespage() {
                   Cancel
                 </button>
                 <button
-                  onClick={handlePrintBill}
+                  onClick={handlePrintBillModern}
                   className="px-5 py-2 rounded-lg bg-teal-700 text-white hover:bg-teal-600"
                 >
                   Print Bill
@@ -1630,6 +1879,7 @@ function Salespage() {
               <thead className="bg-slate-50 border-b">
                 <tr className="text-left text-slate-500">
                   <th className="px-5 py-4 font-medium">#</th>
+                  <th className="px-5 py-4 font-medium">Invoice No</th>
                   <th className="px-5 py-4 font-medium">Customer</th>
                   <th className="px-5 py-4 font-medium">Products</th>
                   <th className="px-5 py-4 font-medium">Total Amount</th>
@@ -1647,6 +1897,9 @@ function Salespage() {
                     className="border-b last:border-b-0 hover:bg-slate-50 transition"
                   >
                     <td className="px-5 py-4 text-slate-500">{index + 1}</td>
+                    <td className="px-5 py-4 font-medium text-slate-700">
+                      {sale.invoiceNumber || "-"}
+                    </td>
                     <td className="px-5 py-4">{sale.customerName}</td>
                     <td className="px-5 py-4">
                       {(sale.products || []).map((item) => (

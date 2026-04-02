@@ -122,6 +122,7 @@ const initDb = async () => {
     `CREATE TABLE IF NOT EXISTS sales (
       id INT AUTO_INCREMENT PRIMARY KEY,
       user_id INT NOT NULL,
+      invoiceNumber VARCHAR(255),
       customer INT,
       customerName VARCHAR(255),
       totalAmount DECIMAL(12,2) DEFAULT 0,
@@ -280,6 +281,27 @@ const initDb = async () => {
     if (error?.errno !== 1060) {
       throw error;
     }
+  }
+
+  try {
+    await query("ALTER TABLE sales ADD COLUMN invoiceNumber VARCHAR(255)");
+  } catch (error) {
+    if (error?.errno !== 1060) {
+      throw error;
+    }
+  }
+
+  try {
+    await query(
+      `UPDATE sales s
+       INNER JOIN invoices i ON i.id = s.invoice AND i.user_id = s.user_id
+       SET s.invoiceNumber = i.invoiceNumber
+       WHERE (s.invoiceNumber IS NULL OR s.invoiceNumber = '')
+         AND i.invoiceNumber IS NOT NULL
+         AND i.invoiceNumber <> ''`,
+    );
+  } catch (error) {
+    throw error;
   }
 };
 
