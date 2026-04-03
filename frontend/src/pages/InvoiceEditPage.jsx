@@ -4,6 +4,7 @@ import axiosInstance from "../lib/axios";
 import { toast } from "react-hot-toast";
 import { IoMdAdd } from "react-icons/io";
 import { MdDelete } from "react-icons/md";
+import { FormSkeleton } from "../Components/LoadingSkeletons";
 
 function InvoiceEditPage() {
   const { id } = useParams();
@@ -104,9 +105,7 @@ function InvoiceEditPage() {
   };
 
   if (loading)
-    return (
-      <p className="p-6 text-center text-gray-500 animate-pulse">Loading...</p>
-    );
+    return <FormSkeleton />;
   if (!invoice)
     return <p className="p-6 text-center text-red-500">Invoice not found</p>;
 

@@ -19,6 +19,7 @@ function Dashboardpage() {
   const [recentInvoices, setRecentInvoices] = useState([]);
   const [overdueInvoices, setOverdueInvoices] = useState([]);
   const [lowStockProducts, setLowStockProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const accentStyles = {
     emerald: {
@@ -96,6 +97,8 @@ function Dashboardpage() {
         setLowStockProducts(res.data.lowStockProducts || []);
       } catch (error) {
         console.error("Failed to load dashboard summary:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -121,7 +124,20 @@ function Dashboardpage() {
 
       {/* Financial Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        {[
+        {loading
+          ? Array.from({ length: 5 }).map((_, index) => (
+              <div
+                key={index}
+                className="rounded-xl p-5 border-2 border-slate-100 bg-white shadow-sm animate-pulse"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="h-4 w-24 rounded-full bg-slate-200" />
+                  <div className="h-5 w-5 rounded-md bg-slate-200" />
+                </div>
+                <div className="h-8 w-32 rounded-full bg-slate-200" />
+              </div>
+            ))
+          : [
           {
             label: "Total Receivable",
             value: summary?.totalReceivable ?? 0,
@@ -236,29 +252,46 @@ function Dashboardpage() {
 
       {/* Payment Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-        <div className="rounded-xl p-5 border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-sm font-medium text-gray-600">
-              Today's Received Payments
+        {loading ? (
+          Array.from({ length: 2 }).map((_, index) => (
+            <div
+              key={index}
+              className="rounded-xl p-5 border-2 border-slate-100 bg-white shadow-sm animate-pulse"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="h-4 w-40 rounded-full bg-slate-200" />
+                <div className="h-5 w-5 rounded-md bg-slate-200" />
+              </div>
+              <div className="h-8 w-36 rounded-full bg-slate-200" />
             </div>
-            <CreditCard className="w-5 h-5 text-emerald-600" />
-          </div>
-          <div className="text-2xl font-bold text-emerald-700">
-            Rs{" "}
-            {safeNumber(summary?.todaysReceivedPayments ?? 0).toLocaleString()}
-          </div>
-        </div>
-        <div className="rounded-xl p-5 border-2 border-rose-200 bg-gradient-to-br from-rose-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-sm font-medium text-gray-600">
-              Today's Paid Payments
+          ))
+        ) : (
+          <>
+            <div className="rounded-xl p-5 border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-sm font-medium text-gray-600">
+                  Today's Received Payments
+                </div>
+                <CreditCard className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div className="text-2xl font-bold text-emerald-700">
+                Rs{" "}
+                {safeNumber(summary?.todaysReceivedPayments ?? 0).toLocaleString()}
+              </div>
             </div>
-            <DollarSign className="w-5 h-5 text-rose-600" />
-          </div>
-          <div className="text-2xl font-bold text-rose-700">
-            Rs {safeNumber(summary?.todaysPaidPayments ?? 0).toLocaleString()}
-          </div>
-        </div>
+            <div className="rounded-xl p-5 border-2 border-rose-200 bg-gradient-to-br from-rose-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-sm font-medium text-gray-600">
+                  Today's Paid Payments
+                </div>
+                <DollarSign className="w-5 h-5 text-rose-600" />
+              </div>
+              <div className="text-2xl font-bold text-rose-700">
+                Rs {safeNumber(summary?.todaysPaidPayments ?? 0).toLocaleString()}
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Information Cards Section */}
@@ -269,7 +302,19 @@ function Dashboardpage() {
             <h3 className="text-lg font-bold text-gray-800">Recent Invoices</h3>
             <Clock className="w-5 h-5 text-teal-600" />
           </div>
-          {recentInvoices.length === 0 ? (
+          {loading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="flex justify-between items-center p-3 bg-gray-50 rounded-lg animate-pulse"
+                >
+                  <div className="h-4 w-32 rounded-full bg-slate-200" />
+                  <div className="h-4 w-20 rounded-full bg-slate-200" />
+                </div>
+              ))}
+            </div>
+          ) : recentInvoices.length === 0 ? (
             <div className="text-center py-8">
               <Clipboard className="w-12 h-12 text-gray-300 mx-auto mb-2" />
               <p className="text-sm text-gray-500">No invoices yet.</p>
@@ -301,7 +346,19 @@ function Dashboardpage() {
             </h3>
             <AlertCircle className="w-5 h-5 text-red-600" />
           </div>
-          {overdueInvoices.length === 0 ? (
+          {loading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="flex justify-between items-center p-3 bg-red-50 rounded-lg animate-pulse"
+                >
+                  <div className="h-4 w-32 rounded-full bg-slate-200" />
+                  <div className="h-4 w-20 rounded-full bg-slate-200" />
+                </div>
+              ))}
+            </div>
+          ) : overdueInvoices.length === 0 ? (
             <div className="text-center py-8">
               <CreditCard className="w-12 h-12 text-gray-300 mx-auto mb-2" />
               <p className="text-sm text-gray-500">No overdue invoices.</p>
@@ -333,7 +390,19 @@ function Dashboardpage() {
             </h3>
             <Package className="w-5 h-5 text-amber-600" />
           </div>
-          {lowStockProducts.length === 0 ? (
+          {loading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="flex justify-between items-center p-3 bg-amber-50 rounded-lg animate-pulse"
+                >
+                  <div className="h-4 w-40 rounded-full bg-slate-200" />
+                  <div className="h-4 w-20 rounded-full bg-slate-200" />
+                </div>
+              ))}
+            </div>
+          ) : lowStockProducts.length === 0 ? (
             <div className="text-center py-8">
               <Package className="w-12 h-12 text-gray-300 mx-auto mb-2" />
               <p className="text-sm text-gray-500">All products healthy.</p>

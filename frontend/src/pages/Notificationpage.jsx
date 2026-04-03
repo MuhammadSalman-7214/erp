@@ -13,10 +13,11 @@ import { io } from "socket.io-client";
 import toast from "react-hot-toast";
 import FormattedTime from "../lib/FormattedTime";
 import NoData from "../Components/NoData";
+import { ListSkeleton } from "../Components/LoadingSkeletons";
 
 function NotificationPage() {
   const dispatch = useDispatch();
-  const { notifications } = useSelector((state) => state.notification);
+  const { notifications, isLoading } = useSelector((state) => state.notification);
   const { user } = useSelector((state) => state.auth);
   const [name, setName] = useState("");
   const [type, setType] = useState("");
@@ -156,7 +157,9 @@ function NotificationPage() {
 
       {/* Notifications List Card */}
       <div className="bg-white rounded-2xl shadow-sm border overflow-hidden mt-4">
-        {notifications.length > 0 ? (
+        {isLoading ? (
+          <ListSkeleton items={6} />
+        ) : notifications.length > 0 ? (
           notifications.map((notification) => (
             <div
               key={notification.id}

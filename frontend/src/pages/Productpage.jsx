@@ -26,6 +26,7 @@ import { useRolePermissions } from "../hooks/useRolePermissions";
 import { AiOutlineProduct } from "react-icons/ai";
 import NoData from "../Components/NoData";
 import { Popconfirm } from "antd";
+import { TableSkeleton } from "../Components/LoadingSkeletons";
 
 const emptyCode = {
   code: "",
@@ -40,7 +41,7 @@ function Productpage({ readOnly = false }) {
   const canWrite = hasPermission("product", "write");
   const canDelete = hasPermission("product", "delete");
 
-  const { getallproduct, editedProduct, isproductadd, searchdata } =
+  const { getallproduct, editedProduct, isproductadd, searchdata, isallproductget } =
     useSelector((state) => state.product);
 
   const { getallCategory } = useSelector((state) => state.category);
@@ -402,10 +403,8 @@ function Productpage({ readOnly = false }) {
       <div className="mt-4">
         <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
           {/* Loading State */}
-          {false ? (
-            <div className="p-10 text-center text-slate-500 animate-pulse">
-              Loading products...
-            </div>
+          {isallproductget ? (
+            <TableSkeleton rows={6} showFilters={false} />
           ) : !Array.isArray(displayProducts) || filteredRows.length === 0 ? (
             /* Empty State */
             <div className="p-10 text-center">
@@ -688,7 +687,7 @@ function Productpage({ readOnly = false }) {
       {isCodeModalOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
           <div
-            className="w-full max-w-2xl bg-white rounded-2xl shadow-xl border"
+            className="w-full max-w-4xl max-h-[90vh] bg-white rounded-2xl shadow-xl border flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-5 py-4 border-b">
@@ -709,7 +708,7 @@ function Productpage({ readOnly = false }) {
               </button>
             </div>
 
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-4 flex-1 min-h-0 overflow-y-auto">
               <div className="border rounded-xl p-4 bg-slate-50">
                 <h4 className="text-sm font-semibold mb-3">Add New Code</h4>
                 <div>
@@ -734,13 +733,13 @@ function Productpage({ readOnly = false }) {
                   Add Code
                 </button>
               </div>
-              <div className="border rounded-2xl bg-slate-50 p-4">
+              <div className="border rounded-2xl bg-slate-50 p-4 flex flex-col min-h-0">
                 <div className="text-xs font-semibold text-slate-500 mb-3">
                   Shade Codes
                 </div>
 
                 {codeProduct?.productCodes?.length ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pr-1">
                     {codeProduct.productCodes.map((code) => (
                       <div
                         key={getId(code)}

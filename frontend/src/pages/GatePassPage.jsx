@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import axiosInstance from "../lib/axios";
 import { toast } from "react-hot-toast";
 import { buildInvoicePrintHtml } from "../lib/invoicePrintTemplate";
+import { PreviewSkeleton } from "../Components/LoadingSkeletons";
 
 function GatePassPage() {
   const { id } = useParams();
@@ -73,7 +74,7 @@ function GatePassPage() {
     };
   };
 
-  if (loading) return <p className="p-6">Loading gate pass...</p>;
+  if (loading) return <PreviewSkeleton />;
   if (!sale) return <p className="p-6">Gate pass not found</p>;
 
   return (

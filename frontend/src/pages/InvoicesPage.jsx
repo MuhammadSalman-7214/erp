@@ -7,6 +7,7 @@ import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import NoData from "../Components/NoData";
 import { Popconfirm } from "antd";
+import { TableSkeleton } from "../Components/LoadingSkeletons";
 
 function InvoicesPage() {
   const [invoices, setInvoices] = useState([]);
@@ -98,9 +99,7 @@ function InvoicesPage() {
       {/* Card */}
       <div className="mt-4 bg-white rounded-2xl shadow-sm border overflow-hidden">
         {loading ? (
-          <div className="p-10 text-center text-slate-500 animate-pulse">
-            Loading invoices...
-          </div>
+          <TableSkeleton rows={5} showFilters={false} />
         ) : invoices.length === 0 ? (
           <div className="p-10 text-center">
             <NoData

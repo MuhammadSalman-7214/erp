@@ -17,6 +17,7 @@ import NoData from "../Components/NoData";
 import { Popconfirm } from "antd";
 import { gettingallSupplier } from "../features/SupplierSlice";
 import useKeyboardDropdown from "../hooks/useKeyboardDropdown";
+import { TableSkeleton } from "../Components/LoadingSkeletons";
 
 function Orderpage() {
   const getId = (value) => value?.id ?? value?.id ?? value;
@@ -28,6 +29,7 @@ function Orderpage() {
     editorder,
     iseditorder,
     searchdata,
+    issearchdata,
     isshowgraph,
     statusgraph,
   } = useSelector((state) => state.order);
@@ -348,6 +350,7 @@ function Orderpage() {
   };
 
   const displayOrder = query.trim() !== "" ? searchdata : getorder;
+  const isTableLoading = isgetorder || (query.trim() !== "" && issearchdata);
 
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
@@ -552,7 +555,9 @@ function Orderpage() {
 
       {/* Orders Table */}
       <div className="mt-4 bg-white rounded-2xl shadow-sm border overflow-x-auto">
-        {Array.isArray(displayOrder) && displayOrder.length > 0 ? (
+        {isTableLoading ? (
+          <TableSkeleton rows={6} showFilters={false} />
+        ) : Array.isArray(displayOrder) && displayOrder.length > 0 ? (
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b">
               <tr className="text-left text-slate-500">

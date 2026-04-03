@@ -9,6 +9,7 @@ import {
   buildInvoicePrintHtml,
   combineInvoicePagesHtml,
 } from "../lib/invoicePrintTemplate";
+import { PreviewSkeleton } from "../Components/LoadingSkeletons";
 
 const sanitizeFileName = (value) =>
   String(value || "invoice")
@@ -364,7 +365,7 @@ function InvoiceDetailPage() {
     }
   };
 
-  if (loading) return <p className="p-6">Loading invoice...</p>;
+  if (loading) return <PreviewSkeleton />;
   if (!invoice) return <p className="p-6">Invoice not found</p>;
 
   return (

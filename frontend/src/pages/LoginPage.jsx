@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useDispatch, useSelector } from "react-redux";
@@ -14,7 +14,7 @@ const getDashboardPath = (role) => {
 };
 
 function LoginPage() {
-  const { user } = useSelector((state) => state.auth);
+  const { user, isLoginLoading } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
@@ -132,9 +132,10 @@ function LoginPage() {
 
             <button
               type="submit"
-              className="w-full bg-teal-600 text-white p-3 rounded-md hover:bg-teal-700 transition duration-300"
+              className="w-full bg-teal-600 text-white p-3 rounded-md hover:bg-teal-700 transition duration-300 disabled:cursor-not-allowed disabled:opacity-70"
+              disabled={isLoginLoading}
             >
-              Sign in
+              {isLoginLoading ? "Logging in..." : "Sign in"}
             </button>
           </form>
 

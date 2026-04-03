@@ -184,6 +184,7 @@ const authSlice = createSlice({
         state.isUserSignup = true;
       })
       .addCase(signup.fulfilled, (state, action) => {
+        state.isUserSignup = false;
         state.user = action.payload.savedUser;
         state.token = action.payload.savedUser.token;
         state.isAuthenticated = true;

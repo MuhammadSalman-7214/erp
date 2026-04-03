@@ -4,6 +4,7 @@ import axiosInstance from "../lib/axios";
 import FormattedTime from "../lib/FormattedTime";
 import NoData from "../Components/NoData";
 import { TrendingUp, CreditCard, AlertCircle, Clipboard } from "lucide-react";
+import { DetailSkeleton } from "../Components/LoadingSkeletons";
 
 function SupplierDetailPage() {
   const { id } = useParams();
@@ -80,9 +81,7 @@ function SupplierDetailPage() {
       </div>
 
       {loading ? (
-        <div className="bg-white rounded-2xl border p-6 text-slate-500">
-          Loading vendor details...
-        </div>
+        <DetailSkeleton />
       ) : (
         <>
           <div className="bg-white rounded-2xl border p-5 shadow-sm mb-4">
@@ -176,7 +175,9 @@ function SupplierDetailPage() {
               </div>
             </div>
             {ledgerLoading ? (
-              <div className="p-6 text-slate-500">Loading ledger...</div>
+              <div className="p-6">
+                <DetailSkeleton stats={0} tableRows={4} />
+              </div>
             ) : ledger.length === 0 ? (
               <div className="p-10">
                 <NoData

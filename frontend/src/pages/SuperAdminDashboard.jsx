@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import { useDispatch } from "react-redux";
 import { logout } from "../features/authSlice";
 import { FiLogOut, FiShield, FiUsers } from "react-icons/fi";
+import { TableSkeleton } from "../Components/LoadingSkeletons";
 
 function SuperAdminDashboard() {
   const dispatch = useDispatch();
@@ -153,9 +154,7 @@ function SuperAdminDashboard() {
           </div>
 
           {loading ? (
-            <div className="p-10 text-center text-slate-500">
-              Loading admin users...
-            </div>
+            <TableSkeleton rows={5} showFilters={false} />
           ) : filteredAdmins.length === 0 ? (
             <div className="p-10 text-center text-slate-500">
               No admin users found.

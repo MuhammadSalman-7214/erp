@@ -1,5 +1,34 @@
 const query = require("./dbQuery");
 
+const isTableEngineError = (error) =>
+  error?.errno === 1932 ||
+  /doesn't exist in engine/i.test(error?.sqlMessage || "") ||
+  /table .* doesn't exist in engine/i.test(error?.message || "");
+
+const extractTableName = (sql) => {
+  const match =
+    sql.match(/CREATE TABLE IF NOT EXISTS\s+`?([a-zA-Z0-9_]+)`?/i) ||
+    sql.match(/ALTER TABLE\s+`?([a-zA-Z0-9_]+)`?/i) ||
+    sql.match(/UPDATE\s+`?([a-zA-Z0-9_]+)`?/i);
+
+  return match?.[1] || "unknown";
+};
+
+const logTableEngineWarning = (sql, error) => {
+  const tableName = extractTableName(sql);
+
+  console.error(
+    `[initDb] MariaDB reported a table engine problem while processing "${tableName}".`,
+  );
+  console.error(
+    "[initDb] This usually means the table metadata exists, but the underlying table data is missing or corrupted.",
+  );
+  console.error(
+    "[initDb] In a development database, the fastest fix is often to drop and recreate the broken table or restore the database files from a clean backup.",
+  );
+  console.error("[initDb] Original error:", error);
+};
+
 const initDb = async () => {
   const statements = [
     `CREATE TABLE IF NOT EXISTS users (
@@ -270,7 +299,15 @@ const initDb = async () => {
   ];
 
   for (const sql of statements) {
-    await query(sql);
+    try {
+      await query(sql);
+    } catch (error) {
+      if (isTableEngineError(error)) {
+        logTableEngineWarning(sql, error);
+      }
+
+      throw error;
+    }
   }
 
   try {
@@ -278,6 +315,10 @@ const initDb = async () => {
       "ALTER TABLE users ADD COLUMN isActive TINYINT(1) NOT NULL DEFAULT 1",
     );
   } catch (error) {
+    if (isTableEngineError(error)) {
+      logTableEngineWarning("ALTER TABLE users ADD COLUMN isActive", error);
+    }
+
     if (error?.errno !== 1060) {
       throw error;
     }
@@ -286,6 +327,10 @@ const initDb = async () => {
   try {
     await query("ALTER TABLE sales ADD COLUMN invoiceNumber VARCHAR(255)");
   } catch (error) {
+    if (isTableEngineError(error)) {
+      logTableEngineWarning("ALTER TABLE sales ADD COLUMN invoiceNumber", error);
+    }
+
     if (error?.errno !== 1060) {
       throw error;
     }
