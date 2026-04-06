@@ -309,6 +309,7 @@ const getPartyBalances = async (req, res) => {
       purchaseInvoices,
       salesInvoices,
       vendorPayments,
+      vendorDebitAdjustments,
       customerPayments,
     ] = await Promise.all([
       query("SELECT id, name, openingBalance FROM vendors WHERE user_id = ?", [
@@ -329,6 +330,10 @@ const getPartyBalances = async (req, res) => {
       query(
         "SELECT vendor, amount, invoice FROM payments WHERE partyType = ? AND type = ? AND user_id = ?",
         ["vendor", "paid", userId],
+      ),
+      query(
+        "SELECT vendor, amount, invoice FROM payments WHERE partyType = ? AND type = ? AND user_id = ?",
+        ["vendor", "debit", userId],
       ),
       query(
         "SELECT customerId, customer_name, customer_code, amount, invoice FROM payments WHERE partyType = ? AND type = ? AND user_id = ?",
@@ -373,6 +378,26 @@ const getPartyBalances = async (req, res) => {
       if (payment.invoice) {
         purchaseInvoiceIdsWithPayments.add(String(payment.invoice));
       }
+    }
+
+    for (const adjustment of vendorDebitAdjustments) {
+      const vendorId = adjustment.vendor ? String(adjustment.vendor) : "";
+      if (!vendorId) continue;
+      if (!vendorMap.has(vendorId)) {
+        vendorMap.set(vendorId, {
+          vendorId,
+          name: "Unknown Vendor",
+          openingBalance: 0,
+          totalAmount: 0,
+          paidAmount: 0,
+          remainingAmount: 0,
+          invoiceCount: 0,
+          paymentCount: 0,
+        });
+      }
+
+      const current = vendorMap.get(vendorId);
+      current.totalAmount += Number(adjustment.amount) || 0;
     }
 
     for (const invoice of purchaseInvoices) {
@@ -533,8 +558,8 @@ const getVendorLedger = async (req, res) => {
         ["purchase", userId, vendorId],
       ),
       query(
-        "SELECT id, amount, method, invoice, notes, paidAt, createdAt FROM payments WHERE partyType = ? AND type = ? AND user_id = ? AND vendor = ?",
-        ["vendor", "paid", userId, vendorId],
+        "SELECT id, amount, method, invoice, notes, paidAt, createdAt, type FROM payments WHERE partyType = ? AND type IN (?, ?) AND user_id = ? AND vendor = ?",
+        ["vendor", "paid", "debit", userId, vendorId],
       ),
     ]);
 
@@ -573,13 +598,14 @@ const getVendorLedger = async (req, res) => {
       const invoiceRef = payment.invoice
         ? invoiceNumberById.get(String(payment.invoice)) || String(payment.invoice)
         : "";
+      const isManualDebit = String(payment.type || "").toLowerCase() === "debit";
       ledger.push({
         id: String(payment.id),
         date: payment.paidAt || payment.createdAt || new Date(),
-        type: "credit",
+        type: isManualDebit ? "debit" : "credit",
         amount: Number(payment.amount) || 0,
-        source: "payment",
-        reference: invoiceRef,
+        source: isManualDebit ? "manual" : "payment",
+        reference: isManualDebit ? "" : invoiceRef,
         method: payment.method || "",
         notes: payment.notes || "",
       });

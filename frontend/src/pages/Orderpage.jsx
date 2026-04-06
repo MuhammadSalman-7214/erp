@@ -59,7 +59,9 @@ function Orderpage() {
     return mapping[status] || "bg-gray-200 text-gray-800";
   };
   const isLockedOrder = (order) => {
-    const status = String(order?.status || "").trim().toLowerCase();
+    const status = String(order?.status || "")
+      .trim()
+      .toLowerCase();
     return status === "shipped" || status === "delivered";
   };
 
@@ -261,11 +263,6 @@ function Orderpage() {
   const submitOrder = async (event) => {
     event.preventDefault();
 
-    if (!supplier) {
-      toast.error("Vendor is required");
-      return;
-    }
-
     if (!cartItems.length) {
       toast.error("Add at least one product");
       return;
@@ -284,8 +281,8 @@ function Orderpage() {
       const orderData = {
         user: user?.id || "",
         status,
-        supplier,
-        vendor: supplier,
+        supplier: supplier || undefined,
+        vendor: supplier || undefined,
         products: cartItems.map((item) => ({
           product: item.productId,
           productCode: item.codeId,
@@ -320,8 +317,16 @@ function Orderpage() {
     resetForm();
   };
 
-  const openForm = () => {
+  const openForm = (order = null) => {
     setIsDrawerMinimized(false);
+    if (!order) {
+      setselectedOrder(null);
+      setstatus("");
+      setsupplier("");
+      setCartItems([]);
+      setCodeQuery("");
+      setShowCodeOptions(false);
+    }
     setIsFormVisible(true);
   };
 
@@ -336,7 +341,7 @@ function Orderpage() {
     setCodeQuery("");
     setShowCodeOptions(false);
     setstatus(order.status || "");
-    openForm();
+    openForm(order);
   };
 
   const handleRemove = async (OrderId) => {
@@ -502,22 +507,6 @@ function Orderpage() {
               )}
             </div>
             <div className="mb-4">
-              <label>Vendor</label>
-              <select
-                value={supplier}
-                onChange={(e) => setsupplier(e.target.value)}
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2"
-                required
-              >
-                <option value="">Select a Vendor</option>
-                {getallSupplier?.map((supplier) => (
-                  <option key={getId(supplier)} value={getId(supplier)}>
-                    {supplier.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="mb-4">
               <label>Status</label>
               <select
                 value={status}
@@ -528,6 +517,21 @@ function Orderpage() {
                 <option value="pending">Pending</option>
                 <option value="shipped">Shipped</option>
                 <option value="delivered">Delivered</option>
+              </select>
+            </div>
+            <div className="mb-4">
+              <label>Vendor (optional)</label>
+              <select
+                value={supplier}
+                onChange={(e) => setsupplier(e.target.value)}
+                className="w-full h-10 px-2 border-2 rounded-lg mt-2"
+              >
+                <option value="">No vendor, stock only</option>
+                {getallSupplier?.map((supplier) => (
+                  <option key={getId(supplier)} value={getId(supplier)}>
+                    {supplier.name}
+                  </option>
+                ))}
               </select>
             </div>
 

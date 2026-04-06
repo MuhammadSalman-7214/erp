@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { IoMdAdd } from "react-icons/io";
 import axiosInstance from "../lib/axios";
 import FormattedTime from "../lib/FormattedTime";
 import NoData from "../Components/NoData";
 import { TrendingUp, CreditCard, AlertCircle, Clipboard } from "lucide-react";
 import { DetailSkeleton } from "../Components/LoadingSkeletons";
+import DrawerPanel from "../Components/DrawerPanel";
 
 function SupplierDetailPage() {
   const { id } = useParams();
@@ -23,6 +25,10 @@ function SupplierDetailPage() {
     credit: 0,
     balance: 0,
   });
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
+  const [manualAmount, setManualAmount] = useState("");
+  const [manualDescription, setManualDescription] = useState("");
   const [loading, setLoading] = useState(true);
   const [ledgerLoading, setLedgerLoading] = useState(true);
 
@@ -61,9 +67,84 @@ function SupplierDetailPage() {
       }
     };
 
-    fetchVendorOrders();
-    fetchVendorLedger();
+    const loadVendorData = async () => {
+      setLoading(true);
+      setLedgerLoading(true);
+      await Promise.all([fetchVendorOrders(), fetchVendorLedger()]);
+    };
+
+    loadVendorData();
   }, [id]);
+
+  const refreshVendorData = async () => {
+    try {
+      setLoading(true);
+      setLedgerLoading(true);
+      const [ordersRes, ledgerRes] = await Promise.all([
+        axiosInstance.get(`/order/vendor/${id}`),
+        axiosInstance.get(`/payment/vendor-ledger/${id}`),
+      ]);
+
+      const ordersPayload = ordersRes.data || {};
+      const ledgerPayload = ledgerRes.data || {};
+      setVendor(ordersPayload.vendor || ledgerPayload.vendor || null);
+      setOrders(ordersPayload.orders || []);
+      setSummary(
+        ordersPayload.summary || { total: 0, paid: 0, remaining: 0, count: 0 },
+      );
+      setLedger(ledgerPayload.ledger || []);
+      setLedgerTotals(
+        ledgerPayload.totals || { debit: 0, credit: 0, balance: 0 },
+      );
+    } catch (error) {
+      console.error("Failed to refresh vendor data:", error);
+    } finally {
+      setLoading(false);
+      setLedgerLoading(false);
+    }
+  };
+
+  const openManualEntry = () => {
+    setManualAmount("");
+    setManualDescription("");
+    setIsDrawerMinimized(false);
+    setIsDrawerOpen(true);
+  };
+
+  const closeManualEntry = () => {
+    setIsDrawerOpen(false);
+    setIsDrawerMinimized(false);
+    setManualAmount("");
+    setManualDescription("");
+  };
+
+  const submitManualEntry = async (event) => {
+    event.preventDefault();
+
+    if (!manualAmount || Number(manualAmount) <= 0) {
+      return;
+    }
+
+    if (!manualDescription.trim()) {
+      return;
+    }
+
+    try {
+      await axiosInstance.post("/payment", {
+        type: "debit",
+        amount: Number(manualAmount),
+        method: "manual",
+        partyType: "vendor",
+        vendor: id,
+        notes: manualDescription.trim(),
+        paidAt: new Date(),
+      });
+      closeManualEntry();
+      await refreshVendorData();
+    } catch (error) {
+      console.error("Failed to create manual ledger entry:", error);
+    }
+  };
 
   const currency = (value) => `Rs ${Number(value || 0).toLocaleString()}`;
 
@@ -153,25 +234,35 @@ function SupplierDetailPage() {
                   Debit shows what you owe the vendor, credit shows payments.
                 </div>
               </div>
-              <div className="text-sm text-slate-600 space-x-3">
-                <span>
-                  Debit:{" "}
-                  <span className="font-semibold text-slate-800">
-                    {currency(ledgerTotals.debit)}
+              <div className="flex flex-col items-end gap-1">
+                <button
+                  type="button"
+                  onClick={openManualEntry}
+                  className="inline-flex items-center gap-2 rounded-xl bg-teal-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-teal-600"
+                >
+                  <IoMdAdd className="text-lg" />
+                  Add Manual Entry
+                </button>
+                <div className="text-sm text-slate-600 space-x-3">
+                  <span>
+                    Debit:{" "}
+                    <span className="font-semibold text-slate-800">
+                      {currency(ledgerTotals.debit)}
+                    </span>
                   </span>
-                </span>
-                <span>
-                  Credit:{" "}
-                  <span className="font-semibold text-slate-800">
-                    {currency(ledgerTotals.credit)}
+                  <span>
+                    Credit:{" "}
+                    <span className="font-semibold text-slate-800">
+                      {currency(ledgerTotals.credit)}
+                    </span>
                   </span>
-                </span>
-                <span>
-                  Balance:{" "}
-                  <span className="font-semibold text-slate-800">
-                    {currency(ledgerTotals.balance)}
+                  <span>
+                    Balance:{" "}
+                    <span className="font-semibold text-slate-800">
+                      {currency(ledgerTotals.balance)}
+                    </span>
                   </span>
-                </span>
+                </div>
               </div>
             </div>
             {ledgerLoading ? (
@@ -182,7 +273,7 @@ function SupplierDetailPage() {
               <div className="p-10">
                 <NoData
                   title="No Ledger Records"
-                  description="Add purchase invoices or vendor payments to see records here."
+                  description="Add purchase invoices, vendor payments, or manual debit entries to see records here."
                 />
               </div>
             ) : (
@@ -211,7 +302,9 @@ function SupplierDetailPage() {
                           {entry.source?.replace(/_/g, " ") || "-"}
                         </td>
                         <td className="px-5 py-4 text-slate-600">
-                          {entry.reference || "-"}
+                          {entry.source === "manual"
+                            ? entry.notes || "-"
+                            : entry.reference || "-"}
                         </td>
                         <td className="px-5 py-4 text-rose-700 font-medium">
                           {entry.type === "debit"
@@ -310,6 +403,56 @@ function SupplierDetailPage() {
           </div>
         </>
       )}
+
+      <DrawerPanel
+        open={isDrawerOpen}
+        title="Add Manual Entry"
+        onClose={closeManualEntry}
+        isMinimized={isDrawerMinimized}
+        onToggleMinimized={() => setIsDrawerMinimized((prev) => !prev)}
+        widthClass="w-full sm:w-[420px]"
+      >
+        <div className="p-6">
+          <form onSubmit={submitManualEntry} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700">
+                Debit Amount
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={manualAmount}
+                onChange={(e) => setManualAmount(e.target.value)}
+                className="mt-2 w-full h-11 rounded-xl border px-3 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500"
+                placeholder="Enter amount"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700">
+                Description
+              </label>
+              <textarea
+                value={manualDescription}
+                onChange={(e) => setManualDescription(e.target.value)}
+                className="mt-2 w-full rounded-xl border px-3 py-2 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500"
+                rows={4}
+                placeholder="Enter description"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="h-12 w-full rounded-xl bg-teal-700 font-medium text-white transition hover:bg-teal-600"
+            >
+              Save Manual Debit
+            </button>
+          </form>
+        </div>
+      </DrawerPanel>
     </div>
   );
 }

@@ -106,26 +106,24 @@ const createOrder = async (req, res) => {
     }
 
     const vendorId = vendor || supplier || null;
-    if (!vendorId) {
-      return res.status(400).json({ message: "Vendor is required" });
-    }
-
-    let vendorRecord;
-    try {
-      const rows = await query(
-        "SELECT * FROM vendors WHERE id = ? AND user_id = ? LIMIT 1",
-        [vendorId, userId],
-      );
-      vendorRecord = rows[0];
-    } catch (err) {
-      return res.status(500).json({
-        success: false,
-        message: "Database error",
-        error: err,
-      });
-    }
-    if (!vendorRecord) {
-      return res.status(404).json({ message: "Vendor not found" });
+    let vendorRecord = null;
+    if (vendorId) {
+      try {
+        const rows = await query(
+          "SELECT * FROM vendors WHERE id = ? AND user_id = ? LIMIT 1",
+          [vendorId, userId],
+        );
+        vendorRecord = rows[0];
+      } catch (err) {
+        return res.status(500).json({
+          success: false,
+          message: "Database error",
+          error: err,
+        });
+      }
+      if (!vendorRecord) {
+        return res.status(404).json({ message: "Vendor not found" });
+      }
     }
 
     let orderInsert;
@@ -214,79 +212,80 @@ const createOrder = async (req, res) => {
       }
     }
 
-    const invoiceNumber = await getNextInvoiceNumber("PI", userId);
-    const invoiceItems = resolvedItems.map((item) => {
-      const variantLabel = item.variantName ? ` - ${item.variantName}` : "";
-      return {
-        name: `${item.name} (${item.code})${variantLabel}`,
-        quantity: item.quantity,
-        unitPrice: item.price,
-        total: Number(item.price) * Number(item.quantity),
-      };
-    });
-
-    let invoiceInsert;
-    try {
-      invoiceInsert = await query(
-        "INSERT INTO invoices (user_id, invoiceNumber, invoiceType, vendor, taxRate, discount, currency, dueDate, paymentMethod, status, subTotal, taxAmount, totalAmount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        [
-          userId,
-          invoiceNumber,
-          "purchase",
-          vendorId,
-          0,
-          0,
-          "Rs",
-          new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          "bank_transfer",
-          "sent",
-          totalOrderAmount,
-          0,
-          totalOrderAmount,
-        ],
-      );
-    } catch (err) {
-      return res.status(500).json({
-        success: false,
-        message: "Database error",
-        error: err,
+    if (vendorId) {
+      const invoiceNumber = await getNextInvoiceNumber("PI", userId);
+      const invoiceItems = resolvedItems.map((item) => {
+        const variantLabel = item.variantName ? ` - ${item.variantName}` : "";
+        return {
+          name: `${item.name} (${item.code})${variantLabel}`,
+          quantity: item.quantity,
+          unitPrice: item.price,
+          total: Number(item.price) * Number(item.quantity),
+        };
       });
-    }
 
-    const invoiceId = invoiceInsert.insertId;
-    const invoiceItemValues = invoiceItems.map((item) => [
-      invoiceId,
-      item.name,
-      item.quantity,
-      item.unitPrice,
-      item.total,
-    ]);
-    try {
-      await query(
-        "INSERT INTO invoice_items (invoice_id, name, quantity, unitPrice, total) VALUES ?",
-        [invoiceItemValues],
-      );
-    } catch (err) {
-      return res.status(500).json({
-        success: false,
-        message: "Database error",
-        error: err,
-      });
-    }
+      let invoiceInsert;
+      try {
+        invoiceInsert = await query(
+          "INSERT INTO invoices (user_id, invoiceNumber, invoiceType, vendor, taxRate, discount, currency, dueDate, paymentMethod, status, subTotal, taxAmount, totalAmount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [
+            userId,
+            invoiceNumber,
+            "purchase",
+            vendorId,
+            0,
+            0,
+            "Rs",
+            new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            "bank_transfer",
+            "sent",
+            totalOrderAmount,
+            0,
+            totalOrderAmount,
+          ],
+        );
+      } catch (err) {
+        return res.status(500).json({
+          success: false,
+          message: "Database error",
+          error: err,
+        });
+      }
 
-    orderPayload.invoice = invoiceId;
-    try {
-      await query("UPDATE orders SET invoice = ? WHERE id = ? AND user_id = ?", [
+      const invoiceId = invoiceInsert.insertId;
+      const invoiceItemValues = invoiceItems.map((item) => [
         invoiceId,
-        orderId,
-        userId,
+        item.name,
+        item.quantity,
+        item.unitPrice,
+        item.total,
       ]);
-    } catch (err) {
-      return res.status(500).json({
-        success: false,
-        message: "Database error",
-        error: err,
-      });
+      try {
+        await query(
+          "INSERT INTO invoice_items (invoice_id, name, quantity, unitPrice, total) VALUES ?",
+          [invoiceItemValues],
+        );
+      } catch (err) {
+        return res.status(500).json({
+          success: false,
+          message: "Database error",
+          error: err,
+        });
+      }
+
+      orderPayload.invoice = invoiceId;
+      try {
+        await query(
+          "UPDATE orders SET invoice = ? WHERE id = ? AND user_id = ?",
+          [invoiceId, orderId, userId],
+        );
+      } catch (err) {
+        return res.status(500).json({
+          success: false,
+          message: "Database error",
+          error: err,
+        });
+      }
     }
 
     res.status(201).json({
@@ -685,8 +684,8 @@ const getOrdersByVendor = async (req, res) => {
     let payments;
     try {
       payments = await query(
-        "SELECT amount, invoice FROM payments WHERE user_id = ? AND partyType = ? AND type = ? AND vendor = ?",
-        [userId, "vendor", "paid", vendorId],
+        "SELECT amount, invoice, type FROM payments WHERE user_id = ? AND partyType = ? AND type IN (?, ?) AND vendor = ?",
+        [userId, "vendor", "paid", "debit", vendorId],
       );
     } catch (err) {
       return res.status(500).json({
@@ -699,8 +698,12 @@ const getOrdersByVendor = async (req, res) => {
     let paidAmount = 0;
     const paidInvoiceIds = new Set();
     payments.forEach((payment) => {
-      paidAmount += Number(payment.amount) || 0;
-      if (payment.invoice) {
+      if (String(payment.type || "").toLowerCase() === "debit") {
+        summary.total += Number(payment.amount) || 0;
+      } else {
+        paidAmount += Number(payment.amount) || 0;
+      }
+      if (payment.invoice && String(payment.type || "").toLowerCase() !== "debit") {
         paidInvoiceIds.add(String(payment.invoice));
       }
     });
