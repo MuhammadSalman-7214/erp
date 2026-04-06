@@ -3,7 +3,6 @@ import { IoMdAdd, IoMdTrash } from "react-icons/io";
 import {
   MdDelete,
   MdEdit,
-  MdKeyboardDoubleArrowLeft,
   MdOutlineCategory,
 } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
@@ -27,6 +26,7 @@ import { AiOutlineProduct } from "react-icons/ai";
 import NoData from "../Components/NoData";
 import { Popconfirm } from "antd";
 import { TableSkeleton } from "../Components/LoadingSkeletons";
+import DrawerPanel from "../Components/DrawerPanel";
 
 const emptyCode = {
   code: "",
@@ -60,6 +60,7 @@ function Productpage({ readOnly = false }) {
     new Date().toISOString().split("T")[0],
   );
   const [isFormVisible, setIsFormVisible] = useState(false);
+  const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [codeProductId, setCodeProductId] = useState(null);
@@ -187,8 +188,37 @@ function Productpage({ readOnly = false }) {
 
   const closeForm = () => {
     setIsFormVisible(false);
+    setIsDrawerMinimized(false);
     setSelectedProduct(null);
     resetForm();
+  };
+
+  const openForm = (product = null) => {
+    if (product) {
+      setSelectedProduct(product);
+      setName(product.name || "");
+      setDescription(product.description || "");
+      setCompany(product.company || product.brand || "");
+      setCategory(getId(product.Category) || "");
+      setPurchasePrice(
+        product.purchasePrice ?? product.pricing?.currentPurchasePrice ?? "",
+      );
+      setTradePrice(
+        product.tradePrice ?? product.pricing?.currentTradePrice ?? "",
+      );
+      setSalePrice(
+        product.salePrice ??
+          product.pricing?.currentSalesPrice ??
+          product.Price ??
+          "",
+      );
+    } else {
+      setSelectedProduct(null);
+      resetForm();
+    }
+
+    setIsDrawerMinimized(false);
+    setIsFormVisible(true);
   };
 
   const handleEditClick = (product) => {
@@ -197,24 +227,7 @@ function Productpage({ readOnly = false }) {
       return;
     }
 
-    setSelectedProduct(product);
-    setName(product.name);
-    setDescription(product.description || "");
-    setCompany(product.company || product.brand || "");
-    setCategory(getId(product.Category) || "");
-    setPurchasePrice(
-      product.purchasePrice ?? product.pricing?.currentPurchasePrice ?? "",
-    );
-    setTradePrice(
-      product.tradePrice ?? product.pricing?.currentTradePrice ?? "",
-    );
-    setSalePrice(
-      product.salePrice ??
-        product.pricing?.currentSalesPrice ??
-        product.Price ??
-        "",
-    );
-    setIsFormVisible(true);
+    openForm(product);
   };
 
   const openCodeModal = (productId) => {
@@ -386,7 +399,7 @@ function Productpage({ readOnly = false }) {
 
         {canWrite && (
           <button
-            onClick={() => setIsFormVisible(true)}
+            onClick={() => openForm()}
             className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
           >
             <IoMdAdd className="text-xl mr-2" /> Create Product
@@ -572,24 +585,15 @@ function Productpage({ readOnly = false }) {
         </div>
       </div>
 
-      {/* OVERLAY */}
-      {isFormVisible && (
-        <div className="fixed inset-0 bg-black/40 z-[60]" onClick={closeForm} />
-      )}
-
-      {/* SLIDE-IN DRAWER */}
-      {isFormVisible && (
-        <div className="fixed top-0 right-0 w-full sm:w-[480px] h-full bg-white p-6 border-l shadow-2xl z-[70] overflow-y-auto">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">
-              {selectedProduct ? "Edit Product" : "Create Product"}
-            </h2>
-            <MdKeyboardDoubleArrowLeft
-              onClick={closeForm}
-              className="cursor-pointer text-2xl"
-            />
-          </div>
-
+      <DrawerPanel
+        open={isFormVisible}
+        title={selectedProduct ? "Edit Product" : "Create Product"}
+        onClose={closeForm}
+        isMinimized={isDrawerMinimized}
+        onToggleMinimized={() => setIsDrawerMinimized((prev) => !prev)}
+        widthClass="w-full sm:w-[480px]"
+      >
+        <div className="p-6">
           <form
             onSubmit={selectedProduct ? handleEditSubmit : submitProduct}
             className="space-y-4"
@@ -669,13 +673,13 @@ function Productpage({ readOnly = false }) {
 
             <button
               type="submit"
-              className="w-full h-12 bg-teal-700 hover:bg-teal-600 text-white rounded-xl shadow-md mt-4"
+              className="mt-4 h-12 w-full rounded-xl bg-teal-700 text-white shadow-md hover:bg-teal-600"
             >
               {selectedProduct ? "Update Product" : "Create Product"}
             </button>
           </form>
         </div>
-      )}
+      </DrawerPanel>
 
       {isCodeModalOpen && (
         <div

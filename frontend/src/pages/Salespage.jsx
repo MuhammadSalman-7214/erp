@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { IoMdAdd } from "react-icons/io";
-import { MdDelete, MdEdit, MdKeyboardDoubleArrowLeft } from "react-icons/md";
+import { MdDelete, MdEdit } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
 import FormattedTime from "../lib/FormattedTime";
 
@@ -22,6 +22,7 @@ import {
   combineInvoicePagesHtml,
 } from "../lib/invoicePrintTemplate";
 import useKeyboardDropdown from "../hooks/useKeyboardDropdown";
+import DrawerPanel from "../Components/DrawerPanel";
 
 function Salespage() {
   const getId = (value) => value?.id ?? value?.id ?? value;
@@ -45,6 +46,7 @@ function Salespage() {
   // const [paymentStatus, setpaymentStatus] = useState("");
   const [Status, setStatus] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
+  const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
   const [codeQuery, setCodeQuery] = useState("");
   const [debouncedCodeQuery, setDebouncedCodeQuery] = useState("");
   const [showCodeOptions, setShowCodeOptions] = useState(false);
@@ -744,9 +746,7 @@ function Salespage() {
       .unwrap()
       .then(() => {
         toast.success("Sale updated successfully");
-        setIsFormVisible(false);
-        setselectedSales(null);
-        resetForm();
+        closeForm();
       })
       .catch((error) => {
         console.error("Error updating sale:", error);
@@ -976,25 +976,37 @@ function Salespage() {
   };
   const closeForm = () => {
     setIsFormVisible(false);
+    setIsDrawerMinimized(false);
     setselectedSales(null);
     resetForm();
   };
-  const handleEditClick = (sales) => {
-    setselectedSales(sales);
-    setCustomerId(getId(sales.customer) || sales.customer || "");
-    setCustomerSearch(sales.customer?.name || sales.customerName || "");
-    setNewCustomerData({
-      phone: "",
-      address: "",
-    });
-    setCartItems(buildCartItemsFromSale(sales));
-    setCodeQuery("");
-    setShowCodeOptions(false);
-    setPayment(sales.paymentMethod || "");
-    setReceivedAmount("");
-    // setpaymentStatus(sales.paymentStatus || "");
-    setStatus(sales.status || "");
+
+  const openForm = (sale = null) => {
+    if (sale) {
+      setselectedSales(sale);
+      setCustomerId(getId(sale.customer) || sale.customer || "");
+      setCustomerSearch(sale.customer?.name || sale.customerName || "");
+      setNewCustomerData({
+        phone: "",
+        address: "",
+      });
+      setCartItems(buildCartItemsFromSale(sale));
+      setCodeQuery("");
+      setShowCodeOptions(false);
+      setPayment(sale.paymentMethod || "");
+      setReceivedAmount("");
+      setStatus(sale.status || "");
+    } else {
+      setselectedSales(null);
+      resetForm();
+    }
+
+    setIsDrawerMinimized(false);
     setIsFormVisible(true);
+  };
+
+  const handleEditClick = (sales) => {
+    openForm(sales);
   };
 
   const displaySales = query.trim() !== "" ? searchdata : getallsales;
@@ -1254,41 +1266,27 @@ function Salespage() {
           placeholder="Enter your product"
         />
         <button
-          onClick={() => {
-            resetForm();
-            setIsFormVisible(true);
-            setselectedSales(null);
-          }}
+          onClick={() => openForm()}
           className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
         >
           <IoMdAdd className="text-xl mr-2" /> Create Sales
         </button>
       </div>
 
-      {/* OVERLAY */}
-      {isFormVisible && (
-        <div className="fixed inset-0 bg-black/40 z-[60]" onClick={closeForm} />
-      )}
-
-      {/* FORM SLIDE-IN */}
-      {isFormVisible && (
-        <div className="fixed top-0 right-0 w-full sm:w-[420px] h-full bg-white border-l shadow-2xl z-[70] flex flex-col">
-          {/* Header */}
-          <div className="flex justify-between items-center p-6 border-b">
-            <h2 className="text-xl font-semibold">
-              {selectedSales ? "Edit Sale" : "Create Sale"}
-            </h2>
-            <MdKeyboardDoubleArrowLeft
-              onClick={closeForm}
-              className="cursor-pointer text-2xl text-gray-600 hover:text-gray-800 transition"
-            />
-          </div>
-          <div className="flex-1 overflow-y-auto p-6">
-            {/* Form */}
-            <form
-              onSubmit={selectedSales ? handleEditSubmit : submitsales}
-              className="flex-1 flex flex-col gap-4 overflow-y-auto"
-            >
+      <DrawerPanel
+        open={isFormVisible}
+        title={selectedSales ? "Edit Sale" : "Create Sale"}
+        onClose={closeForm}
+        isMinimized={isDrawerMinimized}
+        onToggleMinimized={() => setIsDrawerMinimized((prev) => !prev)}
+        widthClass="w-full sm:w-[420px]"
+        bodyClassName="p-6"
+        className="bg-white border-l"
+      >
+        <form
+          onSubmit={selectedSales ? handleEditSubmit : submitsales}
+          className="flex flex-col gap-4"
+        >
               <div className="flex flex-col gap-1 relative">
                 <label className="text-gray-700 font-medium">Customer</label>
                 <input
@@ -1628,20 +1626,18 @@ function Salespage() {
                 </select>
               </div>
 
-              <button
-                disabled={hasStockIssue}
-                className={`w-full py-3 rounded-xl ${
-                  hasStockIssue
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-teal-700 hover:bg-teal-600 text-white"
-                }`}
-              >
-                {selectedSales ? "Update Sale" : "Create Sale"}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+          <button
+            disabled={hasStockIssue}
+            className={`w-full py-3 rounded-xl ${
+              hasStockIssue
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-teal-700 hover:bg-teal-600 text-white"
+            }`}
+          >
+            {selectedSales ? "Update Sale" : "Create Sale"}
+          </button>
+        </form>
+      </DrawerPanel>
 
       {/* BILL PREVIEW MODAL */}
       {showBillModal && billSale && (

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import TopNavbar from "../Components/TopNavbar";
 import { IoMdAdd, IoMdEye } from "react-icons/io";
-import { MdKeyboardDoubleArrowLeft, MdDelete, MdEdit } from "react-icons/md";
+import { MdDelete, MdEdit } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
 import FormattedTime from "../lib/FormattedTime";
 import {
@@ -20,6 +20,7 @@ import { TfiSupport } from "react-icons/tfi";
 import NoData from "../Components/NoData";
 import { Popconfirm } from "antd";
 import axiosInstance from "../lib/axios";
+import DrawerPanel from "../Components/DrawerPanel";
 
 function Supplierpage({ readOnly = false }) {
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
@@ -43,6 +44,7 @@ function Supplierpage({ readOnly = false }) {
   const [openingBalance, setOpeningBalance] = useState("");
   const [paymentTerms, setPaymentTerms] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
+  const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState(null);
   const [product, setProduct] = useState("");
   const [vendorBalances, setVendorBalances] = useState({});
@@ -132,9 +134,7 @@ function Supplierpage({ readOnly = false }) {
       .unwrap()
       .then(() => {
         toast.success("Vendor updated successfully");
-        setIsFormVisible(false);
-        setSelectedSupplier(null);
-        resetForm();
+        closeForm();
         fetchVendorBalances();
       })
       .catch(() => {
@@ -169,9 +169,7 @@ function Supplierpage({ readOnly = false }) {
       .unwrap()
       .then(() => {
         toast.success("Vendor added successfully");
-        setIsFormVisible(false);
-        resetForm();
-        setSelectedSupplier(null);
+        closeForm();
         fetchVendorBalances();
       })
       .catch(() => toast.error("Vendor add unsuccessful"));
@@ -186,20 +184,38 @@ function Supplierpage({ readOnly = false }) {
     setPaymentTerms("");
   };
 
+  const closeForm = () => {
+    setIsFormVisible(false);
+    setIsDrawerMinimized(false);
+    setSelectedSupplier(null);
+    resetForm();
+  };
+
+  const openForm = (supplier = null) => {
+    if (supplier) {
+      setSelectedSupplier(supplier);
+      setVendorCode(supplier.vendorCode || "");
+      setName(supplier.name || "");
+      setPhone(supplier.contactInfo?.phone || "");
+      setAddress(supplier.contactInfo?.address || "");
+      setOpeningBalance(supplier.openingBalance ?? "");
+      setPaymentTerms(supplier.paymentTerms ?? "");
+    } else {
+      setSelectedSupplier(null);
+      resetForm();
+    }
+
+    setIsDrawerMinimized(false);
+    setIsFormVisible(true);
+  };
+
   const handleEditClick = (supplier) => {
     if (isReadOnlyMode) {
       toast.error("You can only view suppliers in read-only mode");
       return;
     }
 
-    setSelectedSupplier(supplier);
-    setVendorCode(supplier.vendorCode || "");
-    setName(supplier.name || "");
-    setPhone(supplier.contactInfo?.phone || "");
-    setAddress(supplier.contactInfo?.address || "");
-    setOpeningBalance(supplier.openingBalance ?? "");
-    setPaymentTerms(supplier.paymentTerms ?? "");
-    setIsFormVisible(true);
+    openForm(supplier);
   };
 
   const handleViewSupplier = (supplierId) => {
@@ -288,11 +304,7 @@ function Supplierpage({ readOnly = false }) {
 
         {canWrite && (
           <button
-            onClick={() => {
-              setIsFormVisible(true);
-              setSelectedSupplier(null);
-              resetForm();
-            }}
+            onClick={() => openForm()}
             className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
           >
             <IoMdAdd className="text-xl mr-2" /> Create Vendor
@@ -304,27 +316,15 @@ function Supplierpage({ readOnly = false }) {
           </div>
         )}
       </div>
-      {/* OVERLAY */}
-      {isFormVisible && (
-        <div
-          className="fixed inset-0 bg-black/40 z-[60]"
-          onClick={() => setIsFormVisible(false)}
-        />
-      )}
-
-      {/* SLIDE-IN DRAWER */}
-      {isFormVisible && canWrite && (
-        <div className="fixed top-0 right-0 w-full sm:w-[420px] h-full bg-white p-6 border-l shadow-2xl z-[70]">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">
-              {selectedSupplier ? "Edit Vendor" : "Create Vendor"}
-            </h2>
-            <MdKeyboardDoubleArrowLeft
-              onClick={() => setIsFormVisible(false)}
-              className="cursor-pointer text-2xl"
-            />
-          </div>
-
+      <DrawerPanel
+        open={isFormVisible && canWrite}
+        title={selectedSupplier ? "Edit Vendor" : "Create Vendor"}
+        onClose={closeForm}
+        isMinimized={isDrawerMinimized}
+        onToggleMinimized={() => setIsDrawerMinimized((prev) => !prev)}
+        widthClass="w-full sm:w-[420px]"
+      >
+        <div className="p-6">
           <form onSubmit={selectedSupplier ? handleEditSubmit : submitSupplier}>
             {/* <div className="mb-4">
               <label>Vendor Code</label>
@@ -414,13 +414,13 @@ function Supplierpage({ readOnly = false }) {
 
             <button
               type="submit"
-              className="bg-teal-800 text-white w-full h-12 rounded-lg hover:bg-teal-700 mt-4"
+              className="mt-4 h-12 w-full rounded-lg bg-teal-800 text-white hover:bg-teal-700"
             >
               {selectedSupplier ? "Update Vendor" : "Create Vendor"}
             </button>
           </form>
         </div>
-      )}
+      </DrawerPanel>
 
       <div className="mt-4">
         <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useDispatch, useSelector } from "react-redux";
 import { IoMdAdd } from "react-icons/io";
-import { MdKeyboardDoubleArrowLeft, MdEdit, MdDelete } from "react-icons/md";
+import { MdEdit, MdDelete } from "react-icons/md";
 import FormattedTime from "../lib/FormattedTime";
 import OrderStatusChart from "../lib/OrderStatusChart";
 import {
@@ -18,6 +18,7 @@ import { Popconfirm } from "antd";
 import { gettingallSupplier } from "../features/SupplierSlice";
 import useKeyboardDropdown from "../hooks/useKeyboardDropdown";
 import { TableSkeleton } from "../Components/LoadingSkeletons";
+import DrawerPanel from "../Components/DrawerPanel";
 
 function Orderpage() {
   const getId = (value) => value?.id ?? value?.id ?? value;
@@ -43,6 +44,7 @@ function Orderpage() {
   const [query, setquery] = useState("");
   const [status, setstatus] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
+  const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
   const [selectedOrder, setselectedOrder] = useState(null);
   const [codeQuery, setCodeQuery] = useState("");
   const [debouncedCodeQuery, setDebouncedCodeQuery] = useState("");
@@ -210,9 +212,7 @@ function Orderpage() {
       .unwrap()
       .then(() => {
         toast.success("Order updated successfully");
-        setIsFormVisible(false);
-        setselectedOrder(null);
-        resetForm();
+        closeForm();
       })
       .catch((error) => {
         // handleOrderError(error);
@@ -297,10 +297,7 @@ function Orderpage() {
 
       toast.success("Order created successfully");
 
-      setIsFormVisible(false); // CLOSE MODAL
-      resetForm();
-      setCartItems([]);
-      setCodeQuery("");
+      closeForm();
 
       dispatch(gettingallOrder()); // REFRESH LIST
     } catch (error) {
@@ -317,6 +314,17 @@ function Orderpage() {
     setShowCodeOptions(false);
   };
 
+  const closeForm = () => {
+    setIsFormVisible(false);
+    setIsDrawerMinimized(false);
+    resetForm();
+  };
+
+  const openForm = () => {
+    setIsDrawerMinimized(false);
+    setIsFormVisible(true);
+  };
+
   const handleEditClick = (order) => {
     if (isLockedOrder(order)) {
       toast.error("Shipped or delivered purchase orders cannot be updated");
@@ -328,7 +336,7 @@ function Orderpage() {
     setCodeQuery("");
     setShowCodeOptions(false);
     setstatus(order.status || "");
-    setIsFormVisible(true);
+    openForm();
   };
 
   const handleRemove = async (OrderId) => {
@@ -367,7 +375,7 @@ function Orderpage() {
         />
 
         <button
-          onClick={() => setIsFormVisible(true)}
+          onClick={openForm}
           className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
         >
           <IoMdAdd className="text-xl mr-2" />
@@ -375,35 +383,17 @@ function Orderpage() {
         </button>
       </div>
 
-      {/* Overlay */}
-      {isFormVisible && (
-        <div
-          className="fixed inset-0 bg-black/40 z-[60]"
-          onClick={() => {
-            setIsFormVisible(false);
-            resetForm();
-          }}
-        />
-      )}
-
-      {/* Form slide-in */}
-      {isFormVisible && (
-        <div className="fixed top-0 right-0 w-full sm:w-[420px] h-full bg-white p-6 border-l shadow-2xl z-[70] overflow-y-auto">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">
-              {selectedOrder
-                ? "Update Purchase Order"
-                : "Create Purchase Order"}
-            </h2>
-            <MdKeyboardDoubleArrowLeft
-              onClick={() => {
-                setIsFormVisible(false);
-                resetForm();
-              }}
-              className="cursor-pointer text-2xl"
-            />
-          </div>
-
+      <DrawerPanel
+        open={isFormVisible}
+        title={
+          selectedOrder ? "Update Purchase Order" : "Create Purchase Order"
+        }
+        onClose={closeForm}
+        isMinimized={isDrawerMinimized}
+        onToggleMinimized={() => setIsDrawerMinimized((prev) => !prev)}
+        widthClass="w-full sm:w-[420px]"
+      >
+        <div className="p-6">
           <form onSubmit={selectedOrder ? handleEditSubmit : submitOrder}>
             <div className="mb-4">
               <label>Product Code</label>
@@ -543,7 +533,7 @@ function Orderpage() {
 
             <button
               type="submit"
-              className="bg-teal-800 text-white w-full h-12 rounded-lg hover:bg-teal-700 mt-4"
+              className="mt-4 h-12 w-full rounded-lg bg-teal-800 text-white hover:bg-teal-700"
             >
               {selectedOrder
                 ? "Update Purchase Order"
@@ -551,7 +541,7 @@ function Orderpage() {
             </button>
           </form>
         </div>
-      )}
+      </DrawerPanel>
 
       {/* Orders Table */}
       <div className="mt-4 bg-white rounded-2xl shadow-sm border overflow-x-auto">

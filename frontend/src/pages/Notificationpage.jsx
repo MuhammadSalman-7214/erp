@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import TopNavbar from "../Components/TopNavbar";
 import { IoMdAdd } from "react-icons/io";
-import { MdClose, MdDelete, MdKeyboardDoubleArrowLeft } from "react-icons/md";
+import { MdDelete } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
 import image from "../images/user.png";
 import {
@@ -14,6 +14,7 @@ import toast from "react-hot-toast";
 import FormattedTime from "../lib/FormattedTime";
 import NoData from "../Components/NoData";
 import { ListSkeleton } from "../Components/LoadingSkeletons";
+import DrawerPanel from "../Components/DrawerPanel";
 
 function NotificationPage() {
   const dispatch = useDispatch();
@@ -22,6 +23,7 @@ function NotificationPage() {
   const [name, setName] = useState("");
   const [type, setType] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
+  const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
@@ -87,6 +89,7 @@ function NotificationPage() {
         toast.success("Notification added successfully");
         resetForm();
         setIsFormVisible(false);
+        setIsDrawerMinimized(false);
       })
       .catch(() => toast.error("Failed to add notification"));
   };
@@ -95,32 +98,28 @@ function NotificationPage() {
     <div className="min-h-[92vh] bg-gray-100 p-4">
       <div className="flex justify-end items-center">
         <button
-          onClick={() => setIsFormVisible(true)}
+          onClick={() => {
+            setIsDrawerMinimized(false);
+            setIsFormVisible(true);
+          }}
           className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
         >
           <IoMdAdd className="text-xl mr-2" /> Add Notification
         </button>
       </div>
 
-      {/* Overlay */}
-      {isFormVisible && (
-        <div
-          className="fixed inset-0 bg-black/40 z-[60]"
-          onClick={() => setIsFormVisible(false)}
-        />
-      )}
-
-      {/* Slide-in Drawer Form */}
-      {isFormVisible && (
-        <div className="fixed top-0 right-0 w-full sm:w-[420px] h-full bg-white p-6 border-l shadow-2xl z-[70] overflow-y-auto">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Add Notification</h2>
-            <MdKeyboardDoubleArrowLeft
-              onClick={() => setIsFormVisible(false)}
-              className="cursor-pointer text-2xl"
-            />
-          </div>
-
+      <DrawerPanel
+        open={isFormVisible}
+        title="Add Notification"
+        onClose={() => {
+          setIsFormVisible(false);
+          setIsDrawerMinimized(false);
+        }}
+        isMinimized={isDrawerMinimized}
+        onToggleMinimized={() => setIsDrawerMinimized((prev) => !prev)}
+        widthClass="w-full sm:w-[420px]"
+      >
+        <div className="p-6">
           <form onSubmit={submitNotification}>
             <div className="mb-4">
               <label className="block font-medium">Title</label>
@@ -128,7 +127,7 @@ function NotificationPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 type="text"
-                className="w-full h-10 px-3 border rounded-lg mt-2"
+                className="mt-2 w-full rounded-lg border px-3 h-10"
                 placeholder="Enter title"
                 required
               />
@@ -139,7 +138,7 @@ function NotificationPage() {
               <textarea
                 value={type}
                 onChange={(e) => setType(e.target.value)}
-                className="w-full h-24 px-3 border rounded-lg mt-2"
+                className="mt-2 h-24 w-full rounded-lg border px-3"
                 placeholder="Enter type"
                 required
               />
@@ -147,13 +146,13 @@ function NotificationPage() {
 
             <button
               type="submit"
-              className="bg-teal-800 text-white w-full h-12 rounded-lg hover:bg-teal-700 mt-4"
+              className="mt-4 h-12 w-full rounded-lg bg-teal-800 text-white hover:bg-teal-700"
             >
               Add Notification
             </button>
           </form>
         </div>
-      )}
+      </DrawerPanel>
 
       {/* Notifications List Card */}
       <div className="bg-white rounded-2xl shadow-sm border overflow-hidden mt-4">

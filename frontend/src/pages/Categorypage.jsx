@@ -2,12 +2,7 @@ import { useState, useEffect } from "react";
 import { IoMdAdd } from "react-icons/io";
 import FormattedTime from "../lib/FormattedTime";
 import TopNavbar from "../Components/TopNavbar";
-import {
-  MdDelete,
-  MdEdit,
-  MdKeyboardDoubleArrowLeft,
-  MdOutlineCategory,
-} from "react-icons/md";
+import { MdDelete, MdEdit, MdOutlineCategory } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
 import {
   gettingallCategory,
@@ -19,6 +14,7 @@ import {
 import toast from "react-hot-toast";
 import NoData from "../Components/NoData";
 import { Popconfirm } from "antd";
+import DrawerPanel from "../Components/DrawerPanel";
 
 function Categorypage() {
   const { getallCategory, iscreatedCategory, searchdata } = useSelector(
@@ -29,6 +25,7 @@ function Categorypage() {
 
   const [name, setname] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
+  const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
   useEffect(() => {
@@ -67,9 +64,7 @@ function Categorypage() {
         .unwrap()
         .then(() => {
           toast.success("Category updated successfully");
-          setIsFormVisible(false);
-          resetForm();
-          setSelectedProduct(null);
+          closeForm();
         })
         .catch((err) => {
           toast.error(err?.message || "Update failed");
@@ -80,8 +75,7 @@ function Categorypage() {
         .unwrap()
         .then(() => {
           toast.success("Category added successfully");
-          setIsFormVisible(false);
-          resetForm();
+          closeForm();
         })
         .catch((err) => {
           toast.error(err?.message || "Category add unsuccessful");
@@ -91,6 +85,20 @@ function Categorypage() {
 
   const resetForm = () => {
     setname("");
+  };
+
+  const openForm = (category = null) => {
+    setSelectedProduct(category);
+    setname(category?.name || "");
+    setIsDrawerMinimized(false);
+    setIsFormVisible(true);
+  };
+
+  const closeForm = () => {
+    setIsFormVisible(false);
+    setIsDrawerMinimized(false);
+    setSelectedProduct(null);
+    resetForm();
   };
 
   const displayCategory = query.trim() !== "" ? searchdata : getallCategory;
@@ -125,8 +133,7 @@ function Categorypage() {
         />
         <button
           onClick={() => {
-            setIsFormVisible(true);
-            setSelectedProduct(null);
+            openForm();
           }}
           className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
         >
@@ -135,29 +142,16 @@ function Categorypage() {
         </button>
       </div>
       {/* OVERLAY */}
-      {isFormVisible && (
-        <div
-          className="fixed inset-0 bg-black/40 z-[60]"
-          onClick={() => setIsFormVisible(false)}
-        />
-      )}
-
-      {/* SLIDE-IN DRAWER */}
-      {isFormVisible && (
-        <div className="fixed top-0 right-0 w-full sm:w-[420px] h-full bg-white p-6 border-l shadow-2xl z-[70]">
-          <div className="flex justify-between items-center mb-6 border-b pb-3">
-            <h2 className="text-xl font-semibold text-slate-800">
-              {selectedProduct ? "Edit Category" : "Create Category"}
-            </h2>
-
-            <MdKeyboardDoubleArrowLeft
-              onClick={() => setIsFormVisible(false)}
-              className="cursor-pointer text-2xl text-slate-500 hover:text-slate-800"
-            />
-          </div>
-
+      <DrawerPanel
+        open={isFormVisible}
+        title={selectedProduct ? "Edit Category" : "Create Category"}
+        onClose={closeForm}
+        isMinimized={isDrawerMinimized}
+        onToggleMinimized={() => setIsDrawerMinimized((prev) => !prev)}
+        widthClass="w-full sm:w-[420px]"
+      >
+        <div className="p-6">
           <form onSubmit={submitCategory} className="space-y-4">
-            {/* Name */}
             <div>
               <label className="text-sm font-medium text-slate-700">
                 Category Name
@@ -167,23 +161,20 @@ function Categorypage() {
                 placeholder="Enter category name"
                 onChange={(e) => setname(e.target.value)}
                 type="text"
-                className="w-full h-11 px-4 border border-gray-300 rounded-xl mt-2
-            focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                className="mt-2 w-full rounded-xl border border-gray-300 px-4 h-11 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500"
                 required
               />
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
-              className="w-full h-12 bg-teal-700 hover:bg-teal-600
-          text-white rounded-xl shadow-md font-medium mt-6 transition"
+              className="mt-6 h-12 w-full rounded-xl bg-teal-700 font-medium text-white shadow-md transition hover:bg-teal-600"
             >
               {selectedProduct ? "Update Category" : "Create Category"}
             </button>
           </form>
         </div>
-      )}
+      </DrawerPanel>
 
       {/* CATEGORY TABLE */}
       <div className="mt-4">
@@ -263,9 +254,7 @@ function Categorypage() {
 
                           <button
                             onClick={() => {
-                              setSelectedProduct(Category); // set the category to edit
-                              setname(Category.name);
-                              setIsFormVisible(true); // open drawer
+                              openForm(Category);
                             }}
                             className="p-2 rounded-xl bg-slate-100 hover:bg-teal-100 text-blue-600 transition"
                             title="Edit"

@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { IoMdAdd, IoMdEye } from "react-icons/io";
-import { MdDelete, MdEdit, MdKeyboardDoubleArrowLeft } from "react-icons/md";
+import { MdDelete, MdEdit } from "react-icons/md";
 import { PiUsersBold } from "react-icons/pi";
 import { useDispatch, useSelector } from "react-redux";
 import toast from "react-hot-toast";
 import { Popconfirm } from "antd";
 import NoData from "../Components/NoData";
+import DrawerPanel from "../Components/DrawerPanel";
 import axiosInstance from "../lib/axios";
 import { useRolePermissions } from "../hooks/useRolePermissions";
 import {
@@ -32,6 +33,7 @@ function Customerpage({ readOnly = false }) {
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
+  const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [customerBalances, setCustomerBalances] = useState({});
   const [amountFilter, setAmountFilter] = useState("all");
@@ -77,8 +79,18 @@ function Customerpage({ readOnly = false }) {
 
   const closeForm = () => {
     setIsFormVisible(false);
+    setIsDrawerMinimized(false);
     setSelectedCustomer(null);
     resetForm();
+  };
+
+  const openForm = (customer = null) => {
+    setSelectedCustomer(customer);
+    setName(customer?.name || "");
+    setPhone(customer?.contactInfo?.phone || "");
+    setAddress(customer?.contactInfo?.address || "");
+    setIsDrawerMinimized(false);
+    setIsFormVisible(true);
   };
 
   const submitCustomer = async (event) => {
@@ -169,11 +181,7 @@ function Customerpage({ readOnly = false }) {
       return;
     }
 
-    setSelectedCustomer(customer);
-    setName(customer.name || "");
-    setPhone(customer.contactInfo?.phone || "");
-    setAddress(customer.contactInfo?.address || "");
-    setIsFormVisible(true);
+    openForm(customer);
   };
 
   const displayCustomers = query.trim() !== "" ? searchData : getAllCustomer;
@@ -258,9 +266,7 @@ function Customerpage({ readOnly = false }) {
         {canWrite && (
           <button
             onClick={() => {
-              setIsFormVisible(true);
-              setSelectedCustomer(null);
-              resetForm();
+              openForm();
             }}
             className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
           >
@@ -274,22 +280,15 @@ function Customerpage({ readOnly = false }) {
         )}
       </div>
 
-      {isFormVisible && (
-        <div className="fixed inset-0 bg-black/40 z-[60]" onClick={closeForm} />
-      )}
-
-      {isFormVisible && canWrite && (
-        <div className="fixed top-0 right-0 w-full sm:w-[420px] h-full bg-white p-6 border-l shadow-2xl z-[70]">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">
-              {selectedCustomer ? "Edit Customer" : "Create Customer"}
-            </h2>
-            <MdKeyboardDoubleArrowLeft
-              onClick={closeForm}
-              className="cursor-pointer text-2xl"
-            />
-          </div>
-
+      <DrawerPanel
+        open={isFormVisible && canWrite}
+        title={selectedCustomer ? "Edit Customer" : "Create Customer"}
+        onClose={closeForm}
+        isMinimized={isDrawerMinimized}
+        onToggleMinimized={() => setIsDrawerMinimized((prev) => !prev)}
+        widthClass="w-full sm:w-[420px]"
+      >
+        <div className="p-6">
           <form
             onSubmit={selectedCustomer ? handleEditSubmit : submitCustomer}
             className="space-y-4"
@@ -299,7 +298,7 @@ function Customerpage({ readOnly = false }) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Customer name"
-              className="w-full h-10 px-3 border rounded-xl"
+              className="w-full h-10 rounded-xl border px-3"
               required
             />
             <input
@@ -307,24 +306,24 @@ function Customerpage({ readOnly = false }) {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="Phone"
-              className="w-full h-10 px-3 border rounded-xl"
+              className="w-full h-10 rounded-xl border px-3"
             />
             <input
               type="text"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               placeholder="Address"
-              className="w-full h-10 px-3 border rounded-xl"
+              className="w-full h-10 rounded-xl border px-3"
             />
             <button
               type="submit"
-              className="w-full h-11 bg-teal-700 text-white rounded-xl hover:bg-teal-600"
+              className="h-11 w-full rounded-xl bg-teal-700 text-white hover:bg-teal-600"
             >
               {selectedCustomer ? "Update Customer" : "Create Customer"}
             </button>
           </form>
         </div>
-      )}
+      </DrawerPanel>
 
       <div className="mt-4 bg-white rounded-2xl shadow-sm border overflow-hidden">
         {!filteredCustomers || filteredCustomers.length === 0 ? (

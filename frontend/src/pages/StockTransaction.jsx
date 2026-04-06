@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { IoMdAdd } from "react-icons/io";
-import { MdKeyboardDoubleArrowLeft } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
 import FormattedTime from "../lib/FormattedTime";
 import Stocktanscationgraph from "../lib/Stocktanscationgraph";
@@ -14,6 +13,7 @@ import { gettingallproducts } from "../features/productSlice";
 import toast from "react-hot-toast";
 import { useRolePermissions } from "../hooks/useRolePermissions";
 import NoData from "../Components/NoData";
+import DrawerPanel from "../Components/DrawerPanel";
 
 function StockTransaction({ readOnly = false }) {
   const { getallStocks, isgetallStocks, iscreatedStocks, searchdata } =
@@ -30,6 +30,7 @@ function StockTransaction({ readOnly = false }) {
   const [quantity, setquantity] = useState("");
   const [supplier, setsupplier] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
+  const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
 
@@ -66,6 +67,18 @@ function StockTransaction({ readOnly = false }) {
     setsupplier("");
   };
 
+  const closeForm = () => {
+    setIsFormVisible(false);
+    setIsDrawerMinimized(false);
+    setSelectedProduct(null);
+    resetForm();
+  };
+
+  const openForm = () => {
+    setIsDrawerMinimized(false);
+    setIsFormVisible(true);
+  };
+
   const submitstocktranscation = async (event) => {
     event.preventDefault();
 
@@ -79,7 +92,7 @@ function StockTransaction({ readOnly = false }) {
       .unwrap()
       .then(() => {
         toast.success("Stock added successfully");
-        resetForm();
+        closeForm();
       })
       .catch((err) => {
         console.error("Error creating stock:", err);
@@ -114,8 +127,7 @@ function StockTransaction({ readOnly = false }) {
         {canWrite && (
           <button
             onClick={() => {
-              setIsFormVisible(true);
-              setSelectedProduct(null);
+              openForm();
             }}
             className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
           >
@@ -128,23 +140,15 @@ function StockTransaction({ readOnly = false }) {
           </div>
         )}
       </div>
-      {/* Overlay */}
-      {isFormVisible && (
-        <div
-          className="fixed inset-0 bg-black/40 z-[60]"
-          onClick={() => setIsFormVisible(false)}
-        />
-      )}
-      {isFormVisible && (
-        <div className="fixed top-0 right-0 w-full sm:w-[420px] h-full bg-white p-6 border-l shadow-2xl z-[70] overflow-y-auto">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Add Stock</h2>
-            <MdKeyboardDoubleArrowLeft
-              onClick={() => setIsFormVisible(false)}
-              className="cursor-pointer text-2xl"
-            />
-          </div>
-
+      <DrawerPanel
+        open={isFormVisible}
+        title="Add Stock"
+        onClose={closeForm}
+        isMinimized={isDrawerMinimized}
+        onToggleMinimized={() => setIsDrawerMinimized((prev) => !prev)}
+        widthClass="w-full sm:w-[420px]"
+      >
+        <div className="p-6">
           <form onSubmit={submitstocktranscation}>
             <div className="mb-4">
               <label>Product</label>
@@ -234,7 +238,7 @@ function StockTransaction({ readOnly = false }) {
             </button>
           </form>
         </div>
-      )}
+      </DrawerPanel>
 
       {/* Table Card */}
       <div className="mt-6 bg-white rounded-2xl shadow-sm border overflow-x-auto">
