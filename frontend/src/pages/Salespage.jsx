@@ -105,6 +105,18 @@ function Salespage() {
     return () => clearTimeout(timeout);
   }, [codeQuery]);
 
+  useEffect(() => {
+    const parsedReceived = Number(receivedAmount || 0);
+    if (!Number.isFinite(parsedReceived) || parsedReceived <= 0) {
+      setPayment("credit");
+      return;
+    }
+
+    if (!Payment || Payment === "credit") {
+      setPayment("");
+    }
+  }, [receivedAmount, Payment]);
+
   const codeOptions = useMemo(() => {
     if (!debouncedCodeQuery) return [];
     const q = debouncedCodeQuery.toLowerCase();
@@ -712,6 +724,16 @@ function Salespage() {
       return;
     }
 
+    const parsedReceivedAmount = Number(receivedAmount || 0);
+    if (parsedReceivedAmount <= 0) {
+      setPayment("credit");
+    } else if (!["cash", "banktransfer"].includes(Payment)) {
+      toast.error(
+        "Please select Cash or Bank Transfer when received amount is entered",
+      );
+      return;
+    }
+
     const insufficient = cartItems.find((item) => {
       const available =
         item.availableQty ?? availableQtyByCode.get(String(item.codeId)) ?? 0;
@@ -936,8 +958,8 @@ function Salespage() {
           ...(Number.isFinite(resolvedPrice) ? { price: resolvedPrice } : {}),
         };
       }),
-      paymentMethod: Payment,
-      receivedAmount: Number(receivedAmount || 0),
+      paymentMethod: parsedReceivedAmount <= 0 ? "credit" : Payment,
+      receivedAmount: parsedReceivedAmount,
       // paymentStatus,
       status: Status,
     };
@@ -1727,13 +1749,24 @@ function Salespage() {
                   value={Payment}
                   onChange={(e) => setPayment(e.target.value)}
                   className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
-                  required
+                  required={Number(receivedAmount || 0) > 0}
+                  disabled={Number(receivedAmount || 0) <= 0}
                 >
-                  <option value="">Select Payment</option>
-                  <option value="cash">Cash</option>
-                  <option value="creditcard">Credit Card</option>
-                  <option value="banktransfer">Bank Transfer</option>
+                  {Number(receivedAmount || 0) <= 0 ? (
+                    <option value="credit">Credit</option>
+                  ) : (
+                    <>
+                      <option value="">Select Payment</option>
+                      <option value="cash">Cash</option>
+                      <option value="banktransfer">Bank Transfer</option>
+                    </>
+                  )}
                 </select>
+                <div className="text-xs text-slate-500">
+                  {Number(receivedAmount || 0) <= 0
+                    ? "No received amount means the sale will default to credit."
+                    : "Received amount entered: choose Cash or Bank Transfer."}
+                </div>
               </div>
 
               {/* Payment Status intentionally disabled in sales flow */}

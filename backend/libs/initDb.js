@@ -118,6 +118,7 @@ const initDb = async () => {
       contact_address TEXT,
       customerCode VARCHAR(255),
       openingBalance DECIMAL(12,2) DEFAULT 0,
+      openingBalanceNote TEXT,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       INDEX idx_customers_user (user_id)
@@ -329,6 +330,21 @@ const initDb = async () => {
   } catch (error) {
     if (isTableEngineError(error)) {
       logTableEngineWarning("ALTER TABLE sales ADD COLUMN invoiceNumber", error);
+    }
+
+    if (error?.errno !== 1060) {
+      throw error;
+    }
+  }
+
+  try {
+    await query("ALTER TABLE customers ADD COLUMN openingBalanceNote TEXT");
+  } catch (error) {
+    if (isTableEngineError(error)) {
+      logTableEngineWarning(
+        "ALTER TABLE customers ADD COLUMN openingBalanceNote",
+        error,
+      );
     }
 
     if (error?.errno !== 1060) {

@@ -2,7 +2,7 @@ const query = require("../libs/dbQuery.js");
 
 module.exports.createCustomer = async (req, res) => {
   try {
-    const { name, contactInfo } = req.body;
+    const { name, contactInfo, openingBalance, openingBalanceNote } = req.body;
     const userId = req.user.userId;
 
     if (!name || !name.trim()) {
@@ -21,12 +21,14 @@ module.exports.createCustomer = async (req, res) => {
     let insertResult;
     try {
       insertResult = await query(
-        "INSERT INTO customers (user_id, name, contact_phone, contact_address) VALUES (?, ?, ?, ?)",
+        "INSERT INTO customers (user_id, name, contact_phone, contact_address, openingBalance, openingBalanceNote) VALUES (?, ?, ?, ?, ?, ?)",
         [
           userId,
           name.trim(),
           contactInfo?.phone || "",
           contactInfo?.address || "",
+          Number(openingBalance) || 0,
+          openingBalanceNote || "",
         ],
       );
     } catch (err) {
@@ -44,6 +46,8 @@ module.exports.createCustomer = async (req, res) => {
         phone: contactInfo?.phone || "",
         address: contactInfo?.address || "",
       },
+      openingBalance: Number(openingBalance) || 0,
+      openingBalanceNote: openingBalanceNote || "",
     };
 
     res.status(201).json({
@@ -141,7 +145,7 @@ module.exports.getCustomerById = async (req, res) => {
 module.exports.editCustomer = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, contactInfo } = req.body;
+    const { name, contactInfo, openingBalance, openingBalanceNote } = req.body;
     const userId = req.user.userId;
 
     let customer;
@@ -168,6 +172,14 @@ module.exports.editCustomer = async (req, res) => {
     const nextName = name?.trim() || customer.name;
     const nextPhone = contactInfo?.phone ?? customer.contact_phone ?? "";
     const nextAddress = contactInfo?.address ?? customer.contact_address ?? "";
+    const nextOpeningBalance =
+      openingBalance !== undefined
+        ? Number(openingBalance) || 0
+        : Number(customer.openingBalance) || 0;
+    const nextOpeningBalanceNote =
+      openingBalanceNote !== undefined
+        ? String(openingBalanceNote || "")
+        : customer.openingBalanceNote || "";
     if (!String(nextAddress).trim()) {
       return res.status(400).json({
         success: false,
@@ -178,8 +190,16 @@ module.exports.editCustomer = async (req, res) => {
     let updateResult;
     try {
       updateResult = await query(
-        "UPDATE customers SET name = ?, contact_phone = ?, contact_address = ? WHERE id = ? AND user_id = ?",
-        [nextName, nextPhone, nextAddress, id, userId],
+        "UPDATE customers SET name = ?, contact_phone = ?, contact_address = ?, openingBalance = ?, openingBalanceNote = ? WHERE id = ? AND user_id = ?",
+        [
+          nextName,
+          nextPhone,
+          nextAddress,
+          nextOpeningBalance,
+          nextOpeningBalanceNote,
+          id,
+          userId,
+        ],
       );
     } catch (err) {
       return res.status(500).json({
@@ -200,6 +220,8 @@ module.exports.editCustomer = async (req, res) => {
       name: nextName,
       contact_phone: nextPhone,
       contact_address: nextAddress,
+      openingBalance: nextOpeningBalance,
+      openingBalanceNote: nextOpeningBalanceNote,
       contactInfo: {
         phone: nextPhone,
         address: nextAddress,
@@ -215,6 +237,136 @@ module.exports.editCustomer = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error updating customer",
+      error: error.message,
+    });
+  }
+};
+
+module.exports.addCustomerOpeningBalance = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { amount, notes } = req.body;
+    const userId = req.user.userId;
+
+    const nextAmount = Number(amount);
+    if (!Number.isFinite(nextAmount) || nextAmount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "A valid amount is required.",
+      });
+    }
+
+    let customer;
+    try {
+      const rows = await query(
+        "SELECT * FROM customers WHERE id = ? AND user_id = ? LIMIT 1",
+        [id, userId],
+      );
+      customer = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: "Customer not found",
+      });
+    }
+
+    const currentOpeningBalance = Number(customer.openingBalance) || 0;
+    const nextOpeningBalance = currentOpeningBalance + nextAmount;
+    const nextNote = String(notes || "").trim();
+    const mergedNote = nextNote || customer.openingBalanceNote || "";
+
+    try {
+      await query(
+        "UPDATE customers SET openingBalance = ?, openingBalanceNote = ? WHERE id = ? AND user_id = ?",
+        [nextOpeningBalance, mergedNote, id, userId],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Customer opening balance updated successfully",
+      customer: {
+        ...customer,
+        openingBalance: nextOpeningBalance,
+        openingBalanceNote: mergedNote,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error updating customer opening balance",
+      error: error.message,
+    });
+  }
+};
+
+module.exports.deleteCustomerOpeningBalance = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    let customer;
+    try {
+      const rows = await query(
+        "SELECT * FROM customers WHERE id = ? AND user_id = ? LIMIT 1",
+        [id, userId],
+      );
+      customer = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: "Customer not found",
+      });
+    }
+
+    try {
+      await query(
+        "UPDATE customers SET openingBalance = 0, openingBalanceNote = '' WHERE id = ? AND user_id = ?",
+        [id, userId],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Customer legacy amount deleted successfully",
+      customer: {
+        ...customer,
+        openingBalance: 0,
+        openingBalanceNote: "",
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error deleting customer opening balance",
       error: error.message,
     });
   }

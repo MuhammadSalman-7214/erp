@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { Popconfirm } from "antd";
+import { IoMdAdd } from "react-icons/io";
+import { MdDelete } from "react-icons/md";
 import axiosInstance from "../lib/axios";
 import FormattedTime from "../lib/FormattedTime";
 import NoData from "../Components/NoData";
 import { TrendingUp, CreditCard, AlertCircle, Clipboard } from "lucide-react";
 import { DetailSkeleton } from "../Components/LoadingSkeletons";
+import DrawerPanel from "../Components/DrawerPanel";
 
 function CustomerDetailPage() {
   const { id } = useParams();
@@ -16,26 +20,32 @@ function CustomerDetailPage() {
     remaining: 0,
     count: 0,
   });
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
+  const [manualAmount, setManualAmount] = useState("");
+  const [manualDescription, setManualDescription] = useState("");
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchCustomerSales = async () => {
-      try {
-        const response = await axiosInstance.get(`/sales/customer/${id}`);
-        const payload = response.data || {};
-        setCustomer(payload.customer || null);
-        setSales(payload.sales || []);
-        setSummary(
-          payload.summary || { total: 0, paid: 0, remaining: 0, count: 0 },
-        );
-      } catch (error) {
-        console.error("Failed to load customer history:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchCustomerSales = async () => {
+    try {
+      setLoading(true);
+      const response = await axiosInstance.get(`/sales/customer/${id}`);
+      const payload = response.data || {};
+      setCustomer(payload.customer || null);
+      setSales(payload.sales || []);
+      setSummary(
+        payload.summary || { total: 0, paid: 0, remaining: 0, count: 0 },
+      );
+    } catch (error) {
+      console.error("Failed to load customer history:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchCustomerSales();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const currency = (value) => `Rs ${Number(value || 0).toLocaleString()}`;
@@ -44,6 +54,47 @@ function CustomerDetailPage() {
     if (normalized === "paid") return "bg-green-100 text-green-700";
     if (normalized === "partial") return "bg-blue-100 text-blue-700";
     return "bg-yellow-100 text-yellow-700";
+  };
+
+  const openManualEntry = () => {
+    setManualAmount("");
+    setManualDescription("");
+    setIsDrawerMinimized(false);
+    setIsDrawerOpen(true);
+  };
+
+  const closeManualEntry = () => {
+    setIsDrawerOpen(false);
+    setIsDrawerMinimized(false);
+    setManualAmount("");
+    setManualDescription("");
+  };
+
+  const submitManualEntry = async (event) => {
+    event.preventDefault();
+
+    if (!manualAmount || Number(manualAmount) <= 0) return;
+    if (!manualDescription.trim()) return;
+
+    try {
+      await axiosInstance.post(`/customer/${id}/opening-balance`, {
+        amount: Number(manualAmount),
+        notes: manualDescription.trim(),
+      });
+      closeManualEntry();
+      await fetchCustomerSales();
+    } catch (error) {
+      console.error("Failed to update customer opening balance:", error);
+    }
+  };
+
+  const deleteLegacyAmount = async () => {
+    try {
+      await axiosInstance.delete(`/customer/${id}/opening-balance`);
+      await fetchCustomerSales();
+    } catch (error) {
+      console.error("Failed to delete customer legacy amount:", error);
+    }
   };
 
   return (
@@ -64,7 +115,7 @@ function CustomerDetailPage() {
       ) : (
         <>
           <div className="bg-white rounded-2xl border p-5 shadow-sm mb-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
               <div>
                 <div className="text-sm text-slate-500">Customer</div>
                 <div className="text-xl font-semibold text-slate-800">
@@ -75,6 +126,104 @@ function CustomerDetailPage() {
                 <div>Phone: {customer?.contactInfo?.phone || "-"}</div>
                 <div>Address: {customer?.contactInfo?.address || "-"}</div>
               </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl border shadow-sm overflow-hidden mb-4">
+            <div className="flex items-start justify-between gap-3 p-5 border-b">
+              <div>
+                <div className="text-lg font-semibold text-slate-800">
+                  Customer Record Entry
+                </div>
+                <div className="text-sm text-slate-500">
+                  Imported legacy balance saved on the customer record.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={openManualEntry}
+                className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-teal-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-teal-600"
+              >
+                <IoMdAdd className="text-lg" />
+                Add Legacy Amount
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 border-b text-left text-slate-500">
+                  <tr>
+                    <th className="px-5 py-4 font-medium">Date</th>
+                    <th className="px-5 py-4 font-medium">Type</th>
+                    <th className="px-5 py-4 font-medium">Description</th>
+                    <th className="px-5 py-4 font-medium">Amount</th>
+                    <th className="px-5 py-4 font-medium text-right">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b last:border-b-0 hover:bg-slate-50 transition">
+                    <td className="px-5 py-4 text-slate-600">
+                      <FormattedTime
+                        timestamp={customer?.updatedAt || customer?.createdAt}
+                      />
+                    </td>
+                    <td className="px-5 py-4 text-slate-700 capitalize">
+                      legacy balance
+                    </td>
+                    <td className="px-5 py-4 text-slate-600">
+                      {customer?.openingBalanceNote ||
+                        "Previous system amount"}
+                    </td>
+                    <td className="px-5 py-4 font-semibold text-slate-800">
+                      {currency(customer?.openingBalance)}
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex justify-end">
+                        {Number(customer?.openingBalance || 0) !== 0 ? (
+                          <Popconfirm
+                            title={
+                              <div className="flex flex-col gap-1 max-w-xs">
+                                <span className="font-semibold text-red-600 text-sm">
+                                  Confirm Legacy Entry Deletion
+                                </span>
+                                <span className="text-xs text-gray-600 leading-snug">
+                                  This will permanently clear the imported
+                                  customer balance from the record.
+                                </span>
+                              </div>
+                            }
+                            okText="Yes, Delete"
+                            cancelText="Cancel"
+                            okButtonProps={{
+                              danger: true,
+                              className: "font-semibold",
+                            }}
+                            cancelButtonProps={{
+                              className: "font-medium",
+                            }}
+                            placement="topRight"
+                            onConfirm={deleteLegacyAmount}
+                          >
+                            <button
+                              type="button"
+                              className="inline-flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
+                              title="Delete legacy amount"
+                              aria-label="Delete legacy amount"
+                            >
+                              <MdDelete size={18} />
+                              Delete
+                            </button>
+                          </Popconfirm>
+                        ) : (
+                          <span className="text-xs text-slate-400">
+                            No legacy amount
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
@@ -194,6 +343,69 @@ function CustomerDetailPage() {
           </div>
         </>
       )}
+
+      <DrawerPanel
+        open={isDrawerOpen}
+        title="Add Legacy Amount"
+        onClose={closeManualEntry}
+        isMinimized={isDrawerMinimized}
+        onToggleMinimized={() => setIsDrawerMinimized((prev) => !prev)}
+        widthClass="w-full sm:w-[420px]"
+      >
+        <div className="p-6">
+          <form onSubmit={submitManualEntry} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700">
+                Amount
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={manualAmount}
+                onChange={(e) => setManualAmount(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-teal-500"
+                placeholder="Enter amount"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700">
+                Description
+              </label>
+              <textarea
+                value={manualDescription}
+                onChange={(e) => setManualDescription(e.target.value)}
+                className="mt-1 min-h-[120px] w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-teal-500"
+                placeholder="Add a note for this manual entry"
+                required
+              />
+            </div>
+
+            <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
+              This amount is stored on the customer record as legacy balance and
+              will increase the customer&apos;s remaining balance.
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={closeManualEntry}
+                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="rounded-xl bg-teal-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-teal-600"
+              >
+                Save Entry
+              </button>
+            </div>
+          </form>
+        </div>
+      </DrawerPanel>
     </div>
   );
 }

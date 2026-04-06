@@ -597,6 +597,22 @@ module.exports.createSale = async (req, res) => {
 
     const saleInvoiceNumber = await getNextInvoiceNumber("SI", userId);
     const salePaymentStatus = getPaymentStatus(parsedReceivedAmount, totalAmount);
+    const paymentMethodMap = {
+      cash: "cash",
+      banktransfer: "bank_transfer",
+    };
+    const resolvedPaymentMethod =
+      parsedReceivedAmount <= 0
+        ? "credit"
+        : paymentMethodMap[String(paymentMethod || "").toLowerCase()] || "";
+
+    if (parsedReceivedAmount > 0 && !resolvedPaymentMethod) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Please select Cash or Bank Transfer when received amount is entered",
+      });
+    }
 
     let saleInsert;
     try {
@@ -607,7 +623,7 @@ module.exports.createSale = async (req, res) => {
           saleInvoiceNumber,
           customerId,
           customerName,
-          paymentMethod || null,
+          resolvedPaymentMethod,
           resolvedSaleStatus,
           salePaymentStatus,
           totalAmount,
@@ -676,14 +692,6 @@ module.exports.createSale = async (req, res) => {
         total: resolvedProducts[i].price * resolvedProducts[i].quantity,
       });
     }
-
-    const paymentMethodMap = {
-      creditcard: "card",
-      banktransfer: "bank_transfer",
-      cash: "cash",
-    };
-    const resolvedPaymentMethod =
-      paymentMethodMap[paymentMethod] || paymentMethod || "cash";
 
     let invoiceInsert;
     try {
@@ -773,7 +781,7 @@ module.exports.createSale = async (req, res) => {
             userId,
             "received",
             parsedReceivedAmount,
-            paymentMethod || "cash",
+            resolvedPaymentMethod,
             invoiceId,
             "sales",
             "customer",
@@ -1367,14 +1375,14 @@ module.exports.getSalesByCustomer = async (req, res) => {
     const normalizedCustomerName = normalizeText(customer?.name);
     const normalizedCustomerCode = normalizeText(customer?.customerCode);
 
-    const payments = await query(
-      "SELECT amount, customer_name, customer_code, customerId, invoice FROM payments WHERE user_id = ? AND partyType = ? AND type = ?",
+    const paidPayments = await query(
+      "SELECT amount, customer_name, customer_code, customerId, invoice FROM payments WHERE user_id = ? AND partyType = ? AND type = ? ORDER BY createdAt ASC, id ASC",
       [userId, "customer", "received"],
     );
 
     let paidAmount = 0;
     const paidInvoiceIds = new Set();
-    payments.forEach((payment) => {
+    paidPayments.forEach((payment) => {
       const paymentCustomerId = payment.customerId ? String(payment.customerId) : "";
       const paymentName = normalizeText(payment.customer_name);
       const paymentCode = normalizeText(payment.customer_code);
@@ -1404,7 +1412,8 @@ module.exports.getSalesByCustomer = async (req, res) => {
     });
 
     summary.paid = paidAmount;
-    summary.remaining = Math.max(summary.total - summary.paid, 0);
+    const openingBalance = Number(customer?.openingBalance) || 0;
+    summary.remaining = Math.max(summary.total - summary.paid + openingBalance, 0);
 
     return res.status(200).json({
       success: true,

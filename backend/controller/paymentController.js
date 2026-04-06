@@ -5,7 +5,9 @@ const normalizeText = (value = "") => String(value).trim().toLowerCase();
 const customerKeyFromFields = ({ code, name }) => {
   const normalizedCode = normalizeText(code);
   const normalizedName = normalizeText(name);
-  return normalizedCode || normalizedName ? `${normalizedCode}|${normalizedName}` : "";
+  return normalizedCode || normalizedName
+    ? `${normalizedCode}|${normalizedName}`
+    : "";
 };
 
 const customerSnapshotFromDoc = (customerDoc) => ({
@@ -94,7 +96,11 @@ const createPayment = async (req, res) => {
           } else {
             const rows = await query(
               "SELECT * FROM customers WHERE user_id = ? AND (name = ? OR customerCode = ?) LIMIT 1",
-              [userId, String(resolvedCustomerId).trim(), String(resolvedCustomerId).trim()],
+              [
+                userId,
+                String(resolvedCustomerId).trim(),
+                String(resolvedCustomerId).trim(),
+              ],
             );
             customerDoc = rows[0];
           }
@@ -418,7 +424,10 @@ const getPartyBalances = async (req, res) => {
       const current = vendorMap.get(vendorId);
       current.totalAmount += Number(invoice.totalAmount) || 0;
       current.invoiceCount += 1;
-      if (invoice.status === "paid" && !purchaseInvoiceIdsWithPayments.has(String(invoice.id))) {
+      if (
+        invoice.status === "paid" &&
+        !purchaseInvoiceIdsWithPayments.has(String(invoice.id))
+      ) {
         current.paidAmount += Number(invoice.totalAmount) || 0;
       }
     }
@@ -500,7 +509,10 @@ const getPartyBalances = async (req, res) => {
       const current = customerMap.get(customerKey);
       current.totalAmount += Number(invoice.totalAmount) || 0;
       current.invoiceCount += 1;
-      if (invoice.status === "paid" && !salesInvoiceIdsWithPayments.has(String(invoice.id))) {
+      if (
+        invoice.status === "paid" &&
+        !salesInvoiceIdsWithPayments.has(String(invoice.id))
+      ) {
         current.paidAmount += Number(invoice.totalAmount) || 0;
       }
     }
@@ -549,16 +561,18 @@ const getVendorLedger = async (req, res) => {
       });
     }
     if (!vendor) {
-      return res.status(404).json({ success: false, message: "Vendor not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Vendor not found" });
     }
 
     const [invoices, payments] = await Promise.all([
       query(
-        "SELECT id, invoiceNumber, totalAmount, issueDate, status, createdAt FROM invoices WHERE invoiceType = ? AND user_id = ? AND vendor = ?",
+        "SELECT id, invoiceNumber, totalAmount, issueDate, status, createdAt FROM invoices WHERE invoiceType = ? AND user_id = ? AND vendor = ? ORDER BY createdAt ASC, id ASC",
         ["purchase", userId, vendorId],
       ),
       query(
-        "SELECT id, amount, method, invoice, notes, paidAt, createdAt, type FROM payments WHERE partyType = ? AND type IN (?, ?) AND user_id = ? AND vendor = ?",
+        "SELECT id, amount, method, invoice, notes, paidAt, createdAt, type FROM payments WHERE partyType = ? AND type IN (?, ?) AND user_id = ? AND vendor = ? ORDER BY createdAt ASC, id ASC",
         ["vendor", "paid", "debit", userId, vendorId],
       ),
     ]);
@@ -568,17 +582,20 @@ const getVendorLedger = async (req, res) => {
     );
 
     const ledger = [];
+    let ledgerOrder = 0;
 
     const openingBalance = Number(vendor.openingBalance) || 0;
     if (openingBalance !== 0) {
       ledger.push({
         id: `opening-${vendor.id}`,
         date: vendor.createdAt || new Date(0),
+        sortDate: vendor.createdAt || new Date(0),
         type: openingBalance >= 0 ? "debit" : "credit",
         amount: Math.abs(openingBalance),
         source: "opening_balance",
         reference: "",
         notes: "Opening balance",
+        sortOrder: (ledgerOrder += 1),
       });
     }
 
@@ -586,35 +603,43 @@ const getVendorLedger = async (req, res) => {
       ledger.push({
         id: String(invoice.id),
         date: invoice.issueDate || invoice.createdAt || new Date(),
+        sortDate: invoice.createdAt || invoice.issueDate || new Date(),
         type: "debit",
         amount: Number(invoice.totalAmount) || 0,
         source: "purchase_invoice",
         reference: invoice.invoiceNumber || "",
         status: invoice.status || "",
+        sortOrder: (ledgerOrder += 1),
       });
     });
 
     payments.forEach((payment) => {
       const invoiceRef = payment.invoice
-        ? invoiceNumberById.get(String(payment.invoice)) || String(payment.invoice)
+        ? invoiceNumberById.get(String(payment.invoice)) ||
+          String(payment.invoice)
         : "";
-      const isManualDebit = String(payment.type || "").toLowerCase() === "debit";
+      const isManualDebit =
+        String(payment.type || "").toLowerCase() === "debit";
       ledger.push({
         id: String(payment.id),
         date: payment.paidAt || payment.createdAt || new Date(),
+        sortDate: payment.createdAt || payment.paidAt || new Date(),
         type: isManualDebit ? "debit" : "credit",
         amount: Number(payment.amount) || 0,
         source: isManualDebit ? "manual" : "payment",
         reference: isManualDebit ? "" : invoiceRef,
         method: payment.method || "",
         notes: payment.notes || "",
+        sortOrder: (ledgerOrder += 1),
       });
     });
 
     ledger.sort((a, b) => {
-      const timeDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
+      const timeDiff =
+        new Date(a.sortDate || a.date).getTime() -
+        new Date(b.sortDate || b.date).getTime();
       if (timeDiff !== 0) return timeDiff;
-      return String(a.id).localeCompare(String(b.id));
+      return (a.sortOrder || 0) - (b.sortOrder || 0);
     });
 
     let runningBalance = 0;
@@ -650,4 +675,9 @@ const getVendorLedger = async (req, res) => {
   }
 };
 
-module.exports = { createPayment, getPayments, getPartyBalances, getVendorLedger };
+module.exports = {
+  createPayment,
+  getPayments,
+  getPartyBalances,
+  getVendorLedger,
+};

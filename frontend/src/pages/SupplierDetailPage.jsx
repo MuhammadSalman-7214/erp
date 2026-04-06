@@ -1,12 +1,25 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { IoMdAdd } from "react-icons/io";
+import { jsPDF } from "jspdf";
+import { autoTable } from "jspdf-autotable";
 import axiosInstance from "../lib/axios";
 import FormattedTime from "../lib/FormattedTime";
 import NoData from "../Components/NoData";
 import { TrendingUp, CreditCard, AlertCircle, Clipboard } from "lucide-react";
 import { DetailSkeleton } from "../Components/LoadingSkeletons";
 import DrawerPanel from "../Components/DrawerPanel";
+
+const sanitizeFileName = (value) =>
+  String(value || "vendor_ledger")
+    .replace(/[^a-z0-9-_]+/gi, "_")
+    .replace(/^_+|_+$/g, "") || "vendor_ledger";
+
+const formatDateLabel = (value) => {
+  if (!value) return "-";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "-" : date.toLocaleDateString();
+};
 
 function SupplierDetailPage() {
   const { id } = useParams();
@@ -146,6 +159,87 @@ function SupplierDetailPage() {
     }
   };
 
+  const downloadLedgerPdf = () => {
+    if (!vendor) return;
+
+    const fileName = `${sanitizeFileName(vendor.name || "vendor")}_ledger.pdf`;
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+    });
+
+    pdf.setProperties({
+      title: fileName,
+    });
+
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const marginX = 12;
+    let y = 14;
+
+    pdf.setTextColor(15, 23, 42);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(18);
+    pdf.text("Vendor Ledger", marginX, y);
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(11);
+    pdf.text(vendor.name || "Vendor", marginX, y + 7);
+    pdf.setFontSize(9);
+    pdf.setTextColor(71, 85, 105);
+    pdf.text("Debit shows what you owe the vendor, credit shows payments.", marginX, y + 13);
+
+    y += 20;
+    pdf.setDrawColor(203, 213, 225);
+    pdf.line(marginX, y, pageWidth - marginX, y);
+    y += 8;
+
+    autoTable(pdf, {
+      startY: y,
+      margin: { left: marginX, right: marginX },
+      head: [["Date", "Source", "Reference", "Debit", "Credit", "Balance"]],
+      body: (ledger || []).map((entry) => [
+        formatDateLabel(entry.date),
+        String(entry.source?.replace(/_/g, " ") || "-"),
+        String(entry.source === "manual" ? entry.notes || "-" : entry.reference || "-"),
+        entry.type === "debit" ? currency(entry.amount) : "-",
+        entry.type === "credit" ? currency(entry.amount) : "-",
+        currency(entry.balance),
+      ]),
+      styles: {
+        font: "helvetica",
+        fontSize: 8.5,
+        cellPadding: 1.8,
+        overflow: "linebreak",
+        valign: "middle",
+      },
+      headStyles: {
+        fillColor: [15, 118, 110],
+        textColor: 255,
+        fontStyle: "bold",
+      },
+      columnStyles: {
+        0: { cellWidth: 25 },
+        1: { cellWidth: 28 },
+        2: { cellWidth: 52 },
+        3: { cellWidth: 24, halign: "right" },
+        4: { cellWidth: 24, halign: "right" },
+        5: { cellWidth: 26, halign: "right" },
+      },
+      theme: "grid",
+    });
+
+    const finalY = pdf.lastAutoTable?.finalY || y;
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(9);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text(`Total Debit: ${currency(ledgerTotals.debit)}`, marginX, finalY + 10);
+    pdf.text(`Total Credit: ${currency(ledgerTotals.credit)}`, marginX, finalY + 16);
+    pdf.text(`Balance: ${currency(ledgerTotals.balance)}`, marginX, finalY + 22);
+
+    pdf.save(fileName);
+  };
+
   const currency = (value) => `Rs ${Number(value || 0).toLocaleString()}`;
 
   return (
@@ -235,14 +329,23 @@ function SupplierDetailPage() {
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1">
-                <button
-                  type="button"
-                  onClick={openManualEntry}
-                  className="inline-flex items-center gap-2 rounded-xl bg-teal-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-teal-600"
-                >
-                  <IoMdAdd className="text-lg" />
-                  Add Manual Entry
-                </button>
+                <div className="flex flex-wrap justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={downloadLedgerPdf}
+                    className="inline-flex items-center gap-2 rounded-xl bg-slate-800 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-700"
+                  >
+                    Download PDF
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openManualEntry}
+                    className="inline-flex items-center gap-2 rounded-xl bg-teal-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-teal-600"
+                  >
+                    <IoMdAdd className="text-lg" />
+                    Add Manual Entry
+                  </button>
+                </div>
                 <div className="text-sm text-slate-600 space-x-3">
                   <span>
                     Debit:{" "}

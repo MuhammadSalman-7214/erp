@@ -12,6 +12,8 @@ const {
   editCustomer,
   deleteCustomer,
   searchCustomer,
+  addCustomerOpeningBalance,
+  deleteCustomerOpeningBalance,
 } = require("../controller/customercontroller");
 
 router.get(
@@ -34,6 +36,18 @@ router.get(
 );
 router.post("/", authmiddleware, adminmiddleware, createCustomer);
 router.put("/:id", authmiddleware, adminmiddleware, editCustomer);
+router.post(
+  "/:id/opening-balance",
+  authmiddleware,
+  adminmiddleware,
+  addCustomerOpeningBalance,
+);
+router.delete(
+  "/:id/opening-balance",
+  authmiddleware,
+  adminmiddleware,
+  deleteCustomerOpeningBalance,
+);
 router.delete("/:customerId", authmiddleware, adminmiddleware, deleteCustomer);
 
 module.exports = router;
