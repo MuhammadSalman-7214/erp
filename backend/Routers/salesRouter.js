@@ -5,6 +5,7 @@ const {
   createSale,
   getAllSales,
   updateSale,
+  deleteSale,
   getSaleById,
   SearchSales,
   getSalesByCustomer,
@@ -16,5 +17,6 @@ router.get("/customer/:customerId", authmiddleware, getSalesByCustomer);
 router.get("/:id", authmiddleware, getSaleById);
 router.post("/", authmiddleware, createSale);
 router.put("/:id", authmiddleware, updateSale);
+router.delete("/:id", authmiddleware, deleteSale);
 
 module.exports = router;

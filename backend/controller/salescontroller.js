@@ -1,4 +1,5 @@
 const query = require("../libs/dbQuery.js");
+const db = require("../db");
 const { getNextInvoiceNumber } = require("../libs/invoiceNumber");
 const {
   validateSaleStockAvailability,
@@ -69,6 +70,190 @@ const getPaymentStatus = (paidAmount, totalAmount) => {
     return "unpaid";
   }
   return "partial";
+};
+
+const txQuery = (sql, values = []) =>
+  new Promise((resolve, reject) => {
+    db.query(sql, values, (err, result) => {
+      if (err) {
+        return reject(err);
+      }
+      resolve(result);
+    });
+  });
+
+const withTransaction = async (work) => {
+  await txQuery("START TRANSACTION");
+  try {
+    const result = await work(txQuery);
+    await txQuery("COMMIT");
+    return result;
+  } catch (error) {
+    try {
+      await txQuery("ROLLBACK");
+    } catch (rollbackError) {
+      console.error("Rollback failed:", rollbackError);
+    }
+    throw error;
+  }
+};
+
+const syncSalePayment = async ({
+  executor = query,
+  sale,
+  customer,
+  paymentMethod,
+  receivedAmount,
+  userId,
+}) => {
+  if (!sale?.invoice) {
+    return;
+  }
+
+  const totalAmount = Math.max(Number(sale.totalAmount) || 0, 0);
+  const normalizedReceived = Math.max(
+    0,
+    Math.min(Number(receivedAmount) || 0, totalAmount),
+  );
+
+  const paymentRows = await executor(
+    "SELECT * FROM payments WHERE invoice = ? AND user_id = ? AND partyType = ? AND type = ? ORDER BY id ASC",
+    [sale.invoice, userId, "customer", "received"],
+  );
+
+  const primaryRow = paymentRows[0];
+  const method = paymentMethod || sale.paymentMethod || "cash";
+  const notes = "Received against sales order";
+
+  if (normalizedReceived > 0) {
+    if (primaryRow) {
+      await executor(
+        "UPDATE payments SET amount = ?, method = ?, customerId = ?, customer_code = ?, customer_name = ?, paidAt = ?, notes = ? WHERE id = ? AND user_id = ?",
+        [
+          normalizedReceived,
+          method,
+          customer?.id || sale.customer || null,
+          customer?.customerCode || "",
+          customer?.name || sale.customerName || "",
+          new Date(),
+          notes,
+          primaryRow.id,
+          userId,
+        ],
+      );
+
+      if (paymentRows.length > 1) {
+        const extraIds = paymentRows.slice(1).map((row) => row.id);
+        await executor(
+          `DELETE FROM payments WHERE id IN (${extraIds.map(() => "?").join(",")}) AND user_id = ?`,
+          [...extraIds, userId],
+        );
+      }
+    } else {
+      await executor(
+        "INSERT INTO payments (user_id, type, amount, method, invoice, invoiceType, partyType, customerId, customer_code, customer_name, vendor, paidAt, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          userId,
+          "received",
+          normalizedReceived,
+          method,
+          sale.invoice,
+          "sales",
+          "customer",
+          customer?.id || sale.customer || null,
+          customer?.customerCode || "",
+          customer?.name || sale.customerName || "",
+          null,
+          new Date(),
+          notes,
+        ],
+      );
+    }
+  } else if (paymentRows.length) {
+    const ids = paymentRows.map((row) => row.id);
+    await executor(
+      `DELETE FROM payments WHERE id IN (${ids.map(() => "?").join(",")}) AND user_id = ?`,
+      [...ids, userId],
+    );
+  }
+
+  const [paymentTotalRows, invoiceRows] = await Promise.all([
+    executor(
+      "SELECT SUM(amount) AS total FROM payments WHERE invoice = ? AND user_id = ?",
+      [sale.invoice, userId],
+    ),
+    executor(
+      "SELECT totalAmount FROM invoices WHERE id = ? AND user_id = ? LIMIT 1",
+      [sale.invoice, userId],
+    ),
+  ]);
+
+  const paymentTotal = Number(paymentTotalRows?.[0]?.total || 0);
+  const invoiceTotal = Number(invoiceRows?.[0]?.totalAmount || totalAmount || 0);
+  const invoiceStatus =
+    paymentTotal >= invoiceTotal && invoiceTotal > 0
+      ? "paid"
+      : paymentTotal > 0
+        ? "partial"
+        : "sent";
+
+  await executor(
+    "UPDATE invoices SET status = ?, paidAt = ? WHERE id = ? AND user_id = ?",
+    [
+      invoiceStatus,
+      paymentTotal >= invoiceTotal && invoiceTotal > 0 ? new Date() : null,
+      sale.invoice,
+      userId,
+    ],
+  );
+};
+
+const deleteSaleCascade = async ({ executor = query, saleId, userId }) => {
+  const saleRows = await executor(
+    "SELECT * FROM sales WHERE id = ? AND user_id = ? LIMIT 1",
+    [saleId, userId],
+  );
+  const sale = saleRows[0];
+
+  if (!sale) {
+    const error = new Error("Sale not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const saleItems = await executor(
+    "SELECT product, productCode, quantity, price FROM sale_items WHERE sale_id = ? AND user_id = ?",
+    [saleId, userId],
+  );
+
+  if (sale.status === "completed" || sale.stockOutRecorded) {
+    await rollbackSaleCompletedStockOut(saleId, userId);
+  }
+
+  if (sale.invoice) {
+    await executor(
+      "DELETE FROM payments WHERE invoice = ? AND user_id = ? AND partyType = ? AND type = ?",
+      [sale.invoice, userId, "customer", "received"],
+    );
+    await executor("DELETE FROM invoice_items WHERE invoice_id = ?", [
+      sale.invoice,
+    ]);
+    await executor(
+      "DELETE FROM invoices WHERE id = ? AND user_id = ?",
+      [sale.invoice, userId],
+    );
+  }
+
+  await executor("DELETE FROM sale_items WHERE sale_id = ? AND user_id = ?", [
+    saleId,
+    userId,
+  ]);
+  await executor("DELETE FROM sales WHERE id = ? AND user_id = ?", [
+    saleId,
+    userId,
+  ]);
+
+  return { sale, saleItems };
 };
 
 const attachCustomerPaymentStatus = async (sales, userId) => {
@@ -411,6 +596,7 @@ module.exports.createSale = async (req, res) => {
     }
 
     const saleInvoiceNumber = await getNextInvoiceNumber("SI", userId);
+    const salePaymentStatus = getPaymentStatus(parsedReceivedAmount, totalAmount);
 
     let saleInsert;
     try {
@@ -423,7 +609,7 @@ module.exports.createSale = async (req, res) => {
           customerName,
           paymentMethod || null,
           resolvedSaleStatus,
-          "unpaid",
+          salePaymentStatus,
           totalAmount,
           false,
         ],
@@ -599,6 +785,15 @@ module.exports.createSale = async (req, res) => {
             "Received against sales order",
           ],
         );
+        await query(
+          "UPDATE invoices SET status = ?, paidAt = ? WHERE id = ? AND user_id = ?",
+          [
+            parsedReceivedAmount >= totalAmount ? "paid" : "partial",
+            parsedReceivedAmount >= totalAmount ? new Date() : null,
+            invoiceId,
+            userId,
+          ],
+        );
       } catch (err) {
         return res.status(500).json({
           success: false,
@@ -721,158 +916,130 @@ module.exports.updateSale = async (req, res) => {
       delete updatedData.paymentStatus;
     }
     const userId = req.user.userId;
+    const hasReceivedAmount = Object.prototype.hasOwnProperty.call(
+      updatedData,
+      "receivedAmount",
+    );
 
-    if (!updatedData.customerId) {
-      return res.status(400).json({
-        success: false,
-        message: "Customer is required",
-      });
-    }
-
-    let customer;
-    try {
-      const rows = await query(
-        "SELECT * FROM customers WHERE id = ? AND user_id = ? LIMIT 1",
-        [updatedData.customerId, userId],
-      );
-      customer = rows[0];
-    } catch (err) {
-      return res.status(500).json({
-        success: false,
-        message: "Database error",
-        error: err,
-      });
-    }
-    if (!customer) {
-      return res.status(404).json({
-        success: false,
-        message: "Customer not found",
-      });
-    }
-    if (!customer.contact_address || !String(customer.contact_address).trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Customer address is required",
-      });
-    }
-
-    if (!updatedData.products || !updatedData.products.length) {
-      return res.status(400).json({
-        success: false,
-        message: "Products are required.",
-      });
-    }
-
-    let existingSale;
-    try {
-      const rows = await query(
+    const result = await withTransaction(async (executor) => {
+      const existingRows = await executor(
         "SELECT * FROM sales WHERE id = ? AND user_id = ? LIMIT 1",
         [id, userId],
       );
-      existingSale = rows[0];
-    } catch (err) {
-      return res.status(500).json({
-        success: false,
-        message: "Database error",
-        error: err,
-      });
-    }
-    if (!existingSale) {
-      return res.status(404).json({
-        success: false,
-        message: "Sale not found",
-      });
-    }
-
-    const resolvedStatus = updatedData.status || existingSale.status || "pending";
-
-    let updatedTotalAmount = 0;
-    const resolvedProducts = [];
-
-    for (const item of updatedData.products) {
-      if (!item.productCode || !item.quantity) {
-        return res.status(400).json({
-          success: false,
-          message: "Each product must have product code id and quantity",
-        });
+      const existingSale = existingRows[0];
+      if (!existingSale) {
+        const error = new Error("Sale not found");
+        error.statusCode = 404;
+        throw error;
       }
 
-      let productCodeRecord;
-      try {
-        const rows = await query(
+      if (normalizeText(updatedData.status) === "cancelled") {
+        await deleteSaleCascade({ executor, saleId: id, userId });
+        return { canceled: true };
+      }
+
+      if (!updatedData.customerId) {
+        const error = new Error("Customer is required");
+        error.statusCode = 400;
+        throw error;
+      }
+
+      const customerRows = await executor(
+        "SELECT * FROM customers WHERE id = ? AND user_id = ? LIMIT 1",
+        [updatedData.customerId, userId],
+      );
+      const customer = customerRows[0];
+      if (!customer) {
+        const error = new Error("Customer not found");
+        error.statusCode = 404;
+        throw error;
+      }
+      if (!customer.contact_address || !String(customer.contact_address).trim()) {
+        const error = new Error("Customer address is required");
+        error.statusCode = 400;
+        throw error;
+      }
+
+      if (!updatedData.products || !updatedData.products.length) {
+        const error = new Error("Products are required.");
+        error.statusCode = 400;
+        throw error;
+      }
+
+      let updatedTotalAmount = 0;
+      const resolvedProducts = [];
+
+      for (const item of updatedData.products) {
+        if (!item.productCode || !item.quantity) {
+          const error = new Error(
+            "Each product must have product code id and quantity",
+          );
+          error.statusCode = 400;
+          throw error;
+        }
+
+        const codeRows = await executor(
           "SELECT * FROM product_codes WHERE id = ? AND user_id = ? LIMIT 1",
           [item.productCode, userId],
         );
-        productCodeRecord = rows[0];
-      } catch (err) {
-        return res.status(500).json({
-          success: false,
-          message: "Database error",
-          error: err,
-        });
-      }
-      if (!productCodeRecord) {
-        return res.status(404).json({
-          success: false,
-          message: `Product code ${item.productCode} not found`,
-        });
-      }
+        const productCodeRecord = codeRows[0];
+        if (!productCodeRecord) {
+          const error = new Error(`Product code ${item.productCode} not found`);
+          error.statusCode = 404;
+          throw error;
+        }
 
-      let productRecord;
-      try {
-        const rows = await query(
+        const productRows = await executor(
           "SELECT * FROM products WHERE id = ? AND user_id = ? LIMIT 1",
           [productCodeRecord.product, userId],
         );
-        productRecord = rows[0];
-      } catch (err) {
-        return res.status(500).json({
-          success: false,
-          message: "Database error",
-          error: err,
+        const productRecord = productRows[0];
+        if (!productRecord) {
+          const error = new Error(`Product ${productCodeRecord.product} not found`);
+          error.statusCode = 404;
+          throw error;
+        }
+
+        const defaultUnitPrice =
+          Number(productRecord.salePrice) || Number(productRecord.Price) || 0;
+        const requestedPrice = Number(item.price);
+        const unitPrice =
+          Number.isFinite(requestedPrice) && requestedPrice >= 0
+            ? requestedPrice
+            : defaultUnitPrice;
+
+        updatedTotalAmount += Number(item.quantity) * unitPrice;
+        resolvedProducts.push({
+          product: productRecord.id,
+          productCode: productCodeRecord.id,
+          quantity: Number(item.quantity),
+          price: unitPrice,
         });
       }
-      if (!productRecord) {
-        return res.status(404).json({
-          success: false,
-          message: `Product ${productCodeRecord.product} not found`,
-        });
+
+      const resolvedStatus = normalizeText(updatedData.status)
+        ? updatedData.status
+        : existingSale.status || "pending";
+
+      if (resolvedStatus === "completed") {
+        const oldCompletedItems = await executor(
+          "SELECT product, productCode, quantity, price FROM sale_items WHERE sale_id = ? AND user_id = ?",
+          [id, userId],
+        );
+        await validateSaleStockAvailability(
+          resolvedProducts,
+          normalizeText(existingSale.status) === "completed"
+            ? oldCompletedItems
+            : [],
+          userId,
+        );
       }
 
-      const defaultUnitPrice =
-        Number(productRecord.salePrice) || Number(productRecord.Price) || 0;
-      const requestedPrice = Number(item.price);
-      const unitPrice =
-        Number.isFinite(requestedPrice) && requestedPrice >= 0
-          ? requestedPrice
-          : defaultUnitPrice;
-      updatedTotalAmount += item.quantity * unitPrice;
-      resolvedProducts.push({
-        product: productRecord.id,
-        productCode: productCodeRecord.id,
-        quantity: item.quantity,
-        price: unitPrice,
-      });
-    }
+      if (normalizeText(existingSale.status) === "completed") {
+        await rollbackSaleCompletedStockOut(existingSale.id, userId);
+      }
 
-    if (resolvedStatus === "completed") {
-      const oldCompletedItems = await query(
-        "SELECT product, productCode, quantity, price FROM sale_items WHERE sale_id = ? AND user_id = ?",
-        [id, userId],
-      );
-      await validateSaleStockAvailability(
-        resolvedProducts,
-        existingSale.status === "completed" ? oldCompletedItems : [],
-        userId,
-      );
-    }
-
-    if (existingSale.status === "completed") {
-      await rollbackSaleCompletedStockOut(existingSale.id, userId);
-    }
-
-    try {
-      await query(
+      await executor(
         "UPDATE sales SET customer = ?, customerName = ?, paymentMethod = ?, status = ?, totalAmount = ?, stockOutRecorded = ? WHERE id = ? AND user_id = ?",
         [
           customer.id,
@@ -885,16 +1052,8 @@ module.exports.updateSale = async (req, res) => {
           userId,
         ],
       );
-    } catch (err) {
-      return res.status(500).json({
-        success: false,
-        message: "Database error",
-        error: err,
-      });
-    }
 
-    try {
-      await query("DELETE FROM sale_items WHERE sale_id = ? AND user_id = ?", [
+      await executor("DELETE FROM sale_items WHERE sale_id = ? AND user_id = ?", [
         id,
         userId,
       ]);
@@ -906,44 +1065,38 @@ module.exports.updateSale = async (req, res) => {
         item.quantity,
         item.price,
       ]);
-      await query(
-        "INSERT INTO sale_items (sale_id, user_id, product, productCode, quantity, price) VALUES ?",
-        [saleItemValues],
-      );
-    } catch (err) {
-      return res.status(500).json({
-        success: false,
-        message: "Database error",
-        error: err,
-      });
-    }
-
-    if (existingSale.invoice) {
-      const invoiceItems = [];
-      for (const item of resolvedProducts) {
-        const productRows = await query(
-          "SELECT name FROM products WHERE id = ? AND user_id = ? LIMIT 1",
-          [item.product, userId],
+      if (saleItemValues.length) {
+        await executor(
+          "INSERT INTO sale_items (sale_id, user_id, product, productCode, quantity, price) VALUES ?",
+          [saleItemValues],
         );
-        const codeRows = await query(
-          "SELECT code, variantName FROM product_codes WHERE id = ? AND user_id = ? LIMIT 1",
-          [item.productCode, userId],
-        );
-        const productRecord = productRows[0];
-        const productCodeRecord = codeRows[0];
-        const variantLabel = productCodeRecord?.variantName
-          ? ` - ${productCodeRecord.variantName}`
-          : "";
-        invoiceItems.push({
-          name: `${productRecord?.name || "Product"} (${productCodeRecord?.code || "code"})${variantLabel}`,
-          quantity: item.quantity,
-          unitPrice: item.price,
-          total: item.price * item.quantity,
-        });
       }
 
-      try {
-        await query(
+      if (existingSale.invoice) {
+        const invoiceItems = [];
+        for (const item of resolvedProducts) {
+          const productRows = await executor(
+            "SELECT name FROM products WHERE id = ? AND user_id = ? LIMIT 1",
+            [item.product, userId],
+          );
+          const codeRows = await executor(
+            "SELECT code, variantName FROM product_codes WHERE id = ? AND user_id = ? LIMIT 1",
+            [item.productCode, userId],
+          );
+          const productRecord = productRows[0];
+          const productCodeRecord = codeRows[0];
+          const variantLabel = productCodeRecord?.variantName
+            ? ` - ${productCodeRecord.variantName}`
+            : "";
+          invoiceItems.push({
+            name: `${productRecord?.name || "Product"} (${productCodeRecord?.code || "code"})${variantLabel}`,
+            quantity: item.quantity,
+            unitPrice: item.price,
+            total: item.price * item.quantity,
+          });
+        }
+
+        await executor(
           "UPDATE invoices SET customerId = ?, customer_name = ?, customer_phone = ?, customer_address = ?, subTotal = ?, totalAmount = ? WHERE id = ? AND user_id = ?",
           [
             customer.id,
@@ -956,7 +1109,7 @@ module.exports.updateSale = async (req, res) => {
             userId,
           ],
         );
-        await query("DELETE FROM invoice_items WHERE invoice_id = ?", [
+        await executor("DELETE FROM invoice_items WHERE invoice_id = ?", [
           existingSale.invoice,
         ]);
         const invoiceItemValues = invoiceItems.map((item) => [
@@ -966,48 +1119,90 @@ module.exports.updateSale = async (req, res) => {
           item.unitPrice,
           item.total,
         ]);
-        await query(
-          "INSERT INTO invoice_items (invoice_id, name, quantity, unitPrice, total) VALUES ?",
-          [invoiceItemValues],
+        if (invoiceItemValues.length) {
+          await executor(
+            "INSERT INTO invoice_items (invoice_id, name, quantity, unitPrice, total) VALUES ?",
+            [invoiceItemValues],
+          );
+        }
+
+        const targetReceivedAmount = hasReceivedAmount
+          ? updatedData.receivedAmount
+          : Number(
+              (
+                await executor(
+                  "SELECT SUM(amount) AS total FROM payments WHERE invoice = ? AND user_id = ? AND partyType = ? AND type = ?",
+                  [existingSale.invoice, userId, "customer", "received"],
+                )
+              )?.[0]?.total || 0,
+            );
+
+        const resolvedPaymentStatus = getPaymentStatus(
+          targetReceivedAmount,
+          updatedTotalAmount,
         );
-      } catch (err) {
-        return res.status(500).json({
-          success: false,
-          message: "Database error",
-          error: err,
+
+        await executor(
+          "UPDATE sales SET paymentStatus = ? WHERE id = ? AND user_id = ?",
+          [resolvedPaymentStatus, id, userId],
+        );
+
+        await syncSalePayment({
+          executor,
+          sale: {
+            ...existingSale,
+            invoice: existingSale.invoice,
+            totalAmount: updatedTotalAmount,
+            paymentMethod: updatedData.paymentMethod || existingSale.paymentMethod,
+            customer: customer.id,
+            customerName: customer.name,
+          },
+          customer,
+          paymentMethod: updatedData.paymentMethod || existingSale.paymentMethod,
+          receivedAmount: targetReceivedAmount,
+          userId,
         });
       }
-    }
 
-    if (resolvedStatus === "completed") {
-      await createSaleCompletedStockOut(
-        { id, products: resolvedProducts },
-        userId,
-      );
-      await query(
-        "UPDATE sales SET stockOutRecorded = ? WHERE id = ? AND user_id = ?",
-        [true, id, userId],
-      );
-    }
+      if (normalizeText(resolvedStatus) === "completed") {
+        await createSaleCompletedStockOut(
+          { id, products: resolvedProducts },
+          userId,
+        );
+        await executor(
+          "UPDATE sales SET stockOutRecorded = ? WHERE id = ? AND user_id = ?",
+          [true, id, userId],
+        );
+      }
 
-    const updatedRows = await query(
-      "SELECT * FROM sales WHERE id = ? AND user_id = ? LIMIT 1",
-      [id, userId],
-    );
-    const populatedSale = await hydrateSales(updatedRows, userId);
-    const errorEntry = populatedSale.find((s) => s?.error);
-    if (errorEntry) {
-      return res.status(500).json({
-        success: false,
-        message: "Database error",
-        error: errorEntry.error,
+      const updatedRows = await executor(
+        "SELECT * FROM sales WHERE id = ? AND user_id = ? LIMIT 1",
+        [id, userId],
+      );
+      const populatedSale = await hydrateSales(updatedRows, userId);
+      const errorEntry = populatedSale.find((s) => s?.error);
+      if (errorEntry) {
+        const error = new Error("Database error");
+        error.statusCode = 500;
+        error.details = errorEntry.error;
+        throw error;
+      }
+
+      return { canceled: false, sale: populatedSale[0] };
+    });
+
+    if (result?.canceled) {
+      return res.status(200).json({
+        success: true,
+        message: "Sale cancelled and removed successfully",
+        deletedSaleId: Number(id),
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Sale updated successfully",
-      sale: populatedSale[0],
+      sale: result.sale,
     });
   } catch (error) {
     console.error("Update Sale Error:", error);
@@ -1017,11 +1212,49 @@ module.exports.updateSale = async (req, res) => {
         message: error.message,
         available: error.available,
         requested: error.requested,
+        details: error.details,
       });
     }
     res.status(500).json({
       success: false,
       message: "Error updating sale",
+      error: error.message,
+    });
+  }
+};
+
+module.exports.deleteSale = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    const result = await withTransaction(async (executor) => {
+      await deleteSaleCascade({ executor, saleId: id, userId });
+      return true;
+    });
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: "Sale not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Sale deleted successfully",
+      deletedSaleId: Number(id),
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: "Error deleting sale",
       error: error.message,
     });
   }

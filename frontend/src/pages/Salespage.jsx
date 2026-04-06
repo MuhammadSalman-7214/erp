@@ -8,6 +8,7 @@ import {
   CreateSales,
   gettingallSales,
   EditSales,
+  DeleteSales,
   searchsalesdata,
 } from "../features/salesSlice";
 import SalesChart from "../lib/Salesgraph";
@@ -17,12 +18,13 @@ import { PiInvoiceBold } from "react-icons/pi";
 import NoData from "../Components/NoData";
 import { createCustomer, getAllCustomers } from "../features/customerSlice";
 import axiosInstance from "../lib/axios";
+import { Popconfirm } from "antd";
 import {
   buildInvoicePrintHtml,
   combineInvoicePagesHtml,
 } from "../lib/invoicePrintTemplate";
-import useKeyboardDropdown from "../hooks/useKeyboardDropdown";
 import DrawerPanel from "../Components/DrawerPanel";
+import useKeyboardDropdown from "../hooks/useKeyboardDropdown";
 
 function Salespage() {
   const getId = (value) => value?.id ?? value?.id ?? value;
@@ -738,7 +740,7 @@ function Salespage() {
         };
       }),
       paymentMethod: Payment,
-      // paymentStatus,
+      receivedAmount: Number(receivedAmount || 0),
       status: Status,
     };
 
@@ -994,7 +996,7 @@ function Salespage() {
       setCodeQuery("");
       setShowCodeOptions(false);
       setPayment(sale.paymentMethod || "");
-      setReceivedAmount("");
+      setReceivedAmount(String(sale.paidAmount ?? 0));
       setStatus(sale.status || "");
     } else {
       setselectedSales(null);
@@ -1572,25 +1574,23 @@ function Salespage() {
                 </div>
               </div>
 
-              {!selectedSales && (
-                <div className="flex flex-col gap-1">
-                  <label className="text-gray-700 font-medium">
-                    Receive Amount
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={receivedAmount}
-                    onChange={(e) => setReceivedAmount(e.target.value)}
-                    className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
-                    placeholder="Enter amount received"
-                  />
-                  <div className="text-xs text-slate-500">
-                    Remaining: {formatCurrency(remainingAfterReceive)}
-                  </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-gray-700 font-medium">
+                  Received Amount
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={receivedAmount}
+                  onChange={(e) => setReceivedAmount(e.target.value)}
+                  className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                  placeholder="Enter amount received"
+                />
+                <div className="text-xs text-slate-500">
+                  Remaining: {formatCurrency(remainingAfterReceive)}
                 </div>
-              )}
+              </div>
 
               <div className="flex flex-col gap-1">
                 <label className="text-gray-700 font-medium">
@@ -1990,8 +1990,10 @@ function Salespage() {
                     <td className="px-5 py-4">
                       <div className="flex justify-end gap-2">
                         <button
+                          type="button"
                           onClick={() => handleEditClick(sale)}
                           className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
+                          title="Edit sale"
                         >
                           <MdEdit size={18} />
                         </button>
@@ -2003,6 +2005,24 @@ function Salespage() {
                         >
                           <PiInvoiceBold size={18} />
                         </button>
+                        <Popconfirm
+                          title="Delete sale?"
+                          description="This will remove the sale, reverse its stock impact, and delete its linked payment records."
+                          okText="Delete"
+                          cancelText="Cancel"
+                          okButtonProps={{ danger: true }}
+                          onConfirm={() =>
+                            dispatch(DeleteSales(getId(sale)))
+                          }
+                        >
+                          <button
+                            type="button"
+                            className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition"
+                            title="Delete sale"
+                          >
+                            <MdDelete size={18} />
+                          </button>
+                        </Popconfirm>
                       </div>
                     </td>
                   </tr>

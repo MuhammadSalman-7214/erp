@@ -54,13 +54,37 @@ export const EditSales = createAsyncThunk(
         updatedData,
         { withCredentials: true },
       );
-      toast.success("Sale updated successfully");
+      toast.success(response.data?.message || "Sale updated successfully");
       return response.data;
     } catch (error) {
       console.error("EditSales Error:", error);
       const errorMessage =
         error.response?.data?.message ||
         "Failed to update sale. Please try again.";
+      toast.error(errorMessage);
+      return rejectWithValue(errorMessage);
+    }
+  },
+);
+
+export const DeleteSales = createAsyncThunk(
+  "sales/deletesales",
+  async (salesId, { rejectWithValue }) => {
+    if (!salesId) {
+      toast.error("Invalid Sale ID");
+      return rejectWithValue("Invalid Sale ID");
+    }
+
+    try {
+      const response = await axiosInstance.delete(`sales/${salesId}`, {
+        withCredentials: true,
+      });
+      toast.success("Sale deleted successfully");
+      return response.data;
+    } catch (error) {
+      console.error("DeleteSales Error:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to delete sale.";
       toast.error(errorMessage);
       return rejectWithValue(errorMessage);
     }
@@ -122,9 +146,41 @@ const salesSlice = createSlice({
 
       .addCase(EditSales.fulfilled, (state, action) => {
         state.editedsales = action.payload;
+        if (action.payload?.deletedSaleId) {
+          const deletedSaleId = action.payload.deletedSaleId;
+          const removeFromList = (list) =>
+            Array.isArray(list)
+              ? list.filter((sale) => String(sale.id) !== String(deletedSaleId))
+              : list;
+          state.getallsales = removeFromList(state.getallsales);
+          state.searchdata = removeFromList(state.searchdata);
+          return;
+        }
+        const updatedSale = action.payload?.sale;
+        if (!updatedSale) return;
+        const updateList = (list) =>
+          Array.isArray(list)
+            ? list.map((sale) =>
+                String(sale.id) === String(updatedSale.id) ? updatedSale : sale,
+              )
+            : list;
+        state.getallsales = updateList(state.getallsales);
+        state.searchdata = updateList(state.searchdata);
       })
 
       .addCase(EditSales.rejected, (state, action) => {})
+
+      .addCase(DeleteSales.fulfilled, (state, action) => {
+        const deletedSaleId = action.payload?.deletedSaleId;
+        const removeFromList = (list) =>
+          Array.isArray(list)
+            ? list.filter((sale) => String(sale.id) !== String(deletedSaleId))
+            : list;
+        state.getallsales = removeFromList(state.getallsales);
+        state.searchdata = removeFromList(state.searchdata);
+      })
+
+      .addCase(DeleteSales.rejected, (state, action) => {})
 
       .addCase(searchsalesdata.fulfilled, (state, action) => {
         state.searchdata = action.payload.sales;
