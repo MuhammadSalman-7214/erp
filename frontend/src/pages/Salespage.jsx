@@ -1223,6 +1223,133 @@ function Salespage() {
     return combineInvoicePagesHtml(invoiceHtml, gatePassHtml);
   }, [billSale]);
 
+  const openPrintWindow = (html) => {
+    const printWindow = window.open("", "_blank", "width=900,height=650");
+    if (!printWindow) {
+      toast.error("Popup blocked. Please allow popups.");
+      return;
+    }
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.onload = () => {
+      printWindow.focus();
+      printWindow.print();
+      setTimeout(() => printWindow.close(), 200);
+    };
+  };
+
+  const handlePrintBillOnly = () => {
+    if (!billSale) return;
+
+    const items = Array.isArray(billSale.products) ? billSale.products : [];
+    const totalAmount = Number(billSale.totalAmount || 0);
+    const receivedAmountValue = Number(
+      billSale.paidAmount ??
+        totalAmount - Number(billSale.remainingAmount || 0),
+    );
+    const remainingAmountValue = Number(
+      billSale.remainingAmount ??
+        Math.max(totalAmount - receivedAmountValue, 0),
+    );
+
+    const invoiceHtml = buildInvoicePrintHtml({
+      documentTitle: "Sales Invoice",
+      companyName: "Imran Traders",
+      slogan: "",
+      invoiceLabel: "Invoice #",
+      invoiceNumber: billSale.invoiceNumber || billSale.id || "-",
+      issueLabel: "Date",
+      issueDate: billSale.createdAt || new Date().toISOString(),
+      partyLabel: "Invoice To",
+      partyName: billSale.customerName || "Customer",
+      partyPhone:
+        billSale.customer?.contactInfo?.phone || billSale.customer?.phone || "",
+      partyAddress:
+        billSale.customer?.contactInfo?.address ||
+        billSale.customer?.address ||
+        "",
+      paymentMethod: billSale.paymentMethod || "-",
+      status: billSale.status || "-",
+      items: items.map((item) => {
+        const qty = Number(item.quantity || 0);
+        const unitPrice = Number(item.price || 0);
+        return {
+          name: item.product?.name || "Product",
+          description: "",
+          company: "",
+          code: item.productCode?.code || "",
+          quantity: qty,
+          unitPrice,
+          total: qty * unitPrice,
+        };
+      }),
+      currency: "Rs",
+      subTotal: totalAmount,
+      totalAmount,
+      receivedAmount: receivedAmountValue,
+      remainingAmount: remainingAmountValue,
+      notes: billSale.notes || "",
+    });
+
+    openPrintWindow(invoiceHtml);
+  };
+
+  const handlePrintGatePassOnly = () => {
+    if (!billSale) return;
+
+    const items = Array.isArray(billSale.products) ? billSale.products : [];
+    const totalAmount = Number(billSale.totalAmount || 0);
+    const receivedAmountValue = Number(
+      billSale.paidAmount ??
+        totalAmount - Number(billSale.remainingAmount || 0),
+    );
+    const remainingAmountValue = Number(
+      billSale.remainingAmount ??
+        Math.max(totalAmount - receivedAmountValue, 0),
+    );
+
+    const gatePassHtml = buildInvoicePrintHtml({
+      documentTitle: "Gate Pass",
+      companyName: "Imran Traders",
+      slogan: "",
+      invoiceLabel: "Gate Pass #",
+      invoiceNumber: billSale.invoiceNumber || billSale.id || "-",
+      issueLabel: "Date",
+      issueDate: billSale.createdAt || new Date().toISOString(),
+      partyLabel: "Gate Pass",
+      partyName: billSale.customerName || "Customer",
+      partyPhone:
+        billSale.customer?.contactInfo?.phone || billSale.customer?.phone || "",
+      partyAddress:
+        billSale.customer?.contactInfo?.address ||
+        billSale.customer?.address ||
+        "",
+      paymentMethod: billSale.paymentMethod || "-",
+      status: billSale.status || "-",
+      items: items.map((item) => ({
+        name: item.product?.name || "Product",
+        quantity: Number(item.quantity || 0),
+        code: item.productCode?.code || "",
+      })),
+      showPrices: false,
+      showSummaryBox: false,
+      currency: "Rs",
+      subTotal: totalAmount,
+      totalAmount,
+      receivedAmount: receivedAmountValue,
+      remainingAmount: remainingAmountValue,
+      notes: billSale.notes || "",
+    });
+
+    openPrintWindow(gatePassHtml);
+  };
+
+  const handlePrintBoth = () => {
+    if (!billSale || !billPreviewHtml) return;
+    openPrintWindow(billPreviewHtml);
+  };
+
   const handleSelectCustomer = (customer) => {
     setCustomerId(getId(customer));
     setCustomerSearch(customer.name);
@@ -1843,16 +1970,32 @@ function Salespage() {
 
               <div className="flex flex-col sm:flex-row justify-end gap-3 px-6 py-4 border-t bg-slate-50">
                 <button
+                  type="button"
                   onClick={closeBillPreview}
                   className="px-5 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-white"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={handlePrintBillModern}
+                  type="button"
+                  onClick={handlePrintBillOnly}
                   className="px-5 py-2 rounded-lg bg-teal-700 text-white hover:bg-teal-600"
                 >
                   Print Bill
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePrintGatePassOnly}
+                  className="px-5 py-2 rounded-lg bg-slate-800 text-white hover:bg-slate-700"
+                >
+                  Print Gate Pass
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePrintBoth}
+                  className="px-5 py-2 rounded-lg bg-indigo-700 text-white hover:bg-indigo-600"
+                >
+                  Print Both
                 </button>
               </div>
             </div>
