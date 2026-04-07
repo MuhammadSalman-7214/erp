@@ -27,6 +27,7 @@ const createPayment = async (req, res) => {
       customerId,
       vendor,
       paidAt,
+      description,
       notes,
     } = req.body;
     const userId = req.user.userId;
@@ -146,6 +147,8 @@ const createPayment = async (req, res) => {
     }
 
     let paymentInsert;
+    const resolvedDescription = String(description || notes || "").trim();
+
     try {
       paymentInsert = await query(
         "INSERT INTO payments (user_id, type, amount, method, invoice, invoiceType, partyType, customerId, customer_code, customer_name, vendor, paidAt, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -162,7 +165,7 @@ const createPayment = async (req, res) => {
           resolvedCustomer?.name || "",
           resolvedVendor || null,
           paidAt || new Date(),
-          notes || "",
+          resolvedDescription,
         ],
       );
     } catch (err) {
@@ -217,7 +220,8 @@ const createPayment = async (req, res) => {
         customer: resolvedCustomer,
         vendor: resolvedVendor,
         paidAt: paidAt || new Date(),
-        notes,
+        notes: resolvedDescription,
+        description: resolvedDescription,
       },
     });
   } catch (error) {
@@ -284,6 +288,7 @@ const getPayments = async (req, res) => {
 
         return {
           ...payment,
+          description: payment.notes || "",
           invoice: invoiceDoc,
           vendor: vendorDoc,
           customerId: customerDoc,

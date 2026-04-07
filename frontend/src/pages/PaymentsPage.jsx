@@ -12,9 +12,9 @@ function PaymentsPage() {
   const [partyType, setPartyType] = useState("customer");
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("cash");
+  const [description, setDescription] = useState("");
   const [customerId, setCustomerId] = useState("");
   const [vendorId, setVendorId] = useState("");
-  const [invoiceId, setInvoiceId] = useState("");
   const [customerQuery, setCustomerQuery] = useState("");
   const [vendorQuery, setVendorQuery] = useState("");
   const [showCustomerOptions, setShowCustomerOptions] = useState(false);
@@ -152,7 +152,7 @@ function PaymentsPage() {
       amount: Number(amount),
       method,
       partyType,
-      invoice: invoiceId || undefined,
+      description: description.trim(),
     };
 
     if (partyType === "customer") payload.customerId = customerId;
@@ -171,7 +171,7 @@ function PaymentsPage() {
       setVendorQuery("");
       setShowCustomerOptions(false);
       setShowVendorOptions(false);
-      setInvoiceId("");
+      setDescription("");
       fetchPayments();
     } catch (error) {
       console.error(error);
@@ -238,13 +238,13 @@ function PaymentsPage() {
           </div>
 
           <div>
-            <label className="text-sm font-medium">Invoice ID (optional)</label>
+            <label className="text-sm font-medium">Description</label>
             <input
               type="text"
-              value={invoiceId}
-              onChange={(e) => setInvoiceId(e.target.value)}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               className="w-full h-10 px-3 border rounded-xl mt-1"
-              placeholder="Invoice ObjectId"
+              placeholder="Enter payment description"
             />
           </div>
 
@@ -377,6 +377,7 @@ function PaymentsPage() {
                 <tr className="text-left text-slate-500">
                   <th className="px-4 py-3 font-medium">Type</th>
                   <th className="px-4 py-3 font-medium">Amount</th>
+                  <th className="px-4 py-3 font-medium">Description</th>
                   <th className="px-4 py-3 font-medium">Party</th>
                   <th className="px-4 py-3 font-medium">Method</th>
                   <th className="px-4 py-3 font-medium">Date</th>
@@ -393,6 +394,9 @@ function PaymentsPage() {
                     <td className="px-4 py-3 capitalize">{payment.type}</td>
                     <td className="px-4 py-3">
                       Rs{Number(payment.amount).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">
+                      {payment.description || payment.notes || "-"}
                     </td>
                     <td className="px-4 py-3">
                       {payment.partyType === "vendor"
