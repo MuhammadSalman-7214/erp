@@ -1029,22 +1029,17 @@ module.exports.updateSale = async (req, res) => {
         ? updatedData.status
         : existingSale.status || "pending";
 
-      if (resolvedStatus === "completed") {
-        const oldCompletedItems = await executor(
-          "SELECT product, productCode, quantity, price FROM sale_items WHERE sale_id = ? AND user_id = ?",
-          [id, userId],
-        );
-        await validateSaleStockAvailability(
-          resolvedProducts,
-          normalizeText(existingSale.status) === "completed"
-            ? oldCompletedItems
-            : [],
-          userId,
-        );
+      const existingSaleWasStocked =
+        normalizeText(existingSale.status) === "completed" ||
+        Boolean(existingSale.stockOutRecorded);
+      const nextSaleWillBeStocked = resolvedStatus === "completed";
+
+      if (existingSaleWasStocked) {
+        await rollbackSaleCompletedStockOut(existingSale.id, userId);
       }
 
-      if (normalizeText(existingSale.status) === "completed") {
-        await rollbackSaleCompletedStockOut(existingSale.id, userId);
+      if (nextSaleWillBeStocked) {
+        await validateSaleStockAvailability(resolvedProducts, [], userId);
       }
 
       await executor(
@@ -1055,7 +1050,7 @@ module.exports.updateSale = async (req, res) => {
           updatedData.paymentMethod || existingSale.paymentMethod,
           resolvedStatus,
           updatedTotalAmount,
-          false,
+          nextSaleWillBeStocked,
           id,
           userId,
         ],
@@ -1172,7 +1167,7 @@ module.exports.updateSale = async (req, res) => {
         });
       }
 
-      if (normalizeText(resolvedStatus) === "completed") {
+      if (nextSaleWillBeStocked) {
         await createSaleCompletedStockOut(
           { id, products: resolvedProducts },
           userId,

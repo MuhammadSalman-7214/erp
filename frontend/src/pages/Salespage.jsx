@@ -648,6 +648,9 @@ function Salespage() {
 
   const buildCartItemsFromSale = (sale) => {
     const products = Array.isArray(sale?.products) ? sale.products : [];
+    const saleWasStocked =
+      String(sale?.status || "").toLowerCase() === "completed" ||
+      Boolean(sale?.stockOutRecorded);
     return products.map((item) => {
       const productId = getId(item.product) || item.product;
       const codeId = getId(item.productCode) || item.productCode;
@@ -663,6 +666,10 @@ function Salespage() {
           codeRecord?.salePrice ??
           0,
       );
+      const currentStock = Number(
+        codeRecord?.quantity ?? availableQtyByCode.get(String(codeId)) ?? 0,
+      );
+      const originalQuantity = Number(item.quantity || 0);
       return {
         productId,
         codeId,
@@ -674,10 +681,11 @@ function Salespage() {
           item.product?.brand ||
           "",
         code: codeRecord?.code || item.productCode?.code || "code",
-        quantity: Number(item.quantity || 0),
-        availableQty: Number(
-          codeRecord?.quantity ?? availableQtyByCode.get(String(codeId)) ?? 0,
-        ),
+        quantity: originalQuantity,
+        originalQuantity,
+        availableQty: saleWasStocked
+          ? currentStock + originalQuantity
+          : currentStock,
         unitPrice: resolvedUnitPrice,
       };
     });
@@ -774,7 +782,13 @@ function Salespage() {
       })
       .catch((error) => {
         console.error("Error updating sale:", error);
-        toast.error("Failed to update sale");
+        if (error?.available !== undefined && error?.requested !== undefined) {
+          toast.error(
+            `Only ${error.available} items available. You requested ${error.requested}.`,
+          );
+          return;
+        }
+        toast.error(error?.message || "Failed to update sale");
       });
   };
 

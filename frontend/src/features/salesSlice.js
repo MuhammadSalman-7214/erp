@@ -54,15 +54,14 @@ export const EditSales = createAsyncThunk(
         updatedData,
         { withCredentials: true },
       );
-      toast.success(response.data?.message || "Sale updated successfully");
       return response.data;
     } catch (error) {
       console.error("EditSales Error:", error);
-      const errorMessage =
-        error.response?.data?.message ||
-        "Failed to update sale. Please try again.";
-      toast.error(errorMessage);
-      return rejectWithValue(errorMessage);
+      return rejectWithValue(
+        error.response?.data || {
+          message: "Failed to update sale. Please try again.",
+        },
+      );
     }
   },
 );
