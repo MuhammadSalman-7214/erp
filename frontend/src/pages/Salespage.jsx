@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { IoMdAdd } from "react-icons/io";
 import { MdDelete, MdEdit } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
+import { jsPDF } from "jspdf";
+import { autoTable } from "jspdf-autotable";
 import FormattedTime from "../lib/FormattedTime";
 
 import {
@@ -25,6 +27,52 @@ import {
 } from "../lib/invoicePrintTemplate";
 import DrawerPanel from "../Components/DrawerPanel";
 import useKeyboardDropdown from "../hooks/useKeyboardDropdown";
+
+const sanitizeFileName = (value) =>
+  String(value || "invoice")
+    .replace(/[^a-z0-9-_]+/gi, "_")
+    .replace(/^_+|_+$/g, "") || "invoice";
+
+const formatDateLabel = (value) => {
+  if (!value) return "-";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "-" : date.toLocaleDateString();
+};
+
+const splitLongText = (doc, text, width) =>
+  doc.splitTextToSize(String(text || "-"), width);
+
+const loadLogoDataUrl = async (url) => {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return "";
+
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+
+    try {
+      const image = await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = objectUrl;
+      });
+
+      const canvas = document.createElement("canvas");
+      canvas.width = image.naturalWidth || image.width || 120;
+      canvas.height = image.naturalHeight || image.height || 120;
+      const context = canvas.getContext("2d");
+      if (!context) return "";
+      context.drawImage(image, 0, 0);
+      return canvas.toDataURL("image/png");
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+    }
+  } catch (error) {
+    console.error("Failed to load logo", error);
+    return "";
+  }
+};
 
 function Salespage() {
   const getId = (value) => value?.id ?? value?.id ?? value;
@@ -1295,8 +1343,8 @@ function Salespage() {
     };
   };
 
-  const handlePrintBillOnly = () => {
-    if (!billSale) return;
+  const buildBillPdfData = () => {
+    if (!billSale) return null;
 
     const items = Array.isArray(billSale.products) ? billSale.products : [];
     const {
@@ -1307,10 +1355,279 @@ function Salespage() {
       remainingAmountValue,
     } = getSaleTotals(billSale);
 
-    const invoiceHtml = buildInvoicePrintHtml({
+    return {
+      invoiceNumber: billSale.invoiceNumber || billSale.id || "-",
+      issueDate: billSale.createdAt || new Date().toISOString(),
+      customerName: billSale.customerName || "Customer",
+      customerPhone:
+        billSale.customer?.contactInfo?.phone || billSale.customer?.phone || "-",
+      customerAddress:
+        billSale.customer?.contactInfo?.address ||
+        billSale.customer?.address ||
+        "-",
+      paymentMethod: billSale.paymentMethod || "-",
+      status: billSale.status || "-",
+      items: items.map((item) => {
+        const qty = Number(item.quantity || 0);
+        const unitPrice = Number(item.price || 0);
+        return {
+          name: item.product?.name || "Product",
+          code: item.productCode?.code || "-",
+          quantity: qty,
+          unitPrice,
+          total: qty * unitPrice,
+        };
+      }),
+      subTotal,
+      carageAmount,
+      totalAmount,
+      receivedAmountValue,
+      remainingAmountValue,
+      notes: String(billSale.notes || "").trim(),
+    };
+  };
+
+  const downloadBillPdf = async () => {
+    const data = buildBillPdfData();
+    if (!data) return;
+
+    const fileName = `${sanitizeFileName(
+      data.invoiceNumber || "invoice",
+    )}.pdf`;
+
+    try {
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a5",
+      });
+
+      pdf.setProperties({ title: fileName });
+
+      const marginX = 10;
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const contentWidth = pageWidth - marginX * 2;
+      let y = 12;
+      const logoDataUrl = await loadLogoDataUrl(
+        `${window.location.origin}/ITLOGO.svg`,
+      );
+
+      const addWrappedText = (
+        text,
+        x,
+        currentY,
+        width = contentWidth,
+        lineHeight = 4.5,
+        fontSize = 9,
+        style = "normal",
+      ) => {
+        pdf.setFont("helvetica", style);
+        pdf.setFontSize(fontSize);
+        const lines = splitLongText(pdf, text, width);
+        pdf.text(lines, x, currentY);
+        return currentY + lines.length * lineHeight;
+      };
+
+      const addLine = (currentY) => {
+        pdf.setDrawColor(203, 213, 225);
+        pdf.line(marginX, currentY, pageWidth - marginX, currentY);
+      };
+
+      const headerTop = 11;
+      if (logoDataUrl) {
+        pdf.addImage(logoDataUrl, "PNG", marginX, headerTop, 16, 16);
+      }
+
+      const headerTextX = logoDataUrl ? marginX + 20 : marginX;
+      pdf.setTextColor(15, 23, 42);
+      y = addWrappedText(
+        "Imran Traders",
+        headerTextX,
+        headerTop + 4,
+        contentWidth - (logoDataUrl ? 20 : 0),
+        5,
+        16,
+        "bold",
+      );
+      y = addWrappedText(
+        "Billing and stock management",
+        headerTextX,
+        y + 1,
+        contentWidth - (logoDataUrl ? 20 : 0),
+        4,
+        9,
+      );
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(13);
+      pdf.text("Sales Invoice", pageWidth - marginX, 14, { align: "right" });
+      y = Math.max(y + 4, 24);
+      addLine(y);
+      y += 7;
+
+      const detailsLeft = [
+        ["Customer", data.customerName],
+        ["Phone", data.customerPhone],
+        ["Address", data.customerAddress],
+        ["Payment", data.paymentMethod],
+      ];
+
+      pdf.setFontSize(9);
+      let detailsY = y;
+      detailsLeft.forEach(([label, value]) => {
+        pdf.setFont("helvetica", "bold");
+        pdf.text(`${label}:`, marginX, detailsY);
+        pdf.setFont("helvetica", "normal");
+        const wrapped = splitLongText(pdf, value, 65);
+        pdf.text(wrapped, marginX + 18, detailsY);
+        detailsY += Math.max(wrapped.length * 4.2, 4.2);
+      });
+
+      const detailsRight = [
+        ["Invoice #", data.invoiceNumber],
+        ["Date", formatDateLabel(data.issueDate)],
+      ];
+
+      let detailsRightY = y;
+      detailsRight.forEach(([label, value]) => {
+        pdf.setFont("helvetica", "bold");
+        pdf.text(`${label}:`, pageWidth / 2 + 4, detailsRightY);
+        pdf.setFont("helvetica", "normal");
+        const wrapped = splitLongText(pdf, value, 40);
+        pdf.text(wrapped, pageWidth / 2 + 22, detailsRightY);
+        detailsRightY += Math.max(wrapped.length * 4.2, 4.2);
+      });
+
+      y = Math.max(detailsY, detailsRightY) + 5;
+      addLine(y);
+      y += 6;
+
+      autoTable(pdf, {
+        startY: y,
+        margin: { left: marginX, right: marginX },
+        head: [["No", "Item Description", "Qty", "Price", "Total"]],
+        body: data.items.length
+          ? data.items.map((item, index) => [
+              String(index + 1),
+              item.code && item.code !== "-"
+                ? `${item.code} - ${item.name}`
+                : item.name,
+              String(item.quantity),
+              formatCurrency(item.unitPrice),
+              formatCurrency(item.total),
+            ])
+          : [["-", "No items", "-", "-", "-"]],
+        styles: {
+          font: "helvetica",
+          fontSize: 8,
+          cellPadding: 1.5,
+          overflow: "linebreak",
+          valign: "middle",
+        },
+        headStyles: {
+          fillColor: [15, 118, 110],
+          textColor: 255,
+          fontStyle: "bold",
+        },
+        columnStyles: {
+          0: { cellWidth: 10, halign: "center" },
+          2: { cellWidth: 12, halign: "center" },
+          3: { cellWidth: 20, halign: "right" },
+          4: { cellWidth: 22, halign: "right" },
+        },
+        theme: "grid",
+      });
+
+      const tableEndY = pdf.lastAutoTable?.finalY || y;
+      let summaryY = tableEndY + 6;
+      if (summaryY > pageHeight - 35) {
+        pdf.addPage();
+        summaryY = 14;
+      }
+
+      const summaryX = pageWidth - marginX - 42;
+      const summary = [
+        ["Sub Total", formatCurrency(data.subTotal)],
+        ["Carage", formatCurrency(data.carageAmount)],
+        ["Received", formatCurrency(data.receivedAmountValue)],
+        ["Remaining", formatCurrency(data.remainingAmountValue)],
+      ];
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8.5);
+      summary.forEach(([label, value]) => {
+        pdf.text(label, summaryX, summaryY);
+        pdf.text(value, pageWidth - marginX, summaryY, { align: "right" });
+        summaryY += 4.8;
+      });
+
+      pdf.setFillColor(15, 118, 110);
+      pdf.rect(summaryX - 2, summaryY - 1.2, 44, 6, "F");
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Total Bill", summaryX, summaryY + 2.6);
+      pdf.text(formatCurrency(data.totalAmount), pageWidth - marginX, summaryY + 2.6, {
+        align: "right",
+      });
+
+      if (data.notes) {
+        const notesY = summaryY + 10;
+        if (notesY > pageHeight - 15) {
+          pdf.addPage();
+          y = 14;
+        } else {
+          y = notesY;
+        }
+        pdf.setTextColor(15, 23, 42);
+        pdf.setFont("helvetica", "bold");
+        pdf.text("Notes:", marginX, y);
+        pdf.setFont("helvetica", "normal");
+        pdf.text(splitLongText(pdf, data.notes, contentWidth), marginX, y + 4);
+      }
+
+      const footerPhone = "03113208249 / 03005246494";
+      const footerAddress = "Defence Road Opposite DHA RAHBAR";
+      let footerY = pageHeight - 12;
+      if (y > footerY - 8) {
+        pdf.addPage();
+        footerY = pageHeight - 12;
+      }
+
+      pdf.setDrawColor(203, 213, 225);
+      pdf.line(marginX, footerY - 5, pageWidth - marginX, footerY - 5);
+      pdf.setTextColor(71, 85, 105);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(7.5);
+      pdf.text(`Phone: ${footerPhone}`, marginX, footerY, { align: "left" });
+      pdf.text(`Address: ${footerAddress}`, pageWidth - marginX, footerY, {
+        align: "right",
+      });
+
+      pdf.save(fileName);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to download bill");
+    }
+  };
+
+  const buildBillInvoiceHtml = () => {
+    if (!billSale) return "";
+
+    const items = Array.isArray(billSale.products) ? billSale.products : [];
+    const {
+      totalAmount,
+      carageAmount,
+      subTotal,
+      receivedAmountValue,
+      remainingAmountValue,
+    } = getSaleTotals(billSale);
+
+    return buildInvoicePrintHtml({
       documentTitle: "Sales Invoice",
       companyName: "Imran Traders",
       slogan: "",
+      logoUrl: `${window.location.origin}/ITLOGO.svg`,
       invoiceLabel: "Invoice #",
       invoiceNumber: billSale.invoiceNumber || billSale.id || "-",
       issueLabel: "Date",
@@ -1346,12 +1663,10 @@ function Salespage() {
       remainingAmount: remainingAmountValue,
       notes: billSale.notes || "",
     });
-
-    openPrintWindow(invoiceHtml);
   };
 
-  const handlePrintGatePassOnly = () => {
-    if (!billSale) return;
+  const buildBillGatePassHtml = () => {
+    if (!billSale) return "";
 
     const items = Array.isArray(billSale.products) ? billSale.products : [];
     const {
@@ -1362,10 +1677,11 @@ function Salespage() {
       remainingAmountValue,
     } = getSaleTotals(billSale);
 
-    const gatePassHtml = buildInvoicePrintHtml({
+    return buildInvoicePrintHtml({
       documentTitle: "Gate Pass",
       companyName: "Imran Traders",
       slogan: "",
+      logoUrl: `${window.location.origin}/ITLOGO.svg`,
       invoiceLabel: "Gate Pass #",
       invoiceNumber: billSale.invoiceNumber || billSale.id || "-",
       issueLabel: "Date",
@@ -1395,7 +1711,21 @@ function Salespage() {
       remainingAmount: remainingAmountValue,
       notes: billSale.notes || "",
     });
+  };
 
+  const handlePrintBillOnly = () => {
+    const invoiceHtml = buildBillInvoiceHtml();
+    if (!invoiceHtml) return;
+    openPrintWindow(invoiceHtml);
+  };
+
+  const handleDownloadBillOnly = async () => {
+    await downloadBillPdf();
+  };
+
+  const handlePrintGatePassOnly = () => {
+    const gatePassHtml = buildBillGatePassHtml();
+    if (!gatePassHtml) return;
     openPrintWindow(gatePassHtml);
   };
 
@@ -2086,6 +2416,13 @@ function Salespage() {
                   className="px-5 py-2 rounded-lg bg-teal-700 text-white hover:bg-teal-600"
                 >
                   Print Bill
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadBillOnly}
+                  className="px-5 py-2 rounded-lg bg-emerald-700 text-white hover:bg-emerald-600"
+                >
+                  Download Bill
                 </button>
                 <button
                   type="button"
