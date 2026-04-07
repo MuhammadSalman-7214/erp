@@ -211,16 +211,7 @@ function InvoiceDetailPage() {
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(13);
       pdf.text(title, pageWidth - marginX, 14, { align: "right" });
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(8.5);
-      pdf.text(`Invoice #: ${invoice.invoiceNumber || "-"}`, pageWidth - marginX, 19, {
-        align: "right",
-      });
-      pdf.text(`Date: ${formatDateLabel(invoice.issueDate)}`, pageWidth - marginX, 23, {
-        align: "right",
-      });
-
-      y = Math.max(y + 4, 30);
+      y = Math.max(y + 4, 24);
       addLine(y);
       y += 7;
 
@@ -244,23 +235,32 @@ function InvoiceDetailPage() {
         detailsY += Math.max(wrapped.length * 4.2, 4.2);
       });
 
-      const metaX = pageWidth / 2 + 4;
-      let metaY = y;
-      const metaRows = [
-        ["Status", invoice.status || "-"],
-        ["Currency", invoice.currency || "Rs"],
-        ["Due Date", formatDateLabel(invoice.dueDate)],
+      const detailsRightStart = y;
+      let detailsRightY = detailsRightStart;
+      const detailsRight = [
+        ["Invoice #", invoice.invoiceNumber || "-"],
+        ["Date", formatDateLabel(invoice.issueDate)],
       ];
-      metaRows.forEach(([label, value]) => {
+
+      detailsRight.forEach(([label, value]) => {
         pdf.setFont("helvetica", "bold");
-        pdf.text(`${label}:`, metaX, metaY);
+        pdf.text(`${label}:`, pageWidth / 2 + 4, detailsRightY);
         pdf.setFont("helvetica", "normal");
         const wrapped = splitLongText(pdf, value, 40);
-        pdf.text(wrapped, metaX + 18, metaY);
-        metaY += Math.max(wrapped.length * 4.2, 4.2);
+        pdf.text(wrapped, pageWidth / 2 + 22, detailsRightY);
+        detailsRightY += Math.max(wrapped.length * 4.2, 4.2);
       });
 
-      y = Math.max(detailsY, metaY) + 5;
+      if (invoice.dueDate) {
+        pdf.setFont("helvetica", "bold");
+        pdf.text("Due Date:", pageWidth / 2 + 4, detailsRightY);
+        pdf.setFont("helvetica", "normal");
+        const wrapped = splitLongText(pdf, formatDateLabel(invoice.dueDate), 40);
+        pdf.text(wrapped, pageWidth / 2 + 22, detailsRightY);
+        detailsRightY += Math.max(wrapped.length * 4.2, 4.2);
+      }
+
+      y = Math.max(detailsY, detailsRightY) + 5;
       addLine(y);
       y += 6;
 
@@ -352,13 +352,6 @@ function InvoiceDetailPage() {
         pdf.setFont("helvetica", "normal");
         pdf.text(splitLongText(pdf, notes, contentWidth), marginX, y + 4);
       }
-
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(8);
-      pdf.setTextColor(71, 85, 105);
-      pdf.text("Thank you for your business.", pageWidth / 2, pageHeight - 8, {
-        align: "center",
-      });
 
       pdf.save(fileName);
     } catch (error) {

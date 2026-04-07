@@ -262,10 +262,6 @@ function Salespage() {
       billSale.customer?.address ||
       "-";
 
-    const createdAt = billSale.createdAt
-      ? new Date(billSale.createdAt).toLocaleString()
-      : new Date().toLocaleString();
-
     // ✅ PUT YOUR LOGO URL HERE
     const logoUrl = "https://via.placeholder.com/80x80?text=Logo";
 
@@ -477,11 +473,6 @@ function Salespage() {
       </div>
     </div>
 
-    <div class="meta">
-      <div>Date: ${createdAt}</div>
-      <div>Status: ${billSale.status}</div>
-      <div>Payment: ${billSale.paymentStatus || "-"}</div>
-    </div>
   </div>
 
     <!-- INFO -->
@@ -548,7 +539,6 @@ function Salespage() {
   </div>
 
   <div class="footer">
-    Thank you for your business
   </div>
 
 </div>
@@ -2079,10 +2069,6 @@ function Salespage() {
                     </div>
                   </div>
 
-                  <div className="mt-6 text-xs text-slate-500 text-center">
-                    Thank you for your business. This invoice is system
-                    generated.
-                  </div>
                 </div>
               </div>
 
