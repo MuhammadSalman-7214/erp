@@ -155,6 +155,7 @@ const initDb = async () => {
       invoiceNumber VARCHAR(255),
       customer INT,
       customerName VARCHAR(255),
+      carage DECIMAL(12,2) DEFAULT 0,
       totalAmount DECIMAL(12,2) DEFAULT 0,
       paymentStatus VARCHAR(50) DEFAULT 'unpaid',
       paymentMethod VARCHAR(50),
@@ -188,6 +189,7 @@ const initDb = async () => {
       customer_address TEXT,
       vendor INT,
       subTotal DECIMAL(12,2) DEFAULT 0,
+      carage DECIMAL(12,2) DEFAULT 0,
       taxRate DECIMAL(12,2) DEFAULT 0,
       taxAmount DECIMAL(12,2) DEFAULT 0,
       discount DECIMAL(12,2) DEFAULT 0,
@@ -338,6 +340,18 @@ const initDb = async () => {
   }
 
   try {
+    await query("ALTER TABLE sales ADD COLUMN carage DECIMAL(12,2) DEFAULT 0");
+  } catch (error) {
+    if (isTableEngineError(error)) {
+      logTableEngineWarning("ALTER TABLE sales ADD COLUMN carage", error);
+    }
+
+    if (error?.errno !== 1060) {
+      throw error;
+    }
+  }
+
+  try {
     await query("ALTER TABLE customers ADD COLUMN openingBalanceNote TEXT");
   } catch (error) {
     if (isTableEngineError(error)) {
@@ -345,6 +359,18 @@ const initDb = async () => {
         "ALTER TABLE customers ADD COLUMN openingBalanceNote",
         error,
       );
+    }
+
+    if (error?.errno !== 1060) {
+      throw error;
+    }
+  }
+
+  try {
+    await query("ALTER TABLE invoices ADD COLUMN carage DECIMAL(12,2) DEFAULT 0");
+  } catch (error) {
+    if (isTableEngineError(error)) {
+      logTableEngineWarning("ALTER TABLE invoices ADD COLUMN carage", error);
     }
 
     if (error?.errno !== 1060) {

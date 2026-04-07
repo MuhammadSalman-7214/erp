@@ -20,6 +20,7 @@ function InvoiceEditPage() {
   const [items, setItems] = useState([]);
   const [taxRate, setTaxRate] = useState(0);
   const [discount, setDiscount] = useState(0);
+  const [carage, setCarage] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [status, setStatus] = useState("draft");
   const [dueDate, setDueDate] = useState("");
@@ -42,6 +43,7 @@ function InvoiceEditPage() {
         setItems(inv.items);
         setTaxRate(inv.taxRate);
         setDiscount(inv.discount);
+        setCarage(inv.carage || 0);
         setPaymentMethod(inv.paymentMethod || "");
         setStatus(inv.status);
         setDueDate(inv.dueDate?.split("T")[0] || "");
@@ -92,6 +94,7 @@ function InvoiceEditPage() {
         })),
         taxRate,
         discount,
+        carage,
         paymentMethod,
         status,
         dueDate,
@@ -219,7 +222,7 @@ function InvoiceEditPage() {
           </div>
 
           {/* Tax, Discount, Payment & Status */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
             <div>
               <label className="block mb-1 text-gray-700 font-medium">
                 Tax Rate (%)
@@ -240,6 +243,18 @@ function InvoiceEditPage() {
                 type="number"
                 value={discount}
                 onChange={(e) => setDiscount(Number(e.target.value))}
+                className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+            </div>
+
+            <div>
+              <label className="block mb-1 text-gray-700 font-medium">
+                Carage
+              </label>
+              <input
+                type="number"
+                value={carage}
+                onChange={(e) => setCarage(Number(e.target.value))}
                 className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
             </div>

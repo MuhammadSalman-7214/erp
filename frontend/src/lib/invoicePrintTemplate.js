@@ -55,6 +55,7 @@ export const buildInvoicePrintHtml = ({
   showSummaryBox = true,
   currency = "Rs",
   subTotal = 0,
+  carage = 0,
   discount = 0,
   totalAmount = 0,
   receivedAmount = 0,
@@ -101,6 +102,7 @@ export const buildInvoicePrintHtml = ({
 
   const receivedValue = Number(receivedAmount || 0);
   const remainingValue = Number(remainingAmount || 0);
+  const carageValue = Number(carage || 0);
 
   const totalQty = safeItems.reduce(
     (sum, item) => sum + Number(item.quantity || 0),
@@ -576,6 +578,14 @@ export const buildInvoicePrintHtml = ({
                           <td class="label">Sub Total</td>
                           <td class="value">${escapeHtml(formatMoney(subTotal, currency))}</td>
                         </tr>
+                        ${
+                          carageValue > 0
+                            ? `<tr>
+                                <td class="label">Carage</td>
+                                <td class="value">${escapeHtml(formatMoney(carageValue, currency))}</td>
+                              </tr>`
+                            : ""
+                        }
                         <tr>
                           <td class="label">Received Amount</td>
                           <td class="value">${escapeHtml(formatMoney(receivedValue, currency))}</td>

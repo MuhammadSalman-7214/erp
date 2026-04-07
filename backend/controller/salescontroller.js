@@ -365,7 +365,7 @@ const attachCustomerPaymentStatus = async (sales, userId) => {
 
       let remainingAmount = Math.max(totalAmount - paidAmount, 0);
 
-      if (remainingAmount > 0 && customerPool > 0) {
+      if (!invoiceId && remainingAmount > 0 && customerPool > 0) {
         const applied = Math.min(customerPool, remainingAmount);
         paidAmount += applied;
         remainingAmount -= applied;
@@ -459,7 +459,14 @@ const hydrateSales = async (sales, userId) => {
 
 module.exports.createSale = async (req, res) => {
   try {
-    const { customerId, products, paymentMethod, status, receivedAmount } = req.body;
+    const {
+      customerId,
+      products,
+      paymentMethod,
+      status,
+      receivedAmount,
+      carage,
+    } = req.body;
     const userId = req.user.userId;
 
     if (!customerId) {
@@ -583,8 +590,10 @@ module.exports.createSale = async (req, res) => {
     }
 
     const resolvedSaleStatus = status || "pending";
+    const resolvedCarage = Math.max(Number(carage) || 0, 0);
+    const grandTotalAmount = totalAmount + resolvedCarage;
     const parsedReceivedAmount = Math.max(Number(receivedAmount) || 0, 0);
-    if (parsedReceivedAmount > totalAmount) {
+    if (parsedReceivedAmount > grandTotalAmount) {
       return res.status(400).json({
         success: false,
         message: "Received amount cannot be greater than the sale total",
@@ -596,7 +605,10 @@ module.exports.createSale = async (req, res) => {
     }
 
     const saleInvoiceNumber = await getNextInvoiceNumber("SI", userId);
-    const salePaymentStatus = getPaymentStatus(parsedReceivedAmount, totalAmount);
+    const salePaymentStatus = getPaymentStatus(
+      parsedReceivedAmount,
+      grandTotalAmount,
+    );
     const paymentMethodMap = {
       cash: "cash",
       banktransfer: "bank_transfer",
@@ -617,7 +629,7 @@ module.exports.createSale = async (req, res) => {
     let saleInsert;
     try {
       saleInsert = await query(
-        "INSERT INTO sales (user_id, invoiceNumber, customer, customerName, paymentMethod, status, paymentStatus, totalAmount, stockOutRecorded) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO sales (user_id, invoiceNumber, customer, customerName, paymentMethod, status, paymentStatus, carage, totalAmount, stockOutRecorded) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
           userId,
           saleInvoiceNumber,
@@ -626,7 +638,8 @@ module.exports.createSale = async (req, res) => {
           resolvedPaymentMethod,
           resolvedSaleStatus,
           salePaymentStatus,
-          totalAmount,
+          resolvedCarage,
+          grandTotalAmount,
           false,
         ],
       );
@@ -696,7 +709,7 @@ module.exports.createSale = async (req, res) => {
     let invoiceInsert;
     try {
       invoiceInsert = await query(
-        "INSERT INTO invoices (user_id, invoiceNumber, invoiceType, customerId, customer_name, customer_phone, customer_address, taxRate, discount, currency, dueDate, paymentMethod, status, subTotal, taxAmount, totalAmount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO invoices (user_id, invoiceNumber, invoiceType, customerId, customer_name, customer_phone, customer_address, carage, taxRate, discount, currency, dueDate, paymentMethod, status, subTotal, taxAmount, totalAmount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
           userId,
           saleInvoiceNumber,
@@ -705,6 +718,7 @@ module.exports.createSale = async (req, res) => {
           customerName,
           customer.contact_phone || "",
           customer.contact_address || "",
+          resolvedCarage,
           0,
           0,
           "Rs",
@@ -713,7 +727,7 @@ module.exports.createSale = async (req, res) => {
           "sent",
           totalAmount,
           0,
-          totalAmount,
+          grandTotalAmount,
         ],
       );
     } catch (err) {
@@ -796,8 +810,8 @@ module.exports.createSale = async (req, res) => {
         await query(
           "UPDATE invoices SET status = ?, paidAt = ? WHERE id = ? AND user_id = ?",
           [
-            parsedReceivedAmount >= totalAmount ? "paid" : "partial",
-            parsedReceivedAmount >= totalAmount ? new Date() : null,
+            parsedReceivedAmount >= grandTotalAmount ? "paid" : "partial",
+            parsedReceivedAmount >= grandTotalAmount ? new Date() : null,
             invoiceId,
             userId,
           ],
@@ -1025,6 +1039,15 @@ module.exports.updateSale = async (req, res) => {
         });
       }
 
+      const resolvedCarage = Math.max(
+        Number(
+          Object.prototype.hasOwnProperty.call(updatedData, "carage")
+            ? updatedData.carage
+            : existingSale.carage,
+        ) || 0,
+        0,
+      );
+      const grandTotalAmount = updatedTotalAmount + resolvedCarage;
       const resolvedStatus = normalizeText(updatedData.status)
         ? updatedData.status
         : existingSale.status || "pending";
@@ -1043,13 +1066,14 @@ module.exports.updateSale = async (req, res) => {
       }
 
       await executor(
-        "UPDATE sales SET customer = ?, customerName = ?, paymentMethod = ?, status = ?, totalAmount = ?, stockOutRecorded = ? WHERE id = ? AND user_id = ?",
+        "UPDATE sales SET customer = ?, customerName = ?, paymentMethod = ?, status = ?, carage = ?, totalAmount = ?, stockOutRecorded = ? WHERE id = ? AND user_id = ?",
         [
           customer.id,
           customer.name,
           updatedData.paymentMethod || existingSale.paymentMethod,
           resolvedStatus,
-          updatedTotalAmount,
+          resolvedCarage,
+          grandTotalAmount,
           nextSaleWillBeStocked,
           id,
           userId,
@@ -1100,14 +1124,15 @@ module.exports.updateSale = async (req, res) => {
         }
 
         await executor(
-          "UPDATE invoices SET customerId = ?, customer_name = ?, customer_phone = ?, customer_address = ?, subTotal = ?, totalAmount = ? WHERE id = ? AND user_id = ?",
+          "UPDATE invoices SET customerId = ?, customer_name = ?, customer_phone = ?, customer_address = ?, carage = ?, subTotal = ?, totalAmount = ? WHERE id = ? AND user_id = ?",
           [
             customer.id,
             customer.name,
             customer.contact_phone || "",
             customer.contact_address || "",
+            resolvedCarage,
             updatedTotalAmount,
-            updatedTotalAmount,
+            grandTotalAmount,
             existingSale.invoice,
             userId,
           ],
@@ -1142,7 +1167,7 @@ module.exports.updateSale = async (req, res) => {
 
         const resolvedPaymentStatus = getPaymentStatus(
           targetReceivedAmount,
-          updatedTotalAmount,
+          grandTotalAmount,
         );
 
         await executor(
@@ -1155,7 +1180,8 @@ module.exports.updateSale = async (req, res) => {
           sale: {
             ...existingSale,
             invoice: existingSale.invoice,
-            totalAmount: updatedTotalAmount,
+            totalAmount: grandTotalAmount,
+            carage: resolvedCarage,
             paymentMethod: updatedData.paymentMethod || existingSale.paymentMethod,
             customer: customer.id,
             customerName: customer.name,

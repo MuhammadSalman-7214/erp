@@ -4,18 +4,20 @@ const { getNextInvoiceNumber } = require("../libs/invoiceNumber");
 /**
  * Utility: Calculate invoice totals
  */
-const calculateTotals = (items, taxRate = 0, discount = 0) => {
+const calculateTotals = (items, taxRate = 0, discount = 0, carage = 0) => {
   const subTotal = items.reduce(
     (sum, item) => sum + item.quantity * item.unitPrice,
     0,
   );
 
   const taxAmount = (subTotal * taxRate) / 100;
-  const totalAmount = subTotal + taxAmount - discount;
+  const carageAmount = Math.max(Number(carage) || 0, 0);
+  const totalAmount = subTotal + taxAmount - discount + carageAmount;
 
   return {
     subTotal,
     taxAmount,
+    carage: carageAmount,
     totalAmount,
   };
 };
@@ -79,6 +81,7 @@ module.exports.createInvoice = async (req, res) => {
       notes,
       paymentMethod,
       status,
+      carage,
     } = req.body;
     const userId = req.user.userId;
 
@@ -89,7 +92,7 @@ module.exports.createInvoice = async (req, res) => {
       return res.status(400).json({ message: "Invoice type is required" });
     }
 
-    const totals = calculateTotals(items, taxRate, discount);
+    const totals = calculateTotals(items, taxRate, discount, carage);
 
     const resolvedInvoiceNumber =
       invoiceNumber ||
@@ -128,7 +131,7 @@ module.exports.createInvoice = async (req, res) => {
     let insertResult;
     try {
       insertResult = await query(
-        "INSERT INTO invoices (user_id, invoiceNumber, invoiceType, customerId, customer_code, customer_name, customer_phone, customer_address, vendor, subTotal, taxRate, taxAmount, discount, totalAmount, currency, status, issueDate, dueDate, paymentMethod, paidAt, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO invoices (user_id, invoiceNumber, invoiceType, customerId, customer_code, customer_name, customer_phone, customer_address, vendor, subTotal, carage, taxRate, taxAmount, discount, totalAmount, currency, status, issueDate, dueDate, paymentMethod, paidAt, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
           userId,
           resolvedInvoiceNumber,
@@ -140,6 +143,7 @@ module.exports.createInvoice = async (req, res) => {
           resolvedCustomerSnapshot?.address || "",
           vendor || null,
           totals.subTotal,
+          totals.carage,
           taxRate ?? 0,
           totals.taxAmount,
           discount ?? 0,
@@ -425,8 +429,21 @@ module.exports.updateInvoice = async (req, res) => {
     }
     const taxRate = req.body.taxRate ?? invoice.taxRate;
     const discount = req.body.discount ?? invoice.discount;
+    const resolvedCarage = Math.max(
+      Number(
+        Object.prototype.hasOwnProperty.call(req.body, "carage")
+          ? req.body.carage
+          : invoice.carage,
+      ) || 0,
+      0,
+    );
 
-    const totals = calculateTotals(items.length ? items : [], taxRate, discount);
+    const totals = calculateTotals(
+      items.length ? items : [],
+      taxRate,
+      discount,
+      resolvedCarage,
+    );
 
     const { resolvedCustomerId, resolvedCustomerSnapshot } =
       await resolveCustomerPayload({
@@ -463,7 +480,7 @@ module.exports.updateInvoice = async (req, res) => {
 
     try {
       await query(
-        "UPDATE invoices SET invoiceNumber = ?, invoiceType = ?, customerId = ?, customer_code = ?, customer_name = ?, customer_phone = ?, customer_address = ?, vendor = ?, subTotal = ?, taxRate = ?, taxAmount = ?, discount = ?, totalAmount = ?, currency = ?, dueDate = ?, notes = ?, paymentMethod = ?, status = ? WHERE id = ? AND user_id = ?",
+        "UPDATE invoices SET invoiceNumber = ?, invoiceType = ?, customerId = ?, customer_code = ?, customer_name = ?, customer_phone = ?, customer_address = ?, vendor = ?, subTotal = ?, carage = ?, taxRate = ?, taxAmount = ?, discount = ?, totalAmount = ?, currency = ?, dueDate = ?, notes = ?, paymentMethod = ?, status = ? WHERE id = ? AND user_id = ?",
         [
           req.body.invoiceNumber || invoice.invoiceNumber,
           req.body.invoiceType || invoice.invoiceType,
@@ -474,6 +491,7 @@ module.exports.updateInvoice = async (req, res) => {
           resolvedCustomerSnapshot?.address || "",
           req.body.vendor ?? invoice.vendor ?? null,
           totals.subTotal,
+          totals.carage,
           taxRate ?? 0,
           totals.taxAmount,
           discount ?? 0,

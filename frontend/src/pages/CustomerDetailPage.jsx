@@ -448,6 +448,7 @@ function CustomerDetailPage() {
                       <th className="px-5 py-4 font-medium">Date</th>
                       <th className="px-5 py-4 font-medium">Items</th>
                       <th className="px-5 py-4 font-medium">Qty</th>
+                      <th className="px-5 py-4 font-medium">Carage</th>
                       <th className="px-5 py-4 font-medium">Total</th>
                       <th className="px-5 py-4 font-medium">Payment</th>
                       <th className="px-5 py-4 font-medium">Sale Status</th>
@@ -480,6 +481,9 @@ function CustomerDetailPage() {
                           </td>
                           <td className="px-5 py-4 text-slate-600">
                             {totalQty}
+                          </td>
+                          <td className="px-5 py-4 font-semibold text-slate-700">
+                            {currency(sale.carage || 0)}
                           </td>
                           <td className="px-5 py-4 font-semibold text-slate-800">
                             {currency(sale.totalAmount)}

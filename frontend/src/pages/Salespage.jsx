@@ -45,6 +45,7 @@ function Salespage() {
   });
   const [Payment, setPayment] = useState("");
   const [receivedAmount, setReceivedAmount] = useState("");
+  const [carage, setCarage] = useState("");
   // const [paymentStatus, setpaymentStatus] = useState("");
   const [Status, setStatus] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
@@ -159,6 +160,24 @@ function Salespage() {
 
   const formatCurrency = (value) => `Rs ${Number(value || 0).toLocaleString()}`;
 
+  const getSaleTotals = (sale) => {
+    const totalAmount = Number(sale?.totalAmount || 0);
+    const carageAmount = Number(sale?.carage || 0);
+    const subTotal = Math.max(totalAmount - carageAmount, 0);
+    const receivedAmountValue = Number.isFinite(Number(sale?.paidAmount))
+      ? Number(sale?.paidAmount || 0)
+      : Math.max(totalAmount - Number(sale?.remainingAmount || 0), 0);
+    const remainingAmountValue = Math.max(totalAmount - receivedAmountValue, 0);
+
+    return {
+      totalAmount,
+      carageAmount,
+      subTotal,
+      receivedAmountValue,
+      remainingAmountValue,
+    };
+  };
+
   const cartSubTotal = useMemo(
     () =>
       cartItems.reduce(
@@ -168,9 +187,11 @@ function Salespage() {
       ),
     [cartItems],
   );
+  const carageAmount = Number(carage || 0);
+  const cartGrandTotal = cartSubTotal + carageAmount;
   const parsedReceivedAmount = Number(receivedAmount || 0);
   const remainingAfterReceive = Math.max(
-    cartSubTotal -
+    cartGrandTotal -
       (Number.isFinite(parsedReceivedAmount) ? parsedReceivedAmount : 0),
     0,
   );
@@ -190,15 +211,13 @@ function Salespage() {
     if (!billSale) return;
 
     const items = Array.isArray(billSale.products) ? billSale.products : [];
-    const totalAmount = Number(billSale.totalAmount || 0);
-    const receivedAmountValue = Number(
-      billSale.paidAmount ??
-        totalAmount - Number(billSale.remainingAmount || 0),
-    );
-    const remainingAmountValue = Number(
-      billSale.remainingAmount ??
-        Math.max(totalAmount - receivedAmountValue, 0),
-    );
+    const {
+      totalAmount,
+      carageAmount,
+      subTotal,
+      receivedAmountValue,
+      remainingAmountValue,
+    } = getSaleTotals(billSale);
 
     const rows = items
       .map((item, index) => {
@@ -465,11 +484,11 @@ function Salespage() {
     </div>
   </div>
 
-  <!-- INFO -->
-  <div class="section">
-    <div class="card">
-      <h3>Customer</h3>
-      <div>${billSale.customerName || "Customer"}</div>
+    <!-- INFO -->
+    <div class="section">
+      <div class="card">
+        <h3>Customer</h3>
+        <div>${billSale.customerName || "Customer"}</div>
       <div>${customerPhone}</div>
       <div>${customerAddress}</div>
     </div>
@@ -479,6 +498,7 @@ function Salespage() {
       <div>Method: ${billSale.paymentMethod || "-"}</div>
       <div>Items: ${items.length}</div>
       <div>Qty: ${items.reduce((s, i) => s + Number(i.quantity || 0), 0)}</div>
+      <div>Carage: Rs ${carageAmount.toLocaleString()}</div>
       <div>Received: Rs ${receivedAmountValue.toLocaleString()}</div>
       <div>Remaining: Rs ${remainingAmountValue.toLocaleString()}</div>
     </div>
@@ -506,7 +526,11 @@ function Salespage() {
     <table>
       <tr>
         <td>Subtotal</td>
-        <td class="num">Rs ${totalAmount.toLocaleString()}</td>
+        <td class="num">Rs ${subTotal.toLocaleString()}</td>
+      </tr>
+      <tr>
+        <td>Carage</td>
+        <td class="num">Rs ${carageAmount.toLocaleString()}</td>
       </tr>
       <tr>
         <td>Received</td>
@@ -547,15 +571,13 @@ function Salespage() {
     if (!billSale) return;
 
     const items = Array.isArray(billSale.products) ? billSale.products : [];
-    const totalAmount = Number(billSale.totalAmount || 0);
-    const receivedAmountValue = Number(
-      billSale.paidAmount ??
-        totalAmount - Number(billSale.remainingAmount || 0),
-    );
-    const remainingAmountValue = Number(
-      billSale.remainingAmount ??
-        Math.max(totalAmount - receivedAmountValue, 0),
-    );
+    const {
+      totalAmount,
+      carageAmount,
+      subTotal,
+      receivedAmountValue,
+      remainingAmountValue,
+    } = getSaleTotals(billSale);
 
     const invoiceHtml = buildInvoicePrintHtml({
       documentTitle: "Sales Invoice",
@@ -589,7 +611,8 @@ function Salespage() {
         };
       }),
       currency: "Rs",
-      subTotal: totalAmount,
+      subTotal,
+      carage: carageAmount,
       totalAmount,
       receivedAmount: receivedAmountValue,
       remainingAmount: remainingAmountValue,
@@ -622,7 +645,8 @@ function Salespage() {
       showPrices: false,
       showSummaryBox: false,
       currency: "Rs",
-      subTotal: totalAmount,
+      subTotal,
+      carage: carageAmount,
       totalAmount,
       receivedAmount: receivedAmountValue,
       remainingAmount: remainingAmountValue,
@@ -727,7 +751,7 @@ function Salespage() {
       return;
     }
 
-    if (Number(receivedAmount || 0) > cartSubTotal) {
+    if (Number(receivedAmount || 0) > cartGrandTotal) {
       toast.error("Received amount cannot be greater than cart total");
       return;
     }
@@ -771,6 +795,7 @@ function Salespage() {
       }),
       paymentMethod: Payment,
       receivedAmount: Number(receivedAmount || 0),
+      carage: carageAmount,
       status: Status,
     };
 
@@ -974,6 +999,7 @@ function Salespage() {
       }),
       paymentMethod: parsedReceivedAmount <= 0 ? "credit" : Payment,
       receivedAmount: parsedReceivedAmount,
+      carage: carageAmount,
       // paymentStatus,
       status: Status,
     };
@@ -1006,6 +1032,7 @@ function Salespage() {
     });
     setPayment("");
     setReceivedAmount("");
+    setCarage("");
     // setpaymentStatus("");
     setStatus("");
     setCartItems([]);
@@ -1033,6 +1060,7 @@ function Salespage() {
       setShowCodeOptions(false);
       setPayment(sale.paymentMethod || "");
       setReceivedAmount(String(sale.paidAmount ?? 0));
+      setCarage(String(sale.carage ?? 0));
       setStatus(sale.status || "");
     } else {
       setselectedSales(null);
@@ -1176,15 +1204,13 @@ function Salespage() {
     if (!billSale) return "";
 
     const items = Array.isArray(billSale.products) ? billSale.products : [];
-    const totalAmount = Number(billSale.totalAmount || 0);
-    const receivedAmountValue = Number(
-      billSale.paidAmount ??
-        totalAmount - Number(billSale.remainingAmount || 0),
-    );
-    const remainingAmountValue = Number(
-      billSale.remainingAmount ??
-        Math.max(totalAmount - receivedAmountValue, 0),
-    );
+    const {
+      totalAmount,
+      carageAmount,
+      subTotal,
+      receivedAmountValue,
+      remainingAmountValue,
+    } = getSaleTotals(billSale);
 
     const invoiceHtml = buildInvoicePrintHtml({
       documentTitle: "Sales Invoice",
@@ -1218,7 +1244,8 @@ function Salespage() {
         };
       }),
       currency: "Rs",
-      subTotal: totalAmount,
+      subTotal,
+      carage: carageAmount,
       totalAmount,
       receivedAmount: receivedAmountValue,
       remainingAmount: remainingAmountValue,
@@ -1249,7 +1276,8 @@ function Salespage() {
       })),
       showPrices: false,
       currency: "Rs",
-      subTotal: totalAmount,
+      subTotal,
+      carage: carageAmount,
       totalAmount,
       receivedAmount: receivedAmountValue,
       remainingAmount: remainingAmountValue,
@@ -1258,6 +1286,8 @@ function Salespage() {
 
     return combineInvoicePagesHtml(invoiceHtml, gatePassHtml);
   }, [billSale]);
+
+  const currentBillTotals = billSale ? getSaleTotals(billSale) : null;
 
   const openPrintWindow = (html) => {
     const printWindow = window.open("", "_blank", "width=900,height=650");
@@ -1279,15 +1309,13 @@ function Salespage() {
     if (!billSale) return;
 
     const items = Array.isArray(billSale.products) ? billSale.products : [];
-    const totalAmount = Number(billSale.totalAmount || 0);
-    const receivedAmountValue = Number(
-      billSale.paidAmount ??
-        totalAmount - Number(billSale.remainingAmount || 0),
-    );
-    const remainingAmountValue = Number(
-      billSale.remainingAmount ??
-        Math.max(totalAmount - receivedAmountValue, 0),
-    );
+    const {
+      totalAmount,
+      carageAmount,
+      subTotal,
+      receivedAmountValue,
+      remainingAmountValue,
+    } = getSaleTotals(billSale);
 
     const invoiceHtml = buildInvoicePrintHtml({
       documentTitle: "Sales Invoice",
@@ -1321,7 +1349,8 @@ function Salespage() {
         };
       }),
       currency: "Rs",
-      subTotal: totalAmount,
+      subTotal,
+      carage: carageAmount,
       totalAmount,
       receivedAmount: receivedAmountValue,
       remainingAmount: remainingAmountValue,
@@ -1335,15 +1364,13 @@ function Salespage() {
     if (!billSale) return;
 
     const items = Array.isArray(billSale.products) ? billSale.products : [];
-    const totalAmount = Number(billSale.totalAmount || 0);
-    const receivedAmountValue = Number(
-      billSale.paidAmount ??
-        totalAmount - Number(billSale.remainingAmount || 0),
-    );
-    const remainingAmountValue = Number(
-      billSale.remainingAmount ??
-        Math.max(totalAmount - receivedAmountValue, 0),
-    );
+    const {
+      totalAmount,
+      carageAmount,
+      subTotal,
+      receivedAmountValue,
+      remainingAmountValue,
+    } = getSaleTotals(billSale);
 
     const gatePassHtml = buildInvoicePrintHtml({
       documentTitle: "Gate Pass",
@@ -1371,7 +1398,8 @@ function Salespage() {
       showPrices: false,
       showSummaryBox: false,
       currency: "Rs",
-      subTotal: totalAmount,
+      subTotal,
+      carage: carageAmount,
       totalAmount,
       receivedAmount: receivedAmountValue,
       remainingAmount: remainingAmountValue,
@@ -1735,6 +1763,26 @@ function Salespage() {
                     {formatCurrency(cartSubTotal)}
                   </span>
                 </div>
+                <div className="flex items-center justify-between px-3 py-2 bg-white border-t text-sm">
+                  <span className="font-semibold text-slate-700">Carage</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={carage}
+                    onChange={(e) => setCarage(e.target.value)}
+                    className="w-28 h-9 px-2 text-right border rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                    placeholder="0"
+                  />
+                </div>
+                <div className="flex items-center justify-between px-3 py-3 bg-teal-50 border-t text-sm">
+                  <span className="font-semibold text-slate-700">
+                    Total Amount
+                  </span>
+                  <span className="font-bold text-teal-700">
+                    {formatCurrency(cartGrandTotal)}
+                  </span>
+                </div>
               </div>
 
               <div className="flex flex-col gap-1">
@@ -1902,12 +1950,29 @@ function Salespage() {
                         Sale Info
                       </h4>
                       <p className="text-sm text-slate-600">
+                        Subtotal:{" "}
+                        {formatCurrency(
+                          Math.max(
+                            Number(billSale.totalAmount || 0) -
+                              Number(billSale.carage || 0),
+                            0,
+                          ),
+                        )}
+                      </p>
+                      <p className="text-sm text-slate-600">
+                        Carage: {formatCurrency(billSale.carage || 0)}
+                      </p>
+                      <p className="text-sm text-slate-600">
                         Received Amount:{" "}
-                        {formatCurrency(billSale.paidAmount || 0)}
+                        {formatCurrency(
+                          currentBillTotals?.receivedAmountValue || 0,
+                        )}
                       </p>
                       <p className="text-sm text-slate-600">
                         Remaining Amount:{" "}
-                        {formatCurrency(billSale.remainingAmount || 0)}
+                        {formatCurrency(
+                          currentBillTotals?.remainingAmountValue || 0,
+                        )}
                       </p>
                       <p className="text-sm text-slate-600">
                         Payment Method: {billSale.paymentMethod || "-"}
@@ -1985,12 +2050,18 @@ function Salespage() {
                       </div>
                       <div className="flex justify-between">
                         <span>Received</span>
-                        <span>{formatCurrency(billSale.paidAmount || 0)}</span>
+                        <span>
+                          {formatCurrency(
+                            currentBillTotals?.receivedAmountValue || 0,
+                          )}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span>Remaining</span>
                         <span>
-                          {formatCurrency(billSale.remainingAmount || 0)}
+                          {formatCurrency(
+                            currentBillTotals?.remainingAmountValue || 0,
+                          )}
                         </span>
                       </div>
                       {/* <div className="flex justify-between">
@@ -2068,6 +2139,7 @@ function Salespage() {
                   <th className="px-5 py-4 font-medium">Invoice No</th>
                   <th className="px-5 py-4 font-medium">Customer</th>
                   <th className="px-5 py-4 font-medium">Products</th>
+                  <th className="px-5 py-4 font-medium">Carage</th>
                   <th className="px-5 py-4 font-medium">Total Amount</th>
                   <th className="px-5 py-4 font-medium">Status</th>
                   <th className="px-5 py-4 font-medium">Date</th>
@@ -2129,8 +2201,11 @@ function Salespage() {
                         </div>
                       ))}
                     </td>
+                    <td className="px-5 py-4 font-semibold text-slate-700">
+                      {formatCurrency(sale.carage || 0)}
+                    </td>
                     <td className="px-5 py-4 font-semibold text-slate-800">
-                      Rs {sale.totalAmount || 0}
+                      {formatCurrency(sale.totalAmount)}
                     </td>
                     <td className="px-5 py-4">
                       <span

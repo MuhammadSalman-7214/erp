@@ -106,6 +106,7 @@ function InvoiceDetailPage() {
         "",
       paymentMethod: invoice.paymentMethod || "-",
       status: invoice.status || "-",
+      carage: invoice.carage || 0,
       items: (invoice.items || []).map((item) => ({
         name: item.name,
         quantity: Number(item.quantity || 0),
@@ -309,6 +310,7 @@ function InvoiceDetailPage() {
       const summaryX = pageWidth - marginX - 42;
       const summary = [
         ["Sub Total", formatCurrency(invoice.subTotal || 0, invoice.currency || "Rs")],
+        ["Carage", formatCurrency(invoice.carage || 0, invoice.currency || "Rs")],
         ["Received", formatCurrency(receivedAmount || 0, invoice.currency || "Rs")],
         ["Remaining", formatCurrency(remainingAmount || 0, invoice.currency || "Rs")],
         ["Discount", formatCurrency(invoice.discount || 0, invoice.currency || "Rs")],
@@ -406,6 +408,38 @@ function InvoiceDetailPage() {
       {/* INVOICE CARD */}
       <div className="relative bg-white rounded-xl shadow p-8 print:shadow-none print:p-0">
         <div className="print:hidden">
+          <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            <div className="rounded-lg border bg-slate-50 p-3">
+              <div className="text-xs text-slate-500">Subtotal</div>
+              <div className="font-semibold text-slate-800">
+                {formatCurrency(invoice.subTotal || 0, invoice.currency || "Rs")}
+              </div>
+            </div>
+            <div className="rounded-lg border bg-slate-50 p-3">
+              <div className="text-xs text-slate-500">Carage</div>
+              <div className="font-semibold text-slate-800">
+                {formatCurrency(invoice.carage || 0, invoice.currency || "Rs")}
+              </div>
+            </div>
+            <div className="rounded-lg border bg-slate-50 p-3">
+              <div className="text-xs text-slate-500">Received</div>
+              <div className="font-semibold text-slate-800">
+                {formatCurrency(receivedAmount || 0, invoice.currency || "Rs")}
+              </div>
+            </div>
+            <div className="rounded-lg border bg-slate-50 p-3">
+              <div className="text-xs text-slate-500">Remaining</div>
+              <div className="font-semibold text-slate-800">
+                {formatCurrency(remainingAmount || 0, invoice.currency || "Rs")}
+              </div>
+            </div>
+            <div className="rounded-lg border bg-teal-50 p-3">
+              <div className="text-xs text-teal-700">Total Bill</div>
+              <div className="font-semibold text-teal-800">
+                {formatCurrency(invoice.totalAmount || 0, invoice.currency || "Rs")}
+              </div>
+            </div>
+          </div>
           <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
               <iframe
               title={showGatePass ? "Invoice and Gate Pass Preview" : "Invoice Preview"}
