@@ -675,9 +675,167 @@ const getVendorLedger = async (req, res) => {
   }
 };
 
+const getCustomerLedger = async (req, res) => {
+  try {
+    const { customerId } = req.params;
+    const userId = req.user.userId;
+
+    let customer;
+    try {
+      const rows = await query(
+        "SELECT id, name, customerCode, openingBalance, createdAt FROM customers WHERE id = ? AND user_id = ? LIMIT 1",
+        [customerId, userId],
+      );
+      customer = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+    if (!customer) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Customer not found" });
+    }
+
+    const [invoices, payments] = await Promise.all([
+      query(
+        "SELECT id, invoiceNumber, totalAmount, issueDate, status, createdAt FROM invoices WHERE invoiceType = ? AND user_id = ? AND (customerId = ? OR customer_name = ? OR customer_code = ?) ORDER BY createdAt ASC, id ASC",
+        [
+          "sales",
+          userId,
+          customerId,
+          customer.name || "",
+          customer.customerCode || "",
+        ],
+      ),
+      query(
+        "SELECT id, amount, method, invoice, notes, paidAt, createdAt, type, customerId, customer_code, customer_name FROM payments WHERE partyType = ? AND type IN (?, ?) AND user_id = ? ORDER BY createdAt ASC, id ASC",
+        ["customer", "received", "debit", userId],
+      ),
+    ]);
+
+    const invoiceNumberById = new Map(
+      invoices.map((inv) => [String(inv.id), inv.invoiceNumber || ""]),
+    );
+
+    const ledger = [];
+    let ledgerOrder = 0;
+
+    const openingBalance = Number(customer.openingBalance) || 0;
+    if (openingBalance !== 0) {
+      ledger.push({
+        id: `opening-${customer.id}`,
+        date: customer.createdAt || new Date(0),
+        sortDate: customer.createdAt || new Date(0),
+        type: openingBalance >= 0 ? "debit" : "credit",
+        amount: Math.abs(openingBalance),
+        source: "opening_balance",
+        reference: "",
+        notes: "Opening balance",
+        sortOrder: (ledgerOrder += 1),
+      });
+    }
+
+    invoices.forEach((invoice) => {
+      ledger.push({
+        id: String(invoice.id),
+        date: invoice.issueDate || invoice.createdAt || new Date(),
+        sortDate: invoice.createdAt || invoice.issueDate || new Date(),
+        type: "debit",
+        amount: Number(invoice.totalAmount) || 0,
+        source: "sales_invoice",
+        reference: invoice.invoiceNumber || "",
+        status: invoice.status || "",
+        sortOrder: (ledgerOrder += 1),
+      });
+    });
+
+    const normalizedCustomerName = normalizeText(customer.name);
+    const normalizedCustomerCode = normalizeText(customer.customerCode);
+
+    payments.forEach((payment) => {
+      const paymentCustomerId = payment.customerId
+        ? String(payment.customerId)
+        : "";
+      const paymentCustomerName = normalizeText(payment.customer_name);
+      const paymentCustomerCode = normalizeText(payment.customer_code);
+      const matchesCustomer =
+        paymentCustomerId === String(customerId) ||
+        (paymentCustomerId === "" &&
+          (paymentCustomerName === normalizedCustomerName ||
+            paymentCustomerCode === normalizedCustomerCode));
+
+      if (!matchesCustomer) {
+        return;
+      }
+
+      const invoiceRef = payment.invoice
+        ? invoiceNumberById.get(String(payment.invoice)) ||
+          String(payment.invoice)
+        : "";
+      const isDebit = String(payment.type || "").toLowerCase() === "debit";
+      ledger.push({
+        id: String(payment.id),
+        date: payment.paidAt || payment.createdAt || new Date(),
+        sortDate: payment.createdAt || payment.paidAt || new Date(),
+        type: isDebit ? "debit" : "credit",
+        amount: Number(payment.amount) || 0,
+        source: isDebit ? "manual" : "payment",
+        reference: isDebit ? "" : invoiceRef,
+        method: payment.method || "",
+        notes: payment.notes || "",
+        sortOrder: (ledgerOrder += 1),
+      });
+    });
+
+    ledger.sort((a, b) => {
+      const timeDiff =
+        new Date(a.sortDate || a.date).getTime() -
+        new Date(b.sortDate || b.date).getTime();
+      if (timeDiff !== 0) return timeDiff;
+      return (a.sortOrder || 0) - (b.sortOrder || 0);
+    });
+
+    let runningBalance = 0;
+    let totalDebit = 0;
+    let totalCredit = 0;
+
+    const ledgerWithBalance = ledger.map((entry) => {
+      if (entry.type === "debit") {
+        runningBalance += entry.amount;
+        totalDebit += entry.amount;
+      } else {
+        runningBalance -= entry.amount;
+        totalCredit += entry.amount;
+      }
+      return { ...entry, balance: runningBalance };
+    });
+
+    res.status(200).json({
+      success: true,
+      customer: {
+        id: customer.id,
+        name: customer.name,
+      },
+      totals: {
+        debit: totalDebit,
+        credit: totalCredit,
+        balance: runningBalance,
+      },
+      ledger: ledgerWithBalance,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   createPayment,
   getPayments,
   getPartyBalances,
   getVendorLedger,
+  getCustomerLedger,
 };
