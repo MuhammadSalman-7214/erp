@@ -6,6 +6,18 @@ import reportWebVitals from './reportWebVitals';
 import { Provider } from "react-redux";
 import store from "./store/store";
 
+const preventNumberInputWheelChange = (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) return;
+  if (target.type !== "number") return;
+
+  event.preventDefault();
+};
+
+window.addEventListener("wheel", preventNumberInputWheelChange, {
+  passive: false,
+  capture: true,
+});
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
