@@ -33,13 +33,27 @@ const getDashboardSummary = async (req, res) => {
     };
 
     let salesInvoices;
+    let completedSalesProfitRows;
     let purchaseInvoices;
     let payments;
     try {
-      [salesInvoices, purchaseInvoices, payments] = await Promise.all([
+      [salesInvoices, completedSalesProfitRows, purchaseInvoices, payments] = await Promise.all([
         query(
           "SELECT id, totalAmount, dueDate, status, createdAt FROM invoices WHERE invoiceType = ? AND user_id = ?",
           ["sales", userId],
+        ),
+        query(
+          `SELECT COALESCE(SUM(s.totalAmount - IFNULL(costs.cost, 0)), 0) AS totalProfit
+           FROM sales s
+           LEFT JOIN (
+             SELECT si.sale_id, SUM(si.quantity * COALESCE(p.purchasePrice, p.Price, 0)) AS cost
+             FROM sale_items si
+             LEFT JOIN products p ON p.id = si.product AND p.user_id = si.user_id
+             WHERE si.user_id = ?
+             GROUP BY si.sale_id
+           ) costs ON costs.sale_id = s.id
+           WHERE s.user_id = ? AND LOWER(COALESCE(s.status, '')) = 'completed'`,
+          [userId, userId],
         ),
         query(
           "SELECT id, totalAmount, dueDate, status, createdAt FROM invoices WHERE invoiceType = ? AND user_id = ?",
@@ -74,6 +88,8 @@ const getDashboardSummary = async (req, res) => {
       const paid = paymentByInvoice[String(inv.id)] || 0;
       return sum + Math.max(inv.totalAmount - paid, 0);
     }, 0);
+
+    const totalProfit = Number(completedSalesProfitRows?.[0]?.totalProfit || 0);
 
     const todaysSales = salesInvoices
       .filter((inv) => {
@@ -156,6 +172,7 @@ const getDashboardSummary = async (req, res) => {
       success: true,
       summary: {
         totalReceivable,
+        totalProfit,
         totalPayable,
         todaysSales,
         todaysPurchases,

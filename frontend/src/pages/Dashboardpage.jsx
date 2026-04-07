@@ -9,6 +9,8 @@ import {
   Package,
   TrendingUp,
   TrendingDown,
+  Eye,
+  EyeOff,
   AlertCircle,
   Clock,
 } from "lucide-react";
@@ -20,6 +22,7 @@ function Dashboardpage() {
   const [overdueInvoices, setOverdueInvoices] = useState([]);
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showFinancialAmounts, setShowFinancialAmounts] = useState(false);
 
   const accentStyles = {
     emerald: {
@@ -113,19 +116,36 @@ function Dashboardpage() {
   return (
     <div className="min-h-[92vh] bg-gradient-to-br from-gray-50 to-gray-100 p-6">
       {/* Welcome Section */}
-      <div className="mb-6">
+      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         {/* <h1 className="text-3xl font-bold text-gray-800 mb-2">
           Welcome back, {user?.name || "User"}!
         </h1> */}
         <p className="text-gray-600">
           Here's what's happening with your business today.
         </p>
+        <button
+          type="button"
+          onClick={() => setShowFinancialAmounts((prev) => !prev)}
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition"
+        >
+          {showFinancialAmounts ? (
+            <>
+              <EyeOff className="h-4 w-4" />
+              Hide Amounts
+            </>
+          ) : (
+            <>
+              <Eye className="h-4 w-4" />
+              Show Amounts
+            </>
+          )}
+        </button>
       </div>
 
       {/* Financial Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
         {loading
-          ? Array.from({ length: 5 }).map((_, index) => (
+          ? Array.from({ length: 6 }).map((_, index) => (
               <div
                 key={index}
                 className="rounded-xl p-5 border-2 border-slate-100 bg-white shadow-sm animate-pulse"
@@ -138,6 +158,13 @@ function Dashboardpage() {
               </div>
             ))
           : [
+          {
+            label: "Profit",
+            value: summary?.totalProfit ?? 0,
+            bg: "bg-gradient-to-br from-violet-50 to-violet-100",
+            icon: <TrendingUp className="w-5 h-5 text-violet-600" />,
+            borderColor: "border-violet-200",
+          },
           {
             label: "Total Receivable",
             value: summary?.totalReceivable ?? 0,
@@ -167,7 +194,7 @@ function Dashboardpage() {
             borderColor: "border-amber-200",
           },
           {
-            label: "Cash / Bank Balance",
+            label: "Bank Balance",
             value: summary?.cashBankBalance ?? 0,
             bg: "bg-gradient-to-br from-teal-50 to-teal-100",
             icon: <DollarSign className="w-5 h-5 text-teal-600" />,
@@ -182,7 +209,11 @@ function Dashboardpage() {
               <div className="text-sm font-medium text-gray-600">{label}</div>
               {icon}
             </div>
-            <div className="text-2xl font-bold text-gray-900">
+            <div
+              className={`text-2xl font-bold text-gray-900 transition-all duration-300 ${
+                showFinancialAmounts ? "" : "blur-sm select-none"
+              }`}
+            >
               Rs {safeNumber(value).toLocaleString()}
             </div>
           </div>
@@ -269,12 +300,16 @@ function Dashboardpage() {
           <>
             <div className="rounded-xl p-5 border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-sm font-medium text-gray-600">
+              <div className="text-sm font-medium text-gray-600">
                   Today's Received Payments
                 </div>
                 <CreditCard className="w-5 h-5 text-emerald-600" />
               </div>
-              <div className="text-2xl font-bold text-emerald-700">
+              <div
+                className={`text-2xl font-bold text-emerald-700 transition-all duration-300 ${
+                  showFinancialAmounts ? "" : "blur-sm select-none"
+                }`}
+              >
                 Rs{" "}
                 {safeNumber(summary?.todaysReceivedPayments ?? 0).toLocaleString()}
               </div>
@@ -286,7 +321,11 @@ function Dashboardpage() {
                 </div>
                 <DollarSign className="w-5 h-5 text-rose-600" />
               </div>
-              <div className="text-2xl font-bold text-rose-700">
+              <div
+                className={`text-2xl font-bold text-rose-700 transition-all duration-300 ${
+                  showFinancialAmounts ? "" : "blur-sm select-none"
+                }`}
+              >
                 Rs {safeNumber(summary?.todaysPaidPayments ?? 0).toLocaleString()}
               </div>
             </div>
