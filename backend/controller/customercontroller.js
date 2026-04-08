@@ -426,10 +426,10 @@ module.exports.deleteCustomer = async (req, res) => {
 
 module.exports.searchCustomer = async (req, res) => {
   try {
-    const { query } = req.query;
+    const searchText = String(req.query.query || "").trim();
     const userId = req.user.userId;
 
-    if (!query || query.trim() === "") {
+    if (!searchText) {
       return res.status(400).json({
         success: false,
         message: "Query parameter is required",
@@ -440,7 +440,7 @@ module.exports.searchCustomer = async (req, res) => {
     try {
       customers = await query(
         "SELECT * FROM customers WHERE user_id = ? AND (name LIKE ? OR contact_phone LIKE ?) ORDER BY createdAt DESC",
-        [userId, `%${query}%`, `%${query}%`],
+        [userId, `%${searchText}%`, `%${searchText}%`],
       );
     } catch (err) {
       return res.status(500).json({

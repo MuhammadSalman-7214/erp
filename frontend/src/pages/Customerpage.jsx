@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { IoMdAdd, IoMdEye } from "react-icons/io";
 import { MdDelete, MdEdit } from "react-icons/md";
@@ -15,12 +15,11 @@ import {
   editCustomer,
   getAllCustomers,
   removeCustomer,
-  searchCustomer,
 } from "../features/customerSlice";
 
 function Customerpage({ readOnly = false }) {
   const dispatch = useDispatch();
-  const { getAllCustomer, searchData } = useSelector((state) => state.customer);
+  const { getAllCustomer } = useSelector((state) => state.customer);
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
   const navigate = useNavigate();
 
@@ -60,16 +59,6 @@ function Customerpage({ readOnly = false }) {
     dispatch(getAllCustomers());
     fetchCustomerBalances();
   }, [dispatch]);
-
-  useEffect(() => {
-    if (query.trim() !== "") {
-      const repeatTimeout = setTimeout(() => {
-        dispatch(searchCustomer(query));
-      }, 500);
-      return () => clearTimeout(repeatTimeout);
-    }
-    dispatch(getAllCustomers());
-  }, [query, dispatch]);
 
   const resetForm = () => {
     setName("");
@@ -184,7 +173,34 @@ function Customerpage({ readOnly = false }) {
     openForm(customer);
   };
 
-  const displayCustomers = query.trim() !== "" ? searchData : getAllCustomer;
+  const normalizeText = (value = "") => String(value).trim().toLowerCase();
+  const normalizePhone = (value = "") =>
+    String(value).replace(/[^\d+]/g, "");
+
+  const displayCustomers = useMemo(() => {
+    const customers = Array.isArray(getAllCustomer) ? getAllCustomer : [];
+    const normalizedQuery = normalizeText(query);
+    const normalizedPhoneQuery = normalizePhone(query);
+
+    if (!normalizedQuery && !normalizedPhoneQuery) {
+      return customers;
+    }
+
+    return customers.filter((customer) => {
+      const name = normalizeText(customer.name);
+      const phone = normalizePhone(
+        customer.contactInfo?.phone || customer.phone || "",
+      );
+      const code = normalizeText(customer.customerCode);
+
+      return (
+        name.includes(normalizedQuery) ||
+        code.includes(normalizedQuery) ||
+        (normalizedPhoneQuery && phone.includes(normalizedPhoneQuery))
+      );
+    });
+  }, [getAllCustomer, query]);
+
   const filteredCustomers = Array.isArray(displayCustomers)
     ? displayCustomers.filter((customer) => {
         if (amountFilter === "all") return true;
