@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { IoMdAdd } from "react-icons/io";
 import { jsPDF } from "jspdf";
@@ -8,7 +8,8 @@ import { Popconfirm } from "antd";
 import { MdDelete } from "react-icons/md";
 import axiosInstance from "../lib/axios";
 import FormattedTime from "../lib/FormattedTime";
-import { formatDateLabel } from "../lib/dateFormat";
+import DateSortHeader from "../Components/DateSortHeader";
+import { formatDateLabel, sortByDateValue } from "../lib/dateFormat";
 import NoData from "../Components/NoData";
 import { TrendingUp, CreditCard, AlertCircle, Clipboard } from "lucide-react";
 import { DetailSkeleton } from "../Components/LoadingSkeletons";
@@ -41,8 +42,40 @@ function CustomerDetailPage() {
   const [manualDescription, setManualDescription] = useState("");
   const [loading, setLoading] = useState(true);
   const [ledgerLoading, setLedgerLoading] = useState(true);
+  const [ledgerDateSort, setLedgerDateSort] = useState("desc");
+  const [salesDateSort, setSalesDateSort] = useState("desc");
+  const [legacyDateSort, setLegacyDateSort] = useState("desc");
 
   const currency = (value) => `Rs ${Number(value || 0).toLocaleString()}`;
+
+  const sortedLedger = useMemo(
+    () => sortByDateValue(ledger || [], (entry) => entry.date, ledgerDateSort),
+    [ledger, ledgerDateSort],
+  );
+
+  const sortedSales = useMemo(
+    () => sortByDateValue(sales || [], (sale) => sale.createdAt, salesDateSort),
+    [sales, salesDateSort],
+  );
+
+  const legacyEntries = useMemo(
+    () => [
+      {
+        id: "legacy",
+        date: customer?.updatedAt || customer?.createdAt,
+        type: "legacy balance",
+        description: customer?.openingBalanceNote || "Previous system amount",
+        amount: customer?.openingBalance || 0,
+      },
+    ],
+    [customer],
+  );
+
+  const sortedLegacyEntries = useMemo(
+    () =>
+      sortByDateValue(legacyEntries, (entry) => entry.date, legacyDateSort),
+    [legacyEntries, legacyDateSort],
+  );
 
   const fetchCustomerSales = async () => {
     try {
@@ -371,7 +404,15 @@ function CustomerDetailPage() {
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50 border-b text-left text-slate-500">
                     <tr>
-                      <th className="px-5 py-4 font-medium">Date</th>
+                      <DateSortHeader
+                        label="Date"
+                        direction={ledgerDateSort}
+                        onToggle={() =>
+                          setLedgerDateSort((prev) =>
+                            prev === "asc" ? "desc" : "asc",
+                          )
+                        }
+                      />
                       <th className="px-5 py-4 font-medium">Source</th>
                       <th className="px-5 py-4 font-medium">Reference</th>
                       <th className="px-5 py-4 font-medium">Credit</th>
@@ -380,7 +421,7 @@ function CustomerDetailPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {ledger.map((entry) => (
+                    {sortedLedger.map((entry) => (
                       <tr
                         key={entry.id}
                         className="border-b last:border-b-0 hover:bg-slate-50 transition"
@@ -440,7 +481,15 @@ function CustomerDetailPage() {
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50 border-b text-left text-slate-500">
                     <tr>
-                      <th className="px-5 py-4 font-medium">Date</th>
+                      <DateSortHeader
+                        label="Date"
+                        direction={salesDateSort}
+                        onToggle={() =>
+                          setSalesDateSort((prev) =>
+                            prev === "asc" ? "desc" : "asc",
+                          )
+                        }
+                      />
                       <th className="px-5 py-4 font-medium">Items</th>
                       <th className="px-5 py-4 font-medium">Qty</th>
                       <th className="px-5 py-4 font-medium">Carage</th>
@@ -450,7 +499,7 @@ function CustomerDetailPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {sales.map((sale) => {
+                    {sortedSales.map((sale) => {
                       const totalQty = (sale.products || []).reduce(
                         (acc, item) => acc + Number(item.quantity || 0),
                         0,
@@ -524,7 +573,15 @@ function CustomerDetailPage() {
               <table className="w-full text-sm">
                 <thead className="bg-slate-50 border-b text-left text-slate-500">
                   <tr>
-                    <th className="px-5 py-4 font-medium">Date</th>
+                    <DateSortHeader
+                      label="Date"
+                      direction={legacyDateSort}
+                      onToggle={() =>
+                        setLegacyDateSort((prev) =>
+                          prev === "asc" ? "desc" : "asc",
+                        )
+                      }
+                    />
                     <th className="px-5 py-4 font-medium">Type</th>
                     <th className="px-5 py-4 font-medium">Description</th>
                     <th className="px-5 py-4 font-medium">Amount</th>
@@ -534,66 +591,69 @@ function CustomerDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="border-b last:border-b-0 hover:bg-slate-50 transition">
-                    <td className="px-5 py-4 text-slate-600">
-                      <FormattedTime
-                        timestamp={customer?.updatedAt || customer?.createdAt}
-                      />
-                    </td>
-                    <td className="px-5 py-4 text-slate-700 capitalize">
-                      legacy balance
-                    </td>
-                    <td className="px-5 py-4 text-slate-600">
-                      {customer?.openingBalanceNote || "Previous system amount"}
-                    </td>
-                    <td className="px-5 py-4 font-semibold text-slate-800">
-                      {currency(customer?.openingBalance)}
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex justify-end">
-                        {Number(customer?.openingBalance || 0) !== 0 ? (
-                          <Popconfirm
-                            title={
-                              <div className="flex flex-col gap-1 max-w-xs">
-                                <span className="font-semibold text-red-600 text-sm">
-                                  Confirm Legacy Entry Deletion
-                                </span>
-                                <span className="text-xs text-gray-600 leading-snug">
-                                  This will permanently clear the imported
-                                  customer balance from the record.
-                                </span>
-                              </div>
-                            }
-                            okText="Yes, Delete"
-                            cancelText="Cancel"
-                            okButtonProps={{
-                              danger: true,
-                              className: "font-semibold",
-                            }}
-                            cancelButtonProps={{
-                              className: "font-medium",
-                            }}
-                            placement="topRight"
-                            onConfirm={deleteLegacyAmount}
-                          >
-                            <button
-                              type="button"
-                              className="inline-flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
-                              title="Delete legacy amount"
-                              aria-label="Delete legacy amount"
+                  {sortedLegacyEntries.map((entry) => (
+                    <tr
+                      key={entry.id}
+                      className="border-b last:border-b-0 hover:bg-slate-50 transition"
+                    >
+                      <td className="px-5 py-4 text-slate-600">
+                        <FormattedTime timestamp={entry.date} />
+                      </td>
+                      <td className="px-5 py-4 text-slate-700 capitalize">
+                        {entry.type}
+                      </td>
+                      <td className="px-5 py-4 text-slate-600">
+                        {entry.description}
+                      </td>
+                      <td className="px-5 py-4 font-semibold text-slate-800">
+                        {currency(entry.amount)}
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex justify-end">
+                          {Number(entry.amount || 0) !== 0 ? (
+                            <Popconfirm
+                              title={
+                                <div className="flex flex-col gap-1 max-w-xs">
+                                  <span className="font-semibold text-red-600 text-sm">
+                                    Confirm Legacy Entry Deletion
+                                  </span>
+                                  <span className="text-xs text-gray-600 leading-snug">
+                                    This will permanently clear the imported
+                                    customer balance from the record.
+                                  </span>
+                                </div>
+                              }
+                              okText="Yes, Delete"
+                              cancelText="Cancel"
+                              okButtonProps={{
+                                danger: true,
+                                className: "font-semibold",
+                              }}
+                              cancelButtonProps={{
+                                className: "font-medium",
+                              }}
+                              placement="topRight"
+                              onConfirm={deleteLegacyAmount}
                             >
-                              <MdDelete size={18} />
-                              Delete
-                            </button>
-                          </Popconfirm>
-                        ) : (
-                          <span className="text-xs text-slate-400">
-                            No legacy amount
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
+                              <button
+                                type="button"
+                                className="inline-flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
+                                title="Delete legacy amount"
+                                aria-label="Delete legacy amount"
+                              >
+                                <MdDelete size={18} />
+                                Delete
+                              </button>
+                            </Popconfirm>
+                          ) : (
+                            <span className="text-xs text-slate-400">
+                              No legacy amount
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>

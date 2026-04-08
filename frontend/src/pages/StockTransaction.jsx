@@ -14,6 +14,8 @@ import toast from "react-hot-toast";
 import { useRolePermissions } from "../hooks/useRolePermissions";
 import NoData from "../Components/NoData";
 import DrawerPanel from "../Components/DrawerPanel";
+import DateSortHeader from "../Components/DateSortHeader";
+import { sortByDateValue } from "../lib/dateFormat";
 
 function StockTransaction({ readOnly = false }) {
   const { getallStocks, isgetallStocks, iscreatedStocks, searchdata } =
@@ -32,6 +34,7 @@ function StockTransaction({ readOnly = false }) {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [transactionDateSort, setTransactionDateSort] = useState("desc");
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
 
   // Determine if page is in read-only mode (from props OR role)
@@ -101,6 +104,15 @@ function StockTransaction({ readOnly = false }) {
   };
 
   const displaystock = query.trim() !== "" ? searchdata : getallStocks;
+  const sortedStock = useMemo(
+    () =>
+      sortByDateValue(
+        displaystock || [],
+        (stock) => stock.transactionDate,
+        transactionDateSort,
+      ),
+    [displaystock, transactionDateSort],
+  );
   const getRowStyle = (type = "") => {
     const normalizedType = String(type).trim().toLowerCase();
     if (normalizedType === "stock-in") {
@@ -247,7 +259,13 @@ function StockTransaction({ readOnly = false }) {
             <thead className="bg-slate-50 border-b">
               <tr className="text-left text-slate-500">
                 <th className="px-5 py-4 font-medium">#</th>
-                <th className="px-5 py-4 font-medium">Date</th>
+                <DateSortHeader
+                  label="Date"
+                  direction={transactionDateSort}
+                  onToggle={() =>
+                    setTransactionDateSort((prev) => (prev === "asc" ? "desc" : "asc"))
+                  }
+                />
                 <th className="px-5 py-4 font-medium">Product</th>
                 <th className="px-5 py-4 font-medium">Product Code</th>
                 <th className="px-5 py-4 font-medium">Type</th>
@@ -257,7 +275,7 @@ function StockTransaction({ readOnly = false }) {
             </thead>
 
             <tbody>
-              {displaystock.map((stock, index) => (
+              {sortedStock.map((stock, index) => (
                 <tr
                   key={stock.id}
                   className={`border-b last:border-b-0 transition ${getRowStyle(

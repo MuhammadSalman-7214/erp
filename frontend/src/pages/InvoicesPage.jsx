@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import TopNavbar from "../Components/TopNavbar";
 import { IoMdAdd } from "react-icons/io";
 import { MdDelete, MdEdit, MdVisibility } from "react-icons/md";
@@ -8,7 +8,8 @@ import { useNavigate } from "react-router-dom";
 import NoData from "../Components/NoData";
 import { Popconfirm } from "antd";
 import { TableSkeleton } from "../Components/LoadingSkeletons";
-import { formatDateLabel } from "../lib/dateFormat";
+import DateSortHeader from "../Components/DateSortHeader";
+import { formatDateLabel, sortByDateValue } from "../lib/dateFormat";
 
 function InvoicesPage() {
   const [invoices, setInvoices] = useState([]);
@@ -16,6 +17,7 @@ function InvoicesPage() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [dueDateSort, setDueDateSort] = useState("desc");
 
   const fetchInvoices = async () => {
     setLoading(true);
@@ -69,6 +71,11 @@ function InvoicesPage() {
       (inv.status && inv.status.toLowerCase().includes(lower))
     );
   });
+
+  const sortedInvoices = useMemo(
+    () => sortByDateValue(displayInvoices, (inv) => inv.dueDate, dueDateSort),
+    [displayInvoices, dueDateSort],
+  );
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
       <div className="flex flex-col md:flex-row md:items-center gap-2">
@@ -119,13 +126,19 @@ function InvoicesPage() {
                   <th className="px-5 py-4 font-medium">Party</th>
                   <th className="px-5 py-4 font-medium">Amount</th>
                   <th className="px-5 py-4 font-medium">Status</th>
-                  <th className="px-5 py-4 font-medium">Due Date</th>
+                  <DateSortHeader
+                    label="Due Date"
+                    direction={dueDateSort}
+                    onToggle={() =>
+                      setDueDateSort((prev) => (prev === "asc" ? "desc" : "asc"))
+                    }
+                  />
                   <th className="px-5 py-4 font-medium text-right">Actions</th>
                 </tr>
               </thead>
 
               <tbody>
-                {displayInvoices.map((inv, index) => (
+                {sortedInvoices.map((inv, index) => (
                   <tr
                     key={inv.id}
                     className="border-b last:border-b-0 hover:bg-slate-50 transition"

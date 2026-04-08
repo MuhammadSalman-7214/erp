@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { IoMdAdd } from "react-icons/io";
 import FormattedTime from "../lib/FormattedTime";
 import TopNavbar from "../Components/TopNavbar";
@@ -15,6 +15,8 @@ import toast from "react-hot-toast";
 import NoData from "../Components/NoData";
 import { Popconfirm } from "antd";
 import DrawerPanel from "../Components/DrawerPanel";
+import DateSortHeader from "../Components/DateSortHeader";
+import { sortByDateValue } from "../lib/dateFormat";
 
 function Categorypage() {
   const { getallCategory, iscreatedCategory, searchdata } = useSelector(
@@ -22,6 +24,7 @@ function Categorypage() {
   );
   const dispatch = useDispatch();
   const [query, setquery] = useState("");
+  const [createdAtSort, setCreatedAtSort] = useState("desc");
 
   const [name, setname] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
@@ -102,6 +105,11 @@ function Categorypage() {
   };
 
   const displayCategory = query.trim() !== "" ? searchdata : getallCategory;
+  const sortedCategory = useMemo(
+    () =>
+      sortByDateValue(displayCategory || [], (category) => category.createdAt, createdAtSort),
+    [displayCategory, createdAtSort],
+  );
 
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
@@ -187,7 +195,13 @@ function Categorypage() {
                     <th className="px-5 py-4 font-medium">#</th>
                     <th className="px-5 py-4 font-medium">Name</th>
                     <th className="px-5 py-4 font-medium">Total Products</th>
-                    <th className="px-5 py-4 font-medium">Created At</th>
+                    <DateSortHeader
+                      label="Created At"
+                      direction={createdAtSort}
+                      onToggle={() =>
+                        setCreatedAtSort((prev) => (prev === "asc" ? "desc" : "asc"))
+                      }
+                    />
                     <th className="px-5 py-4 font-medium text-right">
                       Actions
                     </th>
@@ -195,7 +209,7 @@ function Categorypage() {
                 </thead>
 
                 <tbody>
-                  {displayCategory.map((Category, index) => (
+                  {sortedCategory.map((Category, index) => (
                     <tr
                       key={Category.id}
                       className="border-b last:border-b-0 hover:bg-slate-50 transition"

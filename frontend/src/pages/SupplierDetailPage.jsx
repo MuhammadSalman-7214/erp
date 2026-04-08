@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { IoMdAdd } from "react-icons/io";
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
 import axiosInstance from "../lib/axios";
 import FormattedTime from "../lib/FormattedTime";
-import { formatDateLabel } from "../lib/dateFormat";
+import DateSortHeader from "../Components/DateSortHeader";
+import { formatDateLabel, sortByDateValue } from "../lib/dateFormat";
 import NoData from "../Components/NoData";
 import { TrendingUp, CreditCard, AlertCircle, Clipboard } from "lucide-react";
 import { DetailSkeleton } from "../Components/LoadingSkeletons";
@@ -39,6 +40,8 @@ function SupplierDetailPage() {
   const [manualDescription, setManualDescription] = useState("");
   const [loading, setLoading] = useState(true);
   const [ledgerLoading, setLedgerLoading] = useState(true);
+  const [ledgerDateSort, setLedgerDateSort] = useState("desc");
+  const [ordersDateSort, setOrdersDateSort] = useState("desc");
 
   useEffect(() => {
     const fetchVendorOrders = async () => {
@@ -111,6 +114,17 @@ function SupplierDetailPage() {
       setLedgerLoading(false);
     }
   };
+
+  const sortedLedger = useMemo(
+    () => sortByDateValue(ledger || [], (entry) => entry.date, ledgerDateSort),
+    [ledger, ledgerDateSort],
+  );
+
+  const sortedOrders = useMemo(
+    () =>
+      sortByDateValue(orders || [], (order) => order.createdAt, ordersDateSort),
+    [orders, ordersDateSort],
+  );
 
   const openManualEntry = () => {
     setManualAmount("");
@@ -377,9 +391,17 @@ function SupplierDetailPage() {
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-slate-50 border-b text-left text-slate-500">
-                    <tr>
-                      <th className="px-5 py-4 font-medium">Date</th>
+                <thead className="bg-slate-50 border-b text-left text-slate-500">
+                  <tr>
+                      <DateSortHeader
+                        label="Date"
+                        direction={ledgerDateSort}
+                        onToggle={() =>
+                          setLedgerDateSort((prev) =>
+                            prev === "asc" ? "desc" : "asc",
+                          )
+                        }
+                      />
                       <th className="px-5 py-4 font-medium">Source</th>
                       <th className="px-5 py-4 font-medium">Reference</th>
                       <th className="px-5 py-4 font-medium">Debit</th>
@@ -388,7 +410,7 @@ function SupplierDetailPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {ledger.map((entry) => (
+                    {sortedLedger.map((entry) => (
                       <tr
                         key={entry.id}
                         className="border-b last:border-b-0 hover:bg-slate-50 transition"
@@ -444,7 +466,15 @@ function SupplierDetailPage() {
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50 border-b text-left text-slate-500">
                     <tr>
-                      <th className="px-5 py-4 font-medium">Date</th>
+                      <DateSortHeader
+                        label="Date"
+                        direction={ordersDateSort}
+                        onToggle={() =>
+                          setOrdersDateSort((prev) =>
+                            prev === "asc" ? "desc" : "asc",
+                          )
+                        }
+                      />
                       <th className="px-5 py-4 font-medium">Items</th>
                       <th className="px-5 py-4 font-medium">Qty</th>
                       <th className="px-5 py-4 font-medium">Total</th>
@@ -453,7 +483,7 @@ function SupplierDetailPage() {
                   </thead>
 
                   <tbody>
-                    {orders.map((order) => {
+                    {sortedOrders.map((order) => {
                       const products = order.products?.length
                         ? order.products.map((p) => p.name).join(", ")
                         : "No items";

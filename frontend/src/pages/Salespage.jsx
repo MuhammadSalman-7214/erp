@@ -28,6 +28,8 @@ import {
 import DrawerPanel from "../Components/DrawerPanel";
 import useKeyboardDropdown from "../hooks/useKeyboardDropdown";
 import { formatDateLabel, formatDateTimeLabel } from "../lib/dateFormat";
+import DateSortHeader from "../Components/DateSortHeader";
+import { sortByDateValue } from "../lib/dateFormat";
 
 const sanitizeFileName = (value) =>
   String(value || "invoice")
@@ -93,6 +95,7 @@ function Salespage() {
   const [Status, setStatus] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
+  const [saleDateSort, setSaleDateSort] = useState("desc");
   const [codeQuery, setCodeQuery] = useState("");
   const [debouncedCodeQuery, setDebouncedCodeQuery] = useState("");
   const [showCodeOptions, setShowCodeOptions] = useState(false);
@@ -1109,6 +1112,11 @@ function Salespage() {
   };
 
   const displaySales = query.trim() !== "" ? searchdata : getallsales;
+  const sortedSales = useMemo(
+    () =>
+      sortByDateValue(displaySales || [], (sale) => sale.createdAt, saleDateSort),
+    [displaySales, saleDateSort],
+  );
 
   const customers = Array.isArray(getAllCustomer) ? getAllCustomer : [];
   const selectedCustomer = customers.find(
@@ -2458,14 +2466,20 @@ function Salespage() {
                   <th className="px-5 py-4 font-medium">Carage</th>
                   <th className="px-5 py-4 font-medium">Total Amount</th>
                   <th className="px-5 py-4 font-medium">Status</th>
-                  <th className="px-5 py-4 font-medium">Date</th>
+                  <DateSortHeader
+                    label="Date"
+                    direction={saleDateSort}
+                    onToggle={() =>
+                      setSaleDateSort((prev) => (prev === "asc" ? "desc" : "asc"))
+                    }
+                  />
                   <th className="px-5 py-4 font-medium">Payment</th>
                   <th className="px-5 py-4 font-medium">Payment Status</th>
                   <th className="px-5 py-4 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {displaySales.map((sale, index) => (
+                {sortedSales.map((sale, index) => (
                   <tr
                     key={getId(sale)}
                     className="border-b last:border-b-0 hover:bg-slate-50 transition"

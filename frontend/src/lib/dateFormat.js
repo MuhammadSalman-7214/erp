@@ -33,6 +33,11 @@ export const toDateObject = (value) => {
   return isValid(fallback) ? fallback : null;
 };
 
+export const getDateTimestamp = (value) => {
+  const date = toDateObject(value);
+  return date ? date.getTime() : 0;
+};
+
 export const formatDateLabel = (value, fallback = "-") => {
   const date = toDateObject(value);
   return date ? format(date, DATE_FORMAT) : fallback;
@@ -46,4 +51,22 @@ export const formatDateTimeLabel = (value, fallback = "-") => {
 export const formatInputDateValue = (value) => {
   const date = toDateObject(value);
   return date ? format(date, "yyyy-MM-dd") : "";
+};
+
+export const sortByDateValue = (items = [], accessor, direction = "desc") => {
+  const multiplier = direction === "asc" ? 1 : -1;
+  return [...items].sort((a, b) => {
+    const aTime = getDateTimestamp(
+      typeof accessor === "function" ? accessor(a) : a?.[accessor],
+    );
+    const bTime = getDateTimestamp(
+      typeof accessor === "function" ? accessor(b) : b?.[accessor],
+    );
+
+    if (aTime !== bTime) {
+      return (aTime - bTime) * multiplier;
+    }
+
+    return 0;
+  });
 };

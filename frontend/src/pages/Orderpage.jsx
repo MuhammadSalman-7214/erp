@@ -19,6 +19,8 @@ import { gettingallSupplier } from "../features/SupplierSlice";
 import useKeyboardDropdown from "../hooks/useKeyboardDropdown";
 import { TableSkeleton } from "../Components/LoadingSkeletons";
 import DrawerPanel from "../Components/DrawerPanel";
+import DateSortHeader from "../Components/DateSortHeader";
+import { sortByDateValue } from "../lib/dateFormat";
 
 function Orderpage() {
   const getId = (value) => value?.id ?? value?.id ?? value;
@@ -50,6 +52,7 @@ function Orderpage() {
   const [debouncedCodeQuery, setDebouncedCodeQuery] = useState("");
   const [showCodeOptions, setShowCodeOptions] = useState(false);
   const [cartItems, setCartItems] = useState([]);
+  const [timestampSort, setTimestampSort] = useState("desc");
   const getStatusBadge = (status) => {
     const mapping = {
       pending: "bg-yellow-50 text-yellow-700",
@@ -363,6 +366,11 @@ function Orderpage() {
   };
 
   const displayOrder = query.trim() !== "" ? searchdata : getorder;
+  const sortedOrder = useMemo(
+    () =>
+      sortByDateValue(displayOrder || [], (order) => order.createdAt, timestampSort),
+    [displayOrder, timestampSort],
+  );
   const isTableLoading = isgetorder || (query.trim() !== "" && issearchdata);
 
   return (
@@ -559,13 +567,19 @@ function Orderpage() {
                 <th className="px-5 py-4 font-medium">Products</th>
                 <th className="px-5 py-4 font-medium">Total Amount</th>
                 <th className="px-5 py-4 font-medium">Status</th>
-                <th className="px-5 py-4 font-medium">Timestamp</th>
+                <DateSortHeader
+                  label="Timestamp"
+                  direction={timestampSort}
+                  onToggle={() =>
+                    setTimestampSort((prev) => (prev === "asc" ? "desc" : "asc"))
+                  }
+                />
                 <th className="px-5 py-4 font-medium">Actions</th>
               </tr>
             </thead>
 
             <tbody>
-              {displayOrder.map((order, index) => (
+              {sortedOrder.map((order, index) => (
                 <tr
                   key={getId(order) || index}
                   className="border-b last:border-b-0 hover:bg-slate-50 transition"

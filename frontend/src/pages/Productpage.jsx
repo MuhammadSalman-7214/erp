@@ -27,6 +27,8 @@ import NoData from "../Components/NoData";
 import { Popconfirm } from "antd";
 import { TableSkeleton } from "../Components/LoadingSkeletons";
 import DrawerPanel from "../Components/DrawerPanel";
+import DateSortHeader from "../Components/DateSortHeader";
+import { sortByDateValue } from "../lib/dateFormat";
 
 const emptyCode = {
   code: "",
@@ -66,6 +68,7 @@ function Productpage({ readOnly = false }) {
   const [codeProductId, setCodeProductId] = useState(null);
   const [codeForm, setCodeForm] = useState({ ...emptyCode });
   const [codeEdits, setCodeEdits] = useState({});
+  const [createdAtSort, setCreatedAtSort] = useState("desc");
 
   useEffect(() => {
     dispatch(gettingallproducts());
@@ -309,6 +312,16 @@ function Productpage({ readOnly = false }) {
     return codeRows.length ? codeRows : displayRows;
   }, [displayRows, productCodeQuery]);
 
+  const sortedRows = useMemo(
+    () =>
+      sortByDateValue(
+        filteredRows || [],
+        (row) => row.product?.createdAt,
+        createdAtSort,
+      ),
+    [filteredRows, createdAtSort],
+  );
+
   const codeProduct = useMemo(
     () =>
       getallproduct.find((product) => getId(product) === codeProductId) || null,
@@ -440,7 +453,13 @@ function Productpage({ readOnly = false }) {
                     <th className="px-5 py-4 font-medium">Sale Price</th>
                     <th className="px-5 py-4 font-medium">Category</th>
                     <th className="px-5 py-4 font-medium">Qty</th>
-                    <th className="px-5 py-4 font-medium">Date</th>
+                    <DateSortHeader
+                      label="Date"
+                      direction={createdAtSort}
+                      onToggle={() =>
+                        setCreatedAtSort((prev) => (prev === "asc" ? "desc" : "asc"))
+                      }
+                    />
                     {!isReadOnlyMode && (
                       <th className="px-5 py-4 font-medium">Actions</th>
                     )}
@@ -448,7 +467,7 @@ function Productpage({ readOnly = false }) {
                 </thead>
 
                 <tbody>
-                  {filteredRows.map((row, index) => {
+                  {sortedRows.map((row, index) => {
                     const product = row.product;
                     const code = row.code;
                     const codeCount = Array.isArray(product.productCodes)

@@ -3,25 +3,13 @@ import axiosInstance from "../lib/axios";
 import toast from "react-hot-toast";
 import NoData from "../Components/NoData";
 import useKeyboardDropdown from "../hooks/useKeyboardDropdown";
-import { formatDateLabel } from "../lib/dateFormat";
+import DateSortHeader from "../Components/DateSortHeader";
+import { formatDateLabel, sortByDateValue } from "../lib/dateFormat";
 
 const getLocalDateInputValue = (date = new Date()) => {
   const offsetMinutes = date.getTimezoneOffset();
   const localDate = new Date(date.getTime() - offsetMinutes * 60 * 1000);
   return localDate.toISOString().slice(0, 10);
-};
-
-const parseDateValue = (value) => {
-  if (!value) return 0;
-  const dateString = String(value);
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-    const [year, month, day] = dateString.split("-").map(Number);
-    return new Date(year, month - 1, day).getTime();
-  }
-
-  const time = new Date(dateString).getTime();
-  return Number.isNaN(time) ? 0 : time;
 };
 
 const normalizeString = (value) =>
@@ -70,6 +58,7 @@ function PaymentsPage() {
   const [vendorQuery, setVendorQuery] = useState("");
   const [showCustomerOptions, setShowCustomerOptions] = useState(false);
   const [showVendorOptions, setShowVendorOptions] = useState(false);
+  const [paymentDateSort, setPaymentDateSort] = useState("desc");
 
   const getId = (value) => value?.id ?? value?.id ?? value;
 
@@ -244,23 +233,12 @@ function PaymentsPage() {
   };
 
   const sortedPayments = useMemo(() => {
-    return [...payments].sort((a, b) => {
-      const aTime = parseDateValue(a.paidAt || a.createdAt);
-      const bTime = parseDateValue(b.paidAt || b.createdAt);
-
-      if (aTime !== bTime) {
-        return aTime - bTime;
-      }
-
-      const aCreated = parseDateValue(a.createdAt);
-      const bCreated = parseDateValue(b.createdAt);
-      if (aCreated !== bCreated) {
-        return aCreated - bCreated;
-      }
-
-      return String(a.id ?? "").localeCompare(String(b.id ?? ""));
-    });
-  }, [payments]);
+    return sortByDateValue(
+      payments || [],
+      (payment) => payment.paidAt || payment.createdAt,
+      paymentDateSort,
+    );
+  }, [payments, paymentDateSort]);
 
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
@@ -457,7 +435,15 @@ function PaymentsPage() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b">
                 <tr className="text-left text-slate-500">
-                  <th className="px-4 py-3 font-medium">Date</th>
+                  <DateSortHeader
+                    label="Date"
+                    direction={paymentDateSort}
+                    onToggle={() =>
+                      setPaymentDateSort((prev) =>
+                        prev === "asc" ? "desc" : "asc",
+                      )
+                    }
+                  />
                   <th className="px-4 py-3 font-medium">Type</th>
                   <th className="px-4 py-3 font-medium">Amount</th>
                   <th className="px-4 py-3 font-medium">Description</th>

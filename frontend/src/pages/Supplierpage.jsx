@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import TopNavbar from "../Components/TopNavbar";
 import { IoMdAdd, IoMdEye } from "react-icons/io";
@@ -21,6 +21,8 @@ import NoData from "../Components/NoData";
 import { Popconfirm } from "antd";
 import axiosInstance from "../lib/axios";
 import DrawerPanel from "../Components/DrawerPanel";
+import DateSortHeader from "../Components/DateSortHeader";
+import { sortByDateValue } from "../lib/dateFormat";
 
 function Supplierpage({ readOnly = false }) {
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
@@ -48,6 +50,7 @@ function Supplierpage({ readOnly = false }) {
   const [selectedSupplier, setSelectedSupplier] = useState(null);
   const [product, setProduct] = useState("");
   const [vendorBalances, setVendorBalances] = useState({});
+  const [createdAtSort, setCreatedAtSort] = useState("desc");
 
   const getId = (value) => value?.id ?? value?.id ?? value;
 
@@ -223,6 +226,15 @@ function Supplierpage({ readOnly = false }) {
   };
 
   const displaySuppliers = query.trim() !== "" ? searchdata : getallSupplier;
+  const sortedSuppliers = useMemo(
+    () =>
+      sortByDateValue(
+        displaySuppliers || [],
+        (supplier) => supplier.createdAt,
+        createdAtSort,
+      ),
+    [displaySuppliers, createdAtSort],
+  );
   const currency = (value) => `Rs ${Number(value || 0).toLocaleString()}`;
   const summaryTotals = Array.isArray(getallSupplier)
     ? getallSupplier.reduce(
@@ -445,13 +457,19 @@ function Supplierpage({ readOnly = false }) {
                     <th className="px-5 py-4 font-medium">Paid</th>
                     <th className="px-5 py-4 font-medium">Remaining</th>
                     {/* <th className="px-5 py-4 font-medium">Terms</th> */}
-                    <th className="px-5 py-4 font-medium">Date</th>
+                    <DateSortHeader
+                      label="Date"
+                      direction={createdAtSort}
+                      onToggle={() =>
+                        setCreatedAtSort((prev) => (prev === "asc" ? "desc" : "asc"))
+                      }
+                    />
                     <th className="px-5 py-4 font-medium">Actions</th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  {displaySuppliers.map((supplier, index) => {
+                  {sortedSuppliers.map((supplier, index) => {
                     const vendorSummary =
                       vendorBalances[String(getId(supplier))] || {};
                     return (
