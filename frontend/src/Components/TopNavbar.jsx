@@ -1,6 +1,7 @@
 import { useSelector } from "react-redux";
 import image from "../images/user.png";
 import { Link } from "react-router-dom";
+import { formatDateLabel } from "../lib/dateFormat";
 
 function TopNavbar() {
   const { user } = useSelector((state) => state.auth);
@@ -13,12 +14,7 @@ function TopNavbar() {
           Welcome back, {user?.name || "Guest"}
         </h1>
         <p className="text-sm text-gray-500">
-          {new Date().toLocaleDateString("en-GB", {
-            weekday: "long",
-            day: "2-digit",
-            month: "long",
-            year: "numeric",
-          })}
+          {formatDateLabel(new Date())}
         </p>
       </div>
 

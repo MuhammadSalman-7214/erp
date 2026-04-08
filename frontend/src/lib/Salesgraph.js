@@ -12,6 +12,7 @@ import {
 } from "chart.js";
 import { useDispatch, useSelector } from "react-redux";
 import { gettingallSales } from "../features/salesSlice";
+import { formatDateLabel } from "./dateFormat";
 
 ChartJS.register(
   CategoryScale,
@@ -44,7 +45,7 @@ const SalesChart = () => {
         String(status).trim().toLowerCase();
       // Extract labels (dates) and datasets from sales data
       const labels = getallsales.map((sale) =>
-        new Date(sale.createdAt).toLocaleDateString(),
+        formatDateLabel(sale.createdAt),
       );
       const totalSales = getallsales.map((sale) => sale.totalAmount);
       const paymentStatuses = getallsales.map((sale) =>

@@ -11,6 +11,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import { formatDateLabel } from "./dateFormat";
 
 ChartJS.register(
   LineElement,
@@ -36,7 +37,7 @@ const StockTransactionGraph = () => {
         );
 
         const labels = transactions.map((tx) =>
-          new Date(tx.transactionDate).toLocaleDateString(),
+          formatDateLabel(tx.transactionDate),
         );
         const stockInQuantities = transactions.map((tx) =>
           tx.type === "Stock-in" ? tx.quantity : 0,

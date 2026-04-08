@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import NoData from "../Components/NoData";
 import { Popconfirm } from "antd";
 import { TableSkeleton } from "../Components/LoadingSkeletons";
+import { formatDateLabel } from "../lib/dateFormat";
 
 function InvoicesPage() {
   const [invoices, setInvoices] = useState([]);
@@ -163,7 +164,7 @@ function InvoicesPage() {
                     </td>
 
                     <td className="px-5 py-4 text-slate-600">
-                      {new Date(inv.dueDate).toLocaleDateString()}
+                      {formatDateLabel(inv.dueDate)}
                     </td>
 
                     <td className="px-5 py-4">

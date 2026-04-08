@@ -3,6 +3,7 @@ import axiosInstance from "../lib/axios";
 import toast from "react-hot-toast";
 import NoData from "../Components/NoData";
 import useKeyboardDropdown from "../hooks/useKeyboardDropdown";
+import { formatDateLabel } from "../lib/dateFormat";
 
 const getLocalDateInputValue = (date = new Date()) => {
   const offsetMinutes = date.getTimezoneOffset();
@@ -21,13 +22,6 @@ const parseDateValue = (value) => {
 
   const time = new Date(dateString).getTime();
   return Number.isNaN(time) ? 0 : time;
-};
-
-const formatDateLabel = (value) => {
-  if (!value) return "-";
-  const time = parseDateValue(value);
-  if (!time) return "-";
-  return new Date(time).toLocaleDateString();
 };
 
 const normalizeString = (value) =>
@@ -79,8 +73,6 @@ function PaymentsPage() {
 
   const getId = (value) => value?.id ?? value?.id ?? value;
 
-  const normalize = normalizeString;
-
   const fetchPayments = async () => {
     try {
       const res = await axiosInstance.get("/payment");
@@ -125,13 +117,13 @@ function PaymentsPage() {
 
   const filteredCustomers = useMemo(() => {
     const uniqueCustomers = dedupeOptions(customers, "customer");
-    const query = normalize(customerQuery);
+    const query = normalizeString(customerQuery);
     if (!query) return uniqueCustomers;
 
     return uniqueCustomers.filter((customer) => {
-      const name = normalize(customer.name);
-      const code = normalize(customer.customerCode);
-      const phone = normalize(customer.contactInfo?.phone);
+      const name = normalizeString(customer.name);
+      const code = normalizeString(customer.customerCode);
+      const phone = normalizeString(customer.contactInfo?.phone);
       return (
         name.includes(query) || code.includes(query) || phone.includes(query)
       );
@@ -140,13 +132,13 @@ function PaymentsPage() {
 
   const filteredVendors = useMemo(() => {
     const uniqueVendors = dedupeOptions(vendors, "vendor");
-    const query = normalize(vendorQuery);
+    const query = normalizeString(vendorQuery);
     if (!query) return uniqueVendors;
 
     return uniqueVendors.filter((vendor) => {
-      const name = normalize(vendor.name);
-      const code = normalize(vendor.vendorCode);
-      const phone = normalize(vendor.contactInfo?.phone);
+      const name = normalizeString(vendor.name);
+      const code = normalizeString(vendor.vendorCode);
+      const phone = normalizeString(vendor.contactInfo?.phone);
       return (
         name.includes(query) || code.includes(query) || phone.includes(query)
       );

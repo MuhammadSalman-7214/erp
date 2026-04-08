@@ -27,17 +27,12 @@ import {
 } from "../lib/invoicePrintTemplate";
 import DrawerPanel from "../Components/DrawerPanel";
 import useKeyboardDropdown from "../hooks/useKeyboardDropdown";
+import { formatDateLabel, formatDateTimeLabel } from "../lib/dateFormat";
 
 const sanitizeFileName = (value) =>
   String(value || "invoice")
     .replace(/[^a-z0-9-_]+/gi, "_")
     .replace(/^_+|_+$/g, "") || "invoice";
-
-const formatDateLabel = (value) => {
-  if (!value) return "-";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "-" : date.toLocaleDateString();
-};
 
 const splitLongText = (doc, text, width) =>
   doc.splitTextToSize(String(text || "-"), width);
@@ -2229,9 +2224,7 @@ function Salespage() {
                     <div className="text-sm text-slate-600 space-y-1">
                       <div>
                         <span className="font-semibold">Date:</span>{" "}
-                        {billSale.createdAt
-                          ? new Date(billSale.createdAt).toLocaleString()
-                          : new Date().toLocaleString()}
+                        {formatDateTimeLabel(billSale.createdAt || new Date())}
                       </div>
                       <div>
                         <span className="font-semibold">Status:</span>{" "}

@@ -5,6 +5,7 @@ import { autoTable } from "jspdf-autotable";
 import axiosInstance from "../lib/axios";
 import { toast } from "react-hot-toast";
 import { formatCurrency } from "../lib/formatNumber";
+import { formatDateLabel } from "../lib/dateFormat";
 import {
   buildInvoicePrintHtml,
   combineInvoicePagesHtml,
@@ -15,12 +16,6 @@ const sanitizeFileName = (value) =>
   String(value || "invoice")
     .replace(/[^a-z0-9-_]+/gi, "_")
     .replace(/^_+|_+$/g, "") || "invoice";
-
-const formatDateLabel = (value) => {
-  if (!value) return "-";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "-" : date.toLocaleDateString();
-};
 
 const splitLongText = (doc, text, width) =>
   doc.splitTextToSize(String(text || "-"), width);

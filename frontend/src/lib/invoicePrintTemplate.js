@@ -1,3 +1,5 @@
+import { formatDateLabel } from "./dateFormat";
+
 const THEME_COLOR = "#0f766e";
 const THEME_DARK = "#134e4a";
 const TEXT_DARK = "#0f172a";
@@ -206,13 +208,13 @@ export const buildInvoicePrintHtml = ({
             </div>
             <div class="meta-row">
               <span>${escapeHtml(issueLabel)}</span>
-              <span>${escapeHtml(issueDate ? new Date(issueDate).toLocaleDateString() : "-")}</span>
+              <span>${escapeHtml(formatDateLabel(issueDate))}</span>
             </div>
             ${
               dueDate
                 ? `<div class="meta-row">
                     <span>${escapeHtml(dueLabel)}</span>
-                    <span>${escapeHtml(new Date(dueDate).toLocaleDateString())}</span>
+                    <span>${escapeHtml(formatDateLabel(dueDate))}</span>
                   </div>`
                 : ""
             }

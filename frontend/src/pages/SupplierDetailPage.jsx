@@ -5,6 +5,7 @@ import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
 import axiosInstance from "../lib/axios";
 import FormattedTime from "../lib/FormattedTime";
+import { formatDateLabel } from "../lib/dateFormat";
 import NoData from "../Components/NoData";
 import { TrendingUp, CreditCard, AlertCircle, Clipboard } from "lucide-react";
 import { DetailSkeleton } from "../Components/LoadingSkeletons";
@@ -14,12 +15,6 @@ const sanitizeFileName = (value) =>
   String(value || "vendor_ledger")
     .replace(/[^a-z0-9-_]+/gi, "_")
     .replace(/^_+|_+$/g, "") || "vendor_ledger";
-
-const formatDateLabel = (value) => {
-  if (!value) return "-";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "-" : date.toLocaleDateString();
-};
 
 function SupplierDetailPage() {
   const { id } = useParams();
@@ -474,7 +469,7 @@ function SupplierDetailPage() {
                           className="border-b hover:bg-slate-50"
                         >
                           <td className="px-5 py-4">
-                            {new Date(order.createdAt).toLocaleDateString()}
+                            {formatDateLabel(order.createdAt)}
                           </td>
 
                           <td className="px-5 py-4">{products}</td>

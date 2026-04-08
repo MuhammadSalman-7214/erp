@@ -8,6 +8,7 @@ import { Popconfirm } from "antd";
 import { MdDelete } from "react-icons/md";
 import axiosInstance from "../lib/axios";
 import FormattedTime from "../lib/FormattedTime";
+import { formatDateLabel } from "../lib/dateFormat";
 import NoData from "../Components/NoData";
 import { TrendingUp, CreditCard, AlertCircle, Clipboard } from "lucide-react";
 import { DetailSkeleton } from "../Components/LoadingSkeletons";
@@ -17,12 +18,6 @@ const sanitizeFileName = (value) =>
   String(value || "customer_ledger")
     .replace(/[^a-z0-9-_]+/gi, "_")
     .replace(/^_+|_+$/g, "") || "customer_ledger";
-
-const formatDateLabel = (value) => {
-  if (!value) return "-";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "-" : date.toLocaleDateString();
-};
 
 function CustomerDetailPage() {
   const { id } = useParams();

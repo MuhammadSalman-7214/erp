@@ -14,6 +14,7 @@ import {
   AlertCircle,
   Clock,
 } from "lucide-react";
+import { formatDateLabel } from "../lib/dateFormat";
 
 function Dashboardpage() {
   const navigate = useNavigate();
@@ -413,7 +414,7 @@ function Dashboardpage() {
                     {inv.invoiceNumber}
                   </span>
                   <span className="text-sm font-semibold text-red-600">
-                    {new Date(inv.dueDate).toLocaleDateString()}
+                    {formatDateLabel(inv.dueDate)}
                   </span>
                 </li>
               ))}

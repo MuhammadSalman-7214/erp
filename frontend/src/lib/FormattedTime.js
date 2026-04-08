@@ -1,14 +1,8 @@
-import React from 'react';
-import { format } from 'date-fns';
-
+import React from "react";
+import { formatDateLabel } from "./dateFormat";
 
 const FormattedTime = ({ timestamp }) => {
-  if (!timestamp) return null;
-
-  const formattedTime = format(new Date(timestamp), 'yyyy, MMMM dd');
-
-
-  return <span>{formattedTime}</span>;
+  return <span>{formatDateLabel(timestamp)}</span>;
 };
 
 export default FormattedTime;
