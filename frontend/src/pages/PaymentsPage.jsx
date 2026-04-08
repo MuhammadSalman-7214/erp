@@ -4,6 +4,62 @@ import toast from "react-hot-toast";
 import NoData from "../Components/NoData";
 import useKeyboardDropdown from "../hooks/useKeyboardDropdown";
 
+const getLocalDateInputValue = (date = new Date()) => {
+  const offsetMinutes = date.getTimezoneOffset();
+  const localDate = new Date(date.getTime() - offsetMinutes * 60 * 1000);
+  return localDate.toISOString().slice(0, 10);
+};
+
+const parseDateValue = (value) => {
+  if (!value) return 0;
+  const dateString = String(value);
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    const [year, month, day] = dateString.split("-").map(Number);
+    return new Date(year, month - 1, day).getTime();
+  }
+
+  const time = new Date(dateString).getTime();
+  return Number.isNaN(time) ? 0 : time;
+};
+
+const formatDateLabel = (value) => {
+  if (!value) return "-";
+  const time = parseDateValue(value);
+  if (!time) return "-";
+  return new Date(time).toLocaleDateString();
+};
+
+const normalizeString = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .trim();
+
+const getPartyOptionKey = (item, kind) => {
+  const name = normalizeString(item?.name);
+  const code = normalizeString(
+    kind === "customer" ? item?.customerCode : item?.vendorCode,
+  );
+  const phone = normalizeString(item?.contactInfo?.phone);
+
+  if (name || code || phone) {
+    return `${kind}:${name}|${code}|${phone}`;
+  }
+
+  const id = String(item?.id || "").trim();
+  return id ? `${kind}:${id}` : `${kind}:unknown`;
+};
+
+const dedupeOptions = (items = [], kind) => {
+  const seen = new Set();
+  return items.filter((item) => {
+    const key = getPartyOptionKey(item, kind);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
 function PaymentsPage() {
   const [payments, setPayments] = useState([]);
   const [vendors, setVendors] = useState([]);
@@ -12,6 +68,7 @@ function PaymentsPage() {
   const [partyType, setPartyType] = useState("customer");
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("cash");
+  const [paidAt, setPaidAt] = useState(() => getLocalDateInputValue());
   const [description, setDescription] = useState("");
   const [customerId, setCustomerId] = useState("");
   const [vendorId, setVendorId] = useState("");
@@ -22,7 +79,7 @@ function PaymentsPage() {
 
   const getId = (value) => value?.id ?? value?.id ?? value;
 
-  const normalize = (value) => String(value || "").toLowerCase().trim();
+  const normalize = normalizeString;
 
   const fetchPayments = async () => {
     try {
@@ -67,10 +124,11 @@ function PaymentsPage() {
   }, [type]);
 
   const filteredCustomers = useMemo(() => {
+    const uniqueCustomers = dedupeOptions(customers, "customer");
     const query = normalize(customerQuery);
-    if (!query) return customers;
+    if (!query) return uniqueCustomers;
 
-    return customers.filter((customer) => {
+    return uniqueCustomers.filter((customer) => {
       const name = normalize(customer.name);
       const code = normalize(customer.customerCode);
       const phone = normalize(customer.contactInfo?.phone);
@@ -81,10 +139,11 @@ function PaymentsPage() {
   }, [customers, customerQuery]);
 
   const filteredVendors = useMemo(() => {
+    const uniqueVendors = dedupeOptions(vendors, "vendor");
     const query = normalize(vendorQuery);
-    if (!query) return vendors;
+    if (!query) return uniqueVendors;
 
-    return vendors.filter((vendor) => {
+    return uniqueVendors.filter((vendor) => {
       const name = normalize(vendor.name);
       const code = normalize(vendor.vendorCode);
       const phone = normalize(vendor.contactInfo?.phone);
@@ -152,6 +211,7 @@ function PaymentsPage() {
       amount: Number(amount),
       method,
       partyType,
+      paidAt,
       description: description.trim(),
     };
 
@@ -172,6 +232,7 @@ function PaymentsPage() {
       setShowCustomerOptions(false);
       setShowVendorOptions(false);
       setDescription("");
+      setPaidAt(getLocalDateInputValue());
       fetchPayments();
     } catch (error) {
       console.error(error);
@@ -189,6 +250,25 @@ function PaymentsPage() {
     }
     return "bg-white hover:bg-slate-50 border-slate-200";
   };
+
+  const sortedPayments = useMemo(() => {
+    return [...payments].sort((a, b) => {
+      const aTime = parseDateValue(a.paidAt || a.createdAt);
+      const bTime = parseDateValue(b.paidAt || b.createdAt);
+
+      if (aTime !== bTime) {
+        return aTime - bTime;
+      }
+
+      const aCreated = parseDateValue(a.createdAt);
+      const bCreated = parseDateValue(b.createdAt);
+      if (aCreated !== bCreated) {
+        return aCreated - bCreated;
+      }
+
+      return String(a.id ?? "").localeCompare(String(b.id ?? ""));
+    });
+  }, [payments]);
 
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
@@ -224,6 +304,16 @@ function PaymentsPage() {
               <option value="paypal">PayPal</option>
               <option value="other">Other</option>
             </select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Date</label>
+            <input
+              type="date"
+              value={paidAt}
+              onChange={(e) => setPaidAt(e.target.value)}
+              className="w-full h-10 px-3 border rounded-xl mt-1"
+            />
           </div>
 
           <div>
@@ -302,7 +392,7 @@ function PaymentsPage() {
               </div>
             </>
           ) : (
-            <div className="md:col-span-2 relative">
+            <div className="relative">
               <label className="text-sm font-medium">Vendor</label>
               <input
                 type="text"
@@ -364,7 +454,7 @@ function PaymentsPage() {
       </div>
 
       <div className="mt-4 bg-white rounded-2xl shadow-sm border p-4">
-        <h2 className="text-lg font-semibold mb-4">Recent Payments</h2>
+        <h2 className="text-lg font-semibold mb-4">Payment History</h2>
         {payments.length === 0 ? (
           <NoData
             title="No Payments"
@@ -375,22 +465,25 @@ function PaymentsPage() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b">
                 <tr className="text-left text-slate-500">
+                  <th className="px-4 py-3 font-medium">Date</th>
                   <th className="px-4 py-3 font-medium">Type</th>
                   <th className="px-4 py-3 font-medium">Amount</th>
                   <th className="px-4 py-3 font-medium">Description</th>
                   <th className="px-4 py-3 font-medium">Party</th>
                   <th className="px-4 py-3 font-medium">Method</th>
-                  <th className="px-4 py-3 font-medium">Date</th>
                 </tr>
               </thead>
               <tbody>
-                {payments.map((payment) => (
+                {sortedPayments.map((payment) => (
                   <tr
                     key={getId(payment)}
                     className={`border-b last:border-b-0 transition ${getRowStyle(
                       payment.type,
                     )}`}
                   >
+                    <td className="px-4 py-3">
+                      {formatDateLabel(payment.paidAt || payment.createdAt)}
+                    </td>
                     <td className="px-4 py-3 capitalize">{payment.type}</td>
                     <td className="px-4 py-3">
                       Rs{Number(payment.amount).toLocaleString()}
@@ -406,9 +499,6 @@ function PaymentsPage() {
                           "Customer"}
                     </td>
                     <td className="px-4 py-3 capitalize">{payment.method}</td>
-                    <td className="px-4 py-3">
-                      {new Date(payment.paidAt).toLocaleDateString()}
-                    </td>
                   </tr>
                 ))}
               </tbody>
