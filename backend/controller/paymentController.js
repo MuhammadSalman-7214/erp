@@ -384,6 +384,7 @@ const getPartyBalances = async (req, res) => {
       }
 
       const current = vendorMap.get(vendorId);
+      if (!current) continue;
       current.paidAmount += Number(payment.amount) || 0;
       current.paymentCount += 1;
       if (payment.invoice) {
@@ -408,6 +409,7 @@ const getPartyBalances = async (req, res) => {
       }
 
       const current = vendorMap.get(vendorId);
+      if (!current) continue;
       current.totalAmount += Number(adjustment.amount) || 0;
     }
 
@@ -427,6 +429,7 @@ const getPartyBalances = async (req, res) => {
         });
       }
       const current = vendorMap.get(vendorId);
+      if (!current) continue;
       current.totalAmount += Number(invoice.totalAmount) || 0;
       current.invoiceCount += 1;
       if (
@@ -493,12 +496,41 @@ const getPartyBalances = async (req, res) => {
       return key;
     };
 
+    const resolveCustomerSummaryKey = (details) => {
+      const customerId = details?.customerId ? String(details.customerId) : "";
+      if (customerId && customerMap.has(customerId)) {
+        return customerId;
+      }
+
+      const legacyKey = ensureLegacyCustomer(details);
+      if (legacyKey) {
+        return legacyKey;
+      }
+
+      if (customerId) {
+        customerMap.set(customerId, {
+          customerId,
+          customerCode: details?.customer_code || "",
+          customerName: details?.customer_name || "Customer",
+          openingBalance: 0,
+          totalAmount: 0,
+          paidAmount: 0,
+          remainingAmount: 0,
+          invoiceCount: 0,
+          paymentCount: 0,
+        });
+        return customerId;
+      }
+
+      return "";
+    };
+
     for (const payment of customerPayments) {
-      const customerId = payment.customerId ? String(payment.customerId) : "";
-      const customerKey = customerId || ensureLegacyCustomer(payment);
+      const customerKey = resolveCustomerSummaryKey(payment);
       if (!customerKey) continue;
 
       const current = customerMap.get(customerKey);
+      if (!current) continue;
       current.paidAmount += Number(payment.amount) || 0;
       current.paymentCount += 1;
       if (payment.invoice) {
@@ -507,11 +539,11 @@ const getPartyBalances = async (req, res) => {
     }
 
     for (const invoice of salesInvoices) {
-      const customerId = invoice.customerId ? String(invoice.customerId) : "";
-      const customerKey = customerId || ensureLegacyCustomer(invoice);
+      const customerKey = resolveCustomerSummaryKey(invoice);
       if (!customerKey) continue;
 
       const current = customerMap.get(customerKey);
+      if (!current) continue;
       current.totalAmount += Number(invoice.totalAmount) || 0;
       current.invoiceCount += 1;
       if (
