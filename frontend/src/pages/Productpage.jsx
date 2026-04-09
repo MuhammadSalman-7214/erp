@@ -1,11 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { IoMdAdd, IoMdTrash } from "react-icons/io";
-import {
-  MdDelete,
-  MdEdit,
-  MdOutlineCategory,
-} from "react-icons/md";
+import { MdDelete, MdEdit, MdOutlineCategory } from "react-icons/md";
+import { AiOutlineDownload } from "react-icons/ai";
 import { useDispatch, useSelector } from "react-redux";
+import { jsPDF } from "jspdf";
+import { autoTable } from "jspdf-autotable";
 import FormattedTime from "../lib/FormattedTime";
 import { FaMoneyBill1Wave, FaPalette } from "react-icons/fa6";
 
@@ -16,7 +15,6 @@ import {
   Removeproduct,
   EditProduct,
   addProductCode,
-  updateProductCode,
   deleteProductCode,
 } from "../features/productSlice";
 import { gettingallCategory } from "../features/categorySlice";
@@ -35,6 +33,13 @@ const emptyCode = {
   quantity: "",
 };
 
+const formatStockFileName = () => "Stock.pdf";
+
+const normalizePdfText = (value) =>
+  String(value || "-")
+    .replace(/\s+/g, " ")
+    .trim();
+
 function Productpage({ readOnly = false }) {
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
 
@@ -43,8 +48,13 @@ function Productpage({ readOnly = false }) {
   const canWrite = hasPermission("product", "write");
   const canDelete = hasPermission("product", "delete");
 
-  const { getallproduct, editedProduct, isproductadd, searchdata, isallproductget } =
-    useSelector((state) => state.product);
+  const {
+    getallproduct,
+    editedProduct,
+    isproductadd,
+    searchdata,
+    isallproductget,
+  } = useSelector((state) => state.product);
 
   const { getallCategory } = useSelector((state) => state.category);
 
@@ -58,16 +68,13 @@ function Productpage({ readOnly = false }) {
   const [purchasePrice, setPurchasePrice] = useState("");
   const [tradePrice, setTradePrice] = useState("");
   const [salePrice, setSalePrice] = useState("");
-  const [dateAdded, setDateAdded] = useState(
-    new Date().toISOString().split("T")[0],
-  );
+  const [dateAdded] = useState(new Date().toISOString().split("T")[0]);
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [codeProductId, setCodeProductId] = useState(null);
   const [codeForm, setCodeForm] = useState({ ...emptyCode });
-  const [codeEdits, setCodeEdits] = useState({});
   const [createdAtSort, setCreatedAtSort] = useState("desc");
 
   useEffect(() => {
@@ -236,7 +243,6 @@ function Productpage({ readOnly = false }) {
   const openCodeModal = (productId) => {
     setCodeProductId(productId);
     setCodeForm({ ...emptyCode });
-    setCodeEdits({});
     setIsCodeModalOpen(true);
   };
 
@@ -244,7 +250,6 @@ function Productpage({ readOnly = false }) {
     setIsCodeModalOpen(false);
     setCodeProductId(null);
     setCodeForm({ ...emptyCode });
-    setCodeEdits({});
   };
 
   const handleAddCode = async () => {
@@ -276,8 +281,10 @@ function Productpage({ readOnly = false }) {
       .catch((error) => toast.error(error || "Failed to delete code"));
   };
 
-  const displayProducts =
-    productCodeQuery.trim() !== "" ? searchdata || [] : getallproduct;
+  const displayProducts = useMemo(
+    () => (productCodeQuery.trim() !== "" ? searchdata || [] : getallproduct),
+    [productCodeQuery, searchdata, getallproduct],
+  );
 
   const displayRows = useMemo(() => {
     if (!Array.isArray(displayProducts)) return [];
@@ -321,6 +328,143 @@ function Productpage({ readOnly = false }) {
       ),
     [filteredRows, createdAtSort],
   );
+
+  const stockReportRows = useMemo(() => {
+    return sortedRows.map((row, index) => {
+      const product = row.product || {};
+      const code = row.code || null;
+
+      return {
+        no: index + 1,
+        productName: normalizePdfText(product.name),
+        productCode: normalizePdfText(code?.code || "-"),
+        company: normalizePdfText(product.company || product.brand || "-"),
+        category: normalizePdfText(product.Category?.name || "-"),
+        description: normalizePdfText(product.description || "-"),
+        qty: Number(code?.quantity ?? product.totalQuantity ?? 0),
+      };
+    });
+  }, [sortedRows]);
+
+  const handleDownloadStock = () => {
+    if (!stockReportRows.length) {
+      toast.error("No stock data available to download");
+      return;
+    }
+
+    const toastId = toast.loading("Preparing stock PDF...");
+
+    try {
+      const pdf = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
+        compress: true,
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const marginX = 10;
+      const topBandHeight = 18;
+      const titleY = 13;
+      const generatedAt = new Date().toLocaleString("en-PK", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      });
+
+      pdf.setFillColor(15, 118, 110);
+      pdf.rect(0, 0, pageWidth, topBandHeight, "F");
+
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(18);
+      pdf.text("Stock Report", marginX, titleY);
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(10);
+      pdf.text(`Generated: ${generatedAt}`, pageWidth - marginX, titleY, {
+        align: "right",
+      });
+
+      autoTable(pdf, {
+        startY: topBandHeight + 8,
+        head: [
+          [
+            "#",
+            "Product Name",
+            "Product Code",
+            "Company",
+            "Category",
+            "Description",
+            "Qty",
+          ],
+        ],
+        body: stockReportRows.map((row) => [
+          row.no,
+          row.productName,
+          row.productCode,
+          row.company,
+          row.category,
+          row.description,
+          row.qty,
+        ]),
+        margin: { left: marginX, right: marginX, top: 10, bottom: 12 },
+        theme: "grid",
+        pageBreak: "auto",
+        styles: {
+          font: "helvetica",
+          fontSize: 7.5,
+          cellPadding: 2.2,
+          overflow: "linebreak",
+          valign: "middle",
+          textColor: [30, 41, 59],
+          lineColor: [226, 232, 240],
+        },
+        headStyles: {
+          fillColor: [15, 118, 110],
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+          fontSize: 8,
+          halign: "center",
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252],
+        },
+        columnStyles: {
+          0: { cellWidth: 10, halign: "center" },
+          1: { cellWidth: 42 },
+          2: { cellWidth: 34 },
+          3: { cellWidth: 34 },
+          4: { cellWidth: 28 },
+          5: { cellWidth: "auto" },
+          6: { cellWidth: 16, halign: "right" },
+        },
+        didParseCell: (data) => {
+          if (data.section === "body" && data.column.index === 6) {
+            data.cell.text = [String(data.cell.raw ?? 0)];
+          }
+        },
+        didDrawPage: (data) => {
+          const footerY = pageHeight - 7;
+          pdf.setDrawColor(203, 213, 225);
+          pdf.line(marginX, footerY - 4, pageWidth - marginX, footerY - 4);
+          pdf.setFontSize(8);
+          pdf.setTextColor(71, 85, 105);
+          pdf.setFont("helvetica", "normal");
+          pdf.text(`Stock Report`, marginX, footerY);
+          pdf.text(`Page ${data.pageNumber}`, pageWidth - marginX, footerY, {
+            align: "right",
+          });
+        },
+      });
+
+      pdf.save(formatStockFileName());
+      toast.success("Stock PDF downloaded", { id: toastId });
+    } catch (error) {
+      console.error("Failed to generate stock PDF", error);
+      toast.error("Failed to download stock PDF", { id: toastId });
+    }
+  };
 
   const codeProduct = useMemo(
     () =>
@@ -407,8 +551,17 @@ function Productpage({ readOnly = false }) {
           value={productCodeQuery}
           onChange={(e) => setProductCodeQuery(e.target.value)}
           className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
-          placeholder="Search product by name or code..."
+          placeholder="Search by name, code, company, or category..."
         />
+
+        <button
+          type="button"
+          onClick={handleDownloadStock}
+          className="bg-slate-900 hover:bg-slate-800 text-white px-5 h-10 rounded-xl flex items-center justify-center shadow-md transition"
+        >
+          <AiOutlineDownload className="text-lg mr-2" />
+          Download Stock
+        </button>
 
         {canWrite && (
           <button
@@ -457,7 +610,9 @@ function Productpage({ readOnly = false }) {
                       label="Date"
                       direction={createdAtSort}
                       onToggle={() =>
-                        setCreatedAtSort((prev) => (prev === "asc" ? "desc" : "asc"))
+                        setCreatedAtSort((prev) =>
+                          prev === "asc" ? "desc" : "asc",
+                        )
                       }
                     />
                     {!isReadOnlyMode && (

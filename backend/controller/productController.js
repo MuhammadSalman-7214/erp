@@ -621,45 +621,44 @@ module.exports.EditProduct = async (req, res) => {
 
 module.exports.SearchProduct = async (req, res) => {
   try {
-    const { query: searchQuery } = req.query;
+    const { query: searchQueryRaw } = req.query;
     const userId = req.user.userId;
+    const searchQuery = String(searchQueryRaw || "").trim();
 
     if (!searchQuery) {
       return res.status(400).json({ message: "Query parameter is required" });
     }
 
-    let productCodeMatches;
-    try {
-      productCodeMatches = await query(
-        "SELECT product FROM product_codes WHERE user_id = ? AND (code LIKE ? OR variantName LIKE ?)",
-        [userId, `%${searchQuery}%`, `%${searchQuery}%`],
-      );
-    } catch (err) {
-      return res.status(500).json({
-        success: false,
-        message: "Database error",
-        error: err,
-      });
-    }
-
-    const productIds = productCodeMatches.map((code) => code.product);
-    const placeholders = productIds.length
-      ? productIds.map(() => "?").join(", ")
-      : null;
-
     let products;
     try {
-      if (placeholders) {
-        products = await query(
-          `SELECT p.*, c.id AS category_id, c.name AS category_name FROM products p LEFT JOIN categories c ON c.id = p.Category WHERE p.user_id = ? AND (p.name LIKE ? OR p.id IN (${placeholders}))`,
-          [userId, `%${searchQuery}%`, ...productIds],
-        );
-      } else {
-        products = await query(
-          "SELECT p.*, c.id AS category_id, c.name AS category_name FROM products p LEFT JOIN categories c ON c.id = p.Category WHERE p.user_id = ? AND p.name LIKE ?",
-          [userId, `%${searchQuery}%`],
-        );
-      }
+      products = await query(
+        `SELECT DISTINCT p.*, c.id AS category_id, c.name AS category_name
+         FROM products p
+         LEFT JOIN categories c ON c.id = p.Category
+         WHERE p.user_id = ?
+           AND (
+             p.name LIKE ?
+             OR p.company LIKE ?
+             OR p.brand LIKE ?
+             OR c.name LIKE ?
+             OR EXISTS (
+               SELECT 1
+               FROM product_codes pc
+               WHERE pc.user_id = p.user_id
+                 AND pc.product = p.id
+                 AND (pc.code LIKE ? OR pc.variantName LIKE ?)
+             )
+           )`,
+        [
+          userId,
+          `%${searchQuery}%`,
+          `%${searchQuery}%`,
+          `%${searchQuery}%`,
+          `%${searchQuery}%`,
+          `%${searchQuery}%`,
+          `%${searchQuery}%`,
+        ],
+      );
     } catch (err) {
       return res.status(500).json({
         success: false,
