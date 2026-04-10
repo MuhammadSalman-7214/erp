@@ -10,6 +10,7 @@ import notificationReducer from  "../features/notificationSlice"
 import stocktransactionReducer from '../features/stocktransactionSlice'
 import salesReducer from "../features/salesSlice"
 import customerReducer from "../features/customerSlice"
+import priceListReducer from "../features/priceListSlice"
 
 const store=configureStore({
     reducer:{
@@ -22,7 +23,8 @@ const store=configureStore({
         notification:notificationReducer,
         stocktransaction:stocktransactionReducer,
         sales:salesReducer,
-        customer:customerReducer
+        customer:customerReducer,
+        priceList: priceListReducer
     }
 })
 export default store;

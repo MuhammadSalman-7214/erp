@@ -31,6 +31,7 @@ import Customerpage from "./pages/Customerpage";
 import CustomerDetailPage from "./pages/CustomerDetailPage";
 import SupplierDetailPage from "./pages/SupplierDetailPage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import PriceListPage from "./pages/PriceListPage";
 
 const RoleDashboardLayout = () => {
   const { user } = useSelector((state) => state.auth);
@@ -109,6 +110,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={["admin", "manager"]}>
                   <Categorypage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="price-list"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                  <PriceListPage />
                 </ProtectedRoute>
               }
             />

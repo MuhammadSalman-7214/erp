@@ -2,8 +2,14 @@ import { useState, useEffect, useMemo } from "react";
 import { IoMdAdd } from "react-icons/io";
 import FormattedTime from "../lib/FormattedTime";
 import TopNavbar from "../Components/TopNavbar";
-import { MdDelete, MdEdit, MdOutlineCategory } from "react-icons/md";
+import {
+  MdDelete,
+  MdEdit,
+  MdOutlineCategory,
+  MdOutlinePriceChange,
+} from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import {
   gettingallCategory,
   CreateCategory,
@@ -23,6 +29,7 @@ function Categorypage() {
     (state) => state.category,
   );
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [query, setquery] = useState("");
   const [createdAtSort, setCreatedAtSort] = useState("asc");
 
@@ -147,6 +154,13 @@ function Categorypage() {
         >
           <IoMdAdd className="text-xl mr-2" />
           Create Category
+        </button>
+        <button
+          onClick={() => navigate("/price-list")}
+          className="bg-slate-900 hover:bg-slate-800 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
+        >
+          <MdOutlinePriceChange className="text-xl mr-2" />
+          Price List
         </button>
       </div>
       {/* OVERLAY */}

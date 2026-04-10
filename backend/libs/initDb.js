@@ -61,6 +61,16 @@ const initDb = async () => {
       UNIQUE KEY uniq_category_code (user_id, category, code, variantName),
       INDEX idx_category_codes_user (user_id)
     )`,
+    `CREATE TABLE IF NOT EXISTS price_list_items (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      productName VARCHAR(255) NOT NULL,
+      size VARCHAR(100) DEFAULT NULL,
+      price DECIMAL(12,2) DEFAULT 0,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_price_list_user (user_id)
+    )`,
     `CREATE TABLE IF NOT EXISTS vendors (
       id INT AUTO_INCREMENT PRIMARY KEY,
       user_id INT NOT NULL,
@@ -320,6 +330,18 @@ const initDb = async () => {
   } catch (error) {
     if (isTableEngineError(error)) {
       logTableEngineWarning("ALTER TABLE users ADD COLUMN isActive", error);
+    }
+
+    if (error?.errno !== 1060) {
+      throw error;
+    }
+  }
+
+  try {
+    await query("ALTER TABLE price_list_items ADD COLUMN size VARCHAR(100)");
+  } catch (error) {
+    if (isTableEngineError(error)) {
+      logTableEngineWarning("ALTER TABLE price_list_items ADD COLUMN size", error);
     }
 
     if (error?.errno !== 1060) {

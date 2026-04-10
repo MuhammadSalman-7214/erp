@@ -4,7 +4,7 @@ import { FiLogOut, FiShoppingCart } from "react-icons/fi";
 import { NavLink } from "react-router-dom";
 import { RiDashboard3Fill } from "react-icons/ri";
 import { PiInvoiceBold } from "react-icons/pi";
-import { MdPointOfSale, MdOutlineCategory } from "react-icons/md";
+import { MdPointOfSale, MdOutlineCategory, MdOutlinePriceChange } from "react-icons/md";
 import { CiMenuFries } from "react-icons/ci";
 import { TfiSupport } from "react-icons/tfi";
 import { IoNotificationsOutline } from "react-icons/io5";
@@ -167,6 +167,13 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
             />
 
             <NavItem
+              to="/price-list"
+              icon={<MdOutlinePriceChange />}
+              label="Price List"
+              sidebarOpen={sidebarOpen}
+            />
+
+            <NavItem
               to="/Userstatus"
               icon={<LuUsers />}
               label="Users"
@@ -249,6 +256,13 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
               to="/category"
               icon={<MdOutlineCategory />}
               label="Category"
+              sidebarOpen={sidebarOpen}
+            />
+
+            <NavItem
+              to="/price-list"
+              icon={<MdOutlinePriceChange />}
+              label="Price List"
               sidebarOpen={sidebarOpen}
             />
           </>
