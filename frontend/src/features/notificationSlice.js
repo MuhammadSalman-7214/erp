@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axiosInstance from "../lib/axios";
 import toast from "react-hot-toast";
+import { uppercasePayload } from "../lib/uppercasePayload";
 
 const initialState = {
   notifications: [],
@@ -10,9 +11,13 @@ export const createNotification = createAsyncThunk(
   "notification/createNotification",
   async (notification, { rejectWithValue }) => {
     try {
-      const res = await axiosInstance.post("notification", notification, {
-        withCredentials: true,
-      });
+      const res = await axiosInstance.post(
+        "notification",
+        uppercasePayload(notification),
+        {
+          withCredentials: true,
+        },
+      );
       return res.data.notification;
     } catch (error) {
       return rejectWithValue(

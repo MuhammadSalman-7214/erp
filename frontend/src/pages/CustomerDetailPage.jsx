@@ -14,6 +14,7 @@ import NoData from "../Components/NoData";
 import { TrendingUp, CreditCard, AlertCircle, Clipboard } from "lucide-react";
 import { DetailSkeleton } from "../Components/LoadingSkeletons";
 import DrawerPanel from "../Components/DrawerPanel";
+import { uppercasePayload } from "../lib/uppercasePayload";
 
 const sanitizeFileName = (value) =>
   String(value || "customer_ledger")
@@ -42,9 +43,9 @@ function CustomerDetailPage() {
   const [manualDescription, setManualDescription] = useState("");
   const [loading, setLoading] = useState(true);
   const [ledgerLoading, setLedgerLoading] = useState(true);
-  const [ledgerDateSort, setLedgerDateSort] = useState("desc");
-  const [salesDateSort, setSalesDateSort] = useState("desc");
-  const [legacyDateSort, setLegacyDateSort] = useState("desc");
+  const [ledgerDateSort, setLedgerDateSort] = useState("asc");
+  const [salesDateSort, setSalesDateSort] = useState("asc");
+  const [legacyDateSort, setLegacyDateSort] = useState("asc");
 
   const currency = (value) => `Rs ${Number(value || 0).toLocaleString()}`;
 
@@ -152,7 +153,7 @@ function CustomerDetailPage() {
     try {
       await axiosInstance.post(`/customer/${id}/opening-balance`, {
         amount: Number(manualAmount),
-        notes: manualDescription.trim(),
+        notes: uppercasePayload(manualDescription.trim()),
       });
       closeManualEntry();
       await refreshCustomerData();

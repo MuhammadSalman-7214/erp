@@ -165,7 +165,7 @@ module.exports.getAllSuppliers = async (req, res) => {
     const userId = req.user.userId;
     let Suppliers;
     try {
-      Suppliers = await query("SELECT * FROM vendors WHERE user_id = ?", [
+      Suppliers = await query("SELECT * FROM vendors WHERE user_id = ? ORDER BY createdAt ASC", [
         userId,
       ]);
     } catch (err) {

@@ -438,7 +438,7 @@ const getOrder = async (req, res) => {
     const userId = req.user.userId;
     let orders;
     try {
-      orders = await query("SELECT * FROM orders WHERE user_id = ?", [userId]);
+      orders = await query("SELECT * FROM orders WHERE user_id = ? ORDER BY createdAt ASC", [userId]);
     } catch (err) {
       return res.status(500).json({
         success: false,
@@ -576,7 +576,7 @@ const searchOrder = async (req, res) => {
     let orders;
     try {
       orders = await query(
-        "SELECT o.* FROM orders o LEFT JOIN users u ON u.id = o.user WHERE o.user_id = ? AND (o.status LIKE ? OR u.name LIKE ?)",
+        "SELECT o.* FROM orders o LEFT JOIN users u ON u.id = o.user WHERE o.user_id = ? AND (o.status LIKE ? OR u.name LIKE ?) ORDER BY o.createdAt ASC",
         [userId, `%${searchQuery}%`, `%${searchQuery}%`],
       );
     } catch (err) {
@@ -660,7 +660,7 @@ const getOrdersByVendor = async (req, res) => {
     let orders;
     try {
       orders = await query(
-        "SELECT * FROM orders WHERE user_id = ? AND vendor = ? ORDER BY createdAt DESC",
+        "SELECT * FROM orders WHERE user_id = ? AND vendor = ? ORDER BY createdAt ASC",
         [userId, vendorId],
       );
     } catch (err) {

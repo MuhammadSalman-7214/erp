@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axiosInstance from "../lib/axios";
 import toast from "react-hot-toast";
+import { uppercasePayload } from "../lib/uppercasePayload";
 
 const initialState = {
   getallsales: null,
@@ -14,9 +15,13 @@ export const CreateSales = createAsyncThunk(
   "sales/createsales",
   async (Category, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.post("sales", Category, {
-        withCredentials: true,
-      });
+      const response = await axiosInstance.post(
+        "sales",
+        uppercasePayload(Category, { excludeKeys: ["paymentMethod", "status"] }),
+        {
+          withCredentials: true,
+        },
+      );
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || "sales creation failed");
@@ -51,7 +56,9 @@ export const EditSales = createAsyncThunk(
     try {
       const response = await axiosInstance.put(
         `sales/${salesId}`,
-        updatedData,
+        uppercasePayload(updatedData, {
+          excludeKeys: ["paymentMethod", "status"],
+        }),
         { withCredentials: true },
       );
       return response.data;

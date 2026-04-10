@@ -50,7 +50,7 @@ function Supplierpage({ readOnly = false }) {
   const [selectedSupplier, setSelectedSupplier] = useState(null);
   const [product, setProduct] = useState("");
   const [vendorBalances, setVendorBalances] = useState({});
-  const [createdAtSort, setCreatedAtSort] = useState("desc");
+  const [createdAtSort, setCreatedAtSort] = useState("asc");
 
   const getId = (value) => value?.id ?? value?.id ?? value;
 

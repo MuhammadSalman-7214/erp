@@ -104,7 +104,7 @@ module.exports.getCategory = async (req, res) => {
     let allCategory;
     try {
       allCategory = await query(
-        "SELECT * FROM categories WHERE user_id = ?",
+        "SELECT * FROM categories WHERE user_id = ? ORDER BY createdAt ASC",
         [userId],
       );
     } catch (err) {

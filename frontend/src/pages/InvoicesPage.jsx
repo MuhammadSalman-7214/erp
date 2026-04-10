@@ -17,7 +17,7 @@ function InvoicesPage() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [dueDateSort, setDueDateSort] = useState("desc");
+  const [dueDateSort, setDueDateSort] = useState("asc");
 
   const fetchInvoices = async () => {
     setLoading(true);

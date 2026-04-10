@@ -53,8 +53,7 @@ export const formatInputDateValue = (value) => {
   return date ? format(date, "yyyy-MM-dd") : "";
 };
 
-export const sortByDateValue = (items = [], accessor, direction = "desc") => {
-  const multiplier = direction === "asc" ? 1 : -1;
+export const sortByDateValue = (items = [], accessor) => {
   return [...items].sort((a, b) => {
     const aTime = getDateTimestamp(
       typeof accessor === "function" ? accessor(a) : a?.[accessor],
@@ -64,7 +63,7 @@ export const sortByDateValue = (items = [], accessor, direction = "desc") => {
     );
 
     if (aTime !== bTime) {
-      return (aTime - bTime) * multiplier;
+      return aTime - bTime;
     }
 
     return 0;

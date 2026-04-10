@@ -60,7 +60,7 @@ module.exports.getAllActivityLogs = async (req, res) => {
     let logs;
     try {
       logs = await query(
-        "SELECT * FROM activity_logs WHERE user_id = ? ORDER BY createdAt DESC",
+        "SELECT * FROM activity_logs WHERE user_id = ? ORDER BY createdAt ASC",
         [userId],
       );
     } catch (err) {

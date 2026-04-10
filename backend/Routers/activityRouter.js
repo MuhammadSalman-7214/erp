@@ -11,7 +11,7 @@ const {
 router.get("/", authmiddleware, adminmiddleware, async (req, res) => {
   try {
     const logs = await query(
-      "SELECT al.*, u.id AS userId_id, u.name AS userId_name, u.email AS userId_email, u.role AS userId_role, u.ProfilePic AS userId_ProfilePic FROM activity_logs al LEFT JOIN users u ON u.id = al.userId WHERE al.user_id = ? ORDER BY al.createdAt DESC",
+      "SELECT al.*, u.id AS userId_id, u.name AS userId_name, u.email AS userId_email, u.role AS userId_role, u.ProfilePic AS userId_ProfilePic FROM activity_logs al LEFT JOIN users u ON u.id = al.userId WHERE al.user_id = ? ORDER BY al.createdAt ASC",
       [req.user.userId],
     );
     const formatted = logs.map((log) => ({
@@ -69,7 +69,7 @@ router.get("/recent", authmiddleware, managermiddleware, async (req, res) => {
 router.get("/me", authmiddleware, async (req, res) => {
   try {
     const logs = await query(
-      "SELECT al.*, u.id AS userId_id, u.name AS userId_name, u.email AS userId_email, u.role AS userId_role, u.ProfilePic AS userId_ProfilePic FROM activity_logs al LEFT JOIN users u ON u.id = al.userId WHERE al.userId = ? AND al.user_id = ? ORDER BY al.createdAt DESC",
+      "SELECT al.*, u.id AS userId_id, u.name AS userId_name, u.email AS userId_email, u.role AS userId_role, u.ProfilePic AS userId_ProfilePic FROM activity_logs al LEFT JOIN users u ON u.id = al.userId WHERE al.userId = ? AND al.user_id = ? ORDER BY al.createdAt ASC",
       [req.user.userId, req.user.userId],
     );
     const formatted = logs.map((log) => ({

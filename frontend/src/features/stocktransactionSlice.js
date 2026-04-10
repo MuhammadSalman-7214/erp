@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axiosInstance from "../lib/axios";
+import { uppercasePayload } from "../lib/uppercasePayload";
 
 const initialState = {
   getallStocks: [],
@@ -13,9 +14,13 @@ export const createStockTransaction = createAsyncThunk(
   "stocktransaction/createStockTransaction",
   async (Stocks, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.post("stocktransaction", Stocks, {
-        withCredentials: true,
-      });
+      const response = await axiosInstance.post(
+        "stocktransaction",
+        uppercasePayload(Stocks, { excludeKeys: ["type"] }),
+        {
+          withCredentials: true,
+        },
+      );
       return response.data.transaction; // backend returns { transaction }
     } catch (error) {
       return rejectWithValue(

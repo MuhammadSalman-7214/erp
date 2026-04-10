@@ -245,7 +245,7 @@ module.exports.getAllStockTransactions = async (req, res) => {
     let transactions;
     try {
       transactions = await query(
-        "SELECT st.*, p.id AS product_id, p.name AS product_name, p.description AS product_description, p.company AS product_company, p.brand AS product_brand, pc.id AS productCode_id, pc.code AS productCode_code, pc.variantName AS productCode_variantName, v.id AS vendor_id, v.name AS vendor_name, s.id AS supplier_id, s.name AS supplier_name FROM stock_transactions st LEFT JOIN products p ON p.id = st.product LEFT JOIN product_codes pc ON pc.id = st.productCode LEFT JOIN vendors v ON v.id = st.vendor LEFT JOIN vendors s ON s.id = st.supplier WHERE st.user_id = ? ORDER BY st.transactionDate DESC",
+        "SELECT st.*, p.id AS product_id, p.name AS product_name, p.description AS product_description, p.company AS product_company, p.brand AS product_brand, pc.id AS productCode_id, pc.code AS productCode_code, pc.variantName AS productCode_variantName, v.id AS vendor_id, v.name AS vendor_name, s.id AS supplier_id, s.name AS supplier_name FROM stock_transactions st LEFT JOIN products p ON p.id = st.product LEFT JOIN product_codes pc ON pc.id = st.productCode LEFT JOIN vendors v ON v.id = st.vendor LEFT JOIN vendors s ON s.id = st.supplier WHERE st.user_id = ? ORDER BY st.transactionDate ASC",
         [userId],
       );
     } catch (err) {
@@ -279,7 +279,7 @@ module.exports.getStockTransactionsByProductCode = async (req, res) => {
     let transactions;
     try {
       transactions = await query(
-        "SELECT st.*, p.id AS product_id, p.name AS product_name, p.description AS product_description, p.company AS product_company, p.brand AS product_brand, pc.id AS productCode_id, pc.code AS productCode_code, pc.variantName AS productCode_variantName, v.id AS vendor_id, v.name AS vendor_name, s.id AS supplier_id, s.name AS supplier_name FROM stock_transactions st LEFT JOIN products p ON p.id = st.product LEFT JOIN product_codes pc ON pc.id = st.productCode LEFT JOIN vendors v ON v.id = st.vendor LEFT JOIN vendors s ON s.id = st.supplier WHERE st.productCode = ? AND st.user_id = ? ORDER BY st.transactionDate DESC",
+        "SELECT st.*, p.id AS product_id, p.name AS product_name, p.description AS product_description, p.company AS product_company, p.brand AS product_brand, pc.id AS productCode_id, pc.code AS productCode_code, pc.variantName AS productCode_variantName, v.id AS vendor_id, v.name AS vendor_name, s.id AS supplier_id, s.name AS supplier_name FROM stock_transactions st LEFT JOIN products p ON p.id = st.product LEFT JOIN product_codes pc ON pc.id = st.productCode LEFT JOIN vendors v ON v.id = st.vendor LEFT JOIN vendors s ON s.id = st.supplier WHERE st.productCode = ? AND st.user_id = ? ORDER BY st.transactionDate ASC",
         [productCodeId, userId],
       );
     } catch (err) {
@@ -320,7 +320,7 @@ module.exports.getStockTransactionsBySupplier = async (req, res) => {
     let transactions;
     try {
       transactions = await query(
-        "SELECT st.*, p.id AS product_id, p.name AS product_name, p.description AS product_description, p.company AS product_company, p.brand AS product_brand, pc.id AS productCode_id, pc.code AS productCode_code, pc.variantName AS productCode_variantName, v.id AS vendor_id, v.name AS vendor_name, s.id AS supplier_id, s.name AS supplier_name FROM stock_transactions st LEFT JOIN products p ON p.id = st.product LEFT JOIN product_codes pc ON pc.id = st.productCode LEFT JOIN vendors v ON v.id = st.vendor LEFT JOIN vendors s ON s.id = st.supplier WHERE st.user_id = ? AND (st.supplier = ? OR st.vendor = ?) ORDER BY st.transactionDate DESC",
+        "SELECT st.*, p.id AS product_id, p.name AS product_name, p.description AS product_description, p.company AS product_company, p.brand AS product_brand, pc.id AS productCode_id, pc.code AS productCode_code, pc.variantName AS productCode_variantName, v.id AS vendor_id, v.name AS vendor_name, s.id AS supplier_id, s.name AS supplier_name FROM stock_transactions st LEFT JOIN products p ON p.id = st.product LEFT JOIN product_codes pc ON pc.id = st.productCode LEFT JOIN vendors v ON v.id = st.vendor LEFT JOIN vendors s ON s.id = st.supplier WHERE st.user_id = ? AND (st.supplier = ? OR st.vendor = ?) ORDER BY st.transactionDate ASC",
         [userId, supplierId, supplierId],
       );
     } catch (err) {

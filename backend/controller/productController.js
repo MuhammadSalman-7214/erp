@@ -753,7 +753,7 @@ module.exports.getProductCodesByProduct = async (req, res) => {
     let codes;
     try {
       codes = await query(
-        "SELECT * FROM product_codes WHERE product = ? AND user_id = ? ORDER BY createdAt DESC",
+        "SELECT * FROM product_codes WHERE product = ? AND user_id = ? ORDER BY createdAt ASC",
         [productId, userId],
       );
     } catch (err) {

@@ -5,6 +5,7 @@ import { toast } from "react-hot-toast";
 import { IoMdAdd } from "react-icons/io";
 import { MdDelete } from "react-icons/md";
 import { FormSkeleton } from "../Components/LoadingSkeletons";
+import { uppercasePayload } from "../lib/uppercasePayload";
 
 function InvoiceEditPage() {
   const { id } = useParams();
@@ -87,11 +88,13 @@ function InvoiceEditPage() {
     try {
       await axiosInstance.put(`/invoice/${id}`, {
         customerId: invoiceType === "sales" ? customerId : undefined,
-        items: items.map(({ name, quantity, unitPrice }) => ({
-          name,
-          quantity,
-          unitPrice,
-        })),
+        items: uppercasePayload(
+          items.map(({ name, quantity, unitPrice }) => ({
+            name,
+            quantity,
+            unitPrice,
+          })),
+        ),
         taxRate,
         discount,
         carage,

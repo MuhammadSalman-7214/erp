@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axiosInstance from "../lib/axios";
 import toast from "react-hot-toast";
+import { uppercasePayload } from "../lib/uppercasePayload";
 
 const initialState = {
   getallproduct: [],
@@ -24,8 +25,9 @@ export const Addproduct = createAsyncThunk(
   async (product, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem("token");
+      const normalizedProduct = uppercasePayload(product);
 
-      const response = await axiosInstance.post("product", product, {
+      const response = await axiosInstance.post("product", normalizedProduct, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       });
@@ -48,8 +50,9 @@ export const EditProduct = createAsyncThunk(
 
     try {
       const token = localStorage.getItem("token");
+      const normalizedData = uppercasePayload(updatedData);
 
-      const response = await axiosInstance.put(`/product/${id}`, updatedData, {
+      const response = await axiosInstance.put(`/product/${id}`, normalizedData, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -147,9 +150,10 @@ export const addProductCode = createAsyncThunk(
   async ({ productId, codeData }, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem("token");
+      const normalizedCodeData = uppercasePayload(codeData);
       const response = await axiosInstance.post(
         `product/${productId}/codes`,
-        codeData,
+        normalizedCodeData,
         { headers: { Authorization: `Bearer ${token}` } },
       );
       return { productId, productCode: response.data.productCode };
@@ -166,9 +170,10 @@ export const updateProductCode = createAsyncThunk(
   async ({ codeId, updates }, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem("token");
+      const normalizedUpdates = uppercasePayload(updates);
       const response = await axiosInstance.put(
         `product/code/${codeId}`,
-        updates,
+        normalizedUpdates,
         { headers: { Authorization: `Bearer ${token}` } },
       );
       return response.data.productCode;

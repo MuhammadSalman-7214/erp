@@ -5,6 +5,7 @@ import NoData from "../Components/NoData";
 import useKeyboardDropdown from "../hooks/useKeyboardDropdown";
 import DateSortHeader from "../Components/DateSortHeader";
 import { formatDateLabel, sortByDateValue } from "../lib/dateFormat";
+import { uppercasePayload } from "../lib/uppercasePayload";
 
 const getLocalDateInputValue = (date = new Date()) => {
   const offsetMinutes = date.getTimezoneOffset();
@@ -58,7 +59,7 @@ function PaymentsPage() {
   const [vendorQuery, setVendorQuery] = useState("");
   const [showCustomerOptions, setShowCustomerOptions] = useState(false);
   const [showVendorOptions, setShowVendorOptions] = useState(false);
-  const [paymentDateSort, setPaymentDateSort] = useState("desc");
+  const [paymentDateSort, setPaymentDateSort] = useState("asc");
 
   const getId = (value) => value?.id ?? value?.id ?? value;
 
@@ -193,7 +194,7 @@ function PaymentsPage() {
       method,
       partyType,
       paidAt,
-      description: description.trim(),
+      description: uppercasePayload(description.trim()),
     };
 
     if (partyType === "customer") payload.customerId = customerId;

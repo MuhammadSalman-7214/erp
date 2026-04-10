@@ -5,6 +5,7 @@ import { toast } from "react-hot-toast";
 import { MdDelete } from "react-icons/md";
 import { IoMdAdd } from "react-icons/io";
 import { formatFixed } from "../lib/formatNumber";
+import { uppercasePayload } from "../lib/uppercasePayload";
 
 function CreateInvoicePage() {
   const navigate = useNavigate();
@@ -84,16 +85,18 @@ function CreateInvoicePage() {
         invoiceType,
         customerId: invoiceType === "sales" ? customerId : undefined,
         vendor: invoiceType === "purchase" ? vendorId : undefined,
-        items: items.map(({ name, quantity, unitPrice }) => ({
-          name,
-          quantity,
-          unitPrice,
-        })),
+        items: uppercasePayload(
+          items.map(({ name, quantity, unitPrice }) => ({
+            name,
+            quantity,
+            unitPrice,
+          })),
+        ),
         taxRate,
         discount,
         dueDate,
         paymentMethod,
-        notes,
+        notes: notes.toUpperCase(),
         currency: "Rs",
       });
       toast.success("Invoice created successfully");

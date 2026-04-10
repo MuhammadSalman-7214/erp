@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import axiosInstance from "../lib/axios";
 import { useNavigate } from "react-router-dom";
 import {
@@ -24,6 +24,15 @@ function Dashboardpage() {
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showFinancialAmounts, setShowFinancialAmounts] = useState(false);
+  const sortedRecentInvoices = useMemo(
+    () =>
+      [...recentInvoices].sort(
+        (a, b) =>
+          new Date(a.createdAt || a.issueDate || 0).getTime() -
+          new Date(b.createdAt || b.issueDate || 0).getTime(),
+      ),
+    [recentInvoices],
+  );
 
   const accentStyles = {
     emerald: {
@@ -361,7 +370,7 @@ function Dashboardpage() {
             </div>
           ) : (
             <ul className="space-y-3">
-              {recentInvoices.map((inv) => (
+              {sortedRecentInvoices.map((inv) => (
                 <li
                   key={inv.id}
                   className="flex justify-between items-center p-3 bg-gray-50 rounded-lg hover:bg-teal-50 transition-colors duration-200"

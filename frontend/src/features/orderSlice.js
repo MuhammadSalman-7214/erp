@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axiosInstance from "../lib/axios";
 import toast, { Toaster } from "react-hot-toast";
+import { uppercasePayload } from "../lib/uppercasePayload";
 
 const initialState = {
   getorder: [],
@@ -21,9 +22,13 @@ export const createdOrder = createAsyncThunk(
   "order/createorder",
   async (order, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.post("order/createorder", order, {
-        withCredentials: true,
-      });
+      const response = await axiosInstance.post(
+        "order/createorder",
+        uppercasePayload(order, { excludeKeys: ["status"] }),
+        {
+          withCredentials: true,
+        },
+      );
 
       return response.data;
     } catch (error) {
@@ -56,7 +61,7 @@ export const updatestatusOrder = createAsyncThunk(
     try {
       const response = await axiosInstance.put(
         `order/updatestatusOrder/${OrderId}`,
-        updatedData,
+        uppercasePayload(updatedData, { excludeKeys: ["status"] }),
         { withCredentials: true },
       );
       return response.data;

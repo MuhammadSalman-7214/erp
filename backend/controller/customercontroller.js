@@ -70,7 +70,7 @@ module.exports.getAllCustomers = async (req, res) => {
     let customers;
     try {
       customers = await query(
-        "SELECT * FROM customers WHERE user_id = ? ORDER BY createdAt DESC",
+        "SELECT * FROM customers WHERE user_id = ? ORDER BY createdAt ASC",
         [userId],
       );
     } catch (err) {
@@ -439,7 +439,7 @@ module.exports.searchCustomer = async (req, res) => {
     let customers;
     try {
       customers = await query(
-        "SELECT * FROM customers WHERE user_id = ? AND (name LIKE ? OR contact_phone LIKE ?) ORDER BY createdAt DESC",
+        "SELECT * FROM customers WHERE user_id = ? AND (name LIKE ? OR contact_phone LIKE ?) ORDER BY createdAt ASC",
         [userId, `%${searchText}%`, `%${searchText}%`],
       );
     } catch (err) {

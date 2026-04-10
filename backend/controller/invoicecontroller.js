@@ -226,7 +226,7 @@ module.exports.getAllInvoices = async (req, res) => {
     const userId = req.user.userId;
     let invoices;
     try {
-      invoices = await query("SELECT * FROM invoices WHERE user_id = ? ORDER BY createdAt DESC", [
+      invoices = await query("SELECT * FROM invoices WHERE user_id = ? ORDER BY createdAt ASC", [
         userId,
       ]);
     } catch (err) {

@@ -24,7 +24,7 @@ function Categorypage() {
   );
   const dispatch = useDispatch();
   const [query, setquery] = useState("");
-  const [createdAtSort, setCreatedAtSort] = useState("desc");
+  const [createdAtSort, setCreatedAtSort] = useState("asc");
 
   const [name, setname] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);

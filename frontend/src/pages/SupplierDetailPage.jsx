@@ -11,6 +11,7 @@ import NoData from "../Components/NoData";
 import { TrendingUp, CreditCard, AlertCircle, Clipboard } from "lucide-react";
 import { DetailSkeleton } from "../Components/LoadingSkeletons";
 import DrawerPanel from "../Components/DrawerPanel";
+import { uppercasePayload } from "../lib/uppercasePayload";
 
 const sanitizeFileName = (value) =>
   String(value || "vendor_ledger")
@@ -40,8 +41,8 @@ function SupplierDetailPage() {
   const [manualDescription, setManualDescription] = useState("");
   const [loading, setLoading] = useState(true);
   const [ledgerLoading, setLedgerLoading] = useState(true);
-  const [ledgerDateSort, setLedgerDateSort] = useState("desc");
-  const [ordersDateSort, setOrdersDateSort] = useState("desc");
+  const [ledgerDateSort, setLedgerDateSort] = useState("asc");
+  const [ordersDateSort, setOrdersDateSort] = useState("asc");
 
   useEffect(() => {
     const fetchVendorOrders = async () => {
@@ -158,7 +159,7 @@ function SupplierDetailPage() {
         method: "manual",
         partyType: "vendor",
         vendor: id,
-        notes: manualDescription.trim(),
+        notes: uppercasePayload(manualDescription.trim()),
         paidAt: new Date(),
       });
       closeManualEntry();

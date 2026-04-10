@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axiosInstance from "../lib/axios";
 import toast from "react-hot-toast";
+import { uppercasePayload } from "../lib/uppercasePayload";
 
 const initialState = {
   getallCategory: [],
@@ -14,7 +15,7 @@ export const CreateCategory = createAsyncThunk(
   "category/createcategory",
   async (Category, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.post("category", Category, {
+      const response = await axiosInstance.post("category", uppercasePayload(Category), {
         withCredentials: true,
       });
       return response.data;
@@ -71,7 +72,7 @@ export const UpdateCategory = createAsyncThunk(
     try {
       const response = await axiosInstance.put(
         `category/${id}`,
-        { updatedCategory: data },
+        { updatedCategory: uppercasePayload(data) },
         {
           withCredentials: true,
         },

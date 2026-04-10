@@ -52,7 +52,7 @@ function Orderpage() {
   const [debouncedCodeQuery, setDebouncedCodeQuery] = useState("");
   const [showCodeOptions, setShowCodeOptions] = useState(false);
   const [cartItems, setCartItems] = useState([]);
-  const [timestampSort, setTimestampSort] = useState("desc");
+  const [timestampSort, setTimestampSort] = useState("asc");
   const getStatusBadge = (status) => {
     const mapping = {
       pending: "bg-yellow-50 text-yellow-700",
@@ -568,7 +568,7 @@ function Orderpage() {
                 <th className="px-5 py-4 font-medium">Total Amount</th>
                 <th className="px-5 py-4 font-medium">Status</th>
                 <DateSortHeader
-                  label="Timestamp"
+                  label="Date"
                   direction={timestampSort}
                   onToggle={() =>
                     setTimestampSort((prev) => (prev === "asc" ? "desc" : "asc"))

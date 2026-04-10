@@ -75,7 +75,7 @@ function Productpage({ readOnly = false }) {
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [codeProductId, setCodeProductId] = useState(null);
   const [codeForm, setCodeForm] = useState({ ...emptyCode });
-  const [createdAtSort, setCreatedAtSort] = useState("desc");
+  const [createdAtSort, setCreatedAtSort] = useState("asc");
 
   useEffect(() => {
     dispatch(gettingallproducts());
@@ -378,11 +378,11 @@ function Productpage({ readOnly = false }) {
       pdf.setTextColor(255, 255, 255);
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(18);
-      pdf.text("Stock Report", marginX, titleY);
+      pdf.text("Stock Report", marginX, 11);
 
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(10);
-      pdf.text(`Generated: ${generatedAt}`, pageWidth - marginX, titleY, {
+      pdf.text(`Generated: ${generatedAt}`, pageWidth - marginX, 11, {
         align: "right",
       });
 
@@ -393,20 +393,20 @@ function Productpage({ readOnly = false }) {
             "#",
             "Product Name",
             "Product Code",
+            "Quantity",
             "Company",
             "Category",
             "Description",
-            "Qty",
           ],
         ],
         body: stockReportRows.map((row) => [
           row.no,
           row.productName,
           row.productCode,
+          row.qty,
           row.company,
           row.category,
           row.description,
-          row.qty,
         ]),
         margin: { left: marginX, right: marginX, top: 10, bottom: 12 },
         theme: "grid",
@@ -425,24 +425,10 @@ function Productpage({ readOnly = false }) {
           textColor: [255, 255, 255],
           fontStyle: "bold",
           fontSize: 8,
-          halign: "center",
+          halign: "left",
         },
         alternateRowStyles: {
           fillColor: [248, 250, 252],
-        },
-        columnStyles: {
-          0: { cellWidth: 10, halign: "center" },
-          1: { cellWidth: 42 },
-          2: { cellWidth: 34 },
-          3: { cellWidth: 34 },
-          4: { cellWidth: 28 },
-          5: { cellWidth: "auto" },
-          6: { cellWidth: 16, halign: "right" },
-        },
-        didParseCell: (data) => {
-          if (data.section === "body" && data.column.index === 6) {
-            data.cell.text = [String(data.cell.raw ?? 0)];
-          }
         },
         didDrawPage: (data) => {
           const footerY = pageHeight - 7;

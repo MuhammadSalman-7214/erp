@@ -859,7 +859,7 @@ module.exports.getAllSales = async (req, res) => {
     const userId = req.user.userId;
     let sales;
     try {
-      sales = await query("SELECT * FROM sales WHERE user_id = ? ORDER BY createdAt DESC", [
+      sales = await query("SELECT * FROM sales WHERE user_id = ? ORDER BY createdAt ASC", [
         userId,
       ]);
     } catch (err) {
@@ -1297,7 +1297,7 @@ module.exports.SearchSales = async (req, res) => {
 
     let sales;
     if (!searchQuery || searchQuery.trim() === "") {
-      sales = await query("SELECT * FROM sales WHERE user_id = ?", [userId]);
+      sales = await query("SELECT * FROM sales WHERE user_id = ? ORDER BY createdAt ASC", [userId]);
     } else {
       sales = await query(
         `SELECT * FROM sales s
@@ -1369,7 +1369,7 @@ module.exports.getSalesByCustomer = async (req, res) => {
     }
 
     const salesRows = await query(
-      "SELECT * FROM sales WHERE user_id = ? AND customer = ? ORDER BY createdAt DESC",
+      "SELECT * FROM sales WHERE user_id = ? AND customer = ? ORDER BY createdAt ASC",
       [userId, customerId],
     );
     const sales = await hydrateSales(salesRows, userId);

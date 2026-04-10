@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axiosInstance from "../lib/axios";
 import toast from "react-hot-toast";
+import { uppercasePayload } from "../lib/uppercasePayload";
 
 const initialState = {
   getAllCustomer: null,
@@ -17,9 +18,13 @@ export const createCustomer = createAsyncThunk(
   "customer/create",
   async (customer, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.post("customer", customer, {
-        withCredentials: true,
-      });
+      const response = await axiosInstance.post(
+        "customer",
+        uppercasePayload(customer),
+        {
+          withCredentials: true,
+        },
+      );
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -84,7 +89,7 @@ export const editCustomer = createAsyncThunk(
     try {
       const response = await axiosInstance.put(
         `customer/${customerId}`,
-        updatedData,
+        uppercasePayload(updatedData),
         { withCredentials: true },
       );
       return response.data;

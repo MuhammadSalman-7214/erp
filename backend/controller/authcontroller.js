@@ -326,7 +326,7 @@ module.exports.adminuser = async (req, res) => {
 module.exports.superadminAdmins = async (req, res) => {
   try {
     const admins = await query(
-      "SELECT id, name, email, role, ProfilePic, isActive, createdAt FROM users WHERE role = ? ORDER BY createdAt DESC",
+      "SELECT id, name, email, role, ProfilePic, isActive, createdAt FROM users WHERE role = ? ORDER BY createdAt ASC",
       ["admin"],
     );
 

@@ -34,7 +34,7 @@ function StockTransaction({ readOnly = false }) {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [transactionDateSort, setTransactionDateSort] = useState("desc");
+  const [transactionDateSort, setTransactionDateSort] = useState("asc");
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
 
   // Determine if page is in read-only mode (from props OR role)

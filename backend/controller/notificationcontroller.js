@@ -47,7 +47,7 @@ module.exports.getAllNotifications = async (req, res) => {
     let notifications;
     try {
       notifications = await query(
-        "SELECT * FROM notifications WHERE user_id = ? ORDER BY createdAt DESC",
+        "SELECT * FROM notifications WHERE user_id = ? ORDER BY createdAt ASC",
         [userId],
       );
     } catch (err) {
