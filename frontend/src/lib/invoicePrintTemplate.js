@@ -36,7 +36,7 @@ const chunkArray = (items, size) => {
 
 export const buildInvoicePrintHtml = ({
   documentTitle = "Invoice",
-  companyName = "InventoryPro",
+  companyName = "InventorySouq",
   slogan = "",
   brandLine = "DEAL IN ALL KIND OF PLYWOOD AND HARDWARE",
   logoUrl = "/ITLOGO.svg",
@@ -157,7 +157,9 @@ export const buildInvoicePrintHtml = ({
 
   const renderPage = (pageItems, pageIndex) => {
     const isLastPage = pageIndex === pages.length - 1;
-    const rows = pageItems.map((item, index) => renderRow(item, index)).join("");
+    const rows = pageItems
+      .map((item, index) => renderRow(item, index))
+      .join("");
 
     return `
       <div class="page${compactMode ? " compact" : ""}">

@@ -4,7 +4,11 @@ import { FiLogOut, FiShoppingCart } from "react-icons/fi";
 import { NavLink } from "react-router-dom";
 import { RiDashboard3Fill } from "react-icons/ri";
 import { PiInvoiceBold } from "react-icons/pi";
-import { MdPointOfSale, MdOutlineCategory, MdOutlinePriceChange } from "react-icons/md";
+import {
+  MdPointOfSale,
+  MdOutlineCategory,
+  MdOutlinePriceChange,
+} from "react-icons/md";
 import { CiMenuFries } from "react-icons/ci";
 import { TfiSupport } from "react-icons/tfi";
 import { IoNotificationsOutline } from "react-icons/io5";
@@ -70,7 +74,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
     >
       <div className="border-b flex justify-between items-center px-2 py-4 h-[8vh]">
         {sidebarOpen && (
-          <h1 className="text-xl font-bold text-teal-700">InventoryPro</h1>
+          <h1 className="text-xl font-bold text-teal-700">InventorySouq</h1>
         )}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -335,21 +339,34 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
         )}
       </nav>
 
-      <div className="absolute bottom-0 w-full border-t p-2">
-        <button
-          onClick={handleLogout}
-          className="group flex items-center gap-3 w-full p-2 rounded-md text-gray-700 hover:bg-red-50 hover:text-red-600"
-        >
-          <FiLogOut className="text-xl" />
-          {sidebarOpen && <span>Logout</span>}
+      <div className="absolute bottom-0 w-full">
+        <div className="px-2 pb-2">
+          <a
+            href="https://devsouq.com/"
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center justify-center rounded-md border border-teal-100 bg-teal-50 px-2 py-1 text-[11px] font-medium text-teal-700 transition hover:bg-teal-100 hover:text-teal-800"
+          >
+            {sidebarOpen ? "Powered by DevSouq Technologies" : "DevSouq"}
+          </a>
+        </div>
 
-          {/* Tooltip */}
-          {!sidebarOpen && (
-            <span className="absolute left-20 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-[99999]">
-              Logout
-            </span>
-          )}
-        </button>
+        <div className="border-t p-2">
+          <button
+            onClick={handleLogout}
+            className="group relative flex items-center gap-3 w-full p-2 rounded-md text-gray-700 hover:bg-red-50 hover:text-red-600"
+          >
+            <FiLogOut className="text-xl" />
+            {sidebarOpen && <span>Logout</span>}
+
+            {/* Tooltip */}
+            {!sidebarOpen && (
+              <span className="absolute left-20 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-[99999]">
+                Logout
+              </span>
+            )}
+          </button>
+        </div>
       </div>
     </aside>
   );

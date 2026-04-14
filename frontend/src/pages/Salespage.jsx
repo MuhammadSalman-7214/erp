@@ -100,7 +100,7 @@ function Salespage() {
   const [Status, setStatus] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
-  const [saleDateSort, setSaleDateSort] = useState("asc");
+  const [saleDateSort, setSaleDateSort] = useState("desc");
   const [codeQuery, setCodeQuery] = useState("");
   const [debouncedCodeQuery, setDebouncedCodeQuery] = useState("");
   const [showCodeOptions, setShowCodeOptions] = useState(false);

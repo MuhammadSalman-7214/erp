@@ -6,6 +6,7 @@ const {
   createSaleCompletedStockOut,
   rollbackSaleCompletedStockOut,
 } = require("../libs/stockLifecycle");
+const { sendMail } = require("../libs/mailer");
 
 const normalizeText = (value = "") => String(value).trim().toLowerCase();
 
@@ -29,7 +30,8 @@ const getSaleCustomerKeys = (sale) => {
     keys.push(`name:${normalizeText(customerName)}`);
   }
 
-  const customerCode = sale?.customer?.customerCode || sale?.customer_code || "";
+  const customerCode =
+    sale?.customer?.customerCode || sale?.customer_code || "";
   const legacyKey = formatCustomerKey(customerCode, customerName);
   if (legacyKey) {
     keys.push(legacyKey);
@@ -189,7 +191,9 @@ const syncSalePayment = async ({
   ]);
 
   const paymentTotal = Number(paymentTotalRows?.[0]?.total || 0);
-  const invoiceTotal = Number(invoiceRows?.[0]?.totalAmount || totalAmount || 0);
+  const invoiceTotal = Number(
+    invoiceRows?.[0]?.totalAmount || totalAmount || 0,
+  );
   const invoiceStatus =
     paymentTotal >= invoiceTotal && invoiceTotal > 0
       ? "paid"
@@ -238,10 +242,10 @@ const deleteSaleCascade = async ({ executor = query, saleId, userId }) => {
     await executor("DELETE FROM invoice_items WHERE invoice_id = ?", [
       sale.invoice,
     ]);
-    await executor(
-      "DELETE FROM invoices WHERE id = ? AND user_id = ?",
-      [sale.invoice, userId],
-    );
+    await executor("DELETE FROM invoices WHERE id = ? AND user_id = ?", [
+      sale.invoice,
+      userId,
+    ]);
   }
 
   await executor("DELETE FROM sale_items WHERE sale_id = ? AND user_id = ?", [
@@ -355,7 +359,10 @@ const attachCustomerPaymentStatus = async (sales, userId) => {
       const invoiceId = sale.invoice ? String(sale.invoice) : "";
       const invoiceRecord = invoiceId ? invoiceById.get(invoiceId) : null;
       const invoicePaid = invoiceId
-        ? Math.min(Number(invoicePaymentTotals.get(invoiceId) || 0), totalAmount)
+        ? Math.min(
+            Number(invoicePaymentTotals.get(invoiceId) || 0),
+            totalAmount,
+          )
         : 0;
 
       let paidAmount = invoicePaid;
@@ -455,6 +462,87 @@ const hydrateSales = async (sales, userId) => {
   }
 
   return attachCustomerPaymentStatus(hydrated, userId);
+};
+
+const formatCurrency = (value) => `Rs ${Number(value || 0).toLocaleString()}`;
+
+const buildSaleEmail = (sale, customerName) => {
+  const items = Array.isArray(sale?.products) ? sale.products : [];
+  const rows = items
+    .map((item, index) => {
+      const productName = item?.product?.name || item?.name || "Product";
+      const code = item?.productCode?.code || item?.productCode || "-";
+      const qty = Number(item?.quantity || 0);
+      const price = Number(item?.price || 0);
+      const lineTotal = qty * price;
+
+      return `
+        <tr>
+          <td style="padding:8px;border:1px solid #e5e7eb;">${index + 1}</td>
+          <td style="padding:8px;border:1px solid #e5e7eb;">${productName}</td>
+          <td style="padding:8px;border:1px solid #e5e7eb;">${code}</td>
+          <td style="padding:8px;border:1px solid #e5e7eb;text-align:center;">${qty}</td>
+          <td style="padding:8px;border:1px solid #e5e7eb;text-align:right;">${formatCurrency(price)}</td>
+          <td style="padding:8px;border:1px solid #e5e7eb;text-align:right;">${formatCurrency(lineTotal)}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  const totalAmount = Number(sale?.totalAmount || 0);
+  const receivedAmount = Math.max(
+    totalAmount - Number(sale?.remainingAmount || 0),
+    0,
+  );
+
+  return {
+    subject: `Sale Created - ${sale?.invoiceNumber || sale?.id || ""}`,
+    text: [
+      `Sale Invoice: ${sale?.invoiceNumber || sale?.id || "-"}`,
+      `Customer: ${customerName || sale?.customerName || "-"}`,
+      `Status: ${sale?.status || "-"}`,
+      `Payment Method: ${sale?.paymentMethod || "-"}`,
+      `Total Amount: ${formatCurrency(totalAmount)}`,
+      `Received Amount: ${formatCurrency(receivedAmount)}`,
+      `Products: ${items.length}`,
+    ].join("\n"),
+    html: `
+      <div style="font-family:Arial,sans-serif;color:#111827;">
+        <h2 style="margin:0 0 12px 0;">Sale Created</h2>
+        <p style="margin:0 0 6px 0;"><strong>Invoice:</strong> ${
+          sale?.invoiceNumber || sale?.id || "-"
+        }</p>
+        <p style="margin:0 0 6px 0;"><strong>Customer:</strong> ${
+          customerName || sale?.customerName || "-"
+        }</p>
+        <p style="margin:0 0 6px 0;"><strong>Status:</strong> ${
+          sale?.status || "-"
+        }</p>
+        <p style="margin:0 0 6px 0;"><strong>Payment Method:</strong> ${
+          sale?.paymentMethod || "-"
+        }</p>
+        <p style="margin:0 0 6px 0;"><strong>Total:</strong> ${formatCurrency(
+          totalAmount,
+        )}</p>
+        <p style="margin:0 0 16px 0;"><strong>Received:</strong> ${formatCurrency(
+          receivedAmount,
+        )}</p>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead>
+            <tr style="background:#0f766e;color:#ffffff;">
+              <th style="padding:8px;border:1px solid #0f766e;text-align:left;">#</th>
+              <th style="padding:8px;border:1px solid #0f766e;text-align:left;">Product</th>
+              <th style="padding:8px;border:1px solid #0f766e;text-align:left;">Code</th>
+              <th style="padding:8px;border:1px solid #0f766e;text-align:center;">Qty</th>
+              <th style="padding:8px;border:1px solid #0f766e;text-align:right;">Price</th>
+              <th style="padding:8px;border:1px solid #0f766e;text-align:right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `,
+  };
 };
 
 module.exports.createSale = async (req, res) => {
@@ -830,11 +918,26 @@ module.exports.createSale = async (req, res) => {
       [saleId, userId],
     );
     const populatedSale = await hydrateSales(salesRows, userId);
+    const saleForMail = populatedSale[0];
+
+    if (saleForMail) {
+      try {
+        const mailContent = buildSaleEmail(saleForMail, customerName);
+        await sendMail({
+          to: "junaidsaroya1611@gmail.com",
+          subject: mailContent.subject,
+          text: mailContent.text,
+          html: mailContent.html,
+        });
+      } catch (mailError) {
+        console.error("Sale email sending failed:", mailError);
+      }
+    }
 
     res.status(201).json({
       success: true,
       message: "Sale created successfully",
-      sale: populatedSale[0],
+      sale: saleForMail,
     });
   } catch (error) {
     console.error("Create Sale Error:", error);
@@ -859,9 +962,10 @@ module.exports.getAllSales = async (req, res) => {
     const userId = req.user.userId;
     let sales;
     try {
-      sales = await query("SELECT * FROM sales WHERE user_id = ? ORDER BY createdAt ASC", [
-        userId,
-      ]);
+      sales = await query(
+        "SELECT * FROM sales WHERE user_id = ? ORDER BY createdAt DESC",
+        [userId],
+      );
     } catch (err) {
       return res.status(500).json({
         success: false,
@@ -976,7 +1080,10 @@ module.exports.updateSale = async (req, res) => {
         error.statusCode = 404;
         throw error;
       }
-      if (!customer.contact_address || !String(customer.contact_address).trim()) {
+      if (
+        !customer.contact_address ||
+        !String(customer.contact_address).trim()
+      ) {
         const error = new Error("Customer address is required");
         error.statusCode = 400;
         throw error;
@@ -1017,7 +1124,9 @@ module.exports.updateSale = async (req, res) => {
         );
         const productRecord = productRows[0];
         if (!productRecord) {
-          const error = new Error(`Product ${productCodeRecord.product} not found`);
+          const error = new Error(
+            `Product ${productCodeRecord.product} not found`,
+          );
           error.statusCode = 404;
           throw error;
         }
@@ -1080,10 +1189,10 @@ module.exports.updateSale = async (req, res) => {
         ],
       );
 
-      await executor("DELETE FROM sale_items WHERE sale_id = ? AND user_id = ?", [
-        id,
-        userId,
-      ]);
+      await executor(
+        "DELETE FROM sale_items WHERE sale_id = ? AND user_id = ?",
+        [id, userId],
+      );
       const saleItemValues = resolvedProducts.map((item) => [
         id,
         userId,
@@ -1182,12 +1291,14 @@ module.exports.updateSale = async (req, res) => {
             invoice: existingSale.invoice,
             totalAmount: grandTotalAmount,
             carage: resolvedCarage,
-            paymentMethod: updatedData.paymentMethod || existingSale.paymentMethod,
+            paymentMethod:
+              updatedData.paymentMethod || existingSale.paymentMethod,
             customer: customer.id,
             customerName: customer.name,
           },
           customer,
-          paymentMethod: updatedData.paymentMethod || existingSale.paymentMethod,
+          paymentMethod:
+            updatedData.paymentMethod || existingSale.paymentMethod,
           receivedAmount: targetReceivedAmount,
           userId,
         });
@@ -1297,7 +1408,10 @@ module.exports.SearchSales = async (req, res) => {
 
     let sales;
     if (!searchQuery || searchQuery.trim() === "") {
-      sales = await query("SELECT * FROM sales WHERE user_id = ? ORDER BY createdAt ASC", [userId]);
+      sales = await query(
+        "SELECT * FROM sales WHERE user_id = ? ORDER BY createdAt DESC",
+        [userId],
+      );
     } else {
       sales = await query(
         `SELECT * FROM sales s
@@ -1404,7 +1518,9 @@ module.exports.getSalesByCustomer = async (req, res) => {
     let paidAmount = 0;
     const paidInvoiceIds = new Set();
     paidPayments.forEach((payment) => {
-      const paymentCustomerId = payment.customerId ? String(payment.customerId) : "";
+      const paymentCustomerId = payment.customerId
+        ? String(payment.customerId)
+        : "";
       const paymentName = normalizeText(payment.customer_name);
       const paymentCode = normalizeText(payment.customer_code);
 
@@ -1423,18 +1539,30 @@ module.exports.getSalesByCustomer = async (req, res) => {
 
     const invoices = await query(
       "SELECT id, totalAmount, status FROM invoices WHERE invoiceType = ? AND user_id = ? AND (customerId = ? OR customer_name = ? OR customer_code = ?)",
-      ["sales", userId, customerId, customer?.name || "", customer?.customerCode || ""],
+      [
+        "sales",
+        userId,
+        customerId,
+        customer?.name || "",
+        customer?.customerCode || "",
+      ],
     );
 
     invoices.forEach((invoice) => {
-      if (invoice.status === "paid" && !paidInvoiceIds.has(String(invoice.id))) {
+      if (
+        invoice.status === "paid" &&
+        !paidInvoiceIds.has(String(invoice.id))
+      ) {
         paidAmount += Number(invoice.totalAmount) || 0;
       }
     });
 
     summary.paid = paidAmount;
     const openingBalance = Number(customer?.openingBalance) || 0;
-    summary.remaining = Math.max(summary.total - summary.paid + openingBalance, 0);
+    summary.remaining = Math.max(
+      summary.total - summary.paid + openingBalance,
+      0,
+    );
 
     return res.status(200).json({
       success: true,

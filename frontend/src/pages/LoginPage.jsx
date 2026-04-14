@@ -62,7 +62,7 @@ function LoginPage() {
       <div className="w-full sm:w-1/2 p-6 flex items-center justify-center bg-white shadow-lg rounded-xl">
         <div className="max-w-md w-full">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-teal-900">InventoryPro</h1>
+            <h1 className="text-3xl font-bold text-teal-900">InventorySouq</h1>
             <p className="text-gray-600">by DevSouq Technologies</p>
           </div>
 
@@ -158,7 +158,7 @@ function LoginPage() {
         <div className="max-w-md space-y-8">
           <div>
             <h2 className="text-3xl font-bold text-white mb-3">
-              Welcome back to InventoryPro
+              Welcome back to InventorySouq
             </h2>
             <p className="text-teal-100 leading-relaxed text-center">
               A secure and reliable ERP platform designed to simplify inventory,
