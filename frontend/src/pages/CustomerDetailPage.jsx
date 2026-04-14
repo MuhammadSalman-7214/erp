@@ -6,15 +6,26 @@ import { autoTable } from "jspdf-autotable";
 import { Download } from "lucide-react";
 import { Popconfirm } from "antd";
 import { MdDelete } from "react-icons/md";
+import { PiInvoiceBold } from "react-icons/pi";
 import axiosInstance from "../lib/axios";
 import FormattedTime from "../lib/FormattedTime";
 import DateSortHeader from "../Components/DateSortHeader";
-import { formatDateLabel, sortByDateValue } from "../lib/dateFormat";
+import {
+  formatDateLabel,
+  formatDateTimeLabel,
+  getDateTimestamp,
+  sortByDateValue,
+} from "../lib/dateFormat";
 import NoData from "../Components/NoData";
 import { TrendingUp, CreditCard, AlertCircle, Clipboard } from "lucide-react";
 import { DetailSkeleton } from "../Components/LoadingSkeletons";
 import DrawerPanel from "../Components/DrawerPanel";
+import toast from "react-hot-toast";
 import { uppercasePayload } from "../lib/uppercasePayload";
+import {
+  buildInvoicePrintHtml,
+  combineInvoicePagesHtml,
+} from "../lib/invoicePrintTemplate";
 
 const sanitizeFileName = (value) =>
   String(value || "customer_ledger")
@@ -46,17 +57,85 @@ function CustomerDetailPage() {
   const [ledgerDateSort, setLedgerDateSort] = useState("asc");
   const [salesDateSort, setSalesDateSort] = useState("asc");
   const [legacyDateSort, setLegacyDateSort] = useState("asc");
+  const [salesDateFrom, setSalesDateFrom] = useState("");
+  const [salesDateTo, setSalesDateTo] = useState("");
+  const [showBillModal, setShowBillModal] = useState(false);
+  const [billSale, setBillSale] = useState(null);
 
   const currency = (value) => `Rs ${Number(value || 0).toLocaleString()}`;
+
+  const getSaleTotals = (sale) => {
+    const totalAmount = Number(sale?.totalAmount || 0);
+    const carageAmount = Number(sale?.carage || 0);
+    const subTotal = Math.max(totalAmount - carageAmount, 0);
+    const receivedAmountValue = Number.isFinite(Number(sale?.paidAmount))
+      ? Number(sale?.paidAmount || 0)
+      : Math.max(totalAmount - Number(sale?.remainingAmount || 0), 0);
+    const remainingAmountValue = Math.max(totalAmount - receivedAmountValue, 0);
+
+    return {
+      totalAmount,
+      carageAmount,
+      subTotal,
+      receivedAmountValue,
+      remainingAmountValue,
+    };
+  };
 
   const sortedLedger = useMemo(
     () => sortByDateValue(ledger || [], (entry) => entry.date, ledgerDateSort),
     [ledger, ledgerDateSort],
   );
 
+  const filteredSales = useMemo(() => {
+    const allSales = Array.isArray(sales) ? sales : [];
+    if (!salesDateFrom && !salesDateTo) {
+      return allSales;
+    }
+
+    const fromStartTimestamp = salesDateFrom
+      ? new Date(`${salesDateFrom}T00:00:00`).getTime()
+      : 0;
+    const fromEndTimestamp = salesDateFrom
+      ? new Date(`${salesDateFrom}T23:59:59.999`).getTime()
+      : 0;
+    const toEndTimestamp = salesDateTo
+      ? new Date(`${salesDateTo}T23:59:59.999`).getTime()
+      : 0;
+
+    return allSales.filter((sale) => {
+      const saleTimestamp = getDateTimestamp(sale.createdAt);
+      if (!saleTimestamp) return false;
+
+      if (salesDateFrom && salesDateTo) {
+        return (
+          saleTimestamp >= fromStartTimestamp && saleTimestamp <= toEndTimestamp
+        );
+      }
+
+      if (salesDateFrom) {
+        return (
+          saleTimestamp >= fromStartTimestamp &&
+          saleTimestamp <= fromEndTimestamp
+        );
+      }
+
+      if (salesDateTo) {
+        return saleTimestamp <= toEndTimestamp;
+      }
+
+      return true;
+    });
+  }, [sales, salesDateFrom, salesDateTo]);
+
   const sortedSales = useMemo(
-    () => sortByDateValue(sales || [], (sale) => sale.createdAt, salesDateSort),
-    [sales, salesDateSort],
+    () =>
+      sortByDateValue(
+        filteredSales || [],
+        (sale) => sale.createdAt,
+        salesDateSort,
+      ),
+    [filteredSales, salesDateSort],
   );
 
   const legacyEntries = useMemo(
@@ -169,6 +248,491 @@ function CustomerDetailPage() {
     } catch (error) {
       console.error("Failed to delete customer legacy amount:", error);
     }
+  };
+
+  const openBillPreview = (sale) => {
+    if (!sale) return;
+    setBillSale(sale);
+    setShowBillModal(true);
+  };
+
+  const closeBillPreview = () => {
+    setShowBillModal(false);
+    setBillSale(null);
+  };
+
+  const billPreviewHtml = useMemo(() => {
+    if (!billSale) return "";
+
+    const items = Array.isArray(billSale.products) ? billSale.products : [];
+    const {
+      totalAmount,
+      carageAmount,
+      subTotal,
+      receivedAmountValue,
+      remainingAmountValue,
+    } = getSaleTotals(billSale);
+
+    const invoiceHtml = buildInvoicePrintHtml({
+      documentTitle: "Sales Invoice",
+      companyName: "Imran Traders",
+      slogan: "",
+      logoUrl: `${window.location.origin}/ITLOGO.svg`,
+      invoiceLabel: "Invoice #",
+      invoiceNumber: billSale.invoiceNumber || billSale.id || "-",
+      issueLabel: "Date",
+      issueDate: billSale.createdAt || new Date().toISOString(),
+      partyLabel: "Invoice To",
+      partyName: billSale.customerName || customer?.name || "Customer",
+      partyPhone:
+        billSale.customer?.contactInfo?.phone ||
+        billSale.customer?.phone ||
+        customer?.contactInfo?.phone ||
+        customer?.phone ||
+        "",
+      partyAddress:
+        billSale.customer?.contactInfo?.address ||
+        billSale.customer?.address ||
+        customer?.contactInfo?.address ||
+        customer?.address ||
+        "",
+      paymentMethod: billSale.paymentMethod || "-",
+      status: billSale.status || "-",
+      items: items.map((item) => {
+        const qty = Number(item.quantity || 0);
+        const unitPrice = Number(item.price || 0);
+        return {
+          name: item.product?.name || "Product",
+          description: "",
+          company: "",
+          code: item.productCode?.code || "",
+          quantity: qty,
+          unitPrice,
+          total: qty * unitPrice,
+        };
+      }),
+      currency: "Rs",
+      subTotal,
+      carage: carageAmount,
+      totalAmount,
+      receivedAmount: receivedAmountValue,
+      remainingAmount: remainingAmountValue,
+      notes: billSale.notes || "",
+    });
+
+    const gatePassHtml = buildInvoicePrintHtml({
+      documentTitle: "Gate Pass",
+      companyName: "Imran Traders",
+      slogan: "",
+      logoUrl: `${window.location.origin}/ITLOGO.svg`,
+      invoiceLabel: "Gate Pass #",
+      invoiceNumber: billSale.invoiceNumber || billSale.id || "-",
+      issueLabel: "Date",
+      issueDate: billSale.createdAt || new Date().toISOString(),
+      partyLabel: "Gate Pass",
+      partyName: billSale.customerName || customer?.name || "Customer",
+      partyPhone:
+        billSale.customer?.contactInfo?.phone ||
+        billSale.customer?.phone ||
+        customer?.contactInfo?.phone ||
+        customer?.phone ||
+        "",
+      partyAddress:
+        billSale.customer?.contactInfo?.address ||
+        billSale.customer?.address ||
+        customer?.contactInfo?.address ||
+        customer?.address ||
+        "",
+      paymentMethod: billSale.paymentMethod || "-",
+      status: billSale.status || "-",
+      items: items.map((item) => ({
+        name: item.product?.name || "Product",
+        quantity: Number(item.quantity || 0),
+        code: item.productCode?.code || "",
+      })),
+      showPrices: false,
+      showSummaryBox: false,
+      currency: "Rs",
+      subTotal,
+      carage: carageAmount,
+      totalAmount,
+      receivedAmount: receivedAmountValue,
+      remainingAmount: remainingAmountValue,
+      notes: billSale.notes || "",
+    });
+
+    return combineInvoicePagesHtml(invoiceHtml, gatePassHtml);
+  }, [billSale, customer]);
+
+  const currentBillTotals = billSale ? getSaleTotals(billSale) : null;
+
+  const openPrintWindow = (html) => {
+    const printWindow = window.open("", "_blank", "width=900,height=650");
+    if (!printWindow) {
+      toast.error("Popup blocked. Please allow popups.");
+      return;
+    }
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.onload = () => {
+      printWindow.focus();
+      printWindow.print();
+      setTimeout(() => printWindow.close(), 200);
+    };
+  };
+
+  const buildBillPdfData = () => {
+    if (!billSale) return null;
+
+    const items = Array.isArray(billSale.products) ? billSale.products : [];
+    const {
+      totalAmount,
+      carageAmount,
+      subTotal,
+      receivedAmountValue,
+      remainingAmountValue,
+    } = getSaleTotals(billSale);
+
+    return {
+      invoiceNumber: billSale.invoiceNumber || billSale.id || "-",
+      issueDate: billSale.createdAt || new Date().toISOString(),
+      customerName: billSale.customerName || customer?.name || "Customer",
+      customerPhone:
+        billSale.customer?.contactInfo?.phone ||
+        billSale.customer?.phone ||
+        customer?.contactInfo?.phone ||
+        customer?.phone ||
+        "-",
+      customerAddress:
+        billSale.customer?.contactInfo?.address ||
+        billSale.customer?.address ||
+        customer?.contactInfo?.address ||
+        customer?.address ||
+        "-",
+      paymentMethod: billSale.paymentMethod || "-",
+      status: billSale.status || "-",
+      items: items.map((item) => {
+        const qty = Number(item.quantity || 0);
+        const unitPrice = Number(item.price || 0);
+        return {
+          name: item.product?.name || "Product",
+          code: item.productCode?.code || "-",
+          quantity: qty,
+          unitPrice,
+          total: qty * unitPrice,
+        };
+      }),
+      subTotal,
+      carageAmount,
+      totalAmount,
+      receivedAmountValue,
+      remainingAmountValue,
+      notes: String(billSale.notes || "").trim(),
+    };
+  };
+
+  const downloadBillPdf = async () => {
+    const data = buildBillPdfData();
+    if (!data) return;
+
+    const fileName = `${sanitizeFileName(data.invoiceNumber || "invoice")}.pdf`;
+
+    try {
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a5",
+      });
+
+      pdf.setProperties({ title: fileName });
+
+      const marginX = 10;
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const contentWidth = pageWidth - marginX * 2;
+      let y = 12;
+
+      const addWrappedText = (
+        text,
+        x,
+        currentY,
+        width = contentWidth,
+        lineHeight = 4.5,
+        fontSize = 9,
+        style = "normal",
+      ) => {
+        pdf.setFont("helvetica", style);
+        pdf.setFontSize(fontSize);
+        const lines = pdf.splitTextToSize(String(text || "-"), width);
+        pdf.text(lines, x, currentY);
+        return currentY + lines.length * lineHeight;
+      };
+
+      const addLine = (currentY) => {
+        pdf.setDrawColor(203, 213, 225);
+        pdf.line(marginX, currentY, pageWidth - marginX, currentY);
+      };
+
+      const headerTextX = marginX;
+      pdf.setTextColor(15, 23, 42);
+      y = addWrappedText(
+        "Imran Traders",
+        headerTextX,
+        15,
+        contentWidth,
+        5,
+        16,
+        "bold",
+      );
+      y = addWrappedText(
+        "Billing and stock management",
+        headerTextX,
+        y + 1,
+        contentWidth,
+        4,
+        9,
+      );
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(13);
+      pdf.text("Sales Invoice", pageWidth - marginX, 14, { align: "right" });
+      y = Math.max(y + 4, 24);
+      addLine(y);
+      y += 7;
+
+      const detailsLeft = [
+        ["Customer", data.customerName],
+        ["Phone", data.customerPhone],
+        ["Address", data.customerAddress],
+        ["Payment", data.paymentMethod],
+      ];
+
+      pdf.setFontSize(9);
+      let detailsY = y;
+      detailsLeft.forEach(([label, value]) => {
+        pdf.setFont("helvetica", "bold");
+        pdf.text(`${label}:`, marginX, detailsY);
+        pdf.setFont("helvetica", "normal");
+        const wrapped = pdf.splitTextToSize(String(value || "-"), 65);
+        pdf.text(wrapped, marginX + 18, detailsY);
+        detailsY += Math.max(wrapped.length * 4.2, 4.2);
+      });
+
+      const detailsRight = [
+        ["Invoice #", data.invoiceNumber],
+        ["Date", formatDateLabel(data.issueDate)],
+      ];
+
+      let detailsRightY = y;
+      detailsRight.forEach(([label, value]) => {
+        pdf.setFont("helvetica", "bold");
+        pdf.text(`${label}:`, pageWidth / 2 + 4, detailsRightY);
+        pdf.setFont("helvetica", "normal");
+        const wrapped = pdf.splitTextToSize(String(value || "-"), 40);
+        pdf.text(wrapped, pageWidth / 2 + 22, detailsRightY);
+        detailsRightY += Math.max(wrapped.length * 4.2, 4.2);
+      });
+
+      y = Math.max(detailsY, detailsRightY) + 5;
+      addLine(y);
+      y += 6;
+
+      autoTable(pdf, {
+        startY: y,
+        margin: { left: marginX, right: marginX },
+        head: [["No", "Item Description", "Qty", "Price", "Total"]],
+        body: data.items.length
+          ? data.items.map((item, index) => [
+              String(index + 1),
+              item.code && item.code !== "-"
+                ? `${item.code} - ${item.name}`
+                : item.name,
+              String(item.quantity),
+              currency(item.unitPrice),
+              currency(item.total),
+            ])
+          : [["-", "No items", "-", "-", "-"]],
+        styles: {
+          font: "helvetica",
+          fontSize: 8,
+          cellPadding: 1.5,
+          overflow: "linebreak",
+          valign: "middle",
+        },
+        headStyles: {
+          fillColor: [15, 118, 110],
+          textColor: 255,
+          fontStyle: "bold",
+        },
+        columnStyles: {
+          0: { cellWidth: 10, halign: "center" },
+          2: { cellWidth: 12, halign: "center" },
+          3: { cellWidth: 20, halign: "right" },
+          4: { cellWidth: 22, halign: "right" },
+        },
+        theme: "grid",
+      });
+
+      const tableEndY = pdf.lastAutoTable?.finalY || y;
+      let summaryY = tableEndY + 6;
+      if (summaryY > pageHeight - 35) {
+        pdf.addPage();
+        summaryY = 14;
+      }
+
+      const summaryX = pageWidth - marginX - 42;
+      const summary = [
+        ["Sub Total", currency(data.subTotal)],
+        ["Carage", currency(data.carageAmount)],
+        ["Received", currency(data.receivedAmountValue)],
+        ["Remaining", currency(data.remainingAmountValue)],
+      ];
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8.5);
+      summary.forEach(([label, value]) => {
+        pdf.text(label, summaryX, summaryY);
+        pdf.text(value, pageWidth - marginX, summaryY, { align: "right" });
+        summaryY += 4.8;
+      });
+
+      pdf.setFillColor(15, 118, 110);
+      pdf.rect(summaryX - 2, summaryY - 1.2, 44, 6, "F");
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Total Bill", summaryX, summaryY + 2.6);
+      pdf.text(currency(data.totalAmount), pageWidth - marginX, summaryY + 2.6, {
+        align: "right",
+      });
+
+      if (data.notes) {
+        const notesY = summaryY + 10;
+        if (notesY > pageHeight - 15) {
+          pdf.addPage();
+          y = 14;
+        } else {
+          y = notesY;
+        }
+        pdf.setTextColor(15, 23, 42);
+        pdf.setFont("helvetica", "bold");
+        pdf.text("Notes:", marginX, y);
+        pdf.setFont("helvetica", "normal");
+        pdf.text(pdf.splitTextToSize(data.notes, contentWidth), marginX, y + 4);
+      }
+
+      pdf.save(fileName);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to download bill");
+    }
+  };
+
+  const handlePrintBillOnly = () => {
+    if (!billSale) return;
+    const invoiceHtml = buildInvoicePrintHtml({
+      documentTitle: "Sales Invoice",
+      companyName: "Imran Traders",
+      slogan: "",
+      logoUrl: `${window.location.origin}/ITLOGO.svg`,
+      invoiceLabel: "Invoice #",
+      invoiceNumber: billSale.invoiceNumber || billSale.id || "-",
+      issueLabel: "Date",
+      issueDate: billSale.createdAt || new Date().toISOString(),
+      partyLabel: "Invoice To",
+      partyName: billSale.customerName || customer?.name || "Customer",
+      partyPhone:
+        billSale.customer?.contactInfo?.phone ||
+        billSale.customer?.phone ||
+        customer?.contactInfo?.phone ||
+        customer?.phone ||
+        "",
+      partyAddress:
+        billSale.customer?.contactInfo?.address ||
+        billSale.customer?.address ||
+        customer?.contactInfo?.address ||
+        customer?.address ||
+        "",
+      paymentMethod: billSale.paymentMethod || "-",
+      status: billSale.status || "-",
+      items: (billSale.products || []).map((item) => {
+        const qty = Number(item.quantity || 0);
+        const unitPrice = Number(item.price || 0);
+        return {
+          name: item.product?.name || "Product",
+          description: "",
+          company: "",
+          code: item.productCode?.code || "",
+          quantity: qty,
+          unitPrice,
+          total: qty * unitPrice,
+        };
+      }),
+      currency: "Rs",
+      subTotal: getSaleTotals(billSale).subTotal,
+      carage: getSaleTotals(billSale).carageAmount,
+      totalAmount: getSaleTotals(billSale).totalAmount,
+      receivedAmount: getSaleTotals(billSale).receivedAmountValue,
+      remainingAmount: getSaleTotals(billSale).remainingAmountValue,
+      notes: billSale.notes || "",
+    });
+
+    openPrintWindow(invoiceHtml);
+  };
+
+  const handleDownloadBillOnly = async () => {
+    await downloadBillPdf();
+  };
+
+  const handlePrintGatePassOnly = () => {
+    if (!billSale) return;
+    const gatePassHtml = buildInvoicePrintHtml({
+      documentTitle: "Gate Pass",
+      companyName: "Imran Traders",
+      slogan: "",
+      logoUrl: `${window.location.origin}/ITLOGO.svg`,
+      invoiceLabel: "Gate Pass #",
+      invoiceNumber: billSale.invoiceNumber || billSale.id || "-",
+      issueLabel: "Date",
+      issueDate: billSale.createdAt || new Date().toISOString(),
+      partyLabel: "Gate Pass",
+      partyName: billSale.customerName || customer?.name || "Customer",
+      partyPhone:
+        billSale.customer?.contactInfo?.phone ||
+        billSale.customer?.phone ||
+        customer?.contactInfo?.phone ||
+        customer?.phone ||
+        "",
+      partyAddress:
+        billSale.customer?.contactInfo?.address ||
+        billSale.customer?.address ||
+        customer?.contactInfo?.address ||
+        customer?.address ||
+        "",
+      paymentMethod: billSale.paymentMethod || "-",
+      status: billSale.status || "-",
+      items: (billSale.products || []).map((item) => ({
+        name: item.product?.name || "Product",
+        quantity: Number(item.quantity || 0),
+        code: item.productCode?.code || "",
+      })),
+      showPrices: false,
+      showSummaryBox: false,
+      currency: "Rs",
+      subTotal: getSaleTotals(billSale).subTotal,
+      carage: getSaleTotals(billSale).carageAmount,
+      totalAmount: getSaleTotals(billSale).totalAmount,
+      receivedAmount: getSaleTotals(billSale).receivedAmountValue,
+      remainingAmount: getSaleTotals(billSale).remainingAmountValue,
+      notes: billSale.notes || "",
+    });
+
+    openPrintWindow(gatePassHtml);
+  };
+
+  const handlePrintBoth = () => {
+    if (!billSale || !billPreviewHtml) return;
+    openPrintWindow(billPreviewHtml);
   };
 
   const downloadLedgerPdf = () => {
@@ -460,7 +1024,7 @@ function CustomerDetailPage() {
           </div>
 
           <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
-            <div className="flex items-start justify-between gap-3 p-5 border-b">
+            <div className="flex flex-col gap-4 p-5 border-b">
               <div>
                 <div className="text-lg font-semibold text-slate-800">
                   Sales Record
@@ -469,12 +1033,50 @@ function CustomerDetailPage() {
                   Sales saved on the customer record.
                 </div>
               </div>
+              <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">
+                    From
+                  </label>
+                  <input
+                    type="date"
+                    value={salesDateFrom}
+                    onChange={(e) => setSalesDateFrom(e.target.value)}
+                    className="h-10 rounded-lg border border-slate-300 px-3 text-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">
+                    To
+                  </label>
+                  <input
+                    type="date"
+                    value={salesDateTo}
+                    onChange={(e) => setSalesDateTo(e.target.value)}
+                    className="h-10 rounded-lg border border-slate-300 px-3 text-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSalesDateFrom("");
+                    setSalesDateTo("");
+                  }}
+                  className="h-10 rounded-lg border border-teal-200 px-4 text-sm font-medium text-teal-700 hover:bg-teal-50"
+                >
+                  Clear filter
+                </button>
+              </div>
             </div>
-            {sales.length === 0 ? (
+            {sortedSales.length === 0 ? (
               <div className="p-10">
                 <NoData
                   title="No Sales Found"
-                  description="This customer has no sales recorded yet."
+                  description={
+                    salesDateFrom || salesDateTo
+                      ? "No sales match the selected date range."
+                      : "This customer has no sales recorded yet."
+                  }
                 />
               </div>
             ) : (
@@ -497,6 +1099,9 @@ function CustomerDetailPage() {
                       <th className="px-5 py-4 font-medium">Total</th>
                       <th className="px-5 py-4 font-medium">Payment</th>
                       <th className="px-5 py-4 font-medium">Sale Status</th>
+                      <th className="px-5 py-4 font-medium text-right">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -542,6 +1147,19 @@ function CustomerDetailPage() {
                           </td>
                           <td className="px-5 py-4 text-slate-700">
                             {sale.status || "-"}
+                          </td>
+                          <td className="px-5 py-4">
+                            <div className="flex justify-end">
+                              <button
+                                type="button"
+                                onClick={() => openBillPreview(sale)}
+                                className="inline-flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100"
+                                title="Generate / View Bill"
+                              >
+                                <PiInvoiceBold size={18} />
+                                Bill
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -657,6 +1275,260 @@ function CustomerDetailPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </>
+      )}
+
+      {showBillModal && billSale && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 z-[60]"
+            onClick={closeBillPreview}
+          />
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+            <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl border overflow-hidden">
+              <div className="flex items-center justify-between px-6 py-4 border-b bg-slate-50">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-800">
+                    Sales Bill Preview
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Review the invoice before printing
+                  </p>
+                </div>
+                <button
+                  onClick={closeBillPreview}
+                  className="text-sm text-slate-500 hover:text-slate-700"
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="absolute inset-x-0 top-[57px] bottom-[72px] z-20 bg-slate-100 p-4">
+                <div className="mx-auto h-full w-full max-w-[900px] overflow-hidden rounded-xl border bg-white shadow-sm">
+                  <iframe
+                    title="Sales Bill Preview"
+                    srcDoc={billPreviewHtml}
+                    className="h-full w-full border-0"
+                  />
+                </div>
+              </div>
+
+              <div className="p-6 max-h-[70vh] overflow-y-auto">
+                <div className="rounded-2xl border border-slate-200 p-6 bg-white shadow-sm">
+                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 border-b pb-4 mb-4">
+                    <div>
+                      <h2 className="text-2xl font-semibold text-teal-700">
+                        Sales Invoice
+                      </h2>
+                      <p className="text-sm text-slate-500">Imran Trader</p>
+                    </div>
+                    <div className="text-sm text-slate-600 space-y-1">
+                      <div>
+                        <span className="font-semibold">Date:</span>{" "}
+                        {formatDateTimeLabel(billSale.createdAt || new Date())}
+                      </div>
+                      <div>
+                        <span className="font-semibold">Status:</span>{" "}
+                        {billSale.status}
+                      </div>
+                      <div>
+                        <span className="font-semibold">Payment:</span>{" "}
+                        {billSale.paymentStatus || "-"}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div className="rounded-xl border bg-slate-50 p-4">
+                      <h4 className="text-xs font-semibold text-teal-700 uppercase tracking-wide mb-2">
+                        Customer
+                      </h4>
+                      <p className="text-sm font-semibold text-slate-800">
+                        {billSale.customerName || customer?.name || "Customer"}
+                      </p>
+                      <p className="text-sm text-slate-600">
+                        Phone:{" "}
+                        {billSale.customer?.contactInfo?.phone ||
+                          billSale.customer?.phone ||
+                          customer?.contactInfo?.phone ||
+                          customer?.phone ||
+                          "-"}
+                      </p>
+                      <p className="text-sm text-slate-600">
+                        Address:{" "}
+                        {billSale.customer?.contactInfo?.address ||
+                          billSale.customer?.address ||
+                          customer?.contactInfo?.address ||
+                          customer?.address ||
+                          "-"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border bg-slate-50 p-4">
+                      <h4 className="text-xs font-semibold text-teal-700 uppercase tracking-wide mb-2">
+                        Sale Info
+                      </h4>
+                      <p className="text-sm text-slate-600">
+                        Subtotal:{" "}
+                        {currency(
+                          Math.max(
+                            Number(billSale.totalAmount || 0) -
+                              Number(billSale.carage || 0),
+                            0,
+                          ),
+                        )}
+                      </p>
+                      <p className="text-sm text-slate-600">
+                        Carage: {currency(billSale.carage || 0)}
+                      </p>
+                      <p className="text-sm text-slate-600">
+                        Received Amount:{" "}
+                        {currency(
+                          currentBillTotals?.receivedAmountValue || 0,
+                        )}
+                      </p>
+                      <p className="text-sm text-slate-600">
+                        Remaining Amount:{" "}
+                        {currency(
+                          currentBillTotals?.remainingAmountValue || 0,
+                        )}
+                      </p>
+                      <p className="text-sm text-slate-600">
+                        Payment Method: {billSale.paymentMethod || "-"}
+                      </p>
+                      <p className="text-sm text-slate-600">
+                        Items: {(billSale.products || []).length}
+                      </p>
+                      <p className="text-sm text-slate-600">
+                        Total Qty:{" "}
+                        {(billSale.products || []).reduce(
+                          (sum, item) => sum + Number(item.quantity || 0),
+                          0,
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="overflow-hidden rounded-xl border">
+                    <table className="w-full text-sm">
+                      <thead className="bg-teal-700 text-white">
+                        <tr>
+                          <th className="px-4 py-3 text-left">#</th>
+                          <th className="px-4 py-3 text-left">Product</th>
+                          <th className="px-4 py-3 text-left">Description</th>
+                          <th className="px-4 py-3 text-left">Code</th>
+                          <th className="px-4 py-3 text-right">Qty</th>
+                          <th className="px-4 py-3 text-right">Unit</th>
+                          <th className="px-4 py-3 text-right">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(billSale.products || []).map((item, idx) => {
+                          const qty = Number(item.quantity || 0);
+                          const price = Number(item.price || 0);
+                          return (
+                            <tr
+                              key={item.productCode?.id || idx}
+                              className="border-b last:border-b-0"
+                            >
+                              <td className="px-4 py-3 text-slate-500">
+                                {idx + 1}
+                              </td>
+                              <td className="px-4 py-3 text-slate-800">
+                                {item.product?.name || "Product"}
+                                {item.product?.company || item.product?.brand
+                                  ? ` • ${item.product?.company || item.product?.brand}`
+                                  : ""}
+                              </td>
+                              <td className="px-4 py-3 text-slate-600">
+                                {item.product?.description || "-"}
+                              </td>
+                              <td className="px-4 py-3 text-slate-600">
+                                {item.productCode?.code || "-"}
+                              </td>
+                              <td className="px-4 py-3 text-right">{qty}</td>
+                              <td className="px-4 py-3 text-right">
+                                {currency(price)}
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                {currency(price * qty)}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="mt-6 flex justify-end">
+                    <div className="w-64 space-y-2 text-sm text-slate-600">
+                      <div className="flex justify-between">
+                        <span>Subtotal</span>
+                        <span>{currency(billSale.totalAmount)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Received</span>
+                        <span>
+                          {currency(
+                            currentBillTotals?.receivedAmountValue || 0,
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Remaining</span>
+                        <span>
+                          {currency(
+                            currentBillTotals?.remainingAmountValue || 0,
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-base font-semibold text-slate-800 border-t pt-2">
+                        <span>Total</span>
+                        <span>{currency(billSale.totalAmount)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row justify-end gap-3 px-6 py-4 border-t bg-slate-50">
+                <button
+                  type="button"
+                  onClick={closeBillPreview}
+                  className="px-5 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePrintBillOnly}
+                  className="px-5 py-2 rounded-lg bg-teal-700 text-white hover:bg-teal-600"
+                >
+                  Print Bill
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadBillOnly}
+                  className="px-5 py-2 rounded-lg bg-emerald-700 text-white hover:bg-emerald-600"
+                >
+                  Download Bill
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePrintGatePassOnly}
+                  className="px-5 py-2 rounded-lg bg-slate-800 text-white hover:bg-slate-700"
+                >
+                  Print Gate Pass
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePrintBoth}
+                  className="px-5 py-2 rounded-lg bg-indigo-700 text-white hover:bg-indigo-600"
+                >
+                  Print Both
+                </button>
+              </div>
             </div>
           </div>
         </>
