@@ -3,6 +3,7 @@ const query = require("../libs/dbQuery.js");
 const getDashboardSummary = async (req, res) => {
   try {
     const userId = req.user.userId;
+    const lowStockThreshold = 10;
     const now = new Date();
     const startOfDay = new Date(
       now.getFullYear(),
@@ -24,6 +25,15 @@ const getDashboardSummary = async (req, res) => {
     );
     const startMs = startOfDay.getTime();
     const endMs = endOfDay.getTime();
+    const overdueThreshold = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() - 6,
+      0,
+      0,
+      0,
+      0,
+    );
 
     const toTime = (value) => {
       if (!value) return null;
@@ -140,15 +150,15 @@ const getDashboardSummary = async (req, res) => {
       [overdueInvoices, recentInvoices, lowStockProducts] = await Promise.all([
         query(
           "SELECT * FROM invoices WHERE status NOT IN ('paid', 'cancelled') AND dueDate < ? AND user_id = ? ORDER BY dueDate ASC LIMIT 10",
-          [startOfDay, userId],
+          [overdueThreshold, userId],
         ),
         query(
           "SELECT * FROM invoices WHERE user_id = ? ORDER BY createdAt DESC LIMIT 8",
           [userId],
         ),
         query(
-          "SELECT pc.*, p.name AS product_name FROM product_codes pc LEFT JOIN products p ON p.id = pc.product WHERE pc.quantity <= 50 AND pc.user_id = ? ORDER BY pc.quantity ASC LIMIT 8",
-          [userId],
+          "SELECT pc.*, p.name AS product_name FROM product_codes pc LEFT JOIN products p ON p.id = pc.product WHERE pc.quantity < ? AND pc.user_id = ? ORDER BY pc.quantity ASC LIMIT 8",
+          [lowStockThreshold, userId],
         ),
       ]);
     } catch (err) {

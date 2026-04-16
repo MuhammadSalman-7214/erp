@@ -924,7 +924,7 @@ module.exports.createSale = async (req, res) => {
       try {
         const mailContent = buildSaleEmail(saleForMail, customerName);
         await sendMail({
-          to: "junaidsaroya1611@gmail.com",
+          to: "noobsquard123@gmail.com",
           subject: mailContent.subject,
           text: mailContent.text,
           html: mailContent.html,

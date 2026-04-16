@@ -390,9 +390,14 @@ function Dashboardpage() {
         {/* Overdue Payments */}
         <div className="bg-white rounded-xl shadow-md border-2 border-gray-100 p-5 hover:shadow-lg transition-shadow duration-300">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-800">
-              Overdue Payments
-            </h3>
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">
+                Overdue Payments
+              </h3>
+              <p className="text-xs text-gray-500">
+                Overdue by more than 6 days
+              </p>
+            </div>
             <AlertCircle className="w-5 h-5 text-red-600" />
           </div>
           {loading ? (
@@ -434,9 +439,12 @@ function Dashboardpage() {
         {/* Low Stock Products */}
         <div className="bg-white rounded-xl shadow-md border-2 border-gray-100 p-5 hover:shadow-lg transition-shadow duration-300">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-800">
-              Low Stock Products
-            </h3>
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">
+                Low Stock Products
+              </h3>
+              <p className="text-xs text-gray-500">Quantity less than 10</p>
+            </div>
             <Package className="w-5 h-5 text-amber-600" />
           </div>
           {loading ? (
