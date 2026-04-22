@@ -1,10 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useDispatch, useSelector } from "react-redux";
 import * as yup from "yup";
-import { login } from "../features/authSlice";
+import {
+  clearPendingOtpSession,
+  login,
+  verifyOtp,
+} from "../features/authSlice";
 import toast from "react-hot-toast";
 import { IoEyeOffOutline, IoEyeOutline } from "react-icons/io5";
 
@@ -14,10 +18,14 @@ const getDashboardPath = (role) => {
 };
 
 function LoginPage() {
-  const { user, isLoginLoading } = useSelector((state) => state.auth);
+  const { user, isLoginLoading, pendingOtpSession, isOtpVerifying } =
+    useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [secondsLeft, setSecondsLeft] = useState(60);
+  const expiredHandledRef = useRef(false);
 
   const schema = yup.object().shape({
     email: yup.string().email("Invalid email").required("Email is required"),
@@ -35,9 +43,65 @@ function LoginPage() {
     resolver: yupResolver(schema),
   });
 
-  const onSubmit = async (data) => {
+  const otpSession = useMemo(() => pendingOtpSession, [pendingOtpSession]);
+  const isOtpStep = !!otpSession?.challengeId;
+
+  useEffect(() => {
+    if (user?.role) {
+      navigate(getDashboardPath(user.role), { replace: true });
+    }
+  }, [user, navigate]);
+
+  useEffect(() => {
+    if (!otpSession?.challengeId) {
+      setOtp("");
+      setSecondsLeft(60);
+      expiredHandledRef.current = false;
+      return;
+    }
+
+    const expiryTime =
+      (otpSession.createdAt || Date.now()) +
+      (otpSession.expiresIn || 60) * 1000;
+
+    const updateTimer = () => {
+      const remaining = Math.max(
+        0,
+        Math.ceil((expiryTime - Date.now()) / 1000),
+      );
+      setSecondsLeft(remaining);
+
+      if (remaining <= 0 && !expiredHandledRef.current) {
+        expiredHandledRef.current = true;
+        localStorage.removeItem("pendingOtpSession");
+        dispatch(clearPendingOtpSession());
+        setOtp("");
+        toast.error("OTP expired. Please sign in again to request a new code.");
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+
+    return () => clearInterval(interval);
+  }, [dispatch, otpSession]);
+
+  useEffect(() => {
+    if (!isOtpStep) {
+      expiredHandledRef.current = false;
+    }
+  }, [isOtpStep]);
+
+  const handleLogin = async (data) => {
     try {
       const result = await dispatch(login(data)).unwrap();
+
+      if (result?.otpRequired) {
+        toast.success(
+          `One time OTP sent to ${result.maskedEmail || result.email}. It expires in 1 minute.`,
+        );
+        return;
+      }
 
       const userRole = result?.user?.role;
       toast.success(`Welcome back, ${result?.user?.name || "User"}!`);
@@ -50,12 +114,48 @@ function LoginPage() {
     }
   };
 
-  // Redirect if already logged in
-  useEffect(() => {
-    if (user?.role) {
-      navigate(getDashboardPath(user.role), { replace: true });
+  const handleVerifyOtp = async () => {
+    if (!otpSession?.challengeId) {
+      toast.error("OTP session expired. Please sign in again.");
+      return;
     }
-  }, [user, navigate]);
+
+    if (secondsLeft <= 0) {
+      toast.error("OTP expired. Please sign in again.");
+      return;
+    }
+
+    if (!otp.trim()) {
+      toast.error("Please enter the OTP");
+      return;
+    }
+
+    try {
+      const result = await dispatch(
+        verifyOtp({
+          challengeId: otpSession.challengeId,
+          otp: otp.trim(),
+        }),
+      ).unwrap();
+
+      toast.success(`Welcome back, ${result?.user?.name || "User"}!`);
+      navigate(getDashboardPath(result?.user?.role), {
+        replace: true,
+      });
+    } catch (error) {
+      console.error("Error in OTP verification:", error);
+      toast.error(error || "OTP verification failed. Please try again.");
+    }
+  };
+
+  const onSubmit = async (data) => {
+    if (isOtpStep) {
+      await handleVerifyOtp();
+      return;
+    }
+
+    await handleLogin(data);
+  };
 
   return (
     <div className="min-h-screen bg-base-100 flex bg-gray-50">
@@ -123,6 +223,39 @@ function LoginPage() {
               )}
             </div>
 
+            {isOtpStep && (
+              <div className="mb-6">
+                <div className="rounded-md border border-teal-200 bg-teal-50 px-4 py-3 mb-4">
+                  <p className="text-sm text-gray-700 font-medium">
+                    One time OTP sent to your email{" "}
+                    <span className="text-teal-700">
+                      {otpSession?.maskedEmail || otpSession?.email}
+                    </span>
+                  </p>
+                </div>
+
+                <div className="flex justify-between">
+                  <label className="block text-gray-700 text-sm font-medium mb-2">
+                    OTP
+                  </label>
+                  <span className="text-sm font-semibold text-red-600">
+                    {secondsLeft <= 0 ? "Expired" : `${secondsLeft}s`}
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  value={otp}
+                  onChange={(e) =>
+                    setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                  }
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  placeholder="Enter 6-digit OTP"
+                  className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-center tracking-[0.35em] !normal-case"
+                />
+              </div>
+            )}
+
             {/* <div className="flex items-center mb-6">
               <input type="checkbox" id="terms" className="mr-2" />
               <label htmlFor="terms" className="text-gray-600 text-sm">
@@ -133,9 +266,19 @@ function LoginPage() {
             <button
               type="submit"
               className="w-full bg-teal-600 text-white p-3 rounded-md hover:bg-teal-700 transition duration-300 disabled:cursor-not-allowed disabled:opacity-70"
-              disabled={isLoginLoading}
+              disabled={
+                isLoginLoading ||
+                isOtpVerifying ||
+                (isOtpStep && secondsLeft <= 0)
+              }
             >
-              {isLoginLoading ? "Logging in..." : "Sign in"}
+              {isOtpStep
+                ? isOtpVerifying
+                  ? "Verifying OTP..."
+                  : "Verify and continue"
+                : isLoginLoading
+                  ? "Getting OTP..."
+                  : "Get OTP"}
             </button>
           </form>
 
@@ -157,7 +300,7 @@ function LoginPage() {
       <div className="hidden sm:flex w-1/2 bg-teal-900 px-12 py-16 items-center mx-auto justify-center">
         <div className="max-w-md space-y-8">
           <div>
-            <h2 className="text-3xl font-bold text-white mb-3">
+            <h2 className="text-3xl font-bold text-white mb-3 text-center">
               Welcome back to InventorySouq
             </h2>
             <p className="text-teal-100 leading-relaxed text-center">

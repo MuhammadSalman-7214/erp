@@ -3,6 +3,27 @@ const bcrypt = require("bcryptjs");
 const generateToken = require("../libs/Tokengenerator.js");
 const Cloundinary = require("../libs/Cloundinary.js");
 const logActivity = require("../libs/logger.js");
+const { sendMail } = require("../libs/mailer.js");
+
+const OTP_EXPIRY_MINUTES = 1;
+const OTP_ATTEMPT_LIMIT = 5;
+
+const generateOtpCode = () =>
+  String(Math.floor(100000 + Math.random() * 900000));
+
+const maskEmail = (email) => {
+  if (!email || !email.includes("@")) {
+    return email;
+  }
+
+  const [localPart, domain] = email.split("@");
+  const maskedLocal =
+    localPart.length <= 2
+      ? `${localPart[0] || ""}*`
+      : `${localPart.slice(0, 2)}${"*".repeat(Math.max(localPart.length - 2, 2))}`;
+
+  return `${maskedLocal}@${domain}`;
+};
 
 module.exports.signup = async (req, res) => {
   try {
@@ -125,31 +146,162 @@ module.exports.login = async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    const token = await generateToken(duplicatedUser, res);
+    const otpCode = generateOtpCode();
+    const otpHash = await bcrypt.hash(otpCode, 10);
+    const expiresAt = new Date(
+      Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000,
+    );
 
-    await logActivity({
-      action: "User Login",
-      description: `User ${duplicatedUser.name} logged in.`,
-      entity: "user",
-      entityId: duplicatedUser.id,
-      userId: duplicatedUser.id,
-      ipAddress: ipAddress,
+    await query(
+      "DELETE FROM login_otp_challenges WHERE user_id = ? AND verifiedAt IS NULL",
+      [duplicatedUser.id],
+    );
+
+    const challengeResult = await query(
+      "INSERT INTO login_otp_challenges (user_id, otp_hash, expiresAt) VALUES (?, ?, ?)",
+      [duplicatedUser.id, otpHash, expiresAt],
+    );
+
+    try {
+      await sendMail({
+        to: duplicatedUser.email,
+        subject: "Your login OTP",
+        text: `Your login OTP is ${otpCode}. It expires in 1 minute.`,
+        html: `
+          <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a;">
+            <h2 style="margin-bottom: 16px;">Login verification code</h2>
+            <p>Use the following OTP to complete your login:</p>
+            <div style="font-size: 28px; font-weight: 700; letter-spacing: 6px; margin: 20px 0; color: #0f766e;">
+              ${otpCode}
+            </div>
+            <p>This code expires in 1 minute. If you did not request this, you can ignore this email.</p>
+          </div>
+        `,
+      });
+    } catch (mailError) {
+      await query("DELETE FROM login_otp_challenges WHERE id = ?", [
+        challengeResult.insertId,
+      ]);
+      throw mailError;
+    }
+
+    return res.status(200).json({
+      message: "OTP sent to your email",
+      otpRequired: true,
+      challengeId: challengeResult.insertId,
+      email: duplicatedUser.email,
+      maskedEmail: maskEmail(duplicatedUser.email),
+      expiresIn: OTP_EXPIRY_MINUTES * 60,
     });
-    return res.status(201).json({
-      message: "login successfully",
+  } catch (error) {
+    console.error("Error in login to the page:", error.message);
+    res.status(400).json({
+      message: error.message || "Error in login to the page",
+    });
+  }
+};
+
+module.exports.verifyLoginOtp = async (req, res) => {
+  try {
+    const { challengeId, otp } = req.body;
+
+    if (!challengeId || !otp) {
+      return res.status(400).json({
+        message: "Challenge ID and OTP are required",
+      });
+    }
+
+    const rows = await query(
+      `SELECT ch.id, ch.user_id, ch.otp_hash, ch.attempts, ch.expiresAt, ch.verifiedAt,
+              u.id AS userId, u.name, u.email, u.role, u.ProfilePic, u.isActive
+       FROM login_otp_challenges ch
+       INNER JOIN users u ON u.id = ch.user_id
+       WHERE ch.id = ?
+       LIMIT 1`,
+      [challengeId],
+    );
+
+    const challenge = rows[0];
+
+    if (!challenge) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    if (Number(challenge.isActive) === 0) {
+      return res.status(403).json({
+        message: "your account is in active plz contact administration",
+      });
+    }
+
+    if (challenge.verifiedAt) {
+      return res.status(400).json({ message: "OTP already used" });
+    }
+
+    const now = new Date();
+    const expiresAt = new Date(challenge.expiresAt);
+
+    if (Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= now.getTime()) {
+      await query("DELETE FROM login_otp_challenges WHERE id = ?", [challengeId]);
+      return res.status(400).json({ message: "OTP expired. Please login again." });
+    }
+
+    const isValidOtp = await bcrypt.compare(String(otp).trim(), challenge.otp_hash);
+
+    if (!isValidOtp) {
+      const nextAttempts = Number(challenge.attempts || 0) + 1;
+
+      if (nextAttempts >= OTP_ATTEMPT_LIMIT) {
+        await query("DELETE FROM login_otp_challenges WHERE id = ?", [challengeId]);
+        return res.status(400).json({
+          message: "Too many invalid attempts. Please login again.",
+        });
+      }
+
+      await query(
+        "UPDATE login_otp_challenges SET attempts = ? WHERE id = ?",
+        [nextAttempts, challengeId],
+      );
+
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    await query("DELETE FROM login_otp_challenges WHERE id = ?", [challengeId]);
+
+    const userForToken = {
+      id: challenge.userId,
+      role: challenge.role,
+    };
+    const token = await generateToken(userForToken, res);
+
+    try {
+      await logActivity({
+        action: "User Login",
+        description: `User ${challenge.name} logged in.`,
+        entity: "user",
+        entityId: challenge.userId,
+        userId: challenge.userId,
+        ipAddress: req.ip,
+      });
+    } catch (logError) {
+      console.error("Login activity log failed:", logError.message);
+    }
+
+    return res.status(200).json({
+      message: "Login successful",
       user: {
-        id: duplicatedUser.id,
-        name: duplicatedUser.name,
-        email: duplicatedUser.email,
-        role: duplicatedUser.role,
-        ProfilePic: duplicatedUser.ProfilePic,
-        isActive: duplicatedUser.isActive,
+        id: challenge.userId,
+        name: challenge.name,
+        email: challenge.email,
+        role: challenge.role,
+        ProfilePic: challenge.ProfilePic,
+        isActive: challenge.isActive,
         token,
       },
     });
   } catch (error) {
-    res.status(400).json({
-      message: "Error in login to the page",
+    console.error("Error in OTP verification:", error.message);
+    return res.status(400).json({
+      message: error.message || "Error verifying OTP",
     });
   }
 };

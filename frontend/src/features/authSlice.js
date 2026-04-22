@@ -1,6 +1,5 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axiosInstance from "../lib/axios";
-import toast from "react-hot-toast";
 
 const initialState = {
   // Authuser: JSON.parse(localStorage.getItem("user")) || null,
@@ -10,9 +9,11 @@ const initialState = {
   manageruser: null,
   adminuser: null,
   token: localStorage.getItem("token"),
+  pendingOtpSession: JSON.parse(localStorage.getItem("pendingOtpSession")),
   isupdateProfile: false,
   isAuthenticated: !!localStorage.getItem("token"),
   isLoginLoading: false,
+  isOtpVerifying: false,
 };
 
 export const signup = createAsyncThunk(
@@ -40,12 +41,45 @@ export const login = createAsyncThunk(
         withCredentials: true,
       });
 
-      localStorage.setItem("user", JSON.stringify(response.data.user));
+      if (response.data?.otpRequired) {
+        localStorage.setItem(
+          "pendingOtpSession",
+          JSON.stringify({
+            challengeId: response.data.challengeId,
+            email: response.data.email,
+            maskedEmail: response.data.maskedEmail,
+            expiresIn: response.data.expiresIn,
+            createdAt: Date.now(),
+          }),
+        );
+      }
 
-      localStorage.setItem("token", response.data.user.token);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || "Login failed");
+    }
+  },
+);
+
+export const verifyOtp = createAsyncThunk(
+  "auth/verifyOtp",
+  async (payload, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post(
+        "auth/verify-otp",
+        payload,
+        {
+          withCredentials: true,
+        },
+      );
+
+      localStorage.removeItem("pendingOtpSession");
+      localStorage.setItem("user", JSON.stringify(response.data.user));
+      localStorage.setItem("token", response.data.user.token);
+
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "OTP verification failed");
     }
   },
 );
@@ -57,6 +91,7 @@ export const logout = createAsyncThunk(
     try {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
+      localStorage.removeItem("pendingOtpSession");
       if (typeof window !== "undefined") {
         window.location.replace("/login");
       }
@@ -176,7 +211,12 @@ export const removeusers = createAsyncThunk(
 const authSlice = createSlice({
   name: "auth",
   initialState,
-  reducers: {},
+  reducers: {
+    clearPendingOtpSession: (state) => {
+      state.pendingOtpSession = null;
+      state.isOtpVerifying = false;
+    },
+  },
   extraReducers: (builder) => {
     builder
 
@@ -198,19 +238,47 @@ const authSlice = createSlice({
       })
       .addCase(login.fulfilled, (state, action) => {
         state.isLoginLoading = false;
-        state.user = action.payload.user;
-        state.token = action.payload.user.token;
-        state.isAuthenticated = true;
+        if (action.payload?.otpRequired) {
+          state.pendingOtpSession = {
+            challengeId: action.payload.challengeId,
+            email: action.payload.email,
+            maskedEmail: action.payload.maskedEmail,
+            expiresIn: action.payload.expiresIn,
+            createdAt: Date.now(),
+          };
+          state.isAuthenticated = false;
+          state.user = null;
+          state.token = null;
+        } else if (action.payload?.user) {
+          state.user = action.payload.user;
+          state.token = action.payload.user.token;
+          state.isAuthenticated = true;
+          state.pendingOtpSession = null;
+        }
       })
 
       .addCase(login.rejected, (state) => {
         state.isLoginLoading = false;
         state.isAuthenticated = false;
       })
+      .addCase(verifyOtp.pending, (state) => {
+        state.isOtpVerifying = true;
+      })
+      .addCase(verifyOtp.fulfilled, (state, action) => {
+        state.isOtpVerifying = false;
+        state.user = action.payload.user;
+        state.token = action.payload.user.token;
+        state.isAuthenticated = true;
+        state.pendingOtpSession = null;
+      })
+      .addCase(verifyOtp.rejected, (state) => {
+        state.isOtpVerifying = false;
+      })
       .addCase(logout.fulfilled, (state) => {
         state.user = null;
         state.token = null;
         state.isAuthenticated = false;
+        state.pendingOtpSession = null;
       })
       .addCase(logout.rejected, (state, action) => {})
 
@@ -248,4 +316,5 @@ const authSlice = createSlice({
   },
 });
 
+export const { clearPendingOtpSession } = authSlice.actions;
 export default authSlice.reducer;

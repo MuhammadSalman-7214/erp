@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   signup,
   login,
+  verifyLoginOtp,
   updateProfile,
   logout,
   staffuser,
@@ -21,6 +22,7 @@ const {
 
 router.post("/signup", signup);
 router.post("/login", login);
+router.post("/verify-otp", verifyLoginOtp);
 router.delete("/removeuser/:UserId", removeuser);
 router.get("/staffuser", authmiddleware, staffuser);
 router.get("/manageruser", authmiddleware, manageruser);
