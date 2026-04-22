@@ -1,4 +1,5 @@
 const express = require("express");
+const helmet = require("helmet");
 const db = require("./db");
 const initDb = require("./libs/initDb");
 const { Server } = require("socket.io");
@@ -69,6 +70,11 @@ io.on("connection", (socket) => {
   });
 });
 
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  }),
+);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.json());
 app.set("io", io);
