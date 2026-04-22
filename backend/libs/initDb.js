@@ -39,6 +39,7 @@ const initDb = async () => {
       ProfilePic TEXT,
       role VARCHAR(50),
       isActive TINYINT(1) NOT NULL DEFAULT 1,
+      billingDay INT NOT NULL DEFAULT 1,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )`,
@@ -243,6 +244,19 @@ const initDb = async () => {
       updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       INDEX idx_payments_user (user_id)
     )`,
+    `CREATE TABLE IF NOT EXISTS subscription_payments (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      month VARCHAR(7) NOT NULL,
+      amount DECIMAL(12,2) NOT NULL,
+      paidAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      addedBy INT DEFAULT NULL,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_subscription_payment (user_id, month),
+      INDEX idx_subscription_payments_user (user_id),
+      INDEX idx_subscription_payments_month (month)
+    )`,
     `CREATE TABLE IF NOT EXISTS inventory (
       id INT AUTO_INCREMENT PRIMARY KEY,
       user_id INT NOT NULL,
@@ -347,6 +361,28 @@ const initDb = async () => {
     if (error?.errno !== 1060) {
       throw error;
     }
+  }
+
+  try {
+    await query("ALTER TABLE users ADD COLUMN billingDay INT NOT NULL DEFAULT 1");
+  } catch (error) {
+    if (isTableEngineError(error)) {
+      logTableEngineWarning("ALTER TABLE users ADD COLUMN billingDay", error);
+    }
+
+    if (error?.errno !== 1060) {
+      throw error;
+    }
+  }
+
+  try {
+    await query(
+      `UPDATE users
+       SET billingDay = COALESCE(NULLIF(billingDay, 0), DAY(createdAt), DAY(CURRENT_DATE()))
+       WHERE billingDay IS NULL OR billingDay = 0`,
+    );
+  } catch (error) {
+    throw error;
   }
 
   try {

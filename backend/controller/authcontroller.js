@@ -4,6 +4,7 @@ const generateToken = require("../libs/Tokengenerator.js");
 const Cloundinary = require("../libs/Cloundinary.js");
 const logActivity = require("../libs/logger.js");
 const { sendMail } = require("../libs/mailer.js");
+const { isPaid } = require("../services/subscriptionService.js");
 
 const OTP_EXPIRY_MINUTES = 1;
 const OTP_ATTEMPT_LIMIT = 5;
@@ -25,10 +26,21 @@ const maskEmail = (email) => {
   return `${maskedLocal}@${domain}`;
 };
 
+const getInactiveAccountMessage = async (userId) => {
+  const paid = await isPaid(userId);
+
+  if (paid) {
+    return "Account inactive. Please contact admin to restore access.";
+  }
+
+  return "Account inactive. Your subscription is unpaid. Please pay before contacting admin.";
+};
+
 module.exports.signup = async (req, res) => {
   try {
     const { name, email, password, ProfilePic, role } = req.body;
     const resolvedRole = role || "admin";
+    const billingDay = new Date().getDate();
 
     let duplicatedUser;
     try {
@@ -59,8 +71,8 @@ module.exports.signup = async (req, res) => {
     let insertResult;
     try {
       insertResult = await query(
-        "INSERT INTO users (name, email, password, ProfilePic, role, isActive) VALUES (?, ?, ?, ?, ?, ?)",
-        [name, email, hashedpassword, "", resolvedRole, 1],
+        "INSERT INTO users (name, email, password, ProfilePic, role, isActive, billingDay) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [name, email, hashedpassword, "", resolvedRole, 1, billingDay],
       );
     } catch (err) {
       return res.status(500).json({
@@ -69,13 +81,20 @@ module.exports.signup = async (req, res) => {
         error: err,
       });
     }
-    const savedUser = {
+    const savedUserRows = await query(
+      "SELECT id, name, email, role, ProfilePic, isActive, billingDay, createdAt, updatedAt FROM users WHERE id = ? LIMIT 1",
+      [insertResult.insertId],
+    );
+    const savedUser = savedUserRows[0] || {
       id: insertResult.insertId,
       name,
       email,
       role: resolvedRole,
       ProfilePic: "",
       isActive: 1,
+      billingDay,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
     const token = await generateToken(savedUser, res);
 
@@ -88,6 +107,9 @@ module.exports.signup = async (req, res) => {
         role: savedUser.role,
         ProfilePic: savedUser.ProfilePic,
         isActive: savedUser.isActive,
+        billingDay: savedUser.billingDay,
+        createdAt: savedUser.createdAt,
+        updatedAt: savedUser.updatedAt,
         token,
       },
     });
@@ -133,7 +155,7 @@ module.exports.login = async (req, res) => {
 
     if (Number(duplicatedUser.isActive) === 0) {
       return res.status(403).json({
-        message: "your account is in active plz contact administration",
+        message: await getInactiveAccountMessage(duplicatedUser.id),
       });
     }
 
@@ -213,7 +235,7 @@ module.exports.verifyLoginOtp = async (req, res) => {
 
     const rows = await query(
       `SELECT ch.id, ch.user_id, ch.otp_hash, ch.attempts, ch.expiresAt, ch.verifiedAt,
-              u.id AS userId, u.name, u.email, u.role, u.ProfilePic, u.isActive
+              u.id AS userId, u.name, u.email, u.role, u.ProfilePic, u.isActive, u.billingDay, u.createdAt, u.updatedAt
        FROM login_otp_challenges ch
        INNER JOIN users u ON u.id = ch.user_id
        WHERE ch.id = ?
@@ -229,7 +251,7 @@ module.exports.verifyLoginOtp = async (req, res) => {
 
     if (Number(challenge.isActive) === 0) {
       return res.status(403).json({
-        message: "your account is in active plz contact administration",
+        message: await getInactiveAccountMessage(challenge.userId),
       });
     }
 
@@ -295,6 +317,9 @@ module.exports.verifyLoginOtp = async (req, res) => {
         role: challenge.role,
         ProfilePic: challenge.ProfilePic,
         isActive: challenge.isActive,
+        billingDay: challenge.billingDay,
+        createdAt: challenge.createdAt,
+        updatedAt: challenge.updatedAt,
         token,
       },
     });
@@ -356,7 +381,7 @@ module.exports.updateProfile = async (req, res) => {
         let updatedUser;
         try {
           const rows = await query(
-            "SELECT id, name, email, role, ProfilePic, isActive FROM users WHERE id = ?",
+            "SELECT id, name, email, role, ProfilePic, isActive, billingDay, createdAt, updatedAt FROM users WHERE id = ?",
             [userId],
           );
           updatedUser = rows[0];
@@ -393,7 +418,7 @@ module.exports.staffuser = async (req, res) => {
     let staffuser;
     try {
       staffuser = await query(
-        "SELECT id, name, email, role, ProfilePic, isActive FROM users WHERE role = ?",
+        "SELECT id, name, email, role, ProfilePic, isActive, billingDay FROM users WHERE role = ?",
         ["staff"],
       );
     } catch (err) {
@@ -422,7 +447,7 @@ module.exports.manageruser = async (req, res) => {
     let manageruser;
     try {
       manageruser = await query(
-        "SELECT id, name, email, role, ProfilePic, isActive FROM users WHERE role = ?",
+        "SELECT id, name, email, role, ProfilePic, isActive, billingDay FROM users WHERE role = ?",
         ["manager"],
       );
     } catch (err) {
@@ -451,7 +476,7 @@ module.exports.adminuser = async (req, res) => {
     let adminuser;
     try {
       adminuser = await query(
-        "SELECT id, name, email, role, ProfilePic, isActive FROM users WHERE role = ?",
+        "SELECT id, name, email, role, ProfilePic, isActive, billingDay FROM users WHERE role = ?",
         ["admin"],
       );
     } catch (err) {
@@ -478,7 +503,7 @@ module.exports.adminuser = async (req, res) => {
 module.exports.superadminAdmins = async (req, res) => {
   try {
     const admins = await query(
-      "SELECT id, name, email, role, ProfilePic, isActive, createdAt FROM users WHERE role = ? ORDER BY createdAt ASC",
+      "SELECT id, name, email, role, ProfilePic, isActive, billingDay, createdAt FROM users WHERE role = ? ORDER BY createdAt ASC",
       ["admin"],
     );
 
@@ -498,7 +523,7 @@ module.exports.toggleAdminStatus = async (req, res) => {
     }
 
     const rows = await query(
-      "SELECT id, name, email, role, isActive FROM users WHERE id = ? AND role = ? LIMIT 1",
+      "SELECT id, name, email, role, isActive, billingDay FROM users WHERE id = ? AND role = ? LIMIT 1",
       [id, "admin"],
     );
 
@@ -514,7 +539,7 @@ module.exports.toggleAdminStatus = async (req, res) => {
     ]);
 
     const updatedRows = await query(
-      "SELECT id, name, email, role, ProfilePic, isActive, createdAt FROM users WHERE id = ? LIMIT 1",
+      "SELECT id, name, email, role, ProfilePic, isActive, billingDay, createdAt FROM users WHERE id = ? LIMIT 1",
       [id],
     );
 
@@ -555,5 +580,30 @@ module.exports.removeuser = async (req, res) => {
   } catch (error) {
     console.error("Error deleting user:", error);
     return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+module.exports.getCurrentUser = async (req, res) => {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    const rows = await query(
+      "SELECT id, name, email, role, ProfilePic, isActive, billingDay, createdAt, updatedAt FROM users WHERE id = ? LIMIT 1",
+      [userId],
+    );
+
+    const user = rows[0];
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.status(200).json({ user });
+  } catch (error) {
+    console.error("Error fetching current user:", error.message);
+    return res.status(500).json({ message: "Internal Server Error", error });
   }
 };

@@ -1,6 +1,17 @@
 // middleware/Authmiddleware.js
 const jwt = require("jsonwebtoken");
 const query = require("../libs/dbQuery");
+const { isPaid } = require("../services/subscriptionService");
+
+const getInactiveAccountMessage = async (userId) => {
+  const paid = await isPaid(userId);
+
+  if (paid) {
+    return "Account inactive. Please contact admin to restore access.";
+  }
+
+  return "Account inactive. Your subscription is unpaid. Please pay before contacting admin.";
+};
 
 // Authentication middleware
 const authmiddleware = async (req, res, next) => {
@@ -29,9 +40,12 @@ const authmiddleware = async (req, res, next) => {
     };
 
     if (Number(currentUser.isActive) === 0) {
+      const message = await getInactiveAccountMessage(currentUser.id);
       return res
         .status(403)
-        .json({ message: "your account is in active plz contact administration" });
+        .json({
+          message,
+        });
     }
 
     next();
@@ -144,6 +158,9 @@ const checkPermission = (resource, action = "read") => {
 // Admin only middleware
 const adminmiddleware = checkRole("admin");
 
+// Admin or super admin middleware
+const adminOrSuperAdminMiddleware = checkRole("admin", "super_admin");
+
 // Manager or Admin middleware
 const managermiddleware = checkRole("admin", "manager");
 
@@ -154,6 +171,7 @@ const superadminmiddleware = checkRole("super_admin");
 module.exports = {
   authmiddleware,
   adminmiddleware,
+  adminOrSuperAdminMiddleware,
   managermiddleware,
   superadminmiddleware,
   checkRole,

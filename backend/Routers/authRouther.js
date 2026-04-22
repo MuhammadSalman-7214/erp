@@ -12,6 +12,7 @@ const {
   removeuser,
   superadminAdmins,
   toggleAdminStatus,
+  getCurrentUser,
 } = require("../controller/authcontroller.js");
 const {
   authmiddleware,
@@ -23,6 +24,7 @@ const {
 router.post("/signup", signup);
 router.post("/login", login);
 router.post("/verify-otp", verifyLoginOtp);
+router.get("/me", authmiddleware, getCurrentUser);
 router.delete("/removeuser/:UserId", removeuser);
 router.get("/staffuser", authmiddleware, staffuser);
 router.get("/manageruser", authmiddleware, manageruser);

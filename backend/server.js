@@ -18,8 +18,11 @@ const customerRouter = require("./Routers/customerRouter.js");
 const invoiceRouter = require("./Routers/invoiceRouter.js");
 const stocktransactionrouter = require("./Routers/stocktransactionrouter.js");
 const paymentRouter = require("./Routers/paymentRouter.js");
+const subscriptionPaymentsRouter = require("./Routers/paymentsRouter.js");
+const usersRouter = require("./Routers/usersRouter.js");
 const dashboardRouter = require("./Routers/dashboardRouter.js");
 const priceListRouter = require("./Routers/priceListRouter.js");
+const startSubscriptionCron = require("./cron/subscriptionCron.js");
 
 require("dotenv").config();
 const PORT = process.env.PORT;
@@ -86,8 +89,12 @@ app.use("/api/customer", customerRouter);
 app.use("/api/stocktransaction", stocktransactionrouter);
 app.use("/api/invoice", invoiceRouter);
 app.use("/api/payment", paymentRouter);
+app.use("/api/payments", subscriptionPaymentsRouter);
+app.use("/api/users", usersRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/price-list", priceListRouter);
+
+startSubscriptionCron();
 
 server.listen(PORT, () => {
   initDb()

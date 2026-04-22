@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axiosInstance from "../lib/axios";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import {
   ShoppingCart,
   Clipboard,
@@ -18,12 +19,16 @@ import { formatDateLabel } from "../lib/dateFormat";
 
 function Dashboardpage() {
   const navigate = useNavigate();
+  const { user } = useSelector((state) => state.auth);
   const [summary, setSummary] = useState(null);
   const [recentInvoices, setRecentInvoices] = useState([]);
   const [overdueInvoices, setOverdueInvoices] = useState([]);
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showFinancialAmounts, setShowFinancialAmounts] = useState(false);
+  const [banner, setBanner] = useState(null);
+  const [bannerLoading, setBannerLoading] = useState(false);
+  const [resolvedUser, setResolvedUser] = useState(user);
   const sortedRecentInvoices = useMemo(
     () =>
       [...recentInvoices].sort(
@@ -118,6 +123,44 @@ function Dashboardpage() {
     fetchSummary();
   }, []);
 
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await axiosInstance.get("/auth/me");
+        if (response.data?.user) {
+          setResolvedUser(response.data.user);
+        }
+      } catch (error) {
+        setResolvedUser(user);
+      }
+    };
+
+    fetchCurrentUser();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchBanner = async () => {
+      if (!resolvedUser?.id || resolvedUser?.role !== "admin") {
+        setBanner(null);
+        return;
+      }
+
+      try {
+        setBannerLoading(true);
+        const response = await axiosInstance.get(
+          `/users/${resolvedUser.id}/banner`,
+        );
+        setBanner(response.data?.banner || null);
+      } catch (error) {
+        setBanner(null);
+      } finally {
+        setBannerLoading(false);
+      }
+    };
+
+    fetchBanner();
+  }, [resolvedUser?.id, resolvedUser?.role]);
+
   const safeNumber = (value) => {
     const numeric = Number(value);
     return Number.isFinite(numeric) ? numeric : 0;
@@ -125,6 +168,22 @@ function Dashboardpage() {
 
   return (
     <div className="min-h-[92vh] bg-gradient-to-br from-gray-50 to-gray-100 p-6">
+      {bannerLoading ? null : banner ? (
+        <div className="mb-6 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-3 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="rounded-xl bg-amber-100 text-amber-700 p-2">
+              <AlertCircle className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-amber-900">
+                Subscription Reminder
+              </p>
+              <p className="text-sm text-amber-800 mt-1">{banner}</p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {/* Welcome Section */}
       <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         {/* <h1 className="text-3xl font-bold text-gray-800 mb-2">
@@ -168,66 +227,68 @@ function Dashboardpage() {
               </div>
             ))
           : [
-          {
-            label: "Profit",
-            value: summary?.totalProfit ?? 0,
-            bg: "bg-gradient-to-br from-violet-50 to-violet-100",
-            icon: <TrendingUp className="w-5 h-5 text-violet-600" />,
-            borderColor: "border-violet-200",
-          },
-          {
-            label: "Total Receivable",
-            value: summary?.totalReceivable ?? 0,
-            bg: "bg-gradient-to-br from-emerald-50 to-emerald-100",
-            icon: <TrendingUp className="w-5 h-5 text-emerald-600" />,
-            borderColor: "border-emerald-200",
-          },
-          {
-            label: "Total Payable",
-            value: summary?.totalPayable ?? 0,
-            bg: "bg-gradient-to-br from-rose-50 to-rose-100",
-            icon: <TrendingDown className="w-5 h-5 text-rose-600" />,
-            borderColor: "border-rose-200",
-          },
-          {
-            label: "Today's Sales",
-            value: summary?.todaysSales ?? 0,
-            bg: "bg-gradient-to-br from-blue-50 to-blue-100",
-            icon: <ShoppingCart className="w-5 h-5 text-blue-600" />,
-            borderColor: "border-blue-200",
-          },
-          {
-            label: "Today's Purchases",
-            value: summary?.todaysPurchases ?? 0,
-            bg: "bg-gradient-to-br from-amber-50 to-amber-100",
-            icon: <Package className="w-5 h-5 text-amber-600" />,
-            borderColor: "border-amber-200",
-          },
-          {
-            label: "Bank Balance",
-            value: summary?.cashBankBalance ?? 0,
-            bg: "bg-gradient-to-br from-teal-50 to-teal-100",
-            icon: <DollarSign className="w-5 h-5 text-teal-600" />,
-            borderColor: "border-teal-200",
-          },
-        ].map(({ label, value, bg, icon, borderColor }) => (
-          <div
-            key={label}
-            className={`rounded-xl p-5 border-2 ${borderColor} ${bg} shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1`}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-medium text-gray-600">{label}</div>
-              {icon}
-            </div>
-            <div
-              className={`text-2xl font-bold text-gray-900 transition-all duration-300 ${
-                showFinancialAmounts ? "" : "blur-sm select-none"
-              }`}
-            >
-              Rs {safeNumber(value).toLocaleString()}
-            </div>
-          </div>
-        ))}
+              {
+                label: "Profit",
+                value: summary?.totalProfit ?? 0,
+                bg: "bg-gradient-to-br from-violet-50 to-violet-100",
+                icon: <TrendingUp className="w-5 h-5 text-violet-600" />,
+                borderColor: "border-violet-200",
+              },
+              {
+                label: "Total Receivable",
+                value: summary?.totalReceivable ?? 0,
+                bg: "bg-gradient-to-br from-emerald-50 to-emerald-100",
+                icon: <TrendingUp className="w-5 h-5 text-emerald-600" />,
+                borderColor: "border-emerald-200",
+              },
+              {
+                label: "Total Payable",
+                value: summary?.totalPayable ?? 0,
+                bg: "bg-gradient-to-br from-rose-50 to-rose-100",
+                icon: <TrendingDown className="w-5 h-5 text-rose-600" />,
+                borderColor: "border-rose-200",
+              },
+              {
+                label: "Today's Sales",
+                value: summary?.todaysSales ?? 0,
+                bg: "bg-gradient-to-br from-blue-50 to-blue-100",
+                icon: <ShoppingCart className="w-5 h-5 text-blue-600" />,
+                borderColor: "border-blue-200",
+              },
+              {
+                label: "Today's Purchases",
+                value: summary?.todaysPurchases ?? 0,
+                bg: "bg-gradient-to-br from-amber-50 to-amber-100",
+                icon: <Package className="w-5 h-5 text-amber-600" />,
+                borderColor: "border-amber-200",
+              },
+              {
+                label: "Bank Balance",
+                value: summary?.cashBankBalance ?? 0,
+                bg: "bg-gradient-to-br from-teal-50 to-teal-100",
+                icon: <DollarSign className="w-5 h-5 text-teal-600" />,
+                borderColor: "border-teal-200",
+              },
+            ].map(({ label, value, bg, icon, borderColor }) => (
+              <div
+                key={label}
+                className={`rounded-xl p-5 border-2 ${borderColor} ${bg} shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1`}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-sm font-medium text-gray-600">
+                    {label}
+                  </div>
+                  {icon}
+                </div>
+                <div
+                  className={`text-2xl font-bold text-gray-900 transition-all duration-300 ${
+                    showFinancialAmounts ? "" : "blur-sm select-none"
+                  }`}
+                >
+                  Rs {safeNumber(value).toLocaleString()}
+                </div>
+              </div>
+            ))}
       </div>
 
       <div className="mb-10">
@@ -310,7 +371,7 @@ function Dashboardpage() {
           <>
             <div className="rounded-xl p-5 border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
               <div className="flex items-center justify-between mb-2">
-              <div className="text-sm font-medium text-gray-600">
+                <div className="text-sm font-medium text-gray-600">
                   Today's Received Payments
                 </div>
                 <CreditCard className="w-5 h-5 text-emerald-600" />
@@ -321,7 +382,9 @@ function Dashboardpage() {
                 }`}
               >
                 Rs{" "}
-                {safeNumber(summary?.todaysReceivedPayments ?? 0).toLocaleString()}
+                {safeNumber(
+                  summary?.todaysReceivedPayments ?? 0,
+                ).toLocaleString()}
               </div>
             </div>
             <div className="rounded-xl p-5 border-2 border-rose-200 bg-gradient-to-br from-rose-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
@@ -336,7 +399,8 @@ function Dashboardpage() {
                   showFinancialAmounts ? "" : "blur-sm select-none"
                 }`}
               >
-                Rs {safeNumber(summary?.todaysPaidPayments ?? 0).toLocaleString()}
+                Rs{" "}
+                {safeNumber(summary?.todaysPaidPayments ?? 0).toLocaleString()}
               </div>
             </div>
           </>
