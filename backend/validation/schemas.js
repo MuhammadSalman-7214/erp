@@ -334,6 +334,23 @@ const authOtpBody = Joi.object({
     .required(),
 }).unknown(true);
 
+const authForgotPasswordBody = Joi.object({
+  email: Joi.string()
+    .email({ tlds: { allow: false } })
+    .trim()
+    .lowercase()
+    .required(),
+}).unknown(true);
+
+const authResetPasswordBody = Joi.object({
+  challengeId: positiveId.required(),
+  otp: Joi.string()
+    .pattern(/^\d{6}$/)
+    .required(),
+  password: Joi.string().min(6).required(),
+  confirmPassword: Joi.string().valid(Joi.ref("password")).required(),
+}).unknown(true);
+
 const profileBody = Joi.object({
   ProfilePic: anyText.required(),
 }).unknown(true);
@@ -343,8 +360,10 @@ const paymentParam = idParam("id");
 module.exports = {
   activityBody,
   authLoginBody,
+  authForgotPasswordBody,
   authOtpBody,
   authSignupBody,
+  authResetPasswordBody,
   categoryBody,
   categoryUpdateBody,
   customerBody,

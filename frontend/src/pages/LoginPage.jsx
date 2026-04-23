@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useDispatch, useSelector } from "react-redux";
@@ -45,10 +45,14 @@ function LoginPage() {
       .min(6, "Password must be at least 6 characters")
       .max(128, "Password must be at most 128 characters")
       .required("Password is required")
-      .test("safe-password", "Password contains unsupported characters", (value) => {
-        const result = validatePasswordInput(value || "");
-        return result.ok;
-      }),
+      .test(
+        "safe-password",
+        "Password contains unsupported characters",
+        (value) => {
+          const result = validatePasswordInput(value || "");
+          return result.ok;
+        },
+      ),
   });
 
   const {
@@ -315,6 +319,15 @@ function LoginPage() {
                   ? "Getting OTP..."
                   : "Get OTP"}
             </button>
+
+            <div className="mt-3 text-right">
+              <Link
+                to="/forgot-password"
+                className="text-sm text-teal-700 hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
           </form>
 
           {/* <div className="text-center mt-6">

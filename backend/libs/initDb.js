@@ -302,6 +302,18 @@ const initDb = async () => {
       INDEX idx_login_otp_user (user_id),
       INDEX idx_login_otp_expires (expiresAt)
     )`,
+    `CREATE TABLE IF NOT EXISTS password_reset_challenges (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      otp_hash VARCHAR(255) NOT NULL,
+      attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
+      expiresAt DATETIME NOT NULL,
+      usedAt DATETIME DEFAULT NULL,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_password_reset_user (user_id),
+      INDEX idx_password_reset_expires (expiresAt)
+    )`,
     `CREATE TABLE IF NOT EXISTS stock_transactions (
       id INT AUTO_INCREMENT PRIMARY KEY,
       user_id INT NOT NULL,

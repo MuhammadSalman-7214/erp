@@ -34,6 +34,7 @@ import SupplierDetailPage from "./pages/SupplierDetailPage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import PriceListPage from "./pages/PriceListPage";
 import { fetchCurrentUser } from "./features/authSlice";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 
 const RoleDashboardLayout = () => {
   const { user } = useSelector((state) => state.auth);
@@ -85,6 +86,7 @@ function App() {
           <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/about" element={<ServicePage />} />
           <Route path="/home" element={<HomePage />} />

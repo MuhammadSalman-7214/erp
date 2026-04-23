@@ -8,6 +8,7 @@ const { isPaid } = require("../services/subscriptionService.js");
 
 const OTP_EXPIRY_MINUTES = 1;
 const OTP_ATTEMPT_LIMIT = 5;
+const PASSWORD_RESET_EXPIRY_MINUTES = 5;
 
 const generateOtpCode = () =>
   String(Math.floor(100000 + Math.random() * 900000));
@@ -34,6 +35,46 @@ const getInactiveAccountMessage = async (userId) => {
   }
 
   return "Account inactive. Your subscription is unpaid. Please pay before contacting admin.";
+};
+
+const buildPasswordResetEmail = ({ name, code, expiresInMinutes }) => ({
+  subject: "Your password reset code",
+  text: `Your password reset code is ${code}. It expires in ${expiresInMinutes} minutes.`,
+  html: `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a;">
+      <h2 style="margin-bottom: 16px;">Password reset code</h2>
+      <p>Hello ${name || "there"},</p>
+      <p>Use the code below to reset your password:</p>
+      <div style="font-size: 28px; font-weight: 700; letter-spacing: 6px; margin: 20px 0; color: #0f766e;">
+        ${code}
+      </div>
+      <p>This code expires in ${expiresInMinutes} minutes. If you did not request it, you can ignore this email.</p>
+    </div>
+  `,
+});
+
+const createPasswordResetChallenge = async (userId) => {
+  const code = generateOtpCode();
+  const otpHash = await bcrypt.hash(code, 10);
+  const expiresAt = new Date(
+    Date.now() + PASSWORD_RESET_EXPIRY_MINUTES * 60 * 1000,
+  );
+
+  await query(
+    "DELETE FROM password_reset_challenges WHERE user_id = ? AND usedAt IS NULL",
+    [userId],
+  );
+
+  const result = await query(
+    "INSERT INTO password_reset_challenges (user_id, otp_hash, expiresAt) VALUES (?, ?, ?)",
+    [userId, otpHash, expiresAt],
+  );
+
+  return {
+    challengeId: result.insertId,
+    code,
+    expiresIn: PASSWORD_RESET_EXPIRY_MINUTES * 60,
+  };
 };
 
 module.exports.signup = async (req, res) => {
@@ -134,10 +175,9 @@ module.exports.login = async (req, res) => {
     const ipAddress = req.ip;
     let duplicatedUser;
     try {
-      const rows = await query(
-        "SELECT * FROM users WHERE email = ? LIMIT 1",
-        [email],
-      );
+      const rows = await query("SELECT * FROM users WHERE email = ? LIMIT 1", [
+        email,
+      ]);
       duplicatedUser = rows[0];
     } catch (err) {
       return res.status(500).json({
@@ -170,9 +210,7 @@ module.exports.login = async (req, res) => {
 
     const otpCode = generateOtpCode();
     const otpHash = await bcrypt.hash(otpCode, 10);
-    const expiresAt = new Date(
-      Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000,
-    );
+    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
 
     await query(
       "DELETE FROM login_otp_challenges WHERE user_id = ? AND verifiedAt IS NULL",
@@ -223,6 +261,156 @@ module.exports.login = async (req, res) => {
   }
 };
 
+module.exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const normalizedEmail = String(email || "")
+      .trim()
+      .toLowerCase();
+
+    const rows = await query(
+      "SELECT id, name, email FROM users WHERE email = ? LIMIT 1",
+      [normalizedEmail],
+    );
+
+    const user = rows[0];
+
+    if (!user) {
+      return res.status(200).json({
+        message:
+          "If an account with that email exists, a reset code has been sent.",
+        resetRequested: true,
+      });
+    }
+
+    const challenge = await createPasswordResetChallenge(user.id);
+
+    await sendMail({
+      to: user.email,
+      ...buildPasswordResetEmail({
+        name: user.name,
+        code: challenge.code,
+        expiresInMinutes: PASSWORD_RESET_EXPIRY_MINUTES,
+      }),
+    });
+
+    return res.status(200).json({
+      message: "Password reset code sent to your email",
+      resetRequested: true,
+      challengeId: challenge.challengeId,
+      email: user.email,
+      maskedEmail: maskEmail(user.email),
+      expiresIn: challenge.expiresIn,
+    });
+  } catch (error) {
+    console.error("Error in forgot password flow:", error.message);
+    return res.status(500).json({
+      message: "Unable to process password reset request",
+    });
+  }
+};
+
+module.exports.resetPassword = async (req, res) => {
+  try {
+    const { challengeId, otp, password } = req.body;
+
+    if (!challengeId || !otp || !password) {
+      return res.status(400).json({
+        message: "Challenge ID, OTP, and new password are required",
+      });
+    }
+
+    const rows = await query(
+      `SELECT ch.id, ch.user_id, ch.otp_hash, ch.attempts, ch.expiresAt, ch.usedAt,
+              u.id AS userId, u.name, u.email, u.role, u.isActive
+       FROM password_reset_challenges ch
+       INNER JOIN users u ON u.id = ch.user_id
+       WHERE ch.id = ?
+       LIMIT 1`,
+      [challengeId],
+    );
+
+    const challenge = rows[0];
+
+    if (!challenge) {
+      return res.status(400).json({ message: "Invalid or expired reset code" });
+    }
+
+    if (challenge.usedAt) {
+      return res.status(400).json({ message: "Reset code already used" });
+    }
+
+    const now = new Date();
+    const expiresAt = new Date(challenge.expiresAt);
+
+    if (
+      Number.isNaN(expiresAt.getTime()) ||
+      expiresAt.getTime() <= now.getTime()
+    ) {
+      await query("DELETE FROM password_reset_challenges WHERE id = ?", [
+        challengeId,
+      ]);
+      return res.status(400).json({
+        message: "Reset code expired. Please request a new one.",
+      });
+    }
+
+    const isValidOtp = await bcrypt.compare(
+      String(otp).trim(),
+      challenge.otp_hash,
+    );
+
+    if (!isValidOtp) {
+      const nextAttempts = Number(challenge.attempts || 0) + 1;
+
+      if (nextAttempts >= OTP_ATTEMPT_LIMIT) {
+        await query("DELETE FROM password_reset_challenges WHERE id = ?", [
+          challengeId,
+        ]);
+        return res.status(400).json({
+          message: "Too many invalid attempts. Please request a new code.",
+        });
+      }
+
+      await query(
+        "UPDATE password_reset_challenges SET attempts = ? WHERE id = ?",
+        [nextAttempts, challengeId],
+      );
+
+      return res.status(400).json({ message: "Invalid reset code" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await query("UPDATE users SET password = ? WHERE id = ?", [
+      hashedPassword,
+      challenge.userId,
+    ]);
+
+    await query("DELETE FROM password_reset_challenges WHERE id = ?", [
+      challengeId,
+    ]);
+
+    const isProduction = process.env.NODE_ENV === "production";
+    res.cookie("token", "", {
+      maxAge: 0,
+      httpOnly: true,
+      sameSite: isProduction ? "None" : "Lax",
+      secure: isProduction,
+      path: "/",
+    });
+
+    return res.status(200).json({
+      message: "Password reset successfully",
+    });
+  } catch (error) {
+    console.error("Error in reset password flow:", error.message);
+    return res.status(500).json({
+      message: "Unable to reset password",
+    });
+  }
+};
+
 module.exports.verifyLoginOtp = async (req, res) => {
   try {
     const { challengeId, otp } = req.body;
@@ -262,27 +450,39 @@ module.exports.verifyLoginOtp = async (req, res) => {
     const now = new Date();
     const expiresAt = new Date(challenge.expiresAt);
 
-    if (Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= now.getTime()) {
-      await query("DELETE FROM login_otp_challenges WHERE id = ?", [challengeId]);
-      return res.status(400).json({ message: "OTP expired. Please login again." });
+    if (
+      Number.isNaN(expiresAt.getTime()) ||
+      expiresAt.getTime() <= now.getTime()
+    ) {
+      await query("DELETE FROM login_otp_challenges WHERE id = ?", [
+        challengeId,
+      ]);
+      return res
+        .status(400)
+        .json({ message: "OTP expired. Please login again." });
     }
 
-    const isValidOtp = await bcrypt.compare(String(otp).trim(), challenge.otp_hash);
+    const isValidOtp = await bcrypt.compare(
+      String(otp).trim(),
+      challenge.otp_hash,
+    );
 
     if (!isValidOtp) {
       const nextAttempts = Number(challenge.attempts || 0) + 1;
 
       if (nextAttempts >= OTP_ATTEMPT_LIMIT) {
-        await query("DELETE FROM login_otp_challenges WHERE id = ?", [challengeId]);
+        await query("DELETE FROM login_otp_challenges WHERE id = ?", [
+          challengeId,
+        ]);
         return res.status(400).json({
           message: "Too many invalid attempts. Please login again.",
         });
       }
 
-      await query(
-        "UPDATE login_otp_challenges SET attempts = ? WHERE id = ?",
-        [nextAttempts, challengeId],
-      );
+      await query("UPDATE login_otp_challenges SET attempts = ? WHERE id = ?", [
+        nextAttempts,
+        challengeId,
+      ]);
 
       return res.status(400).json({ message: "Invalid OTP" });
     }
@@ -540,10 +740,7 @@ module.exports.toggleAdminStatus = async (req, res) => {
 
     const nextStatus = Number(rows[0].isActive) === 1 ? 0 : 1;
 
-    await query("UPDATE users SET isActive = ? WHERE id = ?", [
-      nextStatus,
-      id,
-    ]);
+    await query("UPDATE users SET isActive = ? WHERE id = ?", [nextStatus, id]);
 
     const updatedRows = await query(
       "SELECT id, name, email, role, ProfilePic, isActive, billingDay, createdAt FROM users WHERE id = ? LIMIT 1",

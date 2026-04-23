@@ -23,6 +23,14 @@ const readStoredOtpSession = () => {
   }
 };
 
+const readStoredResetSession = () => {
+  try {
+    return JSON.parse(localStorage.getItem("pendingPasswordResetSession"));
+  } catch {
+    return null;
+  }
+};
+
 const initialState = {
   user: readStoredUser(),
   isUserSignup: false,
@@ -31,11 +39,14 @@ const initialState = {
   adminuser: null,
   token: null,
   pendingOtpSession: readStoredOtpSession(),
+  pendingPasswordResetSession: readStoredResetSession(),
   isupdateProfile: false,
   isAuthenticated: !!readStoredUser(),
   isAuthChecked: false,
   isLoginLoading: false,
   isOtpVerifying: false,
+  isForgotPasswordLoading: false,
+  isResetPasswordLoading: false,
 };
 
 export const signup = createAsyncThunk(
@@ -137,6 +148,64 @@ export const logout = createAsyncThunk(
       return null;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || "Logout failed");
+    }
+  },
+);
+
+export const requestPasswordReset = createAsyncThunk(
+  "auth/requestPasswordReset",
+  async (payload, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post(
+        "auth/forgot-password",
+        payload,
+        {
+          withCredentials: true,
+          skipAuthRedirect: true,
+        },
+      );
+
+      if (response.data?.challengeId) {
+        localStorage.setItem(
+          "pendingPasswordResetSession",
+          JSON.stringify({
+            challengeId: response.data.challengeId,
+            email: response.data.email,
+            maskedEmail: response.data.maskedEmail,
+            expiresIn: response.data.expiresIn,
+            createdAt: Date.now(),
+          }),
+        );
+      }
+
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to request password reset",
+      );
+    }
+  },
+);
+
+export const resetPassword = createAsyncThunk(
+  "auth/resetPassword",
+  async (payload, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post("auth/reset-password", payload, {
+        withCredentials: true,
+        skipAuthRedirect: true,
+      });
+
+      localStorage.removeItem("pendingPasswordResetSession");
+      localStorage.removeItem("pendingOtpSession");
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to reset password",
+      );
     }
   },
 );
@@ -285,6 +354,11 @@ const authSlice = createSlice({
       state.pendingOtpSession = null;
       state.isOtpVerifying = false;
     },
+    clearPasswordResetSession: (state) => {
+      state.pendingPasswordResetSession = null;
+      state.isForgotPasswordLoading = false;
+      state.isResetPasswordLoading = false;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -358,7 +432,38 @@ const authSlice = createSlice({
         state.token = null;
         state.isAuthenticated = false;
         state.pendingOtpSession = null;
+        state.pendingPasswordResetSession = null;
         state.isAuthChecked = true;
+      })
+
+      .addCase(requestPasswordReset.pending, (state) => {
+        state.isForgotPasswordLoading = true;
+      })
+      .addCase(requestPasswordReset.fulfilled, (state, action) => {
+        state.isForgotPasswordLoading = false;
+        if (action.payload?.challengeId) {
+          state.pendingPasswordResetSession = {
+            challengeId: action.payload.challengeId,
+            email: action.payload.email,
+            maskedEmail: action.payload.maskedEmail,
+            expiresIn: action.payload.expiresIn,
+            createdAt: Date.now(),
+          };
+        }
+      })
+      .addCase(requestPasswordReset.rejected, (state) => {
+        state.isForgotPasswordLoading = false;
+      })
+
+      .addCase(resetPassword.pending, (state) => {
+        state.isResetPasswordLoading = true;
+      })
+      .addCase(resetPassword.fulfilled, (state) => {
+        state.isResetPasswordLoading = false;
+        state.pendingPasswordResetSession = null;
+      })
+      .addCase(resetPassword.rejected, (state) => {
+        state.isResetPasswordLoading = false;
       })
 
       .addCase(fetchCurrentUser.pending, (state) => {
@@ -411,5 +516,6 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearPendingOtpSession } = authSlice.actions;
+export const { clearPendingOtpSession, clearPasswordResetSession } =
+  authSlice.actions;
 export default authSlice.reducer;
