@@ -1,5 +1,7 @@
 const express = require("express");
 const router = express.Router();
+const validateRequest = require("../middleware/validateRequest");
+const { subscriptionPaymentBody, idParam } = require("../validation/schemas");
 const {
   authmiddleware,
   adminOrSuperAdminMiddleware,
@@ -20,10 +22,22 @@ router.get(
 router.get(
   "/:userId/revenue",
   authmiddleware,
+  validateRequest({ params: idParam("userId") }),
   adminOrSuperAdminMiddleware,
   getUserRevenue,
 );
-router.get("/:userId", authmiddleware, getUserPaymentHistory);
-router.post("/", authmiddleware, adminOrSuperAdminMiddleware, addPayment);
+router.get(
+  "/:userId",
+  authmiddleware,
+  validateRequest({ params: idParam("userId") }),
+  getUserPaymentHistory,
+);
+router.post(
+  "/",
+  authmiddleware,
+  validateRequest({ body: subscriptionPaymentBody }),
+  adminOrSuperAdminMiddleware,
+  addPayment,
+);
 
 module.exports = router;

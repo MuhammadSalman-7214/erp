@@ -3,6 +3,13 @@
 // ==========================================
 const express = require("express");
 const router = express.Router();
+const validateRequest = require("../middleware/validateRequest");
+const {
+  supplierBody,
+  supplierUpdateBody,
+  idParam,
+  queryParam,
+} = require("../validation/schemas");
 const {
   authmiddleware,
   checkPermission,
@@ -28,6 +35,7 @@ router.get(
 router.post(
   "/",
   authmiddleware,
+  validateRequest({ body: supplierBody }),
   checkPermission("supplier", "write"),
   createSupplier,
 );
@@ -36,6 +44,7 @@ router.post(
 router.put(
   "/:id",
   authmiddleware,
+  validateRequest({ params: idParam("id"), body: supplierUpdateBody }),
   checkPermission("supplier", "write"),
   editSupplier,
 );
@@ -44,12 +53,14 @@ router.put(
 router.delete(
   "/:supplierId",
   authmiddleware,
+  validateRequest({ params: idParam("supplierId") }),
   checkPermission("supplier", "delete"),
   deleteSupplier,
 );
 router.get(
   "/searchSupplier",
   authmiddleware,
+  validateRequest({ query: queryParam() }),
   checkPermission("supplier", "read"),
   searchSupplier,
 );

@@ -1,5 +1,13 @@
 const express = require("express");
 const router = express.Router();
+const validateRequest = require("../middleware/validateRequest");
+const {
+  authSignupBody,
+  authLoginBody,
+  authOtpBody,
+  profileBody,
+  idParam,
+} = require("../validation/schemas");
 const {
   signup,
   login,
@@ -21,11 +29,15 @@ const {
   superadminmiddleware,
 } = require("../middleware/Authmiddleware.js");
 
-router.post("/signup", signup);
-router.post("/login", login);
-router.post("/verify-otp", verifyLoginOtp);
+router.post("/signup", validateRequest({ body: authSignupBody }), signup);
+router.post("/login", validateRequest({ body: authLoginBody }), login);
+router.post("/verify-otp", validateRequest({ body: authOtpBody }), verifyLoginOtp);
 router.get("/me", authmiddleware, getCurrentUser);
-router.delete("/removeuser/:UserId", removeuser);
+router.delete(
+  "/removeuser/:UserId",
+  validateRequest({ params: idParam("UserId") }),
+  removeuser,
+);
 router.get("/staffuser", authmiddleware, staffuser);
 router.get("/manageruser", authmiddleware, manageruser);
 router.get("/adminuser", authmiddleware, adminuser);
@@ -42,6 +54,11 @@ router.patch(
   toggleAdminStatus,
 );
 router.post("/logout", authmiddleware, logout);
-router.put("/updateProfile", authmiddleware, updateProfile);
+router.put(
+  "/updateProfile",
+  authmiddleware,
+  validateRequest({ body: profileBody }),
+  updateProfile,
+);
 
 module.exports = router;

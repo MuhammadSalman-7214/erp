@@ -1,6 +1,15 @@
 // Example: Routers/ProductRouter.js
 const express = require("express");
 const router = express.Router();
+const validateRequest = require("../middleware/validateRequest");
+const {
+  productBody,
+  productUpdateBody,
+  productCodeCreateBody,
+  productCodeUpdateBody,
+  idParam,
+  queryParam,
+} = require("../validation/schemas");
 const {
   authmiddleware,
   checkPermission,
@@ -26,6 +35,7 @@ const {
 router.get(
   "/searchproduct",
   authmiddleware,
+  validateRequest({ query: queryParam() }),
   checkPermission("product", "read"),
   SearchProduct,
 );
@@ -33,6 +43,7 @@ router.get("/", authmiddleware, checkPermission("product", "read"), getProduct);
 router.get(
   "/:productId/codes",
   authmiddleware,
+  validateRequest({ params: idParam("productId") }),
   checkPermission("product", "read"),
   getProductCodesByProduct,
 );
@@ -46,12 +57,14 @@ router.get(
 router.post(
   "/",
   authmiddleware,
+  validateRequest({ body: productBody }),
   checkPermission("product", "write"),
   Addproduct,
 );
 router.post(
   "/:productId/codes",
   authmiddleware,
+  validateRequest({ params: idParam("productId"), body: productCodeCreateBody }),
   checkPermission("product", "write"),
   addProductCode,
 );
@@ -60,12 +73,14 @@ router.post(
 router.put(
   "/:id",
   authmiddleware,
+  validateRequest({ params: idParam("id"), body: productUpdateBody }),
   checkPermission("product", "write"),
   EditProduct,
 );
 router.put(
   "/code/:codeId",
   authmiddleware,
+  validateRequest({ params: idParam("codeId"), body: productCodeUpdateBody }),
   checkPermission("product", "write"),
   updateProductCode,
 );
@@ -74,12 +89,14 @@ router.put(
 router.delete(
   "/:productId",
   authmiddleware,
+  validateRequest({ params: idParam("productId") }),
   checkRole("admin", "manager"),
   RemoveProduct,
 );
 router.delete(
   "/code/:codeId",
   authmiddleware,
+  validateRequest({ params: idParam("codeId") }),
   checkRole("admin", "manager"),
   deleteProductCode,
 );

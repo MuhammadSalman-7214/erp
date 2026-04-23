@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const query = require("../libs/dbQuery.js");
+const validateRequest = require("../middleware/validateRequest");
+const { activityBody, idParam } = require("../validation/schemas");
 const {
   authmiddleware,
   adminmiddleware,
@@ -95,68 +97,79 @@ router.get("/me", authmiddleware, async (req, res) => {
 });
 
 // 🧠 INTERNAL LOG CREATION
-router.post("/", authmiddleware, async (req, res) => {
-  const io = req.app.get("io");
+router.post(
+  "/",
+  authmiddleware,
+  validateRequest({ body: activityBody }),
+  async (req, res) => {
+    const io = req.app.get("io");
 
-  try {
-    const { action, entity, entityId, ipAddress } = req.body;
-    const insertResult = await query(
-      "INSERT INTO activity_logs (action, entity, entityId, userId, user_id, ipAddress) VALUES (?, ?, ?, ?, ?, ?)",
-      [
-        action,
-        entity,
-        entityId,
-        req.user.userId,
-        req.user.userId,
-        ipAddress || req.ip,
-      ],
-    );
-    const rows = await query(
-      "SELECT al.*, u.id AS userId_id, u.name AS userId_name, u.email AS userId_email, u.role AS userId_role, u.ProfilePic AS userId_ProfilePic FROM activity_logs al LEFT JOIN users u ON u.id = al.userId WHERE al.id = ?",
-      [insertResult.insertId],
-    );
-    const log = rows[0] || null;
-    const populatedLog = log
-      ? {
-          ...log,
-          userId: log.userId_id
-            ? {
-                id: log.userId_id,
-                name: log.userId_name,
-                email: log.userId_email,
-                role: log.userId_role,
-                ProfilePic: log.userId_ProfilePic,
-              }
-            : null,
-        }
-      : null;
+    try {
+      const { action, entity, entityId, ipAddress } = req.body;
+      const insertResult = await query(
+        "INSERT INTO activity_logs (action, entity, entityId, userId, user_id, ipAddress) VALUES (?, ?, ?, ?, ?, ?)",
+        [
+          action,
+          entity,
+          entityId,
+          req.user.userId,
+          req.user.userId,
+          ipAddress || req.ip,
+        ],
+      );
+      const rows = await query(
+        "SELECT al.*, u.id AS userId_id, u.name AS userId_name, u.email AS userId_email, u.role AS userId_role, u.ProfilePic AS userId_ProfilePic FROM activity_logs al LEFT JOIN users u ON u.id = al.userId WHERE al.id = ?",
+        [insertResult.insertId],
+      );
+      const log = rows[0] || null;
+      const populatedLog = log
+        ? {
+            ...log,
+            userId: log.userId_id
+              ? {
+                  id: log.userId_id,
+                  name: log.userId_name,
+                  email: log.userId_email,
+                  role: log.userId_role,
+                  ProfilePic: log.userId_ProfilePic,
+                }
+              : null,
+          }
+        : null;
 
-    io.emit("newActivityLog", populatedLog);
-    res.status(201).json(populatedLog);
-  } catch (err) {
-    return res.status(500).json({
-      success: false,
-      message: "Database error",
-      error: err,
-    });
-  }
-});
+      io.emit("newActivityLog", populatedLog);
+      res.status(201).json(populatedLog);
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+  },
+);
 
 // 🔐 ADMIN → delete log
-router.delete("/:id", authmiddleware, adminmiddleware, async (req, res) => {
-  try {
-    await query("DELETE FROM activity_logs WHERE id = ? AND user_id = ?", [
-      req.params.id,
-      req.user.userId,
-    ]);
-    res.json({ message: "Log deleted" });
-  } catch (err) {
-    return res.status(500).json({
-      success: false,
-      message: "Database error",
-      error: err,
-    });
-  }
-});
+router.delete(
+  "/:id",
+  authmiddleware,
+  validateRequest({ params: idParam("id") }),
+  adminmiddleware,
+  async (req, res) => {
+    try {
+      await query("DELETE FROM activity_logs WHERE id = ? AND user_id = ?", [
+        req.params.id,
+        req.user.userId,
+      ]);
+      res.json({ message: "Log deleted" });
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+  },
+);
 
 module.exports = router;
