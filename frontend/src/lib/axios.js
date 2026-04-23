@@ -9,14 +9,16 @@ const axiosInstance = axios.create({
 });
 
 axiosInstance.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error?.config?.skipAuthRedirect) {
+      return Promise.reject(error);
+    }
+
     const status = error?.response?.status;
     if (status === 401 || status === 403) {
       const message =
@@ -24,12 +26,11 @@ axiosInstance.interceptors.response.use(
         error?.response?.data?.error ||
         "Unauthorized";
       console.error("Auth error:", message, error?.response?.data);
-      debugger;
       toast.error(message);
       if (typeof window !== "undefined") {
         setTimeout(() => {
-          localStorage.removeItem("token");
           localStorage.removeItem("user");
+          localStorage.removeItem("pendingOtpSession");
           window.location.replace("/login");
         }, 2000);
       }

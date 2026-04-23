@@ -1,17 +1,39 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axiosInstance from "../lib/axios";
 
+const sanitizeUser = (user) => {
+  if (!user) return null;
+  const { token, ...safeUser } = user;
+  return safeUser;
+};
+
+const readStoredUser = () => {
+  try {
+    return sanitizeUser(JSON.parse(localStorage.getItem("user")));
+  } catch {
+    return null;
+  }
+};
+
+const readStoredOtpSession = () => {
+  try {
+    return JSON.parse(localStorage.getItem("pendingOtpSession"));
+  } catch {
+    return null;
+  }
+};
+
 const initialState = {
-  // Authuser: JSON.parse(localStorage.getItem("user")) || null,
-  user: JSON.parse(localStorage.getItem("user")),
+  user: readStoredUser(),
   isUserSignup: false,
   staffuser: null,
   manageruser: null,
   adminuser: null,
-  token: localStorage.getItem("token"),
-  pendingOtpSession: JSON.parse(localStorage.getItem("pendingOtpSession")),
+  token: null,
+  pendingOtpSession: readStoredOtpSession(),
   isupdateProfile: false,
-  isAuthenticated: !!localStorage.getItem("token"),
+  isAuthenticated: !!readStoredUser(),
+  isAuthChecked: false,
   isLoginLoading: false,
   isOtpVerifying: false,
 };
@@ -23,8 +45,9 @@ export const signup = createAsyncThunk(
       const response = await axiosInstance.post("auth/signup", credentials, {
         withCredentials: true,
       });
-      localStorage.setItem("user", JSON.stringify(response.data.savedUser));
-      localStorage.setItem("token", response.data.savedUser.token);
+      const user = sanitizeUser(response.data.savedUser);
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.removeItem("token");
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || "Signup failed");
@@ -52,6 +75,12 @@ export const login = createAsyncThunk(
             createdAt: Date.now(),
           }),
         );
+      } else if (response.data?.user) {
+        localStorage.setItem(
+          "user",
+          JSON.stringify(sanitizeUser(response.data.user)),
+        );
+        localStorage.removeItem("token");
       }
 
       return response.data;
@@ -74,8 +103,9 @@ export const verifyOtp = createAsyncThunk(
       );
 
       localStorage.removeItem("pendingOtpSession");
-      localStorage.setItem("user", JSON.stringify(response.data.user));
-      localStorage.setItem("token", response.data.user.token);
+      const user = sanitizeUser(response.data.user);
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.removeItem("token");
 
       return response.data;
     } catch (error) {
@@ -89,6 +119,14 @@ export const logout = createAsyncThunk(
   "auth/logout",
   async (_, { rejectWithValue }) => {
     try {
+      await axiosInstance.post(
+        "auth/logout",
+        {},
+        {
+          withCredentials: true,
+          skipAuthRedirect: true,
+        },
+      );
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       localStorage.removeItem("pendingOtpSession");
@@ -102,14 +140,37 @@ export const logout = createAsyncThunk(
     }
   },
 );
+
+export const fetchCurrentUser = createAsyncThunk(
+  "auth/fetchCurrentUser",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get("auth/me", {
+        withCredentials: true,
+        skipAuthRedirect: true,
+      });
+      if (response.data?.user) {
+        localStorage.setItem(
+          "user",
+          JSON.stringify(sanitizeUser(response.data.user)),
+        );
+      }
+      return response.data;
+    } catch (error) {
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+      return rejectWithValue(error.response?.data?.message || "Not authenticated");
+    }
+  },
+);
+
 export const updateProfile = createAsyncThunk(
   "auth/updateProfile",
-  async (base64Image, { rejectWithValue }) => {
+  async (base64Image, { rejectWithValue, getState }) => {
     try {
-      const storedUser = JSON.parse(localStorage.getItem("user"));
-      const token = localStorage.getItem("token");
+      const storedUser = getState()?.auth?.user;
 
-      if (!storedUser || !token) {
+      if (!storedUser) {
         return rejectWithValue("User not authenticated. Please log in again.");
       }
 
@@ -119,16 +180,19 @@ export const updateProfile = createAsyncThunk(
         {
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
+          withCredentials: true,
         },
       );
 
       const updatedData = response.data;
 
       if (updatedData && updatedData.updatedUser) {
-        localStorage.setItem("user", JSON.stringify(updatedData.updatedUser));
-        return updatedData.updatedUser; // Return the updated user object
+        localStorage.setItem(
+          "user",
+          JSON.stringify(sanitizeUser(updatedData.updatedUser)),
+        );
+        return updatedData.updatedUser;
       } else {
         throw new Error("Unexpected response structure");
       }
@@ -225,9 +289,10 @@ const authSlice = createSlice({
       })
       .addCase(signup.fulfilled, (state, action) => {
         state.isUserSignup = false;
-        state.user = action.payload.savedUser;
-        state.token = action.payload.savedUser.token;
+        state.user = sanitizeUser(action.payload.savedUser);
+        state.token = null;
         state.isAuthenticated = true;
+        state.isAuthChecked = true;
       })
       .addCase(signup.rejected, (state, action) => {
         state.isUserSignup = false;
@@ -250,10 +315,11 @@ const authSlice = createSlice({
           state.user = null;
           state.token = null;
         } else if (action.payload?.user) {
-          state.user = action.payload.user;
-          state.token = action.payload.user.token;
+          state.user = sanitizeUser(action.payload.user);
+          state.token = null;
           state.isAuthenticated = true;
           state.pendingOtpSession = null;
+          state.isAuthChecked = true;
         }
       })
 
@@ -266,10 +332,11 @@ const authSlice = createSlice({
       })
       .addCase(verifyOtp.fulfilled, (state, action) => {
         state.isOtpVerifying = false;
-        state.user = action.payload.user;
-        state.token = action.payload.user.token;
+        state.user = sanitizeUser(action.payload.user);
+        state.token = null;
         state.isAuthenticated = true;
         state.pendingOtpSession = null;
+        state.isAuthChecked = true;
       })
       .addCase(verifyOtp.rejected, (state) => {
         state.isOtpVerifying = false;
@@ -279,8 +346,31 @@ const authSlice = createSlice({
         state.token = null;
         state.isAuthenticated = false;
         state.pendingOtpSession = null;
+        state.isAuthChecked = true;
       })
-      .addCase(logout.rejected, (state, action) => {})
+      .addCase(logout.rejected, (state) => {
+        state.user = null;
+        state.token = null;
+        state.isAuthenticated = false;
+        state.pendingOtpSession = null;
+        state.isAuthChecked = true;
+      })
+
+      .addCase(fetchCurrentUser.pending, (state) => {
+        state.isAuthChecked = false;
+      })
+      .addCase(fetchCurrentUser.fulfilled, (state, action) => {
+        state.user = sanitizeUser(action.payload.user);
+        state.token = null;
+        state.isAuthenticated = true;
+        state.isAuthChecked = true;
+      })
+      .addCase(fetchCurrentUser.rejected, (state) => {
+        state.user = null;
+        state.token = null;
+        state.isAuthenticated = false;
+        state.isAuthChecked = true;
+      })
 
       .addCase(updateProfile.pending, (state) => {
         state.isupdateProfile = true;
@@ -289,7 +379,7 @@ const authSlice = createSlice({
     builder
       .addCase(updateProfile.fulfilled, (state, action) => {
         state.isupdateProfile = false;
-        state.user = { ...state.user, user: action.payload };
+        state.user = { ...state.user, ...action.payload };
       })
 
       .addCase(staffUser.fulfilled, (state, action) => {

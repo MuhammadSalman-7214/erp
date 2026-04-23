@@ -15,11 +15,13 @@ const generateToken = async (user, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "8h" },
     );
+    const isProduction = process.env.NODE_ENV === "production";
     res.cookie("token", token, {
       maxAge: 7 * 24 * 60 * 60 * 1000,
       httpOnly: true,
-      sameSite: "None",
-      secure: true,
+      sameSite: isProduction ? "None" : "Lax",
+      secure: isProduction,
+      path: "/",
     });
     return token;
   } catch (error) {

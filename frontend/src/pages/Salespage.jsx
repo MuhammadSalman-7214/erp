@@ -33,10 +33,7 @@ import {
 } from "../lib/dateFormat";
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
-import {
-  validateNumberInput,
-  validateTextInput,
-} from "../lib/formValidation";
+import { validateNumberInput, validateTextInput } from "../lib/formValidation";
 
 const sanitizeFileName = (value) =>
   String(value || "invoice")
@@ -191,7 +188,6 @@ function Salespage() {
     });
     return results.slice(0, 20);
   }, [debouncedCodeQuery, getallproduct]);
-  console.log({ getallproduct });
 
   const availableQtyByCode = useMemo(() => {
     const map = new Map();
@@ -932,21 +928,29 @@ function Salespage() {
     event.preventDefault();
     let resolvedCustomerId = customerId;
     if (!resolvedCustomerId) {
-      const customerNameCheck = validateTextInput(customerSearch, "Customer name", {
-        required: true,
-        minLength: 2,
-        maxLength: 120,
-      });
+      const customerNameCheck = validateTextInput(
+        customerSearch,
+        "Customer name",
+        {
+          required: true,
+          minLength: 2,
+          maxLength: 120,
+        },
+      );
       if (!customerNameCheck.ok) {
         toast.error(customerNameCheck.message);
         return;
       }
 
-      const phoneCheck = validateTextInput(newCustomerData.phone, "Customer phone", {
-        required: true,
-        minLength: 7,
-        maxLength: 20,
-      });
+      const phoneCheck = validateTextInput(
+        newCustomerData.phone,
+        "Customer phone",
+        {
+          required: true,
+          minLength: 7,
+          maxLength: 20,
+        },
+      );
       if (!phoneCheck.ok) {
         toast.error(phoneCheck.message);
         return;
@@ -1108,7 +1112,8 @@ function Salespage() {
           price: priceCheck.value,
         };
       }),
-      paymentMethod: receivedAmountCheck.value <= 0 ? "credit" : paymentCheck.value,
+      paymentMethod:
+        receivedAmountCheck.value <= 0 ? "credit" : paymentCheck.value,
       receivedAmount: receivedAmountCheck.value,
       carage: carageCheck.value,
       // paymentStatus,

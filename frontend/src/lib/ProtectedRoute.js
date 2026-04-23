@@ -8,7 +8,18 @@ const ProtectedRoute = ({
   allowedRoles = [],
   requireAuth = true,
 }) => {
-  const { user, isAuthenticated } = useSelector((state) => state.auth);
+  const { user, isAuthenticated, isAuthChecked } = useSelector(
+    (state) => state.auth,
+  );
+
+  if (!isAuthChecked && requireAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 text-slate-600">
+        Checking session...
+      </div>
+    );
+  }
+
   if (requireAuth && !isAuthenticated) {
     return <Navigate to="/login" replace />;
   }

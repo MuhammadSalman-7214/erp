@@ -24,11 +24,9 @@ export const Addproduct = createAsyncThunk(
   "product/addproduct",
   async (product, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
       const normalizedProduct = uppercasePayload(product);
 
       const response = await axiosInstance.post("product", normalizedProduct, {
-        headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       });
       return response.data.product;
@@ -49,11 +47,9 @@ export const EditProduct = createAsyncThunk(
     }
 
     try {
-      const token = localStorage.getItem("token");
       const normalizedData = uppercasePayload(updatedData);
 
       const response = await axiosInstance.put(`/product/${id}`, normalizedData, {
-        headers: { Authorization: `Bearer ${token}` },
       });
 
       return response.data;
@@ -70,9 +66,7 @@ export const Removeproduct = createAsyncThunk(
   "product/removeproduct",
   async (productId, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
       const response = await axiosInstance.delete(`product/${productId}`, {
-        headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       });
       return response.data;
@@ -88,9 +82,7 @@ export const gettingallproducts = createAsyncThunk(
   "product/getproduct",
   async (_, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
       const response = await axiosInstance.get("product", {
-        headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       });
       return response.data;
@@ -106,11 +98,9 @@ export const Searchproduct = createAsyncThunk(
   "product/searchproduct",
   async (query, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
       const response = await axiosInstance.get(
         `product/searchproduct?query=${query}`,
         {
-          headers: { Authorization: `Bearer ${token}` },
           withCredentials: true,
         },
       );
@@ -128,11 +118,9 @@ export const getTopProductsByQuantity = createAsyncThunk(
   "product/getTopProductsByQuantity",
   async (_, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
       const response = await axiosInstance.get(
         `product/getTopProductsByQuantity`,
         {
-          headers: { Authorization: `Bearer ${token}` },
           withCredentials: true,
         },
       );
@@ -149,12 +137,11 @@ export const addProductCode = createAsyncThunk(
   "product/addProductCode",
   async ({ productId, codeData }, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
       const normalizedCodeData = uppercasePayload(codeData);
       const response = await axiosInstance.post(
         `product/${productId}/codes`,
         normalizedCodeData,
-        { headers: { Authorization: `Bearer ${token}` } },
+        { withCredentials: true },
       );
       return { productId, productCode: response.data.productCode };
     } catch (error) {
@@ -169,12 +156,11 @@ export const updateProductCode = createAsyncThunk(
   "product/updateProductCode",
   async ({ codeId, updates }, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
       const normalizedUpdates = uppercasePayload(updates);
       const response = await axiosInstance.put(
         `product/code/${codeId}`,
         normalizedUpdates,
-        { headers: { Authorization: `Bearer ${token}` } },
+        { withCredentials: true },
       );
       return response.data.productCode;
     } catch (error) {
@@ -189,9 +175,8 @@ export const deleteProductCode = createAsyncThunk(
   "product/deleteProductCode",
   async ({ codeId, productId }, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
       await axiosInstance.delete(`product/code/${codeId}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
       return { codeId, productId };
     } catch (error) {

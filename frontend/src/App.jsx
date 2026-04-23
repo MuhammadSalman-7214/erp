@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Navigate, Route, Routes } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { useEffect } from "react";
 import HomePage from "./pages/HomePage";
 import SignupPage from "./pages/SignupPages";
 import ServicePage from "./pages/ServicePage";
@@ -32,6 +33,7 @@ import CustomerDetailPage from "./pages/CustomerDetailPage";
 import SupplierDetailPage from "./pages/SupplierDetailPage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import PriceListPage from "./pages/PriceListPage";
+import { fetchCurrentUser } from "./features/authSlice";
 
 const RoleDashboardLayout = () => {
   const { user } = useSelector((state) => state.auth);
@@ -64,12 +66,23 @@ const NotificationsByRole = () => {
   return user?.role === "admin" ? <Notificationpage /> : <NotificationPageRead />;
 };
 
+const AuthBootstrapper = ({ children }) => {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(fetchCurrentUser());
+  }, [dispatch]);
+
+  return children;
+};
+
 function App() {
   return (
     <Router>
-      <div>
-        <Toaster />
-        <Routes>
+      <AuthBootstrapper>
+        <div>
+          <Toaster />
+          <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
@@ -178,9 +191,10 @@ function App() {
             />
           </Route>
 
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </div>
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </div>
+      </AuthBootstrapper>
     </Router>
   );
 }

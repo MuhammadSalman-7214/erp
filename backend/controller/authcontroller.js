@@ -333,7 +333,14 @@ module.exports.verifyLoginOtp = async (req, res) => {
 
 module.exports.logout = async (req, res) => {
   try {
-    res.cookie("token", "", { maxAge: 0 });
+    const isProduction = process.env.NODE_ENV === "production";
+    res.cookie("token", "", {
+      maxAge: 0,
+      httpOnly: true,
+      sameSite: isProduction ? "None" : "Lax",
+      secure: isProduction,
+      path: "/",
+    });
     res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
     res.status(500).json({

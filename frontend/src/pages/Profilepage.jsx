@@ -17,8 +17,7 @@ function ProfilePage() {
       return;
     }
 
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-    if (!storedUser) {
+    if (!user) {
       toast.error("User not authenticated. Please log in again.");
       return;
     }
