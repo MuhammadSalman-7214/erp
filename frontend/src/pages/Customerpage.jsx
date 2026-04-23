@@ -9,6 +9,10 @@ import { Popconfirm } from "antd";
 import NoData from "../Components/NoData";
 import DrawerPanel from "../Components/DrawerPanel";
 import axiosInstance from "../lib/axios";
+import {
+  validatePhoneInput,
+  validateTextInput,
+} from "../lib/formValidation";
 import { useRolePermissions } from "../hooks/useRolePermissions";
 import {
   createCustomer,
@@ -31,6 +35,7 @@ function Customerpage({ readOnly = false }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [errors, setErrors] = useState({});
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
@@ -64,6 +69,7 @@ function Customerpage({ readOnly = false }) {
     setName("");
     setPhone("");
     setAddress("");
+    setErrors({});
   };
 
   const closeForm = () => {
@@ -78,8 +84,18 @@ function Customerpage({ readOnly = false }) {
     setName(customer?.name || "");
     setPhone(customer?.contactInfo?.phone || "");
     setAddress(customer?.contactInfo?.address || "");
+    setErrors({});
     setIsDrawerMinimized(false);
     setIsFormVisible(true);
+  };
+
+  const validateField = (field, value, validator) => {
+    const result = validator(value);
+    setErrors((prev) => ({
+      ...prev,
+      [field]: result.ok ? "" : result.message,
+    }));
+    return result;
   };
 
   const submitCustomer = async (event) => {
@@ -90,16 +106,43 @@ function Customerpage({ readOnly = false }) {
       return;
     }
 
-    if (!name.trim()) {
-      toast.error("Customer name is required");
+    const nameCheck = validateField("name", name, (value) =>
+      validateTextInput(value, "Customer name", {
+        required: true,
+        minLength: 2,
+        maxLength: 120,
+      }),
+    );
+    if (!nameCheck.ok) {
+      toast.error(nameCheck.message);
+      return;
+    }
+
+    const phoneCheck = validateField("phone", phone, (value) =>
+      validatePhoneInput(value, { required: false }),
+    );
+    if (!phoneCheck.ok) {
+      toast.error(phoneCheck.message);
+      return;
+    }
+
+    const addressCheck = validateField("address", address, (value) =>
+      validateTextInput(value, "Address", {
+        required: false,
+        maxLength: 200,
+        allowEmpty: true,
+      }),
+    );
+    if (!addressCheck.ok) {
+      toast.error(addressCheck.message);
       return;
     }
 
     const customerData = {
-      name,
+      name: nameCheck.value,
       contactInfo: {
-        phone,
-        address,
+        phone: phoneCheck.value,
+        address: addressCheck.value,
       },
     };
 
@@ -122,16 +165,44 @@ function Customerpage({ readOnly = false }) {
     }
 
     if (!selectedCustomer) return;
-    if (!name.trim()) {
-      toast.error("Customer name is required");
+
+    const nameCheck = validateField("name", name, (value) =>
+      validateTextInput(value, "Customer name", {
+        required: true,
+        minLength: 2,
+        maxLength: 120,
+      }),
+    );
+    if (!nameCheck.ok) {
+      toast.error(nameCheck.message);
+      return;
+    }
+
+    const phoneCheck = validateField("phone", phone, (value) =>
+      validatePhoneInput(value, { required: false }),
+    );
+    if (!phoneCheck.ok) {
+      toast.error(phoneCheck.message);
+      return;
+    }
+
+    const addressCheck = validateField("address", address, (value) =>
+      validateTextInput(value, "Address", {
+        required: false,
+        maxLength: 200,
+        allowEmpty: true,
+      }),
+    );
+    if (!addressCheck.ok) {
+      toast.error(addressCheck.message);
       return;
     }
 
     const updatedData = {
-      name,
+      name: nameCheck.value,
       contactInfo: {
-        phone,
-        address,
+        phone: phoneCheck.value,
+        address: addressCheck.value,
       },
     };
 
@@ -265,6 +336,7 @@ function Customerpage({ readOnly = false }) {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          maxLength={120}
           className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="Search customer..."
         />
@@ -312,25 +384,83 @@ function Customerpage({ readOnly = false }) {
             <input
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setName(value);
+                validateField("name", value, (current) =>
+                  validateTextInput(current, "Customer name", {
+                    required: true,
+                    minLength: 2,
+                    maxLength: 120,
+                  }),
+                );
+              }}
+              onBlur={(e) =>
+                validateField("name", e.target.value, (current) =>
+                  validateTextInput(current, "Customer name", {
+                    required: true,
+                    minLength: 2,
+                    maxLength: 120,
+                  }),
+                )
+              }
               placeholder="Customer name"
+              maxLength={120}
               className="w-full h-10 rounded-xl border px-3"
               required
             />
+            {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
             <input
               type="text"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setPhone(value);
+                validateField("phone", value, (current) =>
+                  validatePhoneInput(current, { required: false }),
+                );
+              }}
+              onBlur={(e) =>
+                validateField("phone", e.target.value, (current) =>
+                  validatePhoneInput(current, { required: false }),
+                )
+              }
               placeholder="Phone"
+              inputMode="tel"
+              maxLength={20}
               className="w-full h-10 rounded-xl border px-3"
             />
+            {errors.phone && <p className="text-red-500 text-sm">{errors.phone}</p>}
             <input
               type="text"
               value={address}
-              onChange={(e) => setAddress(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setAddress(value);
+                validateField("address", value, (current) =>
+                  validateTextInput(current, "Address", {
+                    required: false,
+                    maxLength: 200,
+                    allowEmpty: true,
+                  }),
+                );
+              }}
+              onBlur={(e) =>
+                validateField("address", e.target.value, (current) =>
+                  validateTextInput(current, "Address", {
+                    required: false,
+                    maxLength: 200,
+                    allowEmpty: true,
+                  }),
+                )
+              }
               placeholder="Address"
+              maxLength={200}
               className="w-full h-10 rounded-xl border px-3"
             />
+            {errors.address && (
+              <p className="text-red-500 text-sm">{errors.address}</p>
+            )}
             <button
               type="submit"
               className="h-11 w-full rounded-xl bg-teal-700 text-white hover:bg-teal-600"

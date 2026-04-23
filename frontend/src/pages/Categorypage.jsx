@@ -23,6 +23,7 @@ import { Popconfirm } from "antd";
 import DrawerPanel from "../Components/DrawerPanel";
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
+import { validateTextInput } from "../lib/formValidation";
 
 function Categorypage() {
   const { getallCategory, iscreatedCategory, searchdata } = useSelector(
@@ -34,6 +35,7 @@ function Categorypage() {
   const [createdAtSort, setCreatedAtSort] = useState("asc");
 
   const [name, setname] = useState("");
+  const [errors, setErrors] = useState({});
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -66,7 +68,20 @@ function Categorypage() {
 
   const submitCategory = async (event) => {
     event.preventDefault();
-    const CategoryData = { name };
+    const nameCheck = validateField("name", name, (value) =>
+      validateTextInput(value, "Category name", {
+        required: true,
+        minLength: 2,
+        maxLength: 80,
+      }),
+    );
+
+    if (!nameCheck.ok) {
+      toast.error(nameCheck.message);
+      return;
+    }
+
+    const CategoryData = { name: nameCheck.value };
 
     if (selectedProduct) {
       // Update existing category
@@ -95,11 +110,13 @@ function Categorypage() {
 
   const resetForm = () => {
     setname("");
+    setErrors({});
   };
 
   const openForm = (category = null) => {
     setSelectedProduct(category);
     setname(category?.name || "");
+    setErrors({});
     setIsDrawerMinimized(false);
     setIsFormVisible(true);
   };
@@ -109,6 +126,15 @@ function Categorypage() {
     setIsDrawerMinimized(false);
     setSelectedProduct(null);
     resetForm();
+  };
+
+  const validateField = (field, value, validator) => {
+    const result = validator(value);
+    setErrors((prev) => ({
+      ...prev,
+      [field]: result.ok ? "" : result.message,
+    }));
+    return result;
   };
 
   const displayCategory = query.trim() !== "" ? searchdata : getallCategory;
@@ -139,11 +165,12 @@ function Categorypage() {
       </div>
 
       <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">
-        <input
+          <input
           type="text"
           value={query}
           onChange={(e) => setquery(e.target.value)}
           placeholder="Search the category"
+          maxLength={120}
           className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
         />
         <button
@@ -181,11 +208,32 @@ function Categorypage() {
               <input
                 value={name}
                 placeholder="Enter category name"
-                onChange={(e) => setname(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setname(value);
+                  validateField("name", value, (current) =>
+                    validateTextInput(current, "Category name", {
+                      required: true,
+                      minLength: 2,
+                      maxLength: 80,
+                    }),
+                  );
+                }}
+                onBlur={(e) =>
+                  validateField("name", e.target.value, (current) =>
+                    validateTextInput(current, "Category name", {
+                      required: true,
+                      minLength: 2,
+                      maxLength: 80,
+                    }),
+                  )
+                }
                 type="text"
+                maxLength={80}
                 className="mt-2 w-full rounded-xl border border-gray-300 px-4 h-11 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500"
                 required
               />
+              {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
             </div>
 
             <button

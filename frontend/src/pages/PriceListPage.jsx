@@ -16,6 +16,10 @@ import {
   updatePriceListItem,
 } from "../features/priceListSlice";
 import { sortByDateValue } from "../lib/dateFormat";
+import {
+  validateNumberInput,
+  validateTextInput,
+} from "../lib/formValidation";
 
 const sanitizeFileName = (value) =>
   String(value || "price_list")
@@ -37,6 +41,7 @@ function PriceListPage() {
   const [price, setPrice] = useState("");
   const [search, setSearch] = useState("");
   const [selectedItem, setSelectedItem] = useState(null);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     dispatch(fetchPriceListItems());
@@ -47,22 +52,53 @@ function PriceListPage() {
     setSize("");
     setPrice("");
     setSelectedItem(null);
+    setErrors({});
+  };
+
+  const validateField = (field, value, validator) => {
+    const result = validator(value);
+    setErrors((prev) => ({
+      ...prev,
+      [field]: result.ok ? "" : result.message,
+    }));
+    return result;
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    const trimmedName = productName.trim().toUpperCase();
-    const trimmedSize = size.trim().toUpperCase();
-    const resolvedPrice = Number(price);
-
-    if (!trimmedName) {
-      toast.error("Product name is required");
+    const nameCheck = validateField("productName", productName, (value) =>
+      validateTextInput(value, "Product name", {
+        required: true,
+        minLength: 2,
+        maxLength: 120,
+      }),
+    );
+    if (!nameCheck.ok) {
+      toast.error(nameCheck.message);
       return;
     }
 
-    if (!Number.isFinite(resolvedPrice) || resolvedPrice < 0) {
-      toast.error("Price is required");
+    const sizeCheck = validateField("size", size, (value) =>
+      validateTextInput(value, "Size", {
+        required: false,
+        maxLength: 40,
+        allowEmpty: true,
+      }),
+    );
+    if (!sizeCheck.ok) {
+      toast.error(sizeCheck.message);
+      return;
+    }
+
+    const priceCheck = validateField("price", price, (value) =>
+      validateNumberInput(value, "Price", {
+        min: 0,
+        allowZero: true,
+      }),
+    );
+    if (!priceCheck.ok) {
+      toast.error(priceCheck.message);
       return;
     }
 
@@ -72,9 +108,9 @@ function PriceListPage() {
           updatePriceListItem({
             id: selectedItem.id,
             payload: {
-              productName: trimmedName,
-              size: trimmedSize || null,
-              price: resolvedPrice,
+              productName: nameCheck.value.toUpperCase(),
+              size: sizeCheck.value ? sizeCheck.value.toUpperCase() : null,
+              price: priceCheck.value,
             },
           }),
         ).unwrap();
@@ -82,9 +118,9 @@ function PriceListPage() {
       } else {
         await dispatch(
           createPriceListItem({
-            productName: trimmedName,
-            size: trimmedSize || null,
-            price: resolvedPrice,
+            productName: nameCheck.value.toUpperCase(),
+            size: sizeCheck.value ? sizeCheck.value.toUpperCase() : null,
+            price: priceCheck.value,
           }),
         ).unwrap();
         toast.success("Price item saved");
@@ -102,6 +138,7 @@ function PriceListPage() {
     setProductName(item.productName || "");
     setSize(item.size || "");
     setPrice(String(item.price ?? ""));
+    setErrors({});
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -234,28 +271,90 @@ function PriceListPage() {
           <input
             type="text"
             value={productName}
-            onChange={(e) => setProductName(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              setProductName(value);
+              validateField("productName", value, (current) =>
+                validateTextInput(current, "Product name", {
+                  required: true,
+                  minLength: 2,
+                  maxLength: 120,
+                }),
+              );
+            }}
+            onBlur={(e) =>
+              validateField("productName", e.target.value, (current) =>
+                validateTextInput(current, "Product name", {
+                  required: true,
+                  minLength: 2,
+                  maxLength: 120,
+                }),
+              )
+            }
             placeholder="Product name"
             autoComplete="off"
+            maxLength={120}
             className="w-full h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           />
+          {errors.productName && (
+            <p className="text-red-500 text-sm -mt-1">{errors.productName}</p>
+          )}
           <input
             type="text"
             value={size}
-            onChange={(e) => setSize(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              setSize(value);
+              validateField("size", value, (current) =>
+                validateTextInput(current, "Size", {
+                  required: false,
+                  maxLength: 40,
+                  allowEmpty: true,
+                }),
+              );
+            }}
+            onBlur={(e) =>
+              validateField("size", e.target.value, (current) =>
+                validateTextInput(current, "Size", {
+                  required: false,
+                  maxLength: 40,
+                  allowEmpty: true,
+                }),
+              )
+            }
             placeholder="Size (optional)"
             autoComplete="off"
+            maxLength={40}
             className="w-full h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           />
+          {errors.size && <p className="text-red-500 text-sm -mt-1">{errors.size}</p>}
           <input
             type="number"
             min="0"
             step="0.01"
             value={price}
-            onChange={(e) => setPrice(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              setPrice(value);
+              validateField("price", value, (current) =>
+                validateNumberInput(current, "Price", {
+                  min: 0,
+                  allowZero: true,
+                }),
+              );
+            }}
+            onBlur={(e) =>
+              validateField("price", e.target.value, (current) =>
+                validateNumberInput(current, "Price", {
+                  min: 0,
+                  allowZero: true,
+                }),
+              )
+            }
             placeholder="Price"
             className="w-full h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           />
+          {errors.price && <p className="text-red-500 text-sm -mt-1">{errors.price}</p>}
           <div className="flex gap-2">
             <button
               type="submit"
@@ -283,6 +382,7 @@ function PriceListPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search product name or price..."
+            maxLength={120}
             className="w-full h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           />
         </div>

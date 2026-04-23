@@ -12,6 +12,11 @@ import { TrendingUp, CreditCard, AlertCircle, Clipboard } from "lucide-react";
 import { DetailSkeleton } from "../Components/LoadingSkeletons";
 import DrawerPanel from "../Components/DrawerPanel";
 import { uppercasePayload } from "../lib/uppercasePayload";
+import toast from "react-hot-toast";
+import {
+  validateNumberInput,
+  validateTextInput,
+} from "../lib/formValidation";
 
 const sanitizeFileName = (value) =>
   String(value || "vendor_ledger")
@@ -39,6 +44,7 @@ function SupplierDetailPage() {
   const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
   const [manualAmount, setManualAmount] = useState("");
   const [manualDescription, setManualDescription] = useState("");
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(true);
   const [ledgerLoading, setLedgerLoading] = useState(true);
   const [ledgerDateSort, setLedgerDateSort] = useState("asc");
@@ -130,6 +136,7 @@ function SupplierDetailPage() {
   const openManualEntry = () => {
     setManualAmount("");
     setManualDescription("");
+    setErrors({});
     setIsDrawerMinimized(false);
     setIsDrawerOpen(true);
   };
@@ -139,27 +146,55 @@ function SupplierDetailPage() {
     setIsDrawerMinimized(false);
     setManualAmount("");
     setManualDescription("");
+    setErrors({});
+  };
+
+  const validateField = (field, value, validator) => {
+    const result = validator(value);
+    setErrors((prev) => ({
+      ...prev,
+      [field]: result.ok ? "" : result.message,
+    }));
+    return result;
   };
 
   const submitManualEntry = async (event) => {
     event.preventDefault();
 
-    if (!manualAmount || Number(manualAmount) <= 0) {
+    const amountCheck = validateField("manualAmount", manualAmount, (value) =>
+      validateNumberInput(value, "Amount", {
+        min: 0.01,
+        allowZero: false,
+      }),
+    );
+    if (!amountCheck.ok) {
+      toast.error(amountCheck.message);
       return;
     }
 
-    if (!manualDescription.trim()) {
+    const descriptionCheck = validateField(
+      "manualDescription",
+      manualDescription,
+      (value) =>
+        validateTextInput(value, "Description", {
+          required: true,
+          minLength: 2,
+          maxLength: 240,
+        }),
+    );
+    if (!descriptionCheck.ok) {
+      toast.error(descriptionCheck.message);
       return;
     }
 
     try {
       await axiosInstance.post("/payment", {
         type: "debit",
-        amount: Number(manualAmount),
+        amount: amountCheck.value,
         method: "manual",
         partyType: "vendor",
         vendor: id,
-        notes: uppercasePayload(manualDescription.trim()),
+        notes: uppercasePayload(descriptionCheck.value),
         paidAt: new Date(),
       });
       closeManualEntry();
@@ -552,11 +587,32 @@ function SupplierDetailPage() {
                 min="0"
                 step="0.01"
                 value={manualAmount}
-                onChange={(e) => setManualAmount(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setManualAmount(value);
+                  validateField("manualAmount", value, (current) =>
+                    validateNumberInput(current, "Amount", {
+                      min: 0.01,
+                      allowZero: false,
+                    }),
+                  );
+                }}
+                onBlur={(e) =>
+                  validateField("manualAmount", e.target.value, (current) =>
+                    validateNumberInput(current, "Amount", {
+                      min: 0.01,
+                      allowZero: false,
+                    }),
+                  )
+                }
                 className="mt-2 w-full h-11 rounded-xl border px-3 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500"
                 placeholder="Enter amount"
                 required
+                inputMode="decimal"
               />
+              {errors.manualAmount && (
+                <p className="mt-1 text-sm text-red-500">{errors.manualAmount}</p>
+              )}
             </div>
 
             <div>
@@ -565,12 +621,37 @@ function SupplierDetailPage() {
               </label>
               <textarea
                 value={manualDescription}
-                onChange={(e) => setManualDescription(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setManualDescription(value);
+                  validateField("manualDescription", value, (current) =>
+                    validateTextInput(current, "Description", {
+                      required: true,
+                      minLength: 2,
+                      maxLength: 240,
+                    }),
+                  );
+                }}
+                onBlur={(e) =>
+                  validateField("manualDescription", e.target.value, (current) =>
+                    validateTextInput(current, "Description", {
+                      required: true,
+                      minLength: 2,
+                      maxLength: 240,
+                    }),
+                  )
+                }
                 className="mt-2 w-full rounded-xl border px-3 py-2 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500"
                 rows={4}
                 placeholder="Enter description"
                 required
+                maxLength={240}
               />
+              {errors.manualDescription && (
+                <p className="mt-1 text-sm text-red-500">
+                  {errors.manualDescription}
+                </p>
+              )}
             </div>
 
             <button

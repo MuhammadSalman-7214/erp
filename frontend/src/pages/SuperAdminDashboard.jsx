@@ -12,6 +12,7 @@ import {
   FiFileText,
 } from "react-icons/fi";
 import { TableSkeleton } from "../Components/LoadingSkeletons";
+import { validateNumberInput } from "../lib/formValidation";
 
 const getDaysInMonth = (year, monthIndex) =>
   new Date(year, monthIndex + 1, 0).getDate();
@@ -50,6 +51,7 @@ function SuperAdminDashboard() {
     admin: null,
     amount: "",
   });
+  const [errors, setErrors] = useState({});
   const [historyModal, setHistoryModal] = useState({
     open: false,
     admin: null,
@@ -157,6 +159,7 @@ function SuperAdminDashboard() {
       admin,
       amount: "",
     });
+    setErrors({});
   };
 
   const openHistoryModal = async (admin) => {
@@ -214,18 +217,36 @@ function SuperAdminDashboard() {
       admin: null,
       amount: "",
     });
+    setErrors({});
+  };
+
+  const validateField = (field, value, validator) => {
+    const result = validator(value);
+    setErrors((prev) => ({
+      ...prev,
+      [field]: result.ok ? "" : result.message,
+    }));
+    return result;
   };
 
   const submitPayment = async (event) => {
     event.preventDefault();
 
-    const amount = Number(paymentModal.amount);
     if (!paymentModal.admin) {
       return;
     }
 
-    if (!Number.isFinite(amount) || amount <= 0) {
-      toast.error("Enter a valid payment amount");
+    const amountCheck = validateField(
+      "amount",
+      paymentModal.amount,
+      (value) =>
+        validateNumberInput(value, "Payment amount", {
+          min: 0.01,
+          allowZero: false,
+        }),
+    );
+    if (!amountCheck.ok) {
+      toast.error(amountCheck.message);
       return;
     }
 
@@ -233,7 +254,7 @@ function SuperAdminDashboard() {
       setSubmittingPayment(true);
       await axiosInstance.post("/payments", {
         userId: paymentModal.admin.id,
-        amount,
+        amount: amountCheck.value,
       });
       toast.success("Payment added and user activated");
       setSubmittingPayment(false);
@@ -341,6 +362,7 @@ function SuperAdminDashboard() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                maxLength={120}
                 placeholder="Search admin by name or email"
                 className="w-full h-10 rounded-xl border border-gray-300 px-4 focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
@@ -486,15 +508,32 @@ function SuperAdminDashboard() {
                   min="0"
                   step="0.01"
                   value={paymentModal.amount}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const value = e.target.value;
                     setPaymentModal((prev) => ({
                       ...prev,
-                      amount: e.target.value,
-                    }))
+                      amount: value,
+                    }));
+                    validateField("amount", value, (current) =>
+                      validateNumberInput(current, "Payment amount", {
+                        min: 0.01,
+                        allowZero: false,
+                      }),
+                    );
+                  }}
+                  onBlur={(e) =>
+                    validateField("amount", e.target.value, (current) =>
+                      validateNumberInput(current, "Payment amount", {
+                        min: 0.01,
+                        allowZero: false,
+                      }),
+                    )
                   }
                   className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   placeholder="Enter payment amount"
+                  inputMode="decimal"
                 />
+                {errors.amount && <p className="mt-1 text-sm text-red-500">{errors.amount}</p>}
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">

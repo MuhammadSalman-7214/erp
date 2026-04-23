@@ -6,6 +6,11 @@ import { IoMdAdd } from "react-icons/io";
 import { MdDelete } from "react-icons/md";
 import { FormSkeleton } from "../Components/LoadingSkeletons";
 import { uppercasePayload } from "../lib/uppercasePayload";
+import {
+  validateDateInput,
+  validateNumberInput,
+  validateTextInput,
+} from "../lib/formValidation";
 
 function InvoiceEditPage() {
   const { id } = useParams();
@@ -85,22 +90,111 @@ function InvoiceEditPage() {
       return;
     }
 
+    const dueDateCheck = validateDateInput(dueDate, "Due date");
+    if (!dueDateCheck.ok) {
+      toast.error(dueDateCheck.message);
+      return;
+    }
+
+    const taxRateCheck = validateNumberInput(taxRate, "Tax rate", {
+      min: 0,
+      allowZero: true,
+    });
+    if (!taxRateCheck.ok) {
+      toast.error(taxRateCheck.message);
+      return;
+    }
+
+    const discountCheck = validateNumberInput(discount, "Discount", {
+      min: 0,
+      allowZero: true,
+    });
+    if (!discountCheck.ok) {
+      toast.error(discountCheck.message);
+      return;
+    }
+
+    const carageCheck = validateNumberInput(carage, "Carage", {
+      min: 0,
+      allowZero: true,
+    });
+    if (!carageCheck.ok) {
+      toast.error(carageCheck.message);
+      return;
+    }
+
+    const validatedItems = [];
+    for (const item of items) {
+      const itemNameCheck = validateTextInput(item.name, "Item name", {
+        required: true,
+        minLength: 1,
+        maxLength: 120,
+      });
+      if (!itemNameCheck.ok) {
+        toast.error(itemNameCheck.message);
+        return;
+      }
+
+      const quantityCheck = validateNumberInput(item.quantity, "Quantity", {
+        min: 1,
+        allowZero: false,
+        integer: true,
+      });
+      if (!quantityCheck.ok) {
+        toast.error(quantityCheck.message);
+        return;
+      }
+
+      const unitPriceCheck = validateNumberInput(item.unitPrice, "Unit price", {
+        min: 0,
+        allowZero: true,
+      });
+      if (!unitPriceCheck.ok) {
+        toast.error(unitPriceCheck.message);
+        return;
+      }
+
+      validatedItems.push({
+        name: itemNameCheck.value,
+        quantity: quantityCheck.value,
+        unitPrice: unitPriceCheck.value,
+      });
+    }
+
+    const paymentMethodCheck = validateTextInput(
+      paymentMethod,
+      "Payment method",
+      {
+        required: false,
+        maxLength: 40,
+        allowEmpty: true,
+      },
+    );
+    if (!paymentMethodCheck.ok) {
+      toast.error(paymentMethodCheck.message);
+      return;
+    }
+
+    const statusCheck = validateTextInput(status, "Status", {
+      required: false,
+      maxLength: 40,
+      allowEmpty: true,
+    });
+    if (!statusCheck.ok) {
+      toast.error(statusCheck.message);
+      return;
+    }
+
     try {
       await axiosInstance.put(`/invoice/${id}`, {
         customerId: invoiceType === "sales" ? customerId : undefined,
-        items: uppercasePayload(
-          items.map(({ name, quantity, unitPrice }) => ({
-            name,
-            quantity,
-            unitPrice,
-          })),
-        ),
-        taxRate,
-        discount,
-        carage,
-        paymentMethod,
-        status,
-        dueDate,
+        items: uppercasePayload(validatedItems),
+        taxRate: taxRateCheck.value,
+        discount: discountCheck.value,
+        carage: carageCheck.value,
+        paymentMethod: paymentMethodCheck.value,
+        status: statusCheck.value,
+        dueDate: dueDateCheck.value,
       });
       toast.success("Invoice updated successfully");
       navigate(`/invoice/${id}`);
@@ -171,6 +265,7 @@ function InvoiceEditPage() {
                     value={item.name}
                     onChange={(e) => updateItem(index, "name", e.target.value)}
                     placeholder="Item Name"
+                    maxLength={120}
                     className="col-span-3 border border-gray-300 p-2 rounded"
                   />
                   <input
@@ -179,6 +274,8 @@ function InvoiceEditPage() {
                     onChange={(e) =>
                       updateItem(index, "quantity", e.target.value)
                     }
+                    min="1"
+                    step="1"
                     className="col-span-1 border border-gray-300 p-2 rounded"
                   />
                   <input
@@ -187,6 +284,8 @@ function InvoiceEditPage() {
                     onChange={(e) =>
                       updateItem(index, "unitPrice", e.target.value)
                     }
+                    min="0"
+                    step="0.01"
                     className="col-span-2 border border-gray-300 p-2 rounded"
                   />
                   <span className="col-span-1 text-gray-700 font-semibold">
@@ -234,6 +333,8 @@ function InvoiceEditPage() {
                 type="number"
                 value={taxRate}
                 onChange={(e) => setTaxRate(Number(e.target.value))}
+                min="0"
+                step="0.01"
                 className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
             </div>
@@ -246,6 +347,8 @@ function InvoiceEditPage() {
                 type="number"
                 value={discount}
                 onChange={(e) => setDiscount(Number(e.target.value))}
+                min="0"
+                step="0.01"
                 className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
             </div>
@@ -258,6 +361,8 @@ function InvoiceEditPage() {
                 type="number"
                 value={carage}
                 onChange={(e) => setCarage(Number(e.target.value))}
+                min="0"
+                step="0.01"
                 className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
             </div>

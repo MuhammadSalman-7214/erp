@@ -33,6 +33,10 @@ import {
 } from "../lib/dateFormat";
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
+import {
+  validateNumberInput,
+  validateTextInput,
+} from "../lib/formValidation";
 
 const sanitizeFileName = (value) =>
   String(value || "invoice")
@@ -927,27 +931,47 @@ function Salespage() {
   const submitsales = async (event) => {
     event.preventDefault();
     let resolvedCustomerId = customerId;
-    const customerName = customerSearch.trim();
     if (!resolvedCustomerId) {
-      if (!customerName) {
-        toast.error("Customer name is required");
+      const customerNameCheck = validateTextInput(customerSearch, "Customer name", {
+        required: true,
+        minLength: 2,
+        maxLength: 120,
+      });
+      if (!customerNameCheck.ok) {
+        toast.error(customerNameCheck.message);
         return;
       }
-      if (!newCustomerData.phone.trim()) {
-        toast.error("Customer phone is required");
+
+      const phoneCheck = validateTextInput(newCustomerData.phone, "Customer phone", {
+        required: true,
+        minLength: 7,
+        maxLength: 20,
+      });
+      if (!phoneCheck.ok) {
+        toast.error(phoneCheck.message);
         return;
       }
-      if (!newCustomerData.address.trim()) {
-        toast.error("Customer address is required");
+
+      const addressCheck = validateTextInput(
+        newCustomerData.address,
+        "Customer address",
+        {
+          required: true,
+          minLength: 2,
+          maxLength: 200,
+        },
+      );
+      if (!addressCheck.ok) {
+        toast.error(addressCheck.message);
         return;
       }
       setIsCreatingCustomer(true);
       try {
         const payload = {
-          name: customerName,
+          name: customerNameCheck.value,
           contactInfo: {
-            phone: newCustomerData.phone.trim(),
-            address: newCustomerData.address.trim(),
+            phone: phoneCheck.value,
+            address: addressCheck.value,
           },
         };
         const result = await dispatch(createCustomer(payload)).unwrap();
@@ -975,6 +999,48 @@ function Salespage() {
       newCustomerData.address.trim();
     if (!resolvedCustomerAddress) {
       toast.error("Customer address is required");
+      return;
+    }
+
+    const receivedAmountCheck = validateNumberInput(
+      receivedAmount || 0,
+      "Received amount",
+      {
+        min: 0,
+        allowZero: true,
+      },
+    );
+    if (!receivedAmountCheck.ok) {
+      toast.error(receivedAmountCheck.message);
+      return;
+    }
+
+    const carageCheck = validateNumberInput(carage || 0, "Carage", {
+      min: 0,
+      allowZero: true,
+    });
+    if (!carageCheck.ok) {
+      toast.error(carageCheck.message);
+      return;
+    }
+
+    const statusCheck = validateTextInput(Status, "Status", {
+      required: false,
+      maxLength: 40,
+      allowEmpty: true,
+    });
+    if (!statusCheck.ok) {
+      toast.error(statusCheck.message);
+      return;
+    }
+
+    const paymentCheck = validateTextInput(Payment, "Payment method", {
+      required: false,
+      maxLength: 40,
+      allowEmpty: true,
+    });
+    if (!paymentCheck.ok) {
+      toast.error(paymentCheck.message);
       return;
     }
 
@@ -1020,19 +1086,33 @@ function Salespage() {
     const salesData = {
       customerId: resolvedCustomerId,
       products: cartItems.map((item) => {
-        const resolvedPrice = Number(item.unitPrice);
+        const quantityCheck = validateNumberInput(item.quantity, "Quantity", {
+          min: 1,
+          allowZero: false,
+          integer: true,
+        });
+        if (!quantityCheck.ok) {
+          throw new Error(quantityCheck.message);
+        }
+        const priceCheck = validateNumberInput(item.unitPrice, "Unit price", {
+          min: 0,
+          allowZero: true,
+        });
+        if (!priceCheck.ok) {
+          throw new Error(priceCheck.message);
+        }
         return {
           product: item.productId,
           productCode: item.codeId,
-          quantity: Number(item.quantity),
-          ...(Number.isFinite(resolvedPrice) ? { price: resolvedPrice } : {}),
+          quantity: quantityCheck.value,
+          price: priceCheck.value,
         };
       }),
-      paymentMethod: parsedReceivedAmount <= 0 ? "credit" : Payment,
-      receivedAmount: parsedReceivedAmount,
-      carage: carageAmount,
+      paymentMethod: receivedAmountCheck.value <= 0 ? "credit" : paymentCheck.value,
+      receivedAmount: receivedAmountCheck.value,
+      carage: carageCheck.value,
       // paymentStatus,
-      status: Status,
+      status: statusCheck.value,
     };
 
     try {
@@ -1050,7 +1130,10 @@ function Salespage() {
         toast.error(
           `Only ${error.available} items available. You requested ${error.requested}.`,
         );
+        return;
       }
+
+      toast.error(error?.message || "Failed to create sale");
     }
   };
   const resetForm = () => {
@@ -1849,6 +1932,7 @@ function Salespage() {
           value={query}
           onChange={(e) => setquery(e.target.value)}
           type="text"
+          maxLength={120}
           className="w-full md:w-80 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="Search invoice, customer, phone..."
         />
@@ -1924,6 +2008,7 @@ function Salespage() {
                 }, 150);
               }}
               placeholder="Search or create customer (name or phone)"
+              maxLength={120}
               className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
               required
             />
@@ -1986,6 +2071,8 @@ function Salespage() {
                     }))
                   }
                   placeholder="Phone"
+                  maxLength={20}
+                  inputMode="tel"
                   className="w-full h-10 px-3 border rounded-xl"
                   required
                 />
@@ -1999,6 +2086,7 @@ function Salespage() {
                     }))
                   }
                   placeholder="Address"
+                  maxLength={200}
                   className="w-full h-10 px-3 border rounded-xl"
                   required
                 />
@@ -2021,6 +2109,7 @@ function Salespage() {
                   setCodeActiveIndex(0);
                 }}
                 onKeyDownCapture={onCodeKeyDown}
+                maxLength={120}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2"
                 placeholder="Type product code"
               />

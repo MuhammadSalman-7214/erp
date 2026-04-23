@@ -23,6 +23,11 @@ import axiosInstance from "../lib/axios";
 import DrawerPanel from "../Components/DrawerPanel";
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
+import {
+  validateNumberInput,
+  validatePhoneInput,
+  validateTextInput,
+} from "../lib/formValidation";
 
 function Supplierpage({ readOnly = false }) {
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
@@ -45,6 +50,7 @@ function Supplierpage({ readOnly = false }) {
   const [address, setAddress] = useState("");
   const [openingBalance, setOpeningBalance] = useState("");
   const [paymentTerms, setPaymentTerms] = useState("");
+  const [errors, setErrors] = useState({});
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState(null);
@@ -113,22 +119,91 @@ function Supplierpage({ readOnly = false }) {
       toast.error("You do not have permission to edit suppliers");
       return;
     }
-    if (!name || !phone) {
-      toast.error("name and phone are required");
-      return;
-    }
 
     if (!selectedSupplier) return;
 
-    const updatedData = {
-      vendorCode,
-      name,
-      contactInfo: {
-        phone,
-        address,
-      },
+    const codeCheck = validateField("vendorCode", vendorCode, (value) =>
+      validateTextInput(value, "Vendor code", {
+        required: false,
+        maxLength: 40,
+        allowEmpty: true,
+      }),
+    );
+    if (!codeCheck.ok) {
+      toast.error(codeCheck.message);
+      return;
+    }
+
+    const nameCheck = validateField("name", name, (value) =>
+      validateTextInput(value, "Vendor name", {
+        required: true,
+        minLength: 2,
+        maxLength: 120,
+      }),
+    );
+    if (!nameCheck.ok) {
+      toast.error(nameCheck.message);
+      return;
+    }
+
+    const phoneCheck = validateField("phone", phone, (value) =>
+      validatePhoneInput(value),
+    );
+    if (!phoneCheck.ok) {
+      toast.error(phoneCheck.message);
+      return;
+    }
+
+    const addressCheck = validateField("address", address, (value) =>
+      validateTextInput(value, "Address", {
+        required: false,
+        maxLength: 200,
+        allowEmpty: true,
+      }),
+    );
+    if (!addressCheck.ok) {
+      toast.error(addressCheck.message);
+      return;
+    }
+
+    const openingBalanceCheck = validateField(
+      "openingBalance",
       openingBalance,
+      (value) =>
+        validateNumberInput(value, "Opening balance", {
+          min: 0,
+          allowZero: true,
+        }),
+    );
+    if (!openingBalanceCheck.ok) {
+      toast.error(openingBalanceCheck.message);
+      return;
+    }
+
+    const paymentTermsCheck = validateField(
+      "paymentTerms",
       paymentTerms,
+      (value) =>
+        validateTextInput(value, "Payment terms", {
+          required: false,
+          maxLength: 80,
+          allowEmpty: true,
+        }),
+    );
+    if (!paymentTermsCheck.ok) {
+      toast.error(paymentTermsCheck.message);
+      return;
+    }
+
+    const updatedData = {
+      vendorCode: codeCheck.value,
+      name: nameCheck.value,
+      contactInfo: {
+        phone: phoneCheck.value,
+        address: addressCheck.value,
+      },
+      openingBalance: openingBalanceCheck.value,
+      paymentTerms: paymentTermsCheck.value,
       // optionally keep productsSupplied if needed
       productsSupplied: product ? [product] : [],
     };
@@ -152,20 +227,89 @@ function Supplierpage({ readOnly = false }) {
       toast.error("You do not have permission to add suppliers");
       return;
     }
-    if (!name || !phone) {
-      toast.error("name and phone are required");
+
+    const codeCheck = validateField("vendorCode", vendorCode, (value) =>
+      validateTextInput(value, "Vendor code", {
+        required: false,
+        maxLength: 40,
+        allowEmpty: true,
+      }),
+    );
+    if (!codeCheck.ok) {
+      toast.error(codeCheck.message);
+      return;
+    }
+
+    const nameCheck = validateField("name", name, (value) =>
+      validateTextInput(value, "Vendor name", {
+        required: true,
+        minLength: 2,
+        maxLength: 120,
+      }),
+    );
+    if (!nameCheck.ok) {
+      toast.error(nameCheck.message);
+      return;
+    }
+
+    const phoneCheck = validateField("phone", phone, (value) =>
+      validatePhoneInput(value),
+    );
+    if (!phoneCheck.ok) {
+      toast.error(phoneCheck.message);
+      return;
+    }
+
+    const addressCheck = validateField("address", address, (value) =>
+      validateTextInput(value, "Address", {
+        required: false,
+        maxLength: 200,
+        allowEmpty: true,
+      }),
+    );
+    if (!addressCheck.ok) {
+      toast.error(addressCheck.message);
+      return;
+    }
+
+    const openingBalanceCheck = validateField(
+      "openingBalance",
+      openingBalance,
+      (value) =>
+        validateNumberInput(value, "Opening balance", {
+          min: 0,
+          allowZero: true,
+        }),
+    );
+    if (!openingBalanceCheck.ok) {
+      toast.error(openingBalanceCheck.message);
+      return;
+    }
+
+    const paymentTermsCheck = validateField(
+      "paymentTerms",
+      paymentTerms,
+      (value) =>
+        validateTextInput(value, "Payment terms", {
+          required: false,
+          maxLength: 80,
+          allowEmpty: true,
+        }),
+    );
+    if (!paymentTermsCheck.ok) {
+      toast.error(paymentTermsCheck.message);
       return;
     }
 
     const supplierData = {
-      vendorCode,
-      name,
+      vendorCode: codeCheck.value,
+      name: nameCheck.value,
       contactInfo: {
-        phone,
-        address,
+        phone: phoneCheck.value,
+        address: addressCheck.value,
       },
-      openingBalance,
-      paymentTerms,
+      openingBalance: openingBalanceCheck.value,
+      paymentTerms: paymentTermsCheck.value,
       productsSupplied: product ? [product] : [],
     };
     dispatch(CreateSupplier(supplierData))
@@ -185,6 +329,7 @@ function Supplierpage({ readOnly = false }) {
     setAddress("");
     setOpeningBalance("");
     setPaymentTerms("");
+    setErrors({});
   };
 
   const closeForm = () => {
@@ -208,8 +353,18 @@ function Supplierpage({ readOnly = false }) {
       resetForm();
     }
 
+    setErrors({});
     setIsDrawerMinimized(false);
     setIsFormVisible(true);
+  };
+
+  const validateField = (field, value, validator) => {
+    const result = validator(value);
+    setErrors((prev) => ({
+      ...prev,
+      [field]: result.ok ? "" : result.message,
+    }));
+    return result;
   };
 
   const handleEditClick = (supplier) => {
@@ -310,6 +465,7 @@ function Supplierpage({ readOnly = false }) {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          maxLength={120}
           className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="Search vendor..."
         />
@@ -354,10 +510,31 @@ function Supplierpage({ readOnly = false }) {
               <input
                 value={name}
                 placeholder="Enter Vendor name"
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setName(value);
+                  validateField("name", value, (current) =>
+                    validateTextInput(current, "Vendor name", {
+                      required: true,
+                      minLength: 2,
+                      maxLength: 120,
+                    }),
+                  );
+                }}
+                onBlur={(e) =>
+                  validateField("name", e.target.value, (current) =>
+                    validateTextInput(current, "Vendor name", {
+                      required: true,
+                      minLength: 2,
+                      maxLength: 120,
+                    }),
+                  )
+                }
                 type="text"
+                maxLength={120}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
               />
+              {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
             </div>
 
             <div className="mb-4">
@@ -366,10 +543,24 @@ function Supplierpage({ readOnly = false }) {
                 value={phone}
                 type="number"
                 placeholder="Enter Vendor Phone"
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setPhone(value);
+                  validateField("phone", value, (current) =>
+                    validatePhoneInput(current),
+                  );
+                }}
+                onBlur={(e) =>
+                  validateField("phone", e.target.value, (current) =>
+                    validatePhoneInput(current),
+                  )
+                }
                 // type="text"
+                inputMode="tel"
+                maxLength={20}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
               />
+              {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
             </div>
 
             <div className="mb-4">
@@ -378,9 +569,30 @@ function Supplierpage({ readOnly = false }) {
                 type="text"
                 placeholder="Enter Vendor Address"
                 value={address}
-                onChange={(e) => setAddress(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setAddress(value);
+                  validateField("address", value, (current) =>
+                    validateTextInput(current, "Address", {
+                      required: false,
+                      maxLength: 200,
+                      allowEmpty: true,
+                    }),
+                  );
+                }}
+                onBlur={(e) =>
+                  validateField("address", e.target.value, (current) =>
+                    validateTextInput(current, "Address", {
+                      required: false,
+                      maxLength: 200,
+                      allowEmpty: true,
+                    }),
+                  )
+                }
+                maxLength={200}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
               />
+              {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address}</p>}
             </div>
 
             {/* <div className="mb-4">

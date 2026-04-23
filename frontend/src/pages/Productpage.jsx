@@ -27,6 +27,10 @@ import { TableSkeleton } from "../Components/LoadingSkeletons";
 import DrawerPanel from "../Components/DrawerPanel";
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
+import {
+  validateNumberInput,
+  validateTextInput,
+} from "../lib/formValidation";
 
 const emptyCode = {
   code: "",
@@ -76,6 +80,7 @@ function Productpage({ readOnly = false }) {
   const [codeProductId, setCodeProductId] = useState(null);
   const [codeForm, setCodeForm] = useState({ ...emptyCode });
   const [createdAtSort, setCreatedAtSort] = useState("asc");
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     dispatch(gettingallproducts());
@@ -121,12 +126,6 @@ function Productpage({ readOnly = false }) {
     handleremove(productId);
   };
 
-  const normalizePrice = (value) => {
-    if (value === "" || value === null || value === undefined) return undefined;
-    const parsed = Number(value);
-    return Number.isNaN(parsed) ? undefined : parsed;
-  };
-
   const getId = (value) => value?.id ?? value?.id ?? value;
 
   const handleEditSubmit = (event) => {
@@ -139,14 +138,88 @@ function Productpage({ readOnly = false }) {
 
     if (!selectedProduct) return;
 
+    const nameCheck = validateField("name", name, (value) =>
+      validateTextInput(value, "Product name", {
+        required: true,
+        minLength: 2,
+        maxLength: 150,
+      }),
+    );
+    if (!nameCheck.ok) {
+      toast.error(nameCheck.message);
+      return;
+    }
+
+    const descriptionCheck = validateField("description", description, (value) =>
+      validateTextInput(value, "Description", {
+        required: false,
+        maxLength: 500,
+        allowEmpty: true,
+      }),
+    );
+    if (!descriptionCheck.ok) {
+      toast.error(descriptionCheck.message);
+      return;
+    }
+
+    const companyCheck = validateField("company", company, (value) =>
+      validateTextInput(value, "Company", {
+        required: false,
+        maxLength: 120,
+        allowEmpty: true,
+      }),
+    );
+    if (!companyCheck.ok) {
+      toast.error(companyCheck.message);
+      return;
+    }
+
+    if (!Category) {
+      toast.error("Category is required");
+      return;
+    }
+
+    const purchaseCheck = validateField("purchasePrice", purchasePrice, (value) =>
+      validateNumberInput(value, "Purchase price", {
+        min: 0,
+        allowZero: true,
+      }),
+    );
+    if (!purchaseCheck.ok) {
+      toast.error(purchaseCheck.message);
+      return;
+    }
+
+    const tradeCheck = validateField("tradePrice", tradePrice, (value) =>
+      validateNumberInput(value, "Trade price", {
+        min: 0,
+        allowZero: true,
+      }),
+    );
+    if (!tradeCheck.ok) {
+      toast.error(tradeCheck.message);
+      return;
+    }
+
+    const saleCheck = validateField("salePrice", salePrice, (value) =>
+      validateNumberInput(value, "Sale price", {
+        min: 0,
+        allowZero: true,
+      }),
+    );
+    if (!saleCheck.ok) {
+      toast.error(saleCheck.message);
+      return;
+    }
+
     const updatedData = {
-      name,
-      description,
-      company,
+      name: nameCheck.value,
+      description: descriptionCheck.value,
+      company: companyCheck.value,
       Category,
-      purchasePrice: normalizePrice(purchasePrice),
-      tradePrice: normalizePrice(tradePrice),
-      salePrice: normalizePrice(salePrice),
+      purchasePrice: purchaseCheck.value,
+      tradePrice: tradeCheck.value,
+      salePrice: saleCheck.value,
       dateAdded: selectedProduct.dateAdded || new Date().toISOString(),
     };
     dispatch(EditProduct({ id: getId(selectedProduct), updatedData }))
@@ -166,14 +239,88 @@ function Productpage({ readOnly = false }) {
       return;
     }
 
+    const nameCheck = validateField("name", name, (value) =>
+      validateTextInput(value, "Product name", {
+        required: true,
+        minLength: 2,
+        maxLength: 150,
+      }),
+    );
+    if (!nameCheck.ok) {
+      toast.error(nameCheck.message);
+      return;
+    }
+
+    const descriptionCheck = validateField("description", description, (value) =>
+      validateTextInput(value, "Description", {
+        required: false,
+        maxLength: 500,
+        allowEmpty: true,
+      }),
+    );
+    if (!descriptionCheck.ok) {
+      toast.error(descriptionCheck.message);
+      return;
+    }
+
+    const companyCheck = validateField("company", company, (value) =>
+      validateTextInput(value, "Company", {
+        required: false,
+        maxLength: 120,
+        allowEmpty: true,
+      }),
+    );
+    if (!companyCheck.ok) {
+      toast.error(companyCheck.message);
+      return;
+    }
+
+    if (!Category) {
+      toast.error("Category is required");
+      return;
+    }
+
+    const purchaseCheck = validateField("purchasePrice", purchasePrice, (value) =>
+      validateNumberInput(value, "Purchase price", {
+        min: 0,
+        allowZero: true,
+      }),
+    );
+    if (!purchaseCheck.ok) {
+      toast.error(purchaseCheck.message);
+      return;
+    }
+
+    const tradeCheck = validateField("tradePrice", tradePrice, (value) =>
+      validateNumberInput(value, "Trade price", {
+        min: 0,
+        allowZero: true,
+      }),
+    );
+    if (!tradeCheck.ok) {
+      toast.error(tradeCheck.message);
+      return;
+    }
+
+    const saleCheck = validateField("salePrice", salePrice, (value) =>
+      validateNumberInput(value, "Sale price", {
+        min: 0,
+        allowZero: true,
+      }),
+    );
+    if (!saleCheck.ok) {
+      toast.error(saleCheck.message);
+      return;
+    }
+
     const productData = {
-      name,
-      description,
-      company,
+      name: nameCheck.value,
+      description: descriptionCheck.value,
+      company: companyCheck.value,
       Category,
-      purchasePrice: normalizePrice(purchasePrice),
-      tradePrice: normalizePrice(tradePrice),
-      salePrice: normalizePrice(salePrice),
+      purchasePrice: purchaseCheck.value,
+      tradePrice: tradeCheck.value,
+      salePrice: saleCheck.value,
       dateAdded: new Date(dateAdded).toISOString(),
     };
 
@@ -194,6 +341,7 @@ function Productpage({ readOnly = false }) {
     setPurchasePrice("");
     setTradePrice("");
     setSalePrice("");
+    setErrors({});
   };
 
   const closeForm = () => {
@@ -227,8 +375,18 @@ function Productpage({ readOnly = false }) {
       resetForm();
     }
 
+    setErrors({});
     setIsDrawerMinimized(false);
     setIsFormVisible(true);
+  };
+
+  const validateField = (field, value, validator) => {
+    const result = validator(value);
+    setErrors((prev) => ({
+      ...prev,
+      [field]: result.ok ? "" : result.message,
+    }));
+    return result;
   };
 
   const handleEditClick = (product) => {
@@ -254,14 +412,33 @@ function Productpage({ readOnly = false }) {
 
   const handleAddCode = async () => {
     if (!codeProductId) return;
-    if (!codeForm.code.trim()) {
-      toast.error("Shade code is required");
+    const codeCheck = validateField("code", codeForm.code, (value) =>
+      validateTextInput(value, "Shade code", {
+        required: true,
+        minLength: 1,
+        maxLength: 60,
+      }),
+    );
+    if (!codeCheck.ok) {
+      toast.error(codeCheck.message);
+      return;
+    }
+
+    const quantityCheck = validateField("codeQuantity", codeForm.quantity, (value) =>
+      validateNumberInput(value, "Shade quantity", {
+        min: 1,
+        allowZero: false,
+        integer: true,
+      }),
+    );
+    if (!quantityCheck.ok) {
+      toast.error(quantityCheck.message);
       return;
     }
 
     const payload = {
-      code: codeForm.code.trim(),
-      quantity: Number(codeForm.quantity || 0),
+      code: codeCheck.value,
+      quantity: quantityCheck.value,
     };
 
     dispatch(addProductCode({ productId: codeProductId, codeData: payload }))
@@ -536,6 +713,7 @@ function Productpage({ readOnly = false }) {
           type="text"
           value={productCodeQuery}
           onChange={(e) => setProductCodeQuery(e.target.value)}
+          maxLength={120}
           className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="Search by name, code, company, or category..."
         />
@@ -763,35 +941,115 @@ function Productpage({ readOnly = false }) {
               <input
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setName(value);
+                  validateField("name", value, (current) =>
+                    validateTextInput(current, "Product name", {
+                      required: true,
+                      minLength: 2,
+                      maxLength: 150,
+                    }),
+                  );
+                }}
+                onBlur={(e) =>
+                  validateField("name", e.target.value, (current) =>
+                    validateTextInput(current, "Product name", {
+                      required: true,
+                      minLength: 2,
+                      maxLength: 150,
+                    }),
+                  )
+                }
+                maxLength={150}
                 className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 required
               />
+              {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
             </div>
             <div>
               <label className="text-sm font-medium">Description</label>
               <input
                 type="text"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setDescription(value);
+                  validateField("description", value, (current) =>
+                    validateTextInput(current, "Description", {
+                      required: false,
+                      maxLength: 500,
+                      allowEmpty: true,
+                    }),
+                  );
+                }}
+                onBlur={(e) =>
+                  validateField("description", e.target.value, (current) =>
+                    validateTextInput(current, "Description", {
+                      required: false,
+                      maxLength: 500,
+                      allowEmpty: true,
+                    }),
+                  )
+                }
+                maxLength={500}
                 className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
+              {errors.description && <p className="mt-1 text-sm text-red-500">{errors.description}</p>}
             </div>
             <div>
               <label className="text-sm font-medium">Company</label>
               <input
                 type="text"
                 value={company}
-                onChange={(e) => setCompany(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setCompany(value);
+                  validateField("company", value, (current) =>
+                    validateTextInput(current, "Company", {
+                      required: false,
+                      maxLength: 120,
+                      allowEmpty: true,
+                    }),
+                  );
+                }}
+                onBlur={(e) =>
+                  validateField("company", e.target.value, (current) =>
+                    validateTextInput(current, "Company", {
+                      required: false,
+                      maxLength: 120,
+                      allowEmpty: true,
+                    }),
+                  )
+                }
+                maxLength={120}
                 className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 required
               />
+              {errors.company && <p className="mt-1 text-sm text-red-500">{errors.company}</p>}
             </div>
             <div>
               <label className="text-sm font-medium">Category</label>
               <select
                 value={Category}
-                onChange={(e) => setCategory(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setCategory(value);
+                  validateField("Category", value, (current) =>
+                    validateTextInput(current, "Category", {
+                      required: true,
+                      maxLength: 80,
+                    }),
+                  );
+                }}
+                onBlur={(e) =>
+                  validateField("Category", e.target.value, (current) =>
+                    validateTextInput(current, "Category", {
+                      required: true,
+                      maxLength: 80,
+                    }),
+                  )
+                }
                 className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               >
                 <option value="">Select category</option>
@@ -801,6 +1059,7 @@ function Productpage({ readOnly = false }) {
                   </option>
                 ))}
               </select>
+              {errors.Category && <p className="mt-1 text-sm text-red-500">{errors.Category}</p>}
             </div>
 
             <div>
@@ -808,27 +1067,87 @@ function Productpage({ readOnly = false }) {
               <input
                 type="number"
                 value={purchasePrice}
-                onChange={(e) => setPurchasePrice(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setPurchasePrice(value);
+                  validateField("purchasePrice", value, (current) =>
+                    validateNumberInput(current, "Purchase price", {
+                      min: 0,
+                      allowZero: true,
+                    }),
+                  );
+                }}
+                onBlur={(e) =>
+                  validateField("purchasePrice", e.target.value, (current) =>
+                    validateNumberInput(current, "Purchase price", {
+                      min: 0,
+                      allowZero: true,
+                    }),
+                  )
+                }
+                min="0"
+                step="0.01"
                 className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
+              {errors.purchasePrice && <p className="mt-1 text-sm text-red-500">{errors.purchasePrice}</p>}
             </div>
             <div>
               <label className="text-sm font-medium">Trade Price</label>
               <input
                 type="number"
                 value={tradePrice}
-                onChange={(e) => setTradePrice(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setTradePrice(value);
+                  validateField("tradePrice", value, (current) =>
+                    validateNumberInput(current, "Trade price", {
+                      min: 0,
+                      allowZero: true,
+                    }),
+                  );
+                }}
+                onBlur={(e) =>
+                  validateField("tradePrice", e.target.value, (current) =>
+                    validateNumberInput(current, "Trade price", {
+                      min: 0,
+                      allowZero: true,
+                    }),
+                  )
+                }
+                min="0"
+                step="0.01"
                 className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
+              {errors.tradePrice && <p className="mt-1 text-sm text-red-500">{errors.tradePrice}</p>}
             </div>
             <div>
               <label className="text-sm font-medium">Sale Price</label>
               <input
                 type="number"
                 value={salePrice}
-                onChange={(e) => setSalePrice(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSalePrice(value);
+                  validateField("salePrice", value, (current) =>
+                    validateNumberInput(current, "Sale price", {
+                      min: 0,
+                      allowZero: true,
+                    }),
+                  );
+                }}
+                onBlur={(e) =>
+                  validateField("salePrice", e.target.value, (current) =>
+                    validateNumberInput(current, "Sale price", {
+                      min: 0,
+                      allowZero: true,
+                    }),
+                  )
+                }
+                min="0"
+                step="0.01"
                 className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
+              {errors.salePrice && <p className="mt-1 text-sm text-red-500">{errors.salePrice}</p>}
             </div>
 
             <button
@@ -880,14 +1199,34 @@ function Productpage({ readOnly = false }) {
                   <input
                     type="text"
                     value={codeForm.code}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const value = e.target.value;
                       setCodeForm((prev) => ({
                         ...prev,
-                        code: e.target.value,
-                      }))
+                        code: value,
+                      }));
+                      validateField("code", value, (current) =>
+                        validateTextInput(current, "Shade code", {
+                          required: true,
+                          minLength: 1,
+                          maxLength: 60,
+                        }),
+                      );
+                    }}
+                    onBlur={(e) =>
+                      validateField("code", e.target.value, (current) =>
+                        validateTextInput(current, "Shade code", {
+                          required: true,
+                          minLength: 1,
+                          maxLength: 60,
+                        }),
+                      )
                     }
+                    maxLength={60}
                     className="w-full h-9 px-2 border rounded-lg mt-1"
                   />
+                  {errors.code && <p className="mt-1 text-xs text-red-500">{errors.code}</p>}
+                  {errors.codeQuantity && <p className="mt-1 text-xs text-red-500">{errors.codeQuantity}</p>}
                 </div>
                 <button
                   type="button"

@@ -6,6 +6,11 @@ import useKeyboardDropdown from "../hooks/useKeyboardDropdown";
 import DateSortHeader from "../Components/DateSortHeader";
 import { formatDateLabel, sortByDateValue } from "../lib/dateFormat";
 import { uppercasePayload } from "../lib/uppercasePayload";
+import {
+  validateDateInput,
+  validateNumberInput,
+  validateTextInput,
+} from "../lib/formValidation";
 
 const getLocalDateInputValue = (date = new Date()) => {
   const offsetMinutes = date.getTimezoneOffset();
@@ -55,6 +60,7 @@ function PaymentsPage() {
   const [description, setDescription] = useState("");
   const [customerId, setCustomerId] = useState("");
   const [vendorId, setVendorId] = useState("");
+  const [errors, setErrors] = useState({});
   const [customerQuery, setCustomerQuery] = useState("");
   const [vendorQuery, setVendorQuery] = useState("");
   const [showCustomerOptions, setShowCustomerOptions] = useState(false);
@@ -90,6 +96,15 @@ function PaymentsPage() {
     fetchPayments();
     fetchDropdownData();
   }, []);
+
+  const validateField = (field, value, validator) => {
+    const result = validator(value);
+    setErrors((prev) => ({
+      ...prev,
+      [field]: result.ok ? "" : result.message,
+    }));
+    return result;
+  };
 
   useEffect(() => {
     if (type === "received") {
@@ -178,8 +193,14 @@ function PaymentsPage() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!amount) {
-      toast.error("Amount is required");
+    const amountCheck = validateField("amount", amount, (value) =>
+      validateNumberInput(value, "Amount", {
+        min: 0.01,
+        allowZero: false,
+      }),
+    );
+    if (!amountCheck.ok) {
+      toast.error(amountCheck.message);
       return;
     }
 
@@ -188,13 +209,38 @@ function PaymentsPage() {
       return;
     }
 
+    if (partyType === "vendor" && !vendorId) {
+      toast.error("Vendor is required");
+      return;
+    }
+
+    const dateCheck = validateField("paidAt", paidAt, (value) =>
+      validateDateInput(value, "Payment date"),
+    );
+    if (!dateCheck.ok) {
+      toast.error(dateCheck.message);
+      return;
+    }
+
+    const descriptionCheck = validateField("description", description, (value) =>
+      validateTextInput(value, "Description", {
+        required: false,
+        maxLength: 200,
+        allowEmpty: true,
+      }),
+    );
+    if (!descriptionCheck.ok) {
+      toast.error(descriptionCheck.message);
+      return;
+    }
+
     const payload = {
       type,
-      amount: Number(amount),
+      amount: amountCheck.value,
       method,
       partyType,
-      paidAt,
-      description: uppercasePayload(description.trim()),
+      paidAt: dateCheck.value,
+      description: uppercasePayload(descriptionCheck.value),
     };
 
     if (partyType === "customer") payload.customerId = customerId;
@@ -253,19 +299,38 @@ function PaymentsPage() {
             <label className="text-sm font-medium">Type</label>
             <select
               value={type}
-              onChange={(e) => setType(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setType(value);
+                validateField("type", value, (current) =>
+                  validateTextInput(current, "Type", {
+                    required: true,
+                    maxLength: 20,
+                  }),
+                );
+              }}
               className="w-full h-10 px-3 border rounded-xl mt-1"
             >
               <option value="received">Receive</option>
               <option value="paid">Pay</option>
             </select>
+            {errors.type && <p className="mt-1 text-sm text-red-500">{errors.type}</p>}
           </div>
 
           <div>
             <label className="text-sm font-medium">Method</label>
             <select
               value={method}
-              onChange={(e) => setMethod(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setMethod(value);
+                validateField("method", value, (current) =>
+                  validateTextInput(current, "Method", {
+                    required: true,
+                    maxLength: 40,
+                  }),
+                );
+              }}
               className="w-full h-10 px-3 border rounded-xl mt-1"
             >
               <option value="cash">Cash</option>
@@ -275,6 +340,7 @@ function PaymentsPage() {
               <option value="paypal">PayPal</option>
               <option value="other">Other</option>
             </select>
+            {errors.method && <p className="mt-1 text-sm text-red-500">{errors.method}</p>}
           </div>
 
           <div>
@@ -282,9 +348,21 @@ function PaymentsPage() {
             <input
               type="date"
               value={paidAt}
-              onChange={(e) => setPaidAt(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setPaidAt(value);
+                validateField("paidAt", value, (current) =>
+                  validateDateInput(current, "Payment date"),
+                );
+              }}
+              onBlur={(e) =>
+                validateField("paidAt", e.target.value, (current) =>
+                  validateDateInput(current, "Payment date"),
+                )
+              }
               className="w-full h-10 px-3 border rounded-xl mt-1"
             />
+            {errors.paidAt && <p className="mt-1 text-sm text-red-500">{errors.paidAt}</p>}
           </div>
 
           <div>
@@ -292,10 +370,30 @@ function PaymentsPage() {
             <input
               type="number"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setAmount(value);
+                validateField("amount", value, (current) =>
+                  validateNumberInput(current, "Amount", {
+                    min: 0.01,
+                    allowZero: false,
+                  }),
+                );
+              }}
+              onBlur={(e) =>
+                validateField("amount", e.target.value, (current) =>
+                  validateNumberInput(current, "Amount", {
+                    min: 0.01,
+                    allowZero: false,
+                  }),
+                )
+              }
               className="w-full h-10 px-3 border rounded-xl mt-1"
               required
+              min="0"
+              step="0.01"
             />
+            {errors.amount && <p className="mt-1 text-sm text-red-500">{errors.amount}</p>}
           </div>
 
           <div>
@@ -303,38 +401,78 @@ function PaymentsPage() {
             <input
               type="text"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setDescription(value);
+                validateField("description", value, (current) =>
+                  validateTextInput(current, "Description", {
+                    required: false,
+                    maxLength: 200,
+                    allowEmpty: true,
+                  }),
+                );
+              }}
+              onBlur={(e) =>
+                validateField("description", e.target.value, (current) =>
+                  validateTextInput(current, "Description", {
+                    required: false,
+                    maxLength: 200,
+                    allowEmpty: true,
+                  }),
+                )
+              }
               className="w-full h-10 px-3 border rounded-xl mt-1"
               placeholder="Enter payment description"
+              maxLength={200}
             />
+            {errors.description && <p className="mt-1 text-sm text-red-500">{errors.description}</p>}
           </div>
 
           {partyType === "customer" ? (
             <>
               <div className="relative">
                 <label className="text-sm font-medium">Customer</label>
-                <input
-                  type="text"
-                  value={customerQuery}
-                  onChange={(e) => {
-                    setCustomerQuery(e.target.value);
+              <input
+                type="text"
+                value={customerQuery}
+                onChange={(e) => {
+                  const value = e.target.value;
+                    setCustomerQuery(value);
                     setCustomerId("");
                     setShowCustomerOptions(true);
-                  }}
+                  validateField("customerQuery", value, (current) =>
+                    validateTextInput(current, "Customer", {
+                      required: true,
+                      minLength: 2,
+                      maxLength: 120,
+                    }),
+                  );
+                }}
+                onBlur={(e) => {
+                  validateField("customerQuery", e.target.value, (current) =>
+                    validateTextInput(current, "Customer", {
+                      required: true,
+                      minLength: 2,
+                      maxLength: 120,
+                    }),
+                  );
+                  setTimeout(() => {
+                    setShowCustomerOptions(false);
+                    setCustomerActiveIndex(-1);
+                  }, 150);
+                }}
+                  maxLength={120}
                   onFocus={() => {
                     setShowCustomerOptions(true);
                     setCustomerActiveIndex(0);
                   }}
                   onKeyDownCapture={onCustomerKeyDown}
-                  onBlur={() =>
-                    setTimeout(() => {
-                      setShowCustomerOptions(false);
-                      setCustomerActiveIndex(-1);
-                    }, 150)
-                  }
                   className="w-full h-10 px-3 border rounded-xl mt-1"
-                  placeholder="Search customer..."
-                />
+                placeholder="Search customer..."
+              />
+              {errors.customerQuery && (
+                <p className="mt-1 text-sm text-red-500">{errors.customerQuery}</p>
+              )}
                 {showCustomerOptions && filteredCustomers.length > 0 && (
                   <div className="absolute z-50 mt-1 w-full max-h-56 overflow-auto rounded-lg border bg-white shadow">
                     {filteredCustomers.map((customer) => (
@@ -369,24 +507,43 @@ function PaymentsPage() {
                 type="text"
                 value={vendorQuery}
                 onChange={(e) => {
-                  setVendorQuery(e.target.value);
+                  const value = e.target.value;
+                  setVendorQuery(value);
                   setVendorId("");
                   setShowVendorOptions(true);
+                  validateField("vendorQuery", value, (current) =>
+                    validateTextInput(current, "Vendor", {
+                      required: true,
+                      minLength: 2,
+                      maxLength: 120,
+                    }),
+                  );
                 }}
+                onBlur={(e) => {
+                  validateField("vendorQuery", e.target.value, (current) =>
+                    validateTextInput(current, "Vendor", {
+                      required: true,
+                      minLength: 2,
+                      maxLength: 120,
+                    }),
+                  );
+                  setTimeout(() => {
+                    setShowVendorOptions(false);
+                    setVendorActiveIndex(-1);
+                  }, 150);
+                }}
+                maxLength={120}
                 onFocus={() => {
                   setShowVendorOptions(true);
                   setVendorActiveIndex(0);
                 }}
                 onKeyDownCapture={onVendorKeyDown}
-                onBlur={() =>
-                  setTimeout(() => {
-                    setShowVendorOptions(false);
-                    setVendorActiveIndex(-1);
-                  }, 150)
-                }
                 className="w-full h-10 px-3 border rounded-xl mt-1"
                 placeholder="Search vendor..."
               />
+              {errors.vendorQuery && (
+                <p className="mt-1 text-sm text-red-500">{errors.vendorQuery}</p>
+              )}
               {showVendorOptions && filteredVendors.length > 0 && (
                 <div className="absolute z-50 mt-1 w-full max-h-56 overflow-auto rounded-lg border bg-white shadow">
                   {filteredVendors.map((vendor) => (

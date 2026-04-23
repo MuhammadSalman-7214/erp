@@ -7,6 +7,11 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import toast from "react-hot-toast";
 import { IoEyeOffOutline, IoEyeOutline } from "react-icons/io5";
+import {
+  validateEmailInput,
+  validatePasswordInput,
+  validateTextInput,
+} from "../lib/formValidation";
 
 const getDashboardPath = (role) => {
   if (role === "super_admin") return "/super-admin";
@@ -20,12 +25,33 @@ function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   const schema = yup.object().shape({
-    name: yup.string().required("Name is required"),
-    email: yup.string().email("Invalid email").required("Email is required"),
+    name: yup
+      .string()
+      .required("Name is required")
+      .test("safe-name", "Name contains unsupported characters", (value) => {
+        const result = validateTextInput(value, "Name", {
+          required: true,
+          minLength: 2,
+          maxLength: 80,
+        });
+        return result.ok;
+      }),
+    email: yup
+      .string()
+      .required("Email is required")
+      .test("safe-email", "Email contains unsupported characters", (value) => {
+        const result = validateEmailInput(value);
+        return result.ok;
+      }),
     password: yup
       .string()
       .min(6, "Password must be at least 6 characters")
-      .required("Password is required"),
+      .max(128, "Password must be at most 128 characters")
+      .required("Password is required")
+      .test("safe-password", "Password contains unsupported characters", (value) => {
+        const result = validatePasswordInput(value || "");
+        return result.ok;
+      }),
     // role: yup.string().required("Role is required"),
   });
 
@@ -35,6 +61,8 @@ function SignupPage() {
     formState: { errors },
   } = useForm({
     resolver: yupResolver(schema),
+    mode: "onChange",
+    reValidateMode: "onChange",
   });
 
   const onSubmit = async (data) => {

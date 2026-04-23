@@ -16,6 +16,10 @@ import NoData from "../Components/NoData";
 import DrawerPanel from "../Components/DrawerPanel";
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
+import {
+  validateNumberInput,
+  validateTextInput,
+} from "../lib/formValidation";
 
 function StockTransaction({ readOnly = false }) {
   const { getallStocks, isgetallStocks, iscreatedStocks, searchdata } =
@@ -31,6 +35,7 @@ function StockTransaction({ readOnly = false }) {
   const [type, settype] = useState("");
   const [quantity, setquantity] = useState("");
   const [supplier, setsupplier] = useState("");
+  const [errors, setErrors] = useState({});
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -68,6 +73,7 @@ function StockTransaction({ readOnly = false }) {
     settype("");
     setquantity("");
     setsupplier("");
+    setErrors({});
   };
 
   const closeForm = () => {
@@ -80,6 +86,16 @@ function StockTransaction({ readOnly = false }) {
   const openForm = () => {
     setIsDrawerMinimized(false);
     setIsFormVisible(true);
+    setErrors({});
+  };
+
+  const validateField = (field, value, validator) => {
+    const result = validator(value);
+    setErrors((prev) => ({
+      ...prev,
+      [field]: result.ok ? "" : result.message,
+    }));
+    return result;
   };
 
   const submitstocktranscation = async (event) => {
@@ -90,7 +106,48 @@ function StockTransaction({ readOnly = false }) {
       return;
     }
 
-    const StocksData = { product, productCode, type, quantity, supplier };
+    const typeCheck = validateField("type", type, (value) =>
+      validateTextInput(value, "Type", {
+        required: true,
+        maxLength: 40,
+      }),
+    );
+    if (!typeCheck.ok) {
+      toast.error(typeCheck.message);
+      return;
+    }
+
+    const quantityCheck = validateField("quantity", quantity, (value) =>
+      validateNumberInput(value, "Quantity", {
+        min: 1,
+        allowZero: false,
+        integer: true,
+      }),
+    );
+    if (!quantityCheck.ok) {
+      toast.error(quantityCheck.message);
+      return;
+    }
+
+    const supplierCheck = validateField("supplier", supplier, (value) =>
+      validateTextInput(value, "Vendor", {
+        required: false,
+        maxLength: 80,
+        allowEmpty: true,
+      }),
+    );
+    if (!supplierCheck.ok) {
+      toast.error(supplierCheck.message);
+      return;
+    }
+
+    const StocksData = {
+      product,
+      productCode,
+      type: typeCheck.value,
+      quantity: quantityCheck.value,
+      supplier: supplierCheck.value || undefined,
+    };
     dispatch(createStockTransaction(StocksData))
       .unwrap()
       .then(() => {
@@ -132,6 +189,7 @@ function StockTransaction({ readOnly = false }) {
           type="text"
           value={query}
           onChange={(e) => setquery(e.target.value)}
+          maxLength={120}
           className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="Enter your Stock"
         />
@@ -164,14 +222,14 @@ function StockTransaction({ readOnly = false }) {
           <form onSubmit={submitstocktranscation}>
             <div className="mb-4">
               <label>Product</label>
-              <select
-                value={product}
-                onChange={(e) => {
-                  setproduct(e.target.value);
-                  setProductCode("");
-                }}
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2"
-              >
+                <select
+                  value={product}
+                  onChange={(e) => {
+                    setproduct(e.target.value);
+                    setProductCode("");
+                  }}
+                  className="w-full h-10 px-2 border-2 rounded-lg mt-2"
+                >
                 <option value="">Select a product</option>
                 {getallproduct?.map((product) => (
                   <option key={product.id} value={product.id}>
@@ -206,13 +264,31 @@ function StockTransaction({ readOnly = false }) {
               <select
                 value={type}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2"
-                onChange={(e) => settype(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  settype(value);
+                  validateField("type", value, (current) =>
+                    validateTextInput(current, "Type", {
+                      required: true,
+                      maxLength: 40,
+                    }),
+                  );
+                }}
+                onBlur={(e) =>
+                  validateField("type", e.target.value, (current) =>
+                    validateTextInput(current, "Type", {
+                      required: true,
+                      maxLength: 40,
+                    }),
+                  )
+                }
               >
                 <option value="">Select type</option>
 
                 <option value={"Stock-in"}>Stock-in</option>
                 <option value={"Stock-out"}>Stock-out</option>
               </select>
+              {errors.type && <p className="mt-1 text-sm text-red-500">{errors.type}</p>}
             </div>
 
             <div className="mb-4">
@@ -221,16 +297,57 @@ function StockTransaction({ readOnly = false }) {
                 type="number"
                 placeholder="Enter product quantity"
                 value={quantity}
-                onChange={(e) => setquantity(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setquantity(value);
+                  validateField("quantity", value, (current) =>
+                    validateNumberInput(current, "Quantity", {
+                      min: 1,
+                      allowZero: false,
+                      integer: true,
+                    }),
+                  );
+                }}
+                onBlur={(e) =>
+                  validateField("quantity", e.target.value, (current) =>
+                    validateNumberInput(current, "Quantity", {
+                      min: 1,
+                      allowZero: false,
+                      integer: true,
+                    }),
+                  )
+                }
+                min="1"
+                step="1"
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2"
               />
+              {errors.quantity && <p className="mt-1 text-sm text-red-500">{errors.quantity}</p>}
             </div>
 
             <div className="mb-4">
               <label>Vendor</label>
               <select
                 value={supplier}
-                onChange={(e) => setsupplier(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setsupplier(value);
+                  validateField("supplier", value, (current) =>
+                    validateTextInput(current, "Vendor", {
+                      required: false,
+                      maxLength: 80,
+                      allowEmpty: true,
+                    }),
+                  );
+                }}
+                onBlur={(e) =>
+                  validateField("supplier", e.target.value, (current) =>
+                    validateTextInput(current, "Vendor", {
+                      required: false,
+                      maxLength: 80,
+                      allowEmpty: true,
+                    }),
+                  )
+                }
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2"
               >
                 <option value="">Select a Vendor</option>
@@ -240,6 +357,7 @@ function StockTransaction({ readOnly = false }) {
                   </option>
                 ))}
               </select>
+              {errors.supplier && <p className="mt-1 text-sm text-red-500">{errors.supplier}</p>}
             </div>
 
             <button

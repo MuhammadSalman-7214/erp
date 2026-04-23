@@ -21,6 +21,10 @@ import { TableSkeleton } from "../Components/LoadingSkeletons";
 import DrawerPanel from "../Components/DrawerPanel";
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
+import {
+  validateNumberInput,
+  validateTextInput,
+} from "../lib/formValidation";
 
 function Orderpage() {
   const getId = (value) => value?.id ?? value?.id ?? value;
@@ -177,6 +181,25 @@ function Orderpage() {
       return;
     }
 
+    const statusCheck = validateTextInput(status, "Status", {
+      required: true,
+      maxLength: 40,
+    });
+    if (!statusCheck.ok) {
+      toast.error(statusCheck.message);
+      return;
+    }
+
+    const supplierCheck = validateTextInput(supplier, "Vendor", {
+      required: false,
+      maxLength: 80,
+      allowEmpty: true,
+    });
+    if (!supplierCheck.ok) {
+      toast.error(supplierCheck.message);
+      return;
+    }
+
     const resolvedProducts = cartItems.map((item) => {
       const productRecord = getallproduct.find(
         (p) => getId(p) === item.productId,
@@ -194,7 +217,11 @@ function Orderpage() {
       return {
         product: item.productId,
         productCode: item.codeId,
-        quantity: Number(item.quantity),
+        quantity: validateNumberInput(item.quantity, "Quantity", {
+          min: 1,
+          allowZero: false,
+          integer: true,
+        }).value,
         price: resolvedUnitPrice,
       };
     });
@@ -206,8 +233,8 @@ function Orderpage() {
 
     const updatedData = {
       user: user?.id || " ",
-      status,
-      supplier,
+      status: statusCheck.value,
+      supplier: supplierCheck.value || undefined,
       Product: resolvedProducts[0],
       products: resolvedProducts,
       totalAmount,
@@ -280,16 +307,39 @@ function Orderpage() {
       return;
     }
 
+    const statusCheck = validateTextInput(status, "Status", {
+      required: true,
+      maxLength: 40,
+    });
+    if (!statusCheck.ok) {
+      toast.error(statusCheck.message);
+      return;
+    }
+
+    const supplierCheck = validateTextInput(supplier, "Vendor", {
+      required: false,
+      maxLength: 80,
+      allowEmpty: true,
+    });
+    if (!supplierCheck.ok) {
+      toast.error(supplierCheck.message);
+      return;
+    }
+
     try {
       const orderData = {
         user: user?.id || "",
-        status,
-        supplier: supplier || undefined,
-        vendor: supplier || undefined,
+        status: statusCheck.value,
+        supplier: supplierCheck.value || undefined,
+        vendor: supplierCheck.value || undefined,
         products: cartItems.map((item) => ({
           product: item.productId,
           productCode: item.codeId,
-          quantity: Number(item.quantity),
+          quantity: validateNumberInput(item.quantity, "Quantity", {
+            min: 1,
+            allowZero: false,
+            integer: true,
+          }).value,
         })),
       };
 
@@ -383,6 +433,7 @@ function Orderpage() {
           type="text"
           value={query}
           onChange={(e) => setquery(e.target.value)}
+          maxLength={120}
           className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="Search order..."
         />
@@ -423,6 +474,7 @@ function Orderpage() {
                     setCodeActiveIndex(0);
                   }}
                   onKeyDownCapture={onCodeKeyDown}
+                  maxLength={120}
                   className="w-full h-10 px-2 border-2 rounded-lg mt-2"
                   placeholder="Type product code"
                 />

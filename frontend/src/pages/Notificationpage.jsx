@@ -15,6 +15,7 @@ import FormattedTime from "../lib/FormattedTime";
 import NoData from "../Components/NoData";
 import { ListSkeleton } from "../Components/LoadingSkeletons";
 import DrawerPanel from "../Components/DrawerPanel";
+import { validateTextInput } from "../lib/formValidation";
 
 function NotificationPage() {
   const dispatch = useDispatch();
@@ -22,6 +23,7 @@ function NotificationPage() {
   const { user } = useSelector((state) => state.auth);
   const [name, setName] = useState("");
   const [type, setType] = useState("");
+  const [errors, setErrors] = useState({});
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
   const [socket, setSocket] = useState(null);
@@ -77,12 +79,40 @@ function NotificationPage() {
   const resetForm = () => {
     setName("");
     setType("");
+    setErrors({});
+  };
+
+  const validateField = (field, value, validator) => {
+    const result = validator(value);
+    setErrors((prev) => ({
+      ...prev,
+      [field]: result.ok ? "" : result.message,
+    }));
+    return result;
   };
 
   const submitNotification = async (e) => {
     e.preventDefault();
-    if (!name || !type) return toast.error("Title and type required");
-    const notificationData = { name, type };
+
+    const titleCheck = validateField("name", name, (value) =>
+      validateTextInput(value, "Title", {
+        required: true,
+        minLength: 2,
+        maxLength: 120,
+      }),
+    );
+    if (!titleCheck.ok) return toast.error(titleCheck.message);
+
+    const typeCheck = validateField("type", type, (value) =>
+      validateTextInput(value, "Type", {
+        required: true,
+        minLength: 2,
+        maxLength: 240,
+      }),
+    );
+    if (!typeCheck.ok) return toast.error(typeCheck.message);
+
+    const notificationData = { name: titleCheck.value, type: typeCheck.value };
     dispatch(createNotification(notificationData))
       .unwrap()
       .then(() => {
@@ -125,23 +155,65 @@ function NotificationPage() {
               <label className="block font-medium">Title</label>
               <input
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setName(value);
+                  validateField("name", value, (current) =>
+                    validateTextInput(current, "Title", {
+                      required: true,
+                      minLength: 2,
+                      maxLength: 120,
+                    }),
+                  );
+                }}
+                onBlur={(e) =>
+                  validateField("name", e.target.value, (current) =>
+                    validateTextInput(current, "Title", {
+                      required: true,
+                      minLength: 2,
+                      maxLength: 120,
+                    }),
+                  )
+                }
                 type="text"
                 className="mt-2 w-full rounded-lg border px-3 h-10"
                 placeholder="Enter title"
                 required
+                maxLength={120}
               />
+              {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
             </div>
 
             <div className="mb-4">
               <label className="block font-medium">Type</label>
               <textarea
                 value={type}
-                onChange={(e) => setType(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setType(value);
+                  validateField("type", value, (current) =>
+                    validateTextInput(current, "Type", {
+                      required: true,
+                      minLength: 2,
+                      maxLength: 240,
+                    }),
+                  );
+                }}
+                onBlur={(e) =>
+                  validateField("type", e.target.value, (current) =>
+                    validateTextInput(current, "Type", {
+                      required: true,
+                      minLength: 2,
+                      maxLength: 240,
+                    }),
+                  )
+                }
                 className="mt-2 h-24 w-full rounded-lg border px-3"
                 placeholder="Enter type"
                 required
+                maxLength={240}
               />
+              {errors.type && <p className="mt-1 text-sm text-red-500">{errors.type}</p>}
             </div>
 
             <button

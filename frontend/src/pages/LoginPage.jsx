@@ -11,6 +11,11 @@ import {
 } from "../features/authSlice";
 import toast from "react-hot-toast";
 import { IoEyeOffOutline, IoEyeOutline } from "react-icons/io5";
+import {
+  hasUnsafeInput,
+  validateEmailInput,
+  validatePasswordInput,
+} from "../lib/formValidation";
 
 const getDashboardPath = (role) => {
   if (role === "super_admin") return "/super-admin";
@@ -28,11 +33,22 @@ function LoginPage() {
   const expiredHandledRef = useRef(false);
 
   const schema = yup.object().shape({
-    email: yup.string().email("Invalid email").required("Email is required"),
+    email: yup
+      .string()
+      .required("Email is required")
+      .test("safe-email", "Email contains unsupported characters", (value) => {
+        const result = validateEmailInput(value);
+        return result.ok;
+      }),
     password: yup
       .string()
       .min(6, "Password must be at least 6 characters")
-      .required("Password is required"),
+      .max(128, "Password must be at most 128 characters")
+      .required("Password is required")
+      .test("safe-password", "Password contains unsupported characters", (value) => {
+        const result = validatePasswordInput(value || "");
+        return result.ok;
+      }),
   });
 
   const {
@@ -41,6 +57,8 @@ function LoginPage() {
     formState: { errors },
   } = useForm({
     resolver: yupResolver(schema),
+    mode: "onChange",
+    reValidateMode: "onChange",
   });
 
   const otpSession = useMemo(() => pendingOtpSession, [pendingOtpSession]);
@@ -94,6 +112,18 @@ function LoginPage() {
 
   const handleLogin = async (data) => {
     try {
+      const emailCheck = validateEmailInput(data.email);
+      if (!emailCheck.ok) {
+        toast.error(emailCheck.message);
+        return;
+      }
+
+      const passwordCheck = validatePasswordInput(data.password);
+      if (!passwordCheck.ok) {
+        toast.error(passwordCheck.message);
+        return;
+      }
+
       const result = await dispatch(login(data)).unwrap();
 
       if (result?.otpRequired) {
@@ -127,6 +157,11 @@ function LoginPage() {
 
     if (!otp.trim()) {
       toast.error("Please enter the OTP");
+      return;
+    }
+
+    if (hasUnsafeInput(otp)) {
+      toast.error("OTP contains unsupported characters");
       return;
     }
 

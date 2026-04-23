@@ -6,6 +6,11 @@ import { MdDelete } from "react-icons/md";
 import { IoMdAdd } from "react-icons/io";
 import { formatFixed } from "../lib/formatNumber";
 import { uppercasePayload } from "../lib/uppercasePayload";
+import {
+  validateDateInput,
+  validateNumberInput,
+  validateTextInput,
+} from "../lib/formValidation";
 
 function CreateInvoicePage() {
   const navigate = useNavigate();
@@ -80,23 +85,82 @@ function CreateInvoicePage() {
     if (items.length === 0)
       return toast.error("Invoice must have at least one item");
 
+    const dueDateCheck = validateDateInput(dueDate, "Due date");
+    if (!dueDateCheck.ok) {
+      return toast.error(dueDateCheck.message);
+    }
+
+    const taxRateCheck = validateNumberInput(taxRate, "Tax rate", {
+      min: 0,
+      allowZero: true,
+    });
+    if (!taxRateCheck.ok) {
+      return toast.error(taxRateCheck.message);
+    }
+
+    const discountCheck = validateNumberInput(discount, "Discount", {
+      min: 0,
+      allowZero: true,
+    });
+    if (!discountCheck.ok) {
+      return toast.error(discountCheck.message);
+    }
+
+    const validatedItems = [];
+    for (const item of items) {
+      const itemNameCheck = validateTextInput(item.name, "Item name", {
+        required: true,
+        minLength: 1,
+        maxLength: 120,
+      });
+      if (!itemNameCheck.ok) {
+        return toast.error(itemNameCheck.message);
+      }
+
+      const quantityCheck = validateNumberInput(item.quantity, "Quantity", {
+        min: 1,
+        allowZero: false,
+        integer: true,
+      });
+      if (!quantityCheck.ok) {
+        return toast.error(quantityCheck.message);
+      }
+
+      const unitPriceCheck = validateNumberInput(item.unitPrice, "Unit price", {
+        min: 0,
+        allowZero: true,
+      });
+      if (!unitPriceCheck.ok) {
+        return toast.error(unitPriceCheck.message);
+      }
+
+      validatedItems.push({
+        name: itemNameCheck.value,
+        quantity: quantityCheck.value,
+        unitPrice: unitPriceCheck.value,
+      });
+    }
+
+    const notesCheck = validateTextInput(notes, "Notes", {
+      required: false,
+      maxLength: 500,
+      allowEmpty: true,
+    });
+    if (!notesCheck.ok) {
+      return toast.error(notesCheck.message);
+    }
+
     try {
       await axiosInstance.post("invoice", {
         invoiceType,
         customerId: invoiceType === "sales" ? customerId : undefined,
         vendor: invoiceType === "purchase" ? vendorId : undefined,
-        items: uppercasePayload(
-          items.map(({ name, quantity, unitPrice }) => ({
-            name,
-            quantity,
-            unitPrice,
-          })),
-        ),
-        taxRate,
-        discount,
-        dueDate,
+        items: uppercasePayload(validatedItems),
+        taxRate: taxRateCheck.value,
+        discount: discountCheck.value,
+        dueDate: dueDateCheck.value,
         paymentMethod,
-        notes: notes.toUpperCase(),
+        notes: notesCheck.value.toUpperCase(),
         currency: "Rs",
       });
       toast.success("Invoice created successfully");
@@ -217,6 +281,7 @@ function CreateInvoicePage() {
                   onChange={(e) =>
                     handleItemChange(idx, "name", e.target.value)
                   }
+                  maxLength={120}
                   className="col-span-3 border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
                 <input
@@ -225,6 +290,8 @@ function CreateInvoicePage() {
                   onChange={(e) =>
                     handleItemChange(idx, "quantity", e.target.value)
                   }
+                  min="1"
+                  step="1"
                   className="col-span-1 border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
                 <input
@@ -233,6 +300,8 @@ function CreateInvoicePage() {
                   onChange={(e) =>
                     handleItemChange(idx, "unitPrice", e.target.value)
                   }
+                  min="0"
+                  step="0.01"
                   className="col-span-2 border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
                 <span className="col-span-1 text-gray-700 font-semibold">
@@ -265,6 +334,8 @@ function CreateInvoicePage() {
                 type="number"
                 value={taxRate}
                 onChange={(e) => setTaxRate(Number(e.target.value))}
+                min="0"
+                step="0.01"
                 className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
             </div>
@@ -276,6 +347,8 @@ function CreateInvoicePage() {
                 type="number"
                 value={discount}
                 onChange={(e) => setDiscount(Number(e.target.value))}
+                min="0"
+                step="0.01"
                 className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
             </div>
@@ -317,6 +390,7 @@ function CreateInvoicePage() {
                 onChange={(e) => setNotes(e.target.value)}
                 className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                 rows={3}
+                maxLength={500}
               />
             </div>
           </div>
