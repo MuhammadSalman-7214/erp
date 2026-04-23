@@ -2,10 +2,15 @@ import axios from "axios";
 import toast from "react-hot-toast";
 
 const fallbackURL = "http://localhost:8009";
+const fallbackTimeout = 30000;
+const requestTimeout = Number(
+  process.env.REACT_APP_REQUEST_TIMEOUT_MS || fallbackTimeout,
+);
 
 const axiosInstance = axios.create({
   baseURL: `${process.env.REACT_APP_BACKEND_URL || fallbackURL}/api`,
   withCredentials: true,
+  timeout: requestTimeout,
 });
 
 axiosInstance.interceptors.request.use((config) => {
@@ -19,6 +24,14 @@ axiosInstance.interceptors.response.use(
       error?.config?.skipAuthRedirect ||
       error?.config?.url?.includes("/auth/me")
     ) {
+      return Promise.reject(error);
+    }
+
+    if (error?.code === "ECONNABORTED" || error?.message?.includes("timeout")) {
+      const message =
+        error?.response?.data?.message ||
+        "Request timed out. Please try again.";
+      toast.error(message);
       return Promise.reject(error);
     }
 
