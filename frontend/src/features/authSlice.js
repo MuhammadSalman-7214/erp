@@ -157,6 +157,11 @@ export const fetchCurrentUser = createAsyncThunk(
       }
       return response.data;
     } catch (error) {
+      if (error?.response?.status === 401) {
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+        return { user: null };
+      }
       localStorage.removeItem("user");
       localStorage.removeItem("token");
       return rejectWithValue(error.response?.data?.message || "Not authenticated");
@@ -360,9 +365,9 @@ const authSlice = createSlice({
         state.isAuthChecked = false;
       })
       .addCase(fetchCurrentUser.fulfilled, (state, action) => {
-        state.user = sanitizeUser(action.payload.user);
+        state.user = sanitizeUser(action.payload?.user);
         state.token = null;
-        state.isAuthenticated = true;
+        state.isAuthenticated = !!action.payload?.user;
         state.isAuthChecked = true;
       })
       .addCase(fetchCurrentUser.rejected, (state) => {

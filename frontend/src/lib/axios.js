@@ -15,7 +15,10 @@ axiosInstance.interceptors.request.use((config) => {
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error?.config?.skipAuthRedirect) {
+    if (
+      error?.config?.skipAuthRedirect ||
+      error?.config?.url?.includes("/auth/me")
+    ) {
       return Promise.reject(error);
     }
 
