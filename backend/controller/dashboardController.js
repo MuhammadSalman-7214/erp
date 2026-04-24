@@ -3,7 +3,7 @@ const query = require("../libs/dbQuery.js");
 const getDashboardSummary = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const lowStockThreshold = 10;
+    const lowStockThreshold = 50;
     const now = new Date();
     const startOfDay = new Date(
       now.getFullYear(),
@@ -47,13 +47,14 @@ const getDashboardSummary = async (req, res) => {
     let purchaseInvoices;
     let payments;
     try {
-      [salesInvoices, completedSalesProfitRows, purchaseInvoices, payments] = await Promise.all([
-        query(
-          "SELECT id, totalAmount, dueDate, status, createdAt FROM invoices WHERE invoiceType = ? AND user_id = ?",
-          ["sales", userId],
-        ),
-        query(
-          `SELECT COALESCE(SUM(s.totalAmount - IFNULL(costs.cost, 0)), 0) AS totalProfit
+      [salesInvoices, completedSalesProfitRows, purchaseInvoices, payments] =
+        await Promise.all([
+          query(
+            "SELECT id, totalAmount, dueDate, status, createdAt FROM invoices WHERE invoiceType = ? AND user_id = ?",
+            ["sales", userId],
+          ),
+          query(
+            `SELECT COALESCE(SUM(s.totalAmount - IFNULL(costs.cost, 0)), 0) AS totalProfit
            FROM sales s
            LEFT JOIN (
              SELECT si.sale_id, SUM(si.quantity * COALESCE(p.purchasePrice, p.Price, 0)) AS cost
@@ -63,17 +64,17 @@ const getDashboardSummary = async (req, res) => {
              GROUP BY si.sale_id
            ) costs ON costs.sale_id = s.id
            WHERE s.user_id = ? AND LOWER(COALESCE(s.status, '')) = 'completed'`,
-          [userId, userId],
-        ),
-        query(
-          "SELECT id, totalAmount, dueDate, status, createdAt FROM invoices WHERE invoiceType = ? AND user_id = ?",
-          ["purchase", userId],
-        ),
-        query(
-          "SELECT amount, type, invoice, paidAt, invoiceType FROM payments WHERE user_id = ?",
-          [userId],
-        ),
-      ]);
+            [userId, userId],
+          ),
+          query(
+            "SELECT id, totalAmount, dueDate, status, createdAt FROM invoices WHERE invoiceType = ? AND user_id = ?",
+            ["purchase", userId],
+          ),
+          query(
+            "SELECT amount, type, invoice, paidAt, invoiceType FROM payments WHERE user_id = ?",
+            [userId],
+          ),
+        ]);
     } catch (err) {
       return res.status(500).json({
         success: false,
@@ -103,24 +104,21 @@ const getDashboardSummary = async (req, res) => {
 
     const todaysSales = salesInvoices
       .filter((inv) => {
-        const createdAt =
-          toTime(inv.createdAt) ?? toTime(inv.issueDate);
+        const createdAt = toTime(inv.createdAt) ?? toTime(inv.issueDate);
         return createdAt !== null && createdAt >= startMs && createdAt <= endMs;
       })
       .reduce((sum, inv) => sum + inv.totalAmount, 0);
 
     const todaysPurchases = purchaseInvoices
       .filter((inv) => {
-        const createdAt =
-          toTime(inv.createdAt) ?? toTime(inv.issueDate);
+        const createdAt = toTime(inv.createdAt) ?? toTime(inv.issueDate);
         return createdAt !== null && createdAt >= startMs && createdAt <= endMs;
       })
       .reduce((sum, inv) => sum + inv.totalAmount, 0);
 
     const todaysReceivedPayments = payments
       .filter((payment) => {
-        const paidAt =
-          toTime(payment.paidAt) ?? toTime(payment.createdAt);
+        const paidAt = toTime(payment.paidAt) ?? toTime(payment.createdAt);
         return (
           payment.type === "received" &&
           paidAt !== null &&
@@ -132,8 +130,7 @@ const getDashboardSummary = async (req, res) => {
 
     const todaysPaidPayments = payments
       .filter((payment) => {
-        const paidAt =
-          toTime(payment.paidAt) ?? toTime(payment.createdAt);
+        const paidAt = toTime(payment.paidAt) ?? toTime(payment.createdAt);
         return (
           payment.type === "paid" &&
           paidAt !== null &&
@@ -171,9 +168,7 @@ const getDashboardSummary = async (req, res) => {
 
     lowStockProducts = lowStockProducts.map((pc) => ({
       ...pc,
-      product: pc.product
-        ? { id: pc.product, name: pc.product_name }
-        : null,
+      product: pc.product ? { id: pc.product, name: pc.product_name } : null,
     }));
 
     const cashBankBalance = todaysReceivedPayments - todaysPaidPayments;

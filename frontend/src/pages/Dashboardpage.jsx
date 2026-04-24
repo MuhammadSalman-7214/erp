@@ -507,7 +507,7 @@ function Dashboardpage() {
               <h3 className="text-lg font-bold text-gray-800">
                 Low Stock Products
               </h3>
-              <p className="text-xs text-gray-500">Quantity less than 10</p>
+              <p className="text-xs text-gray-500">Quantity less than 50</p>
             </div>
             <Package className="w-5 h-5 text-amber-600" />
           </div>
