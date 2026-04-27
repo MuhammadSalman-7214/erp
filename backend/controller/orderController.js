@@ -24,7 +24,9 @@ const createOrder = async (req, res) => {
     const orderItems = incomingProducts?.length ? incomingProducts : [Product];
 
     if (!orderItems.length) {
-      return res.status(400).json({ message: "At least one product is required" });
+      return res
+        .status(400)
+        .json({ message: "At least one product is required" });
     }
 
     const resolvedItems = [];
@@ -32,9 +34,7 @@ const createOrder = async (req, res) => {
 
     for (const item of orderItems) {
       if (!item?.productCode) {
-        return res
-          .status(400)
-          .json({ message: "Product code ID is required" });
+        return res.status(400).json({ message: "Product code ID is required" });
       }
       if (!item?.quantity) {
         return res.status(400).json({ message: "Quantity is required" });
@@ -329,18 +329,18 @@ const Removeorder = async (req, res) => {
       return res.status(404).json({ message: "Order is not found!" });
     }
 
-    if (isLockedOrderStatus(Deletedorder.status)) {
-      return res.status(400).json({
-        success: false,
-        message: "Shipped or delivered purchase orders cannot be deleted.",
-      });
-    }
+    // if (isLockedOrderStatus(Deletedorder.status)) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: "Shipped or delivered purchase orders cannot be deleted.",
+    //   });
+    // }
 
     try {
-      await query("DELETE FROM order_items WHERE order_id = ? AND user_id = ?", [
-        OrdertId,
-        userId,
-      ]);
+      await query(
+        "DELETE FROM order_items WHERE order_id = ? AND user_id = ?",
+        [OrdertId, userId],
+      );
       await query("DELETE FROM orders WHERE id = ? AND user_id = ?", [
         OrdertId,
         userId,
@@ -438,7 +438,10 @@ const getOrder = async (req, res) => {
     const userId = req.user.userId;
     let orders;
     try {
-      orders = await query("SELECT * FROM orders WHERE user_id = ? ORDER BY createdAt ASC", [userId]);
+      orders = await query(
+        "SELECT * FROM orders WHERE user_id = ? ORDER BY createdAt ASC",
+        [userId],
+      );
     } catch (err) {
       return res.status(500).json({
         success: false,
@@ -500,10 +503,11 @@ const updatestatusOrder = async (req, res) => {
     const nextStatus = updates.status || previousStatus;
 
     try {
-      await query(
-        "UPDATE orders SET status = ? WHERE id = ? AND user_id = ?",
-        [nextStatus, OrderId, userId],
-      );
+      await query("UPDATE orders SET status = ? WHERE id = ? AND user_id = ?", [
+        nextStatus,
+        OrderId,
+        userId,
+      ]);
     } catch (err) {
       return res.status(500).json({
         success: false,
@@ -703,7 +707,10 @@ const getOrdersByVendor = async (req, res) => {
       } else {
         paidAmount += Number(payment.amount) || 0;
       }
-      if (payment.invoice && String(payment.type || "").toLowerCase() !== "debit") {
+      if (
+        payment.invoice &&
+        String(payment.type || "").toLowerCase() !== "debit"
+      ) {
         paidInvoiceIds.add(String(payment.invoice));
       }
     });
@@ -723,7 +730,10 @@ const getOrdersByVendor = async (req, res) => {
     }
 
     invoices.forEach((invoice) => {
-      if (invoice.status === "paid" && !paidInvoiceIds.has(String(invoice.id))) {
+      if (
+        invoice.status === "paid" &&
+        !paidInvoiceIds.has(String(invoice.id))
+      ) {
         paidAmount += Number(invoice.totalAmount) || 0;
       }
     });

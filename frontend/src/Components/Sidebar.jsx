@@ -1,18 +1,20 @@
 import { AiOutlineProduct } from "react-icons/ai";
-import { RiStockLine } from "react-icons/ri";
+import {
+  RiDashboard3Line,
+  RiMoneyDollarCircleLine,
+  RiStockLine,
+} from "react-icons/ri";
 import { FiLogOut, FiShoppingCart } from "react-icons/fi";
 import { NavLink } from "react-router-dom";
-import { RiDashboard3Fill } from "react-icons/ri";
 import { PiInvoiceBold } from "react-icons/pi";
 import {
-  MdPointOfSale,
   MdOutlineCategory,
   MdOutlinePriceChange,
+  MdOutlinePayments,
 } from "react-icons/md";
 import { CiMenuFries } from "react-icons/ci";
 import { TfiSupport } from "react-icons/tfi";
 import { IoNotificationsOutline } from "react-icons/io5";
-import { RxActivityLog } from "react-icons/rx";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../features/authSlice";
@@ -87,7 +89,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
       <nav className="space-y-1 p-2">
         <NavItem
           to="/"
-          icon={<RiDashboard3Fill />}
+          icon={<RiDashboard3Line />}
           label="Dashboard"
           sidebarOpen={sidebarOpen}
         />
@@ -123,7 +125,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
 
             <NavItem
               to="/sales"
-              icon={<MdPointOfSale />}
+              icon={<RiMoneyDollarCircleLine />}
               label="Sales"
               sidebarOpen={sidebarOpen}
             />
@@ -137,7 +139,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
 
             <NavItem
               to="/payments"
-              icon={<PiInvoiceBold />}
+              icon={<MdOutlinePayments />}
               label="Payments"
               sidebarOpen={sidebarOpen}
             />
@@ -211,7 +213,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
 
             <NavItem
               to="/sales"
-              icon={<MdPointOfSale />}
+              icon={<RiMoneyDollarCircleLine />}
               label="Sales"
               sidebarOpen={sidebarOpen}
             />
@@ -225,7 +227,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
 
             <NavItem
               to="/payments"
-              icon={<PiInvoiceBold />}
+              icon={<MdOutlinePayments />}
               label="Payments"
               sidebarOpen={sidebarOpen}
             />
@@ -303,7 +305,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
 
             <NavItem
               to="/sales"
-              icon={<MdPointOfSale />}
+              icon={<RiMoneyDollarCircleLine />}
               label="Sales"
               sidebarOpen={sidebarOpen}
             />
@@ -317,7 +319,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
 
             <NavItem
               to="/payments"
-              icon={<PiInvoiceBold />}
+              icon={<MdOutlinePayments />}
               label="Payments"
               sidebarOpen={sidebarOpen}
             />
