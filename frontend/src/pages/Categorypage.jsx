@@ -1,15 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { IoMdAdd } from "react-icons/io";
 import FormattedTime from "../lib/FormattedTime";
-import TopNavbar from "../Components/TopNavbar";
-import {
-  MdDelete,
-  MdEdit,
-  MdOutlineCategory,
-  MdOutlinePriceChange,
-} from "react-icons/md";
+import { MdDelete, MdEdit, MdOutlineCategory } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
 import {
   gettingallCategory,
   CreateCategory,
@@ -26,14 +19,10 @@ import { sortByDateValue } from "../lib/dateFormat";
 import { validateTextInput } from "../lib/formValidation";
 
 function Categorypage() {
-  const { getallCategory, iscreatedCategory, searchdata } = useSelector(
-    (state) => state.category,
-  );
+  const { getallCategory, searchdata } = useSelector((state) => state.category);
   const dispatch = useDispatch();
-  const navigate = useNavigate();
   const [query, setquery] = useState("");
   const [createdAtSort, setCreatedAtSort] = useState("asc");
-
   const [name, setname] = useState("");
   const [errors, setErrors] = useState({});
   const [isFormVisible, setIsFormVisible] = useState(false);
@@ -150,21 +139,17 @@ function Categorypage() {
 
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-        {/* Total Products */}
-        <div className="bg-white border rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition">
-          <div className="flex items-center gap-3">
-            <span className="rounded-xl bg-orange-500 text-white text-lg sm:text-xl p-2">
-              <MdOutlineCategory />
-            </span>
-
-            <h2 className="text-2xl sm:text-3xl font-bold">
-              {getallCategory?.length || "0"}
-            </h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div className="rounded-xl p-5 border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-sm font-medium text-gray-600">
+              Total Category
+            </div>
+            <MdOutlineCategory className="w-5 h-5 text-emerald-600" />
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Total Category
-          </p>
+          <div className="text-2xl font-bold text-emerald-700 transition-all duration-300">
+            {getallCategory?.length || "0"}
+          </div>
         </div>
       </div>
 

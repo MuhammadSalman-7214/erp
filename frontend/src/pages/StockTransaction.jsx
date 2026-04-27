@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { IoMdAdd } from "react-icons/io";
 import { useDispatch, useSelector } from "react-redux";
 import FormattedTime from "../lib/FormattedTime";
-import Stocktanscationgraph from "../lib/Stocktanscationgraph";
 import {
   createStockTransaction,
   getAllStockTransactions,
@@ -16,14 +15,12 @@ import NoData from "../Components/NoData";
 import DrawerPanel from "../Components/DrawerPanel";
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
-import {
-  validateNumberInput,
-  validateTextInput,
-} from "../lib/formValidation";
+import { validateNumberInput, validateTextInput } from "../lib/formValidation";
 
 function StockTransaction({ readOnly = false }) {
-  const { getallStocks, isgetallStocks, iscreatedStocks, searchdata } =
-    useSelector((state) => state.stocktransaction);
+  const { getallStocks, iscreatedStocks, searchdata } = useSelector(
+    (state) => state.stocktransaction,
+  );
 
   const { getallSupplier } = useSelector((state) => state.supplier);
   const { getallproduct } = useSelector((state) => state.product);
@@ -184,7 +181,7 @@ function StockTransaction({ readOnly = false }) {
     <div className="min-h-[92vh] bg-gray-100 p-4">
       {/* <Stocktanscationgraph /> */}
 
-      <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">
+      <div className="flex flex-col md:flex-row md:items-center gap-2">
         <input
           type="text"
           value={query}
@@ -222,14 +219,14 @@ function StockTransaction({ readOnly = false }) {
           <form onSubmit={submitstocktranscation}>
             <div className="mb-4">
               <label>Product</label>
-                <select
-                  value={product}
-                  onChange={(e) => {
-                    setproduct(e.target.value);
-                    setProductCode("");
-                  }}
-                  className="w-full h-10 px-2 border-2 rounded-lg mt-2"
-                >
+              <select
+                value={product}
+                onChange={(e) => {
+                  setproduct(e.target.value);
+                  setProductCode("");
+                }}
+                className="w-full h-10 px-2 border-2 rounded-lg mt-2"
+              >
                 <option value="">Select a product</option>
                 {getallproduct?.map((product) => (
                   <option key={product.id} value={product.id}>
@@ -288,7 +285,9 @@ function StockTransaction({ readOnly = false }) {
                 <option value={"Stock-in"}>Stock-in</option>
                 <option value={"Stock-out"}>Stock-out</option>
               </select>
-              {errors.type && <p className="mt-1 text-sm text-red-500">{errors.type}</p>}
+              {errors.type && (
+                <p className="mt-1 text-sm text-red-500">{errors.type}</p>
+              )}
             </div>
 
             <div className="mb-4">
@@ -321,7 +320,9 @@ function StockTransaction({ readOnly = false }) {
                 step="1"
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2"
               />
-              {errors.quantity && <p className="mt-1 text-sm text-red-500">{errors.quantity}</p>}
+              {errors.quantity && (
+                <p className="mt-1 text-sm text-red-500">{errors.quantity}</p>
+              )}
             </div>
 
             <div className="mb-4">
@@ -357,7 +358,9 @@ function StockTransaction({ readOnly = false }) {
                   </option>
                 ))}
               </select>
-              {errors.supplier && <p className="mt-1 text-sm text-red-500">{errors.supplier}</p>}
+              {errors.supplier && (
+                <p className="mt-1 text-sm text-red-500">{errors.supplier}</p>
+              )}
             </div>
 
             <button
@@ -381,7 +384,9 @@ function StockTransaction({ readOnly = false }) {
                   label="Date"
                   direction={transactionDateSort}
                   onToggle={() =>
-                    setTransactionDateSort((prev) => (prev === "asc" ? "desc" : "asc"))
+                    setTransactionDateSort((prev) =>
+                      prev === "asc" ? "desc" : "asc",
+                    )
                   }
                 />
                 <th className="px-5 py-4 font-medium">Product</th>

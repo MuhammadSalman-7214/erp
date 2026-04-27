@@ -538,7 +538,6 @@ function Productpage({ readOnly = false }) {
       const pageHeight = pdf.internal.pageSize.getHeight();
       const marginX = 10;
       const topBandHeight = 18;
-      const titleY = 13;
       const generatedAt = new Date().toLocaleString("en-PK", {
         dateStyle: "medium",
         timeStyle: "short",
@@ -652,53 +651,41 @@ function Productpage({ readOnly = false }) {
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
       {/* KPI CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-        {/* Total Products */}
-        <div className="bg-white border rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition">
-          <div className="flex items-center gap-3">
-            <span className="rounded-xl bg-orange-500 text-white text-lg sm:text-xl p-2">
-              <AiOutlineProduct />
-            </span>
-
-            <h2 className="text-2xl sm:text-3xl font-bold">
-              {getallproduct?.length || 0}
-            </h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 lg:grid-cols-3">
+        <div className="rounded-xl p-5 border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-sm font-medium text-gray-600">
+              Total Products
+            </div>
+            <AiOutlineProduct className="w-5 h-5 text-emerald-600" />
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Total Products
-          </p>
+          <div className="text-2xl font-bold text-emerald-700 transition-all duration-300">
+            {getallproduct?.length || 0}
+          </div>
         </div>
 
-        {/* Total Store Value */}
-        <div className="bg-white border rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition">
-          <div className="flex items-center gap-3">
-            <span className="rounded-xl bg-purple-500 text-white text-lg sm:text-xl p-2">
-              <FaMoneyBill1Wave />
-            </span>
-
-            <h2 className="text-2xl sm:text-3xl font-bold">
-              Rs {totalStoreValue || 0}
-            </h2>
+        <div className="rounded-xl p-5 border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-sm font-medium text-gray-600">
+              Total Store Value
+            </div>
+            <FaMoneyBill1Wave className="w-5 h-5 text-purple-600" />
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Total Store Value
-          </p>
+          <div className="text-2xl font-bold text-purple-700 transition-all duration-300">
+            Rs {totalStoreValue || 0}
+          </div>
         </div>
 
-        {/* Total Categories */}
-        <div className="bg-white border rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition">
-          <div className="flex items-center gap-3">
-            <span className="rounded-xl bg-red-500 text-white text-lg sm:text-xl p-2">
-              <MdOutlineCategory />
-            </span>
-
-            <h2 className="text-2xl sm:text-3xl font-bold">
-              {getallCategory?.length || 0}
-            </h2>
+        <div className="rounded-xl p-5 border-2 border-red-200 bg-gradient-to-br from-red-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-sm font-medium text-gray-600">
+              Total Categories
+            </div>
+            <MdOutlineCategory className="w-5 h-5 text-red-600" />
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Total Categories
-          </p>
+          <div className="text-2xl font-bold text-red-700 transition-all duration-300">
+            {getallCategory?.length || 0}
+          </div>
         </div>
       </div>
 

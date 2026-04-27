@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import TopNavbar from "../Components/TopNavbar";
 import { IoMdAdd, IoMdEye } from "react-icons/io";
 import { MdDelete, MdEdit } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
@@ -17,6 +16,7 @@ import { useRolePermissions } from "../hooks/useRolePermissions";
 import { gettingallproducts } from "../features/productSlice";
 import { AiOutlineProduct } from "react-icons/ai";
 import { TfiSupport } from "react-icons/tfi";
+import { FaMoneyBill1Wave } from "react-icons/fa6";
 import NoData from "../Components/NoData";
 import { Popconfirm } from "antd";
 import axiosInstance from "../lib/axios";
@@ -37,8 +37,7 @@ function Supplierpage({ readOnly = false }) {
   const canWrite = hasPermission("supplier", "write");
   const canDelete = hasPermission("supplier", "delete");
 
-  const { getallSupplier, editedsupplier, iscreatedsupplier, searchdata } =
-    useSelector((state) => state.supplier);
+  const { getallSupplier, searchdata } = useSelector((state) => state.supplier);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -407,48 +406,48 @@ function Supplierpage({ readOnly = false }) {
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
       {/* KPI CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-        <div className="bg-white border rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition">
-          <div className="flex items-center gap-3">
-            <span className="rounded-xl bg-orange-500 text-white text-lg sm:text-xl p-2">
-              <TfiSupport />
-            </span>
-
-            <h2 className="text-2xl sm:text-3xl font-bold">
-              {getallSupplier?.length || 0}
-            </h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 lg:grid-cols-3">
+        <div className="rounded-xl p-5 border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-sm font-medium text-gray-600">
+              Vendor Total Owed
+            </div>
+            <FaMoneyBill1Wave className="w-5 h-5 text-emerald-600" />
           </div>
-
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Total Vendors
-          </p>
-        </div>
-
-        <div className="bg-white border rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition">
-          <div className="flex items-center gap-3">
-            <span className="rounded-xl bg-purple-500 text-white text-lg sm:text-xl p-2">
-              <AiOutlineProduct />
-            </span>
-
-            <h2 className="text-2xl sm:text-3xl font-bold">
-              {getallproduct?.length || 0}
-            </h2>
-          </div>
-
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Products Linked
-          </p>
-        </div>
-        <div className="bg-white border rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition">
-          <div className="text-sm text-slate-500">Vendor Total Owed</div>
-          <div className="text-xl font-bold text-slate-800 mt-1">
+          <div className="text-xl font-bold text-emerald-700 transition-all duration-300">
             {currency(summaryTotals.total)}
           </div>
-          <div className="text-xs text-emerald-600 mt-2">
-            Paid: {currency(summaryTotals.paid)}
+          <div className="mt-2 text-xs text-slate-600">
+            <span className="text-emerald-600 font-medium">
+              Paid: {currency(summaryTotals.paid)}
+            </span>
+            <span className="mx-2 text-slate-300">|</span>
+            <span className="text-rose-600 font-medium">
+              Remaining: {currency(summaryTotals.remaining)}
+            </span>
           </div>
-          <div className="text-xs text-red-600 mt-1">
-            Remaining: {currency(summaryTotals.remaining)}
+        </div>
+        <div className="rounded-xl p-5 border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-sm font-medium text-gray-600">
+              Total Vendors
+            </div>
+            <TfiSupport className="w-5 h-5 text-orange-600" />
+          </div>
+          <div className="text-xl font-bold text-orange-700 transition-all duration-300">
+            {getallSupplier?.length || 0}
+          </div>
+        </div>
+
+        <div className="rounded-xl p-5 border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-sm font-medium text-gray-600">
+              Products Linked
+            </div>
+            <AiOutlineProduct className="w-5 h-5 text-purple-600" />
+          </div>
+          <div className="text-xl font-bold text-purple-700 transition-all duration-300">
+            {getallproduct?.length || 0}
           </div>
         </div>
 
@@ -534,7 +533,9 @@ function Supplierpage({ readOnly = false }) {
                 maxLength={120}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
               />
-              {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+              {errors.name && (
+                <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+              )}
             </div>
 
             <div className="mb-4">
@@ -560,7 +561,9 @@ function Supplierpage({ readOnly = false }) {
                 maxLength={20}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
               />
-              {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
+              {errors.phone && (
+                <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
+              )}
             </div>
 
             <div className="mb-4">
@@ -592,7 +595,9 @@ function Supplierpage({ readOnly = false }) {
                 maxLength={200}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
               />
-              {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address}</p>}
+              {errors.address && (
+                <p className="text-red-500 text-sm mt-1">{errors.address}</p>
+              )}
             </div>
 
             {/* <div className="mb-4">
@@ -673,7 +678,9 @@ function Supplierpage({ readOnly = false }) {
                       label="Date"
                       direction={createdAtSort}
                       onToggle={() =>
-                        setCreatedAtSort((prev) => (prev === "asc" ? "desc" : "asc"))
+                        setCreatedAtSort((prev) =>
+                          prev === "asc" ? "desc" : "asc",
+                        )
                       }
                     />
                     <th className="px-5 py-4 font-medium">Actions</th>

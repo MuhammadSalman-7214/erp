@@ -16,10 +16,7 @@ import {
   updatePriceListItem,
 } from "../features/priceListSlice";
 import { sortByDateValue } from "../lib/dateFormat";
-import {
-  validateNumberInput,
-  validateTextInput,
-} from "../lib/formValidation";
+import { validateNumberInput, validateTextInput } from "../lib/formValidation";
 
 const sanitizeFileName = (value) =>
   String(value || "price_list")
@@ -327,7 +324,9 @@ function PriceListPage() {
             maxLength={40}
             className="w-full h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           />
-          {errors.size && <p className="text-red-500 text-sm -mt-1">{errors.size}</p>}
+          {errors.size && (
+            <p className="text-red-500 text-sm -mt-1">{errors.size}</p>
+          )}
           <input
             type="number"
             min="0"
@@ -354,7 +353,9 @@ function PriceListPage() {
             placeholder="Price"
             className="w-full h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           />
-          {errors.price && <p className="text-red-500 text-sm -mt-1">{errors.price}</p>}
+          {errors.price && (
+            <p className="text-red-500 text-sm -mt-1">{errors.price}</p>
+          )}
           <div className="flex gap-2">
             <button
               type="submit"

@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from "react";
-import TopNavbar from "../Components/TopNavbar";
 import { IoMdAdd } from "react-icons/io";
 import { MdDelete, MdEdit, MdVisibility } from "react-icons/md";
 import axiosInstance from "../lib/axios";
@@ -130,7 +129,9 @@ function InvoicesPage() {
                     label="Due Date"
                     direction={dueDateSort}
                     onToggle={() =>
-                      setDueDateSort((prev) => (prev === "asc" ? "desc" : "asc"))
+                      setDueDateSort((prev) =>
+                        prev === "asc" ? "desc" : "asc",
+                      )
                     }
                   />
                   <th className="px-5 py-4 font-medium text-right">Actions</th>

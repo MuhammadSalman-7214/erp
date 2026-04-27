@@ -12,7 +12,6 @@ import {
   EditSales,
   DeleteSales,
 } from "../features/salesSlice";
-import SalesChart from "../lib/Salesgraph";
 import toast from "react-hot-toast";
 import { gettingallproducts } from "../features/productSlice";
 import { PiInvoiceBold } from "react-icons/pi";
@@ -248,458 +247,458 @@ function Salespage() {
     setBillSale(null);
   };
 
-  const handlePrintBill = () => {
-    if (!billSale) return;
+  //   const handlePrintBill = () => {
+  //     if (!billSale) return;
 
-    const items = Array.isArray(billSale.products) ? billSale.products : [];
-    const {
-      totalAmount,
-      carageAmount,
-      subTotal,
-      receivedAmountValue,
-      remainingAmountValue,
-    } = getSaleTotals(billSale);
+  //     const items = Array.isArray(billSale.products) ? billSale.products : [];
+  //     const {
+  //       totalAmount,
+  //       carageAmount,
+  //       subTotal,
+  //       receivedAmountValue,
+  //       remainingAmountValue,
+  //     } = getSaleTotals(billSale);
 
-    const rows = items
-      .map((item, index) => {
-        const name = item.product?.name || "Product";
-        const description = item.product?.description || "";
-        const company = item.product?.company || item.product?.brand || "";
-        const code = item.productCode?.code || "-";
+  //     const rows = items
+  //       .map((item, index) => {
+  //         const name = item.product?.name || "Product";
+  //         const description = item.product?.description || "";
+  //         const company = item.product?.company || item.product?.brand || "";
+  //         const code = item.productCode?.code || "-";
 
-        const qty = Number(item.quantity || 0);
-        const price = Number(item.price || 0);
-        const total = qty * price;
+  //         const qty = Number(item.quantity || 0);
+  //         const price = Number(item.price || 0);
+  //         const total = qty * price;
 
-        return `
-        <tr>
-          <td>${index + 1}</td>
+  //         return `
+  //         <tr>
+  //           <td>${index + 1}</td>
 
-          <td>
-            <div class="product-name">${name}</div>
-            ${
-              description
-                ? `<div class="product-desc">${description}</div>`
-                : ""
-            }
-            ${company ? `<div class="product-company">${company}</div>` : ""}
-          </td>
+  //           <td>
+  //             <div class="product-name">${name}</div>
+  //             ${
+  //               description
+  //                 ? `<div class="product-desc">${description}</div>`
+  //                 : ""
+  //             }
+  //             ${company ? `<div class="product-company">${company}</div>` : ""}
+  //           </td>
 
-          <td><span class="badge">${code}</span></td>
+  //           <td><span class="badge">${code}</span></td>
 
-          <td class="num">${qty}</td>
-          <td class="num">Rs ${price.toLocaleString()}</td>
-          <td class="num">Rs ${total.toLocaleString()}</td>
-        </tr>
-      `;
-      })
-      .join("");
+  //           <td class="num">${qty}</td>
+  //           <td class="num">Rs ${price.toLocaleString()}</td>
+  //           <td class="num">Rs ${total.toLocaleString()}</td>
+  //         </tr>
+  //       `;
+  //       })
+  //       .join("");
 
-    const customerPhone =
-      billSale.customer?.contactInfo?.phone || billSale.customer?.phone || "-";
+  //     const customerPhone =
+  //       billSale.customer?.contactInfo?.phone || billSale.customer?.phone || "-";
 
-    const customerAddress =
-      billSale.customer?.contactInfo?.address ||
-      billSale.customer?.address ||
-      "-";
+  //     const customerAddress =
+  //       billSale.customer?.contactInfo?.address ||
+  //       billSale.customer?.address ||
+  //       "-";
 
-    // ✅ PUT YOUR LOGO URL HERE
-    const logoUrl = "https://via.placeholder.com/80x80?text=Logo";
+  //     // ✅ PUT YOUR LOGO URL HERE
+  //     const logoUrl = "https://via.placeholder.com/80x80?text=Logo";
 
-    const printWindow = window.open("", "_blank", "width=900,height=650");
+  //     const printWindow = window.open("", "_blank", "width=900,height=650");
 
-    if (!printWindow) {
-      toast.error("Popup blocked. Please allow popups.");
-      return;
-    }
+  //     if (!printWindow) {
+  //       toast.error("Popup blocked. Please allow popups.");
+  //       return;
+  //     }
 
-    printWindow.document.write(`
-<html>
-<head>
-  <title>Invoice</title>
+  //     printWindow.document.write(`
+  // <html>
+  // <head>
+  //   <title>Invoice</title>
 
-  <style>
-    * { box-sizing: border-box; }
+  //   <style>
+  //     * { box-sizing: border-box; }
 
-    @page {
-      size: A5;
-      margin: 0;
-    }
+  //     @page {
+  //       size: A5;
+  //       margin: 0;
+  //     }
 
-    html, body {
-      width: 148mm;
-      height: 210mm;
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      background: transparent;
-    }
+  //     html, body {
+  //       width: 148mm;
+  //       height: 210mm;
+  //       margin: 0;
+  //       padding: 0;
+  //       overflow: hidden;
+  //       background: transparent;
+  //     }
 
-    body {
-      font-family: "Inter", sans-serif;
-      margin: 0;
-      color: #0f172a;
-      background: transparent;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-    }
+  //     body {
+  //       font-family: "Inter", sans-serif;
+  //       margin: 0;
+  //       color: #0f172a;
+  //       background: transparent;
+  //       display: flex;
+  //       justify-content: center;
+  //       align-items: center;
+  //       min-height: 100vh;
+  //     }
 
-    .sheet {
-      width: 148mm;
-      min-height: 210mm;
-      padding: 10mm;
-    }
+  //     .sheet {
+  //       width: 148mm;
+  //       min-height: 210mm;
+  //       padding: 10mm;
+  //     }
 
-    @media print {
-      body {
-        display: block;
-        min-height: auto;
-      }
-    }
+  //     @media print {
+  //       body {
+  //         display: block;
+  //         min-height: auto;
+  //       }
+  //     }
 
-    /* HEADER */
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 2px solid #0f766e;
-      padding-bottom: 10px;
-      margin-bottom: 12px;
-    }
+  //     /* HEADER */
+  //     .header {
+  //       display: flex;
+  //       justify-content: space-between;
+  //       align-items: center;
+  //       border-bottom: 2px solid #0f766e;
+  //       padding-bottom: 10px;
+  //       margin-bottom: 12px;
+  //     }
 
-    .left {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
+  //     .left {
+  //       display: flex;
+  //       gap: 10px;
+  //       align-items: center;
+  //     }
 
-    .logo {
-      width: 45px;
-      height: 45px;
-      border-radius: 6px;
-      object-fit: contain;
-      border: 1px solid #e2e8f0;
-    }
+  //     .logo {
+  //       width: 45px;
+  //       height: 45px;
+  //       border-radius: 6px;
+  //       object-fit: contain;
+  //       border: 1px solid #e2e8f0;
+  //     }
 
-    .company h1 {
-      margin: 0;
-      font-size: 16px;
-      color: #0f766e;
-    }
+  //     .company h1 {
+  //       margin: 0;
+  //       font-size: 16px;
+  //       color: #0f766e;
+  //     }
 
-    .company p {
-      margin: 0;
-      font-size: 11px;
-      color: #64748b;
-    }
+  //     .company p {
+  //       margin: 0;
+  //       font-size: 11px;
+  //       color: #64748b;
+  //     }
 
-    .meta {
-      font-size: 11px;
-      text-align: right;
-    }
+  //     .meta {
+  //       font-size: 11px;
+  //       text-align: right;
+  //     }
 
-    /* CARDS */
-    .section {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 10px;
-    }
+  //     /* CARDS */
+  //     .section {
+  //       display: grid;
+  //       grid-template-columns: 1fr 1fr;
+  //       gap: 8px;
+  //       margin-bottom: 10px;
+  //     }
 
-    .card {
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 8px;
-      background: #f8fafc;
-      font-size: 11px;
-    }
+  //     .card {
+  //       border: 1px solid #e2e8f0;
+  //       border-radius: 8px;
+  //       padding: 8px;
+  //       background: #f8fafc;
+  //       font-size: 11px;
+  //     }
 
-    .card h3 {
-      margin: 0 0 4px;
-      font-size: 10px;
-      color: #0f766e;
-    }
+  //     .card h3 {
+  //       margin: 0 0 4px;
+  //       font-size: 10px;
+  //       color: #0f766e;
+  //     }
 
-    /* TABLE */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 10.5px;
-    }
+  //     /* TABLE */
+  //     table {
+  //       width: 100%;
+  //       border-collapse: collapse;
+  //       font-size: 10.5px;
+  //     }
 
-    thead {
-      background: #0f766e;
-      color: #fff;
-    }
+  //     thead {
+  //       background: #0f766e;
+  //       color: #fff;
+  //     }
 
-    th, td {
-      padding: 6px;
-    }
+  //     th, td {
+  //       padding: 6px;
+  //     }
 
-    td {
-      border-bottom: 1px solid #e2e8f0;
-    }
+  //     td {
+  //       border-bottom: 1px solid #e2e8f0;
+  //     }
 
-    .num {
-      text-align: right;
-    }
+  //     .num {
+  //       text-align: right;
+  //     }
 
-    /* PRODUCT */
-    .product-name {
-      font-weight: 600;
-    }
+  //     /* PRODUCT */
+  //     .product-name {
+  //       font-weight: 600;
+  //     }
 
-    .product-desc {
-      font-size: 9px;
-      color: #64748b;
-    }
+  //     .product-desc {
+  //       font-size: 9px;
+  //       color: #64748b;
+  //     }
 
-    .product-company {
-      font-size: 9px;
-      color: #94a3b8;
-    }
+  //     .product-company {
+  //       font-size: 9px;
+  //       color: #94a3b8;
+  //     }
 
-    .badge {
-      background: #eef2ff;
-      padding: 2px 6px;
-      border-radius: 6px;
-      font-size: 9px;
-    }
+  //     .badge {
+  //       background: #eef2ff;
+  //       padding: 2px 6px;
+  //       border-radius: 6px;
+  //       font-size: 9px;
+  //     }
 
-    /* TOTAL */
-    .totals {
-      margin-top: 10px;
-      display: flex;
-      justify-content: flex-end;
-    }
+  //     /* TOTAL */
+  //     .totals {
+  //       margin-top: 10px;
+  //       display: flex;
+  //       justify-content: flex-end;
+  //     }
 
-    .totals table {
-      width: 200px;
-      font-size: 11px;
-    }
+  //     .totals table {
+  //       width: 200px;
+  //       font-size: 11px;
+  //     }
 
-    .totals td {
-      padding: 3px 0;
-    }
+  //     .totals td {
+  //       padding: 3px 0;
+  //     }
 
-    .grand {
-      font-weight: 700;
-      border-top: 1px dashed #cbd5e1;
-      padding-top: 5px;
-    }
+  //     .grand {
+  //       font-weight: 700;
+  //       border-top: 1px dashed #cbd5e1;
+  //       padding-top: 5px;
+  //     }
 
-    .footer {
-      margin-top: 10px;
-      text-align: center;
-      font-size: 9px;
-      color: #94a3b8;
-    }
+  //     .footer {
+  //       margin-top: 10px;
+  //       text-align: center;
+  //       font-size: 9px;
+  //       color: #94a3b8;
+  //     }
 
-  </style>
-</head>
+  //   </style>
+  // </head>
 
-<body>
+  // <body>
 
-<div class="sheet">
+  // <div class="sheet">
 
-  <!-- HEADER -->
-  <div class="header">
-    <div class="left">
-      <img src="${logoUrl}" class="logo"/>
-      <div class="company">
-        <h1>Imran Traders</h1>
-        <p>Sales Invoice</p>
-      </div>
-    </div>
+  //   <!-- HEADER -->
+  //   <div class="header">
+  //     <div class="left">
+  //       <img src="${logoUrl}" class="logo"/>
+  //       <div class="company">
+  //         <h1>Imran Traders</h1>
+  //         <p>Sales Invoice</p>
+  //       </div>
+  //     </div>
 
-  </div>
+  //   </div>
 
-    <!-- INFO -->
-    <div class="section">
-      <div class="card">
-        <h3>Customer</h3>
-        <div>${billSale.customerName || "Customer"}</div>
-      <div>${customerPhone}</div>
-      <div>${customerAddress}</div>
-    </div>
+  //     <!-- INFO -->
+  //     <div class="section">
+  //       <div class="card">
+  //         <h3>Customer</h3>
+  //         <div>${billSale.customerName || "Customer"}</div>
+  //       <div>${customerPhone}</div>
+  //       <div>${customerAddress}</div>
+  //     </div>
 
-    <div class="card">
-      <h3>Order</h3>
-      <div>Method: ${billSale.paymentMethod || "-"}</div>
-      <div>Items: ${items.length}</div>
-      <div>Qty: ${items.reduce((s, i) => s + Number(i.quantity || 0), 0)}</div>
-      <div>Carage: Rs ${carageAmount.toLocaleString()}</div>
-      <div>Received: Rs ${receivedAmountValue.toLocaleString()}</div>
-      <div>Remaining: Rs ${remainingAmountValue.toLocaleString()}</div>
-    </div>
-  </div>
+  //     <div class="card">
+  //       <h3>Order</h3>
+  //       <div>Method: ${billSale.paymentMethod || "-"}</div>
+  //       <div>Items: ${items.length}</div>
+  //       <div>Qty: ${items.reduce((s, i) => s + Number(i.quantity || 0), 0)}</div>
+  //       <div>Carage: Rs ${carageAmount.toLocaleString()}</div>
+  //       <div>Received: Rs ${receivedAmountValue.toLocaleString()}</div>
+  //       <div>Remaining: Rs ${remainingAmountValue.toLocaleString()}</div>
+  //     </div>
+  //   </div>
 
-  <!-- TABLE -->
-  <table>
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Product</th>
-        <th>Code</th>
-        <th class="num">Qty</th>
-        <th class="num">Price</th>
-        <th class="num">Total</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${rows}
-    </tbody>
-  </table>
+  //   <!-- TABLE -->
+  //   <table>
+  //     <thead>
+  //       <tr>
+  //         <th>#</th>
+  //         <th>Product</th>
+  //         <th>Code</th>
+  //         <th class="num">Qty</th>
+  //         <th class="num">Price</th>
+  //         <th class="num">Total</th>
+  //       </tr>
+  //     </thead>
+  //     <tbody>
+  //       ${rows}
+  //     </tbody>
+  //   </table>
 
-  <!-- TOTAL -->
-  <div class="totals">
-    <table>
-      <tr>
-        <td>Subtotal</td>
-        <td class="num">Rs ${subTotal.toLocaleString()}</td>
-      </tr>
-      <tr>
-        <td>Carage</td>
-        <td class="num">Rs ${carageAmount.toLocaleString()}</td>
-      </tr>
-      <tr>
-        <td>Received</td>
-        <td class="num">Rs ${receivedAmountValue.toLocaleString()}</td>
-      </tr>
-      <tr>
-        <td>Remaining</td>
-        <td class="num">Rs ${remainingAmountValue.toLocaleString()}</td>
-      </tr>
-      <tr>
-        <td class="grand">Total</td>
-        <td class="num grand">Rs ${totalAmount.toLocaleString()}</td>
-      </tr>
-    </table>
-  </div>
+  //   <!-- TOTAL -->
+  //   <div class="totals">
+  //     <table>
+  //       <tr>
+  //         <td>Subtotal</td>
+  //         <td class="num">Rs ${subTotal.toLocaleString()}</td>
+  //       </tr>
+  //       <tr>
+  //         <td>Carage</td>
+  //         <td class="num">Rs ${carageAmount.toLocaleString()}</td>
+  //       </tr>
+  //       <tr>
+  //         <td>Received</td>
+  //         <td class="num">Rs ${receivedAmountValue.toLocaleString()}</td>
+  //       </tr>
+  //       <tr>
+  //         <td>Remaining</td>
+  //         <td class="num">Rs ${remainingAmountValue.toLocaleString()}</td>
+  //       </tr>
+  //       <tr>
+  //         <td class="grand">Total</td>
+  //         <td class="num grand">Rs ${totalAmount.toLocaleString()}</td>
+  //       </tr>
+  //     </table>
+  //   </div>
 
-  <div class="footer">
-  </div>
+  //   <div class="footer">
+  //   </div>
 
-</div>
+  // </div>
 
-<script>
-  window.onload = () => {
-    window.print();
-    setTimeout(() => window.close(), 200);
-  };
-</script>
+  // <script>
+  //   window.onload = () => {
+  //     window.print();
+  //     setTimeout(() => window.close(), 200);
+  //   };
+  // </script>
 
-</body>
-</html>
-`);
+  // </body>
+  // </html>
+  // `);
 
-    printWindow.document.close();
-  };
+  //     printWindow.document.close();
+  //   };
 
-  const handlePrintBillModern = () => {
-    if (!billSale) return;
+  // const handlePrintBillModern = () => {
+  //   if (!billSale) return;
 
-    const items = Array.isArray(billSale.products) ? billSale.products : [];
-    const {
-      totalAmount,
-      carageAmount,
-      subTotal,
-      receivedAmountValue,
-      remainingAmountValue,
-    } = getSaleTotals(billSale);
+  //   const items = Array.isArray(billSale.products) ? billSale.products : [];
+  //   const {
+  //     totalAmount,
+  //     carageAmount,
+  //     subTotal,
+  //     receivedAmountValue,
+  //     remainingAmountValue,
+  //   } = getSaleTotals(billSale);
 
-    const invoiceHtml = buildInvoicePrintHtml({
-      documentTitle: "Sales Invoice",
-      companyName: "Imran Traders",
-      slogan: "",
-      invoiceLabel: "Invoice #",
-      invoiceNumber: billSale.invoiceNumber || billSale.id || "-",
-      issueLabel: "Date",
-      issueDate: billSale.createdAt || new Date().toISOString(),
-      partyLabel: "Invoice To",
-      partyName: billSale.customerName || "Customer",
-      partyPhone:
-        billSale.customer?.contactInfo?.phone || billSale.customer?.phone || "",
-      partyAddress:
-        billSale.customer?.contactInfo?.address ||
-        billSale.customer?.address ||
-        "",
-      paymentMethod: billSale.paymentMethod || "-",
-      status: billSale.status || "-",
-      items: items.map((item) => {
-        const qty = Number(item.quantity || 0);
-        const unitPrice = Number(item.price || 0);
-        return {
-          name: item.product?.name || "Product",
-          description: "",
-          company: "",
-          code: item.productCode?.code || "",
-          quantity: qty,
-          unitPrice,
-          total: qty * unitPrice,
-        };
-      }),
-      currency: "Rs",
-      subTotal,
-      carage: carageAmount,
-      totalAmount,
-      receivedAmount: receivedAmountValue,
-      remainingAmount: remainingAmountValue,
-      notes: billSale.notes || "",
-    });
+  //   const invoiceHtml = buildInvoicePrintHtml({
+  //     documentTitle: "Sales Invoice",
+  //     companyName: "Imran Traders",
+  //     slogan: "",
+  //     invoiceLabel: "Invoice #",
+  //     invoiceNumber: billSale.invoiceNumber || billSale.id || "-",
+  //     issueLabel: "Date",
+  //     issueDate: billSale.createdAt || new Date().toISOString(),
+  //     partyLabel: "Invoice To",
+  //     partyName: billSale.customerName || "Customer",
+  //     partyPhone:
+  //       billSale.customer?.contactInfo?.phone || billSale.customer?.phone || "",
+  //     partyAddress:
+  //       billSale.customer?.contactInfo?.address ||
+  //       billSale.customer?.address ||
+  //       "",
+  //     paymentMethod: billSale.paymentMethod || "-",
+  //     status: billSale.status || "-",
+  //     items: items.map((item) => {
+  //       const qty = Number(item.quantity || 0);
+  //       const unitPrice = Number(item.price || 0);
+  //       return {
+  //         name: item.product?.name || "Product",
+  //         description: "",
+  //         company: "",
+  //         code: item.productCode?.code || "",
+  //         quantity: qty,
+  //         unitPrice,
+  //         total: qty * unitPrice,
+  //       };
+  //     }),
+  //     currency: "Rs",
+  //     subTotal,
+  //     carage: carageAmount,
+  //     totalAmount,
+  //     receivedAmount: receivedAmountValue,
+  //     remainingAmount: remainingAmountValue,
+  //     notes: billSale.notes || "",
+  //   });
 
-    const gatePassHtml = buildInvoicePrintHtml({
-      documentTitle: "Gate Pass",
-      companyName: "Imran Traders",
-      slogan: "",
-      invoiceLabel: "Gate Pass #",
-      invoiceNumber: billSale.invoiceNumber || billSale.id || "-",
-      issueLabel: "Date",
-      issueDate: billSale.createdAt || new Date().toISOString(),
-      partyLabel: "Gate Pass",
-      partyName: billSale.customerName || "Customer",
-      partyPhone:
-        billSale.customer?.contactInfo?.phone || billSale.customer?.phone || "",
-      partyAddress:
-        billSale.customer?.contactInfo?.address ||
-        billSale.customer?.address ||
-        "",
-      paymentMethod: billSale.paymentMethod || "-",
-      status: billSale.status || "-",
-      items: items.map((item) => ({
-        name: item.product?.name || "Product",
-        quantity: Number(item.quantity || 0),
-        code: item.productCode?.code || "",
-      })),
-      showPrices: false,
-      showSummaryBox: false,
-      currency: "Rs",
-      subTotal,
-      carage: carageAmount,
-      totalAmount,
-      receivedAmount: receivedAmountValue,
-      remainingAmount: remainingAmountValue,
-      notes: billSale.notes || "",
-    });
+  //   const gatePassHtml = buildInvoicePrintHtml({
+  //     documentTitle: "Gate Pass",
+  //     companyName: "Imran Traders",
+  //     slogan: "",
+  //     invoiceLabel: "Gate Pass #",
+  //     invoiceNumber: billSale.invoiceNumber || billSale.id || "-",
+  //     issueLabel: "Date",
+  //     issueDate: billSale.createdAt || new Date().toISOString(),
+  //     partyLabel: "Gate Pass",
+  //     partyName: billSale.customerName || "Customer",
+  //     partyPhone:
+  //       billSale.customer?.contactInfo?.phone || billSale.customer?.phone || "",
+  //     partyAddress:
+  //       billSale.customer?.contactInfo?.address ||
+  //       billSale.customer?.address ||
+  //       "",
+  //     paymentMethod: billSale.paymentMethod || "-",
+  //     status: billSale.status || "-",
+  //     items: items.map((item) => ({
+  //       name: item.product?.name || "Product",
+  //       quantity: Number(item.quantity || 0),
+  //       code: item.productCode?.code || "",
+  //     })),
+  //     showPrices: false,
+  //     showSummaryBox: false,
+  //     currency: "Rs",
+  //     subTotal,
+  //     carage: carageAmount,
+  //     totalAmount,
+  //     receivedAmount: receivedAmountValue,
+  //     remainingAmount: remainingAmountValue,
+  //     notes: billSale.notes || "",
+  //   });
 
-    const html = combineInvoicePagesHtml(invoiceHtml, gatePassHtml);
+  //   const html = combineInvoicePagesHtml(invoiceHtml, gatePassHtml);
 
-    const printWindow = window.open("", "_blank", "width=900,height=650");
-    if (!printWindow) {
-      toast.error("Popup blocked. Please allow popups.");
-      return;
-    }
+  //   const printWindow = window.open("", "_blank", "width=900,height=650");
+  //   if (!printWindow) {
+  //     toast.error("Popup blocked. Please allow popups.");
+  //     return;
+  //   }
 
-    printWindow.document.write(html);
-    printWindow.document.close();
-    printWindow.onload = () => {
-      printWindow.focus();
-      printWindow.print();
-      setTimeout(() => printWindow.close(), 200);
-    };
-  };
+  //   printWindow.document.write(html);
+  //   printWindow.document.close();
+  //   printWindow.onload = () => {
+  //     printWindow.focus();
+  //     printWindow.print();
+  //     setTimeout(() => printWindow.close(), 200);
+  //   };
+  // };
 
   const buildCartItemsFromSale = (sale) => {
     const products = Array.isArray(sale?.products) ? sale.products : [];
@@ -1932,7 +1931,7 @@ function Salespage() {
     <div className="min-h-[92vh] bg-gray-100 p-4">
       {/* <SalesChart /> */}
 
-      <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">
+      <div className="flex flex-col md:flex-row md:items-center gap-2">
         <input
           value={query}
           onChange={(e) => setquery(e.target.value)}

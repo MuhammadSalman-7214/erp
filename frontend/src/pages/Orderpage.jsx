@@ -4,7 +4,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { IoMdAdd } from "react-icons/io";
 import { MdEdit, MdDelete } from "react-icons/md";
 import FormattedTime from "../lib/FormattedTime";
-import OrderStatusChart from "../lib/OrderStatusChart";
 import {
   createdOrder,
   Removedorder,
@@ -21,30 +20,17 @@ import { TableSkeleton } from "../Components/LoadingSkeletons";
 import DrawerPanel from "../Components/DrawerPanel";
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
-import {
-  validateNumberInput,
-  validateTextInput,
-} from "../lib/formValidation";
+import { validateNumberInput, validateTextInput } from "../lib/formValidation";
 
 function Orderpage() {
   const getId = (value) => value?.id ?? value?.id ?? value;
-  const {
-    getorder,
-    isgetorder,
-    isorderadd,
-    isorderremove,
-    editorder,
-    iseditorder,
-    searchdata,
-    issearchdata,
-    isshowgraph,
-    statusgraph,
-  } = useSelector((state) => state.order);
+  const { getorder, isgetorder, editorder, searchdata, issearchdata } =
+    useSelector((state) => state.order);
   const { getallproduct } = useSelector((state) => state.product);
   const { getallSupplier } = useSelector((state) => state.supplier);
   const [supplier, setsupplier] = useState("");
 
-  const { user, isUserSignup } = useSelector((state) => state.auth);
+  const { user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
 
   const [query, setquery] = useState("");
@@ -418,7 +404,11 @@ function Orderpage() {
   const displayOrder = query.trim() !== "" ? searchdata : getorder;
   const sortedOrder = useMemo(
     () =>
-      sortByDateValue(displayOrder || [], (order) => order.createdAt, timestampSort),
+      sortByDateValue(
+        displayOrder || [],
+        (order) => order.createdAt,
+        timestampSort,
+      ),
     [displayOrder, timestampSort],
   );
   const isTableLoading = isgetorder || (query.trim() !== "" && issearchdata);
@@ -428,7 +418,7 @@ function Orderpage() {
       {/* <OrderStatusChart /> */}
 
       {/* Search + Add */}
-      <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">
+      <div className="flex flex-col md:flex-row md:items-center gap-2">
         <input
           type="text"
           value={query}
@@ -623,7 +613,9 @@ function Orderpage() {
                   label="Date"
                   direction={timestampSort}
                   onToggle={() =>
-                    setTimestampSort((prev) => (prev === "asc" ? "desc" : "asc"))
+                    setTimestampSort((prev) =>
+                      prev === "asc" ? "desc" : "asc",
+                    )
                   }
                 />
                 <th className="px-5 py-4 font-medium">Actions</th>

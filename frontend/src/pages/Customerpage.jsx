@@ -9,10 +9,8 @@ import { Popconfirm } from "antd";
 import NoData from "../Components/NoData";
 import DrawerPanel from "../Components/DrawerPanel";
 import axiosInstance from "../lib/axios";
-import {
-  validatePhoneInput,
-  validateTextInput,
-} from "../lib/formValidation";
+import { FaMoneyBill1Wave } from "react-icons/fa6";
+import { validatePhoneInput, validateTextInput } from "../lib/formValidation";
 import { useRolePermissions } from "../hooks/useRolePermissions";
 import {
   createCustomer,
@@ -245,8 +243,7 @@ function Customerpage({ readOnly = false }) {
   };
 
   const normalizeText = (value = "") => String(value).trim().toLowerCase();
-  const normalizePhone = (value = "") =>
-    String(value).replace(/[^\d+]/g, "");
+  const normalizePhone = (value = "") => String(value).replace(/[^\d+]/g, "");
 
   const displayCustomers = useMemo(() => {
     const customers = Array.isArray(getAllCustomer) ? getAllCustomer : [];
@@ -302,31 +299,37 @@ function Customerpage({ readOnly = false }) {
 
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-        <div className="bg-white border rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition">
-          <div className="flex items-center gap-3">
-            <span className="rounded-xl bg-teal-600 text-white text-lg sm:text-xl p-2">
-              <PiUsersBold />
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-bold">
-              {getAllCustomer?.length || 0}
-            </h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div className="rounded-xl p-5 border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-sm font-medium text-gray-600">
+              Total Customers
+            </div>
+            <PiUsersBold className="w-5 h-5 text-emerald-600" />
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Total Customers
-          </p>
+          <div className="text-xl font-bold text-emerald-700 transition-all duration-300">
+            {getAllCustomer?.length || 0}
+          </div>
         </div>
 
-        <div className="bg-white border rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition">
-          <div className="text-sm text-slate-500">Customer Total Sales</div>
-          <div className="text-xl font-bold text-slate-800 mt-1">
+        <div className="rounded-xl p-5 border-2 border-rose-200 bg-gradient-to-br from-rose-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-sm font-medium text-gray-600">
+              Customer Total Sales
+            </div>
+            <FaMoneyBill1Wave className="w-5 h-5 text-rose-600" />
+          </div>
+          <div className="text-xl font-bold text-rose-700 transition-all duration-300">
             {currency(summaryTotals.total)}
           </div>
-          <div className="text-xs text-emerald-600 mt-2">
-            Collected: {currency(summaryTotals.paid)}
-          </div>
-          <div className="text-xs text-red-600 mt-1">
-            Remaining: {currency(summaryTotals.remaining)}
+          <div className="mt-2 text-xs text-slate-600">
+            <span className="text-emerald-600 font-medium">
+              Collected: {currency(summaryTotals.paid)}
+            </span>
+            <span className="mx-2 text-slate-300">|</span>
+            <span className="text-rose-600 font-medium">
+              Remaining: {currency(summaryTotals.remaining)}
+            </span>
           </div>
         </div>
       </div>
@@ -409,7 +412,9 @@ function Customerpage({ readOnly = false }) {
               className="w-full h-10 rounded-xl border px-3"
               required
             />
-            {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
+            {errors.name && (
+              <p className="text-red-500 text-sm">{errors.name}</p>
+            )}
             <input
               type="text"
               value={phone}
@@ -430,7 +435,9 @@ function Customerpage({ readOnly = false }) {
               maxLength={20}
               className="w-full h-10 rounded-xl border px-3"
             />
-            {errors.phone && <p className="text-red-500 text-sm">{errors.phone}</p>}
+            {errors.phone && (
+              <p className="text-red-500 text-sm">{errors.phone}</p>
+            )}
             <input
               type="text"
               value={address}
