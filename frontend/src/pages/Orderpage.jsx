@@ -18,6 +18,7 @@ import { gettingallSupplier } from "../features/SupplierSlice";
 import useKeyboardDropdown from "../hooks/useKeyboardDropdown";
 import { TableSkeleton } from "../Components/LoadingSkeletons";
 import DrawerPanel from "../Components/DrawerPanel";
+import LoadingButton from "../Components/LoadingButton";
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
 import { validateNumberInput, validateTextInput } from "../lib/formValidation";
@@ -43,6 +44,7 @@ function Orderpage() {
   const [showCodeOptions, setShowCodeOptions] = useState(false);
   const [cartItems, setCartItems] = useState([]);
   const [timestampSort, setTimestampSort] = useState("asc");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const getStatusBadge = (status) => {
     const mapping = {
       pending: "bg-yellow-50 text-yellow-700",
@@ -226,6 +228,7 @@ function Orderpage() {
       totalAmount,
     };
 
+    setIsSubmitting(true);
     dispatch(updatestatusOrder({ OrderId: getId(selectedOrder), updatedData }))
       .unwrap()
       .then(() => {
@@ -234,7 +237,8 @@ function Orderpage() {
       })
       .catch((error) => {
         // handleOrderError(error);
-      });
+      })
+      .finally(() => setIsSubmitting(false));
   };
 
   const addToCart = (item) => {
@@ -329,6 +333,7 @@ function Orderpage() {
         })),
       };
 
+      setIsSubmitting(true);
       await dispatch(createdOrder(orderData)).unwrap();
 
       toast.success("Order created successfully");
@@ -338,6 +343,8 @@ function Orderpage() {
       dispatch(gettingallOrder()); // REFRESH LIST
     } catch (error) {
       // handleOrderError(error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -585,14 +592,16 @@ function Orderpage() {
               </select>
             </div>
 
-            <button
+            <LoadingButton
               type="submit"
+              loading={isSubmitting}
+              loadingText={selectedOrder ? "Updating..." : "Creating..."}
               className="mt-4 h-12 w-full rounded-lg bg-teal-800 text-white hover:bg-teal-700"
             >
               {selectedOrder
                 ? "Update Purchase Order"
                 : "Create Purchase Order"}
-            </button>
+            </LoadingButton>
           </form>
         </div>
       </DrawerPanel>

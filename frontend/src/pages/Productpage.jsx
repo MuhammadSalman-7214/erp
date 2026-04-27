@@ -25,6 +25,7 @@ import NoData from "../Components/NoData";
 import { Popconfirm } from "antd";
 import { TableSkeleton } from "../Components/LoadingSkeletons";
 import DrawerPanel from "../Components/DrawerPanel";
+import LoadingButton from "../Components/LoadingButton";
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
 import { validateNumberInput, validateTextInput } from "../lib/formValidation";
@@ -77,6 +78,8 @@ function Productpage({ readOnly = false }) {
   const [codeForm, setCodeForm] = useState({ ...emptyCode });
   const [createdAtSort, setCreatedAtSort] = useState("asc");
   const [errors, setErrors] = useState({});
+  const [isFormSubmitting, setIsFormSubmitting] = useState(false);
+  const [isCodeSubmitting, setIsCodeSubmitting] = useState(false);
 
   useEffect(() => {
     dispatch(gettingallproducts());
@@ -224,13 +227,15 @@ function Productpage({ readOnly = false }) {
       salePrice: saleCheck.value,
       dateAdded: selectedProduct.dateAdded || new Date().toISOString(),
     };
+    setIsFormSubmitting(true);
     dispatch(EditProduct({ id: getId(selectedProduct), updatedData }))
       .unwrap()
       .then(() => {
         toast.success("Product updated successfully");
         closeForm();
       })
-      .catch(() => toast.error("Failed to update product"));
+      .catch(() => toast.error("Failed to update product"))
+      .finally(() => setIsFormSubmitting(false));
   };
 
   const submitProduct = async (event) => {
@@ -332,13 +337,15 @@ function Productpage({ readOnly = false }) {
       dateAdded: new Date(dateAdded).toISOString(),
     };
 
+    setIsFormSubmitting(true);
     dispatch(Addproduct(productData))
       .unwrap()
       .then(() => {
         toast.success("Product added successfully");
         closeForm();
       })
-      .catch(() => toast.error("Product add unsuccessful"));
+      .catch(() => toast.error("Product add unsuccessful"))
+      .finally(() => setIsFormSubmitting(false));
   };
 
   const resetForm = () => {
@@ -409,6 +416,7 @@ function Productpage({ readOnly = false }) {
   const openCodeModal = (productId) => {
     setCodeProductId(productId);
     setCodeForm({ ...emptyCode });
+    setIsCodeSubmitting(false);
     setIsCodeModalOpen(true);
   };
 
@@ -416,6 +424,7 @@ function Productpage({ readOnly = false }) {
     setIsCodeModalOpen(false);
     setCodeProductId(null);
     setCodeForm({ ...emptyCode });
+    setIsCodeSubmitting(false);
   };
 
   const handleAddCode = async () => {
@@ -436,13 +445,15 @@ function Productpage({ readOnly = false }) {
       code: codeCheck.value,
     };
 
+    setIsCodeSubmitting(true);
     dispatch(addProductCode({ productId: codeProductId, codeData: payload }))
       .unwrap()
       .then(() => {
         toast.success("Code added");
         setCodeForm({ ...emptyCode });
       })
-      .catch((error) => toast.error(error || "Failed to add code"));
+      .catch((error) => toast.error(error || "Failed to add code"))
+      .finally(() => setIsCodeSubmitting(false));
   };
 
   const handleDeleteCode = (codeId) => {
@@ -1150,12 +1161,14 @@ function Productpage({ readOnly = false }) {
               )}
             </div>
 
-            <button
+            <LoadingButton
               type="submit"
+              loading={isFormSubmitting}
+              loadingText={selectedProduct ? "Updating..." : "Creating..."}
               className="mt-4 h-12 w-full rounded-xl bg-teal-700 text-white shadow-md hover:bg-teal-600"
             >
               {selectedProduct ? "Update Product" : "Create Product"}
-            </button>
+            </LoadingButton>
           </form>
         </div>
       </DrawerPanel>
@@ -1229,13 +1242,15 @@ function Productpage({ readOnly = false }) {
                     <p className="mt-1 text-xs text-red-500">{errors.code}</p>
                   )}
                 </div>
-                <button
+                <LoadingButton
                   type="button"
                   onClick={handleAddCode}
+                  loading={isCodeSubmitting}
+                  loadingText="Adding..."
                   className="mt-3 w-full h-10 bg-teal-700 hover:bg-teal-600 text-white rounded-xl"
                 >
                   Add Code
-                </button>
+                </LoadingButton>
               </div>
               <div className="border rounded-2xl bg-slate-50 p-4 flex flex-col min-h-0">
                 <div className="text-xs font-semibold text-slate-500 mb-3">

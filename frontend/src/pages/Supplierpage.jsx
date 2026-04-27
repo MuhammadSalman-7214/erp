@@ -21,6 +21,7 @@ import NoData from "../Components/NoData";
 import { Popconfirm } from "antd";
 import axiosInstance from "../lib/axios";
 import DrawerPanel from "../Components/DrawerPanel";
+import LoadingButton from "../Components/LoadingButton";
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
 import {
@@ -56,6 +57,7 @@ function Supplierpage({ readOnly = false }) {
   const [product, setProduct] = useState("");
   const [vendorBalances, setVendorBalances] = useState({});
   const [createdAtSort, setCreatedAtSort] = useState("asc");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const getId = (value) => value?.id ?? value?.id ?? value;
 
@@ -165,17 +167,17 @@ function Supplierpage({ readOnly = false }) {
       return;
     }
 
-    const openingBalanceCheck = validateField(
-      "openingBalance",
-      openingBalance,
-      (value) =>
-        validateNumberInput(value, "Opening balance", {
-          min: 0,
-          allowZero: true,
-        }),
-    );
-    if (!openingBalanceCheck.ok) {
-      toast.error(openingBalanceCheck.message);
+    const openingBalanceValue =
+      String(openingBalance).trim() === ""
+        ? undefined
+        : validateField("openingBalance", openingBalance, (value) =>
+            validateNumberInput(value, "Opening balance", {
+              min: 0,
+              allowZero: true,
+            }),
+          );
+    if (openingBalanceValue && !openingBalanceValue.ok) {
+      toast.error(openingBalanceValue.message);
       return;
     }
 
@@ -201,12 +203,15 @@ function Supplierpage({ readOnly = false }) {
         phone: phoneCheck.value,
         address: addressCheck.value,
       },
-      openingBalance: openingBalanceCheck.value,
+      ...(openingBalanceValue?.value !== undefined
+        ? { openingBalance: openingBalanceValue.value }
+        : {}),
       paymentTerms: paymentTermsCheck.value,
       // optionally keep productsSupplied if needed
       productsSupplied: product ? [product] : [],
     };
 
+    setIsSubmitting(true);
     dispatch(EditSupplier({ supplierId: getId(selectedSupplier), updatedData }))
       .unwrap()
       .then(() => {
@@ -216,7 +221,8 @@ function Supplierpage({ readOnly = false }) {
       })
       .catch(() => {
         toast.error("Failed to update supplier");
-      });
+      })
+      .finally(() => setIsSubmitting(false));
   };
 
   const submitSupplier = async (event) => {
@@ -271,17 +277,17 @@ function Supplierpage({ readOnly = false }) {
       return;
     }
 
-    const openingBalanceCheck = validateField(
-      "openingBalance",
-      openingBalance,
-      (value) =>
-        validateNumberInput(value, "Opening balance", {
-          min: 0,
-          allowZero: true,
-        }),
-    );
-    if (!openingBalanceCheck.ok) {
-      toast.error(openingBalanceCheck.message);
+    const openingBalanceValue =
+      String(openingBalance).trim() === ""
+        ? undefined
+        : validateField("openingBalance", openingBalance, (value) =>
+            validateNumberInput(value, "Opening balance", {
+              min: 0,
+              allowZero: true,
+            }),
+          );
+    if (openingBalanceValue && !openingBalanceValue.ok) {
+      toast.error(openingBalanceValue.message);
       return;
     }
 
@@ -307,10 +313,13 @@ function Supplierpage({ readOnly = false }) {
         phone: phoneCheck.value,
         address: addressCheck.value,
       },
-      openingBalance: openingBalanceCheck.value,
+      ...(openingBalanceValue?.value !== undefined
+        ? { openingBalance: openingBalanceValue.value }
+        : {}),
       paymentTerms: paymentTermsCheck.value,
       productsSupplied: product ? [product] : [],
     };
+    setIsSubmitting(true);
     dispatch(CreateSupplier(supplierData))
       .unwrap()
       .then(() => {
@@ -318,7 +327,8 @@ function Supplierpage({ readOnly = false }) {
         closeForm();
         fetchVendorBalances();
       })
-      .catch(() => toast.error("Vendor add unsuccessful"));
+      .catch(() => toast.error("Vendor add unsuccessful"))
+      .finally(() => setIsSubmitting(false));
   };
 
   const resetForm = () => {
@@ -641,12 +651,14 @@ function Supplierpage({ readOnly = false }) {
               </select>
             </div>
 
-            <button
+            <LoadingButton
               type="submit"
+              loading={isSubmitting}
+              loadingText={selectedSupplier ? "Updating..." : "Creating..."}
               className="mt-4 h-12 w-full rounded-lg bg-teal-800 text-white hover:bg-teal-700"
             >
               {selectedSupplier ? "Update Vendor" : "Create Vendor"}
-            </button>
+            </LoadingButton>
           </form>
         </div>
       </DrawerPanel>

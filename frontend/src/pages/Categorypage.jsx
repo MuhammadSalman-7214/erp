@@ -14,6 +14,7 @@ import toast from "react-hot-toast";
 import NoData from "../Components/NoData";
 import { Popconfirm } from "antd";
 import DrawerPanel from "../Components/DrawerPanel";
+import LoadingButton from "../Components/LoadingButton";
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
 import { validateTextInput } from "../lib/formValidation";
@@ -28,6 +29,7 @@ function Categorypage() {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     dispatch(gettingallCategory());
@@ -74,6 +76,7 @@ function Categorypage() {
 
     if (selectedProduct) {
       // Update existing category
+      setIsSubmitting(true);
       dispatch(UpdateCategory({ id: selectedProduct.id, data: CategoryData }))
         .unwrap()
         .then(() => {
@@ -82,9 +85,11 @@ function Categorypage() {
         })
         .catch((err) => {
           toast.error(err?.message || "Update failed");
-        });
+        })
+        .finally(() => setIsSubmitting(false));
     } else {
       // Create new category
+      setIsSubmitting(true);
       dispatch(CreateCategory(CategoryData))
         .unwrap()
         .then(() => {
@@ -93,7 +98,8 @@ function Categorypage() {
         })
         .catch((err) => {
           toast.error(err?.message || "Category add unsuccessful");
-        });
+        })
+        .finally(() => setIsSubmitting(false));
     }
   };
 
@@ -139,7 +145,7 @@ function Categorypage() {
 
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
-      <div className="grid grid-cols-3 sm:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <div className="rounded-xl p-5 border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
           <div className="flex items-center justify-between mb-2">
             <div className="text-sm font-medium text-gray-600">
@@ -220,12 +226,14 @@ function Categorypage() {
               )}
             </div>
 
-            <button
+            <LoadingButton
               type="submit"
+              loading={isSubmitting}
+              loadingText={selectedProduct ? "Updating..." : "Creating..."}
               className="mt-6 h-12 w-full rounded-xl bg-teal-700 font-medium text-white shadow-md transition hover:bg-teal-600"
             >
               {selectedProduct ? "Update Category" : "Create Category"}
-            </button>
+            </LoadingButton>
           </form>
         </div>
       </DrawerPanel>

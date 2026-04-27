@@ -4,6 +4,7 @@ import axiosInstance from "../lib/axios";
 import { toast } from "react-hot-toast";
 import { MdDelete } from "react-icons/md";
 import { IoMdAdd } from "react-icons/io";
+import LoadingButton from "../Components/LoadingButton";
 import { formatFixed } from "../lib/formatNumber";
 import { uppercasePayload } from "../lib/uppercasePayload";
 import {
@@ -30,6 +31,7 @@ function CreateInvoicePage() {
   const [subTotal, setSubTotal] = useState(0);
   const [taxAmount, setTaxAmount] = useState(0);
   const [totalAmount, setTotalAmount] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchDropdowns = async () => {
@@ -151,6 +153,7 @@ function CreateInvoicePage() {
     }
 
     try {
+      setIsSubmitting(true);
       await axiosInstance.post("invoice", {
         invoiceType,
         customerId: invoiceType === "sales" ? customerId : undefined,
@@ -168,6 +171,8 @@ function CreateInvoicePage() {
     } catch (err) {
       console.error(err);
       toast.error("Failed to create invoice");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -318,8 +323,10 @@ function CreateInvoicePage() {
           </div>
 
           <button
+            type="button"
             onClick={addItem}
-            className="mb-6 inline-flex items-center gap-2 bg-teal-800 text-white px-4 py-2 rounded-lg hover:bg-teal-600"
+            disabled={isSubmitting}
+            className="mb-6 inline-flex items-center gap-2 bg-teal-800 text-white px-4 py-2 rounded-lg hover:bg-teal-600 disabled:cursor-not-allowed disabled:opacity-70"
           >
             <IoMdAdd /> Add Item
           </button>
@@ -397,15 +404,19 @@ function CreateInvoicePage() {
 
           {/* Actions */}
           <div className="flex justify-end gap-3">
-            <button
+            <LoadingButton
+              type="button"
               onClick={handleSubmit}
+              loading={isSubmitting}
+              loadingText="Creating..."
               className="px-6 py-2 bg-teal-800 text-white rounded-lg hover:bg-teal-700"
             >
               Create Invoice
-            </button>
+            </LoadingButton>
             <button
               onClick={() => navigate("/invoices")}
               className="px-6 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500"
+              disabled={isSubmitting}
             >
               Cancel
             </button>

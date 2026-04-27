@@ -24,6 +24,7 @@ import {
   combineInvoicePagesHtml,
 } from "../lib/invoicePrintTemplate";
 import DrawerPanel from "../Components/DrawerPanel";
+import LoadingButton from "../Components/LoadingButton";
 import useKeyboardDropdown from "../hooks/useKeyboardDropdown";
 import {
   formatDateLabel,
@@ -108,6 +109,7 @@ function Salespage() {
   const [showBillModal, setShowBillModal] = useState(false);
   const [billSale, setBillSale] = useState(null);
   const [payments, setPayments] = useState([]);
+  const [isSubmittingSale, setIsSubmittingSale] = useState(false);
 
   const [selectedSales, setselectedSales] = useState(null);
   const { getAllCustomer } = useSelector((state) => state.customer);
@@ -829,6 +831,7 @@ function Salespage() {
       status: Status,
     };
 
+    setIsSubmittingSale(true);
     dispatch(EditSales({ salesId: getId(selectedSales), updatedData }))
       .unwrap()
       .then(() => {
@@ -844,7 +847,8 @@ function Salespage() {
           return;
         }
         toast.error(error?.message || "Failed to update sale");
-      });
+      })
+      .finally(() => setIsSubmittingSale(false));
   };
 
   const addToCart = (item) => {
@@ -1120,6 +1124,7 @@ function Salespage() {
     };
 
     try {
+      setIsSubmittingSale(true);
       const result = await dispatch(CreateSales(salesData)).unwrap();
       const createdSale = result?.sale;
       toast.success("Sale created successfully");
@@ -1138,6 +1143,8 @@ function Salespage() {
       }
 
       toast.error(error?.message || "Failed to create sale");
+    } finally {
+      setIsSubmittingSale(false);
     }
   };
   const resetForm = () => {
@@ -2345,7 +2352,16 @@ function Salespage() {
             </select>
           </div>
 
-          <button
+          <LoadingButton
+            type="submit"
+            loading={isCreatingCustomer || isSubmittingSale}
+            loadingText={
+              isCreatingCustomer
+                ? "Creating customer..."
+                : selectedSales
+                  ? "Updating..."
+                  : "Creating..."
+            }
             disabled={hasStockIssue}
             className={`w-full py-3 rounded-xl ${
               hasStockIssue
@@ -2354,7 +2370,7 @@ function Salespage() {
             }`}
           >
             {selectedSales ? "Update Sale" : "Create Sale"}
-          </button>
+          </LoadingButton>
         </form>
       </DrawerPanel>
 

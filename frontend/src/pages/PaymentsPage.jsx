@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import axiosInstance from "../lib/axios";
 import toast from "react-hot-toast";
 import NoData from "../Components/NoData";
+import LoadingButton from "../Components/LoadingButton";
 import useKeyboardDropdown from "../hooks/useKeyboardDropdown";
 import DateSortHeader from "../Components/DateSortHeader";
 import { formatDateLabel, sortByDateValue } from "../lib/dateFormat";
@@ -66,6 +67,7 @@ function PaymentsPage() {
   const [showCustomerOptions, setShowCustomerOptions] = useState(false);
   const [showVendorOptions, setShowVendorOptions] = useState(false);
   const [paymentDateSort, setPaymentDateSort] = useState("asc");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const getId = (value) => value?.id ?? value?.id ?? value;
 
@@ -250,6 +252,7 @@ function PaymentsPage() {
     }
 
     try {
+      setIsSubmitting(true);
       await axiosInstance.post("/payment", payload);
       toast.success("Payment recorded");
       setAmount("");
@@ -265,6 +268,8 @@ function PaymentsPage() {
     } catch (error) {
       console.error(error);
       toast.error("Failed to record payment");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -571,12 +576,14 @@ function PaymentsPage() {
           )}
 
           <div className="md:col-span-2">
-            <button
+            <LoadingButton
               type="submit"
+              loading={isSubmitting}
+              loadingText="Saving..."
               className="w-full h-11 bg-teal-700 text-white rounded-xl hover:bg-teal-600"
             >
               Save Payment
-            </button>
+            </LoadingButton>
           </div>
         </form>
       </div>

@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import { useDispatch, useSelector } from "react-redux";
 import NoData from "../Components/NoData";
 import { TableSkeleton } from "../Components/LoadingSkeletons";
+import LoadingButton from "../Components/LoadingButton";
 import FormattedTime from "../lib/FormattedTime";
 import {
   createPriceListItem,
@@ -357,14 +358,15 @@ function PriceListPage() {
             <p className="text-red-500 text-sm -mt-1">{errors.price}</p>
           )}
           <div className="flex gap-2">
-            <button
+            <LoadingButton
               type="submit"
-              disabled={saving || updating}
-              className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md disabled:cursor-not-allowed disabled:opacity-70"
+              loading={saving || updating}
+              loadingText={selectedItem ? "Updating..." : "Saving..."}
+              className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
             >
               <IoMdAdd className="text-xl mr-2" />
               {selectedItem ? "Update" : "Save"}
-            </button>
+            </LoadingButton>
             {selectedItem ? (
               <button
                 type="button"

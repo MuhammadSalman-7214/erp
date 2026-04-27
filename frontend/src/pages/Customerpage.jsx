@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import { Popconfirm } from "antd";
 import NoData from "../Components/NoData";
 import DrawerPanel from "../Components/DrawerPanel";
+import LoadingButton from "../Components/LoadingButton";
 import axiosInstance from "../lib/axios";
 import { FaMoneyBill1Wave } from "react-icons/fa6";
 import { validatePhoneInput, validateTextInput } from "../lib/formValidation";
@@ -39,6 +40,7 @@ function Customerpage({ readOnly = false }) {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [customerBalances, setCustomerBalances] = useState({});
   const [amountFilter, setAmountFilter] = useState("all");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const getId = (value) => value?.id ?? value?.id ?? value;
 
@@ -144,6 +146,7 @@ function Customerpage({ readOnly = false }) {
       },
     };
 
+    setIsSubmitting(true);
     dispatch(createCustomer(customerData))
       .unwrap()
       .then(() => {
@@ -151,7 +154,8 @@ function Customerpage({ readOnly = false }) {
         closeForm();
         fetchCustomerBalances();
       })
-      .catch((error) => toast.error(error || "Customer add unsuccessful"));
+      .catch((error) => toast.error(error || "Customer add unsuccessful"))
+      .finally(() => setIsSubmitting(false));
   };
 
   const handleEditSubmit = (event) => {
@@ -204,6 +208,7 @@ function Customerpage({ readOnly = false }) {
       },
     };
 
+    setIsSubmitting(true);
     dispatch(editCustomer({ customerId: getId(selectedCustomer), updatedData }))
       .unwrap()
       .then(() => {
@@ -211,7 +216,8 @@ function Customerpage({ readOnly = false }) {
         closeForm();
         fetchCustomerBalances();
       })
-      .catch(() => toast.error("Failed to update customer"));
+      .catch(() => toast.error("Failed to update customer"))
+      .finally(() => setIsSubmitting(false));
   };
 
   const handleRemove = (customerId) => {
@@ -468,12 +474,14 @@ function Customerpage({ readOnly = false }) {
             {errors.address && (
               <p className="text-red-500 text-sm">{errors.address}</p>
             )}
-            <button
+            <LoadingButton
               type="submit"
+              loading={isSubmitting}
+              loadingText={selectedCustomer ? "Updating..." : "Creating..."}
               className="h-11 w-full rounded-xl bg-teal-700 text-white hover:bg-teal-600"
             >
               {selectedCustomer ? "Update Customer" : "Create Customer"}
-            </button>
+            </LoadingButton>
           </form>
         </div>
       </DrawerPanel>
