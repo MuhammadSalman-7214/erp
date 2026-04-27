@@ -27,14 +27,10 @@ import { TableSkeleton } from "../Components/LoadingSkeletons";
 import DrawerPanel from "../Components/DrawerPanel";
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
-import {
-  validateNumberInput,
-  validateTextInput,
-} from "../lib/formValidation";
+import { validateNumberInput, validateTextInput } from "../lib/formValidation";
 
 const emptyCode = {
   code: "",
-  quantity: "",
 };
 
 const formatStockFileName = () => "Stock.pdf";
@@ -150,12 +146,15 @@ function Productpage({ readOnly = false }) {
       return;
     }
 
-    const descriptionCheck = validateField("description", description, (value) =>
-      validateTextInput(value, "Description", {
-        required: false,
-        maxLength: 500,
-        allowEmpty: true,
-      }),
+    const descriptionCheck = validateField(
+      "description",
+      description,
+      (value) =>
+        validateTextInput(value, "Description", {
+          required: false,
+          maxLength: 500,
+          allowEmpty: true,
+        }),
     );
     if (!descriptionCheck.ok) {
       toast.error(descriptionCheck.message);
@@ -179,11 +178,14 @@ function Productpage({ readOnly = false }) {
       return;
     }
 
-    const purchaseCheck = validateField("purchasePrice", purchasePrice, (value) =>
-      validateNumberInput(value, "Purchase price", {
-        min: 0,
-        allowZero: true,
-      }),
+    const purchaseCheck = validateField(
+      "purchasePrice",
+      purchasePrice,
+      (value) =>
+        validateNumberInput(value, "Purchase price", {
+          min: 0,
+          allowZero: true,
+        }),
     );
     if (!purchaseCheck.ok) {
       toast.error(purchaseCheck.message);
@@ -251,12 +253,15 @@ function Productpage({ readOnly = false }) {
       return;
     }
 
-    const descriptionCheck = validateField("description", description, (value) =>
-      validateTextInput(value, "Description", {
-        required: false,
-        maxLength: 500,
-        allowEmpty: true,
-      }),
+    const descriptionCheck = validateField(
+      "description",
+      description,
+      (value) =>
+        validateTextInput(value, "Description", {
+          required: false,
+          maxLength: 500,
+          allowEmpty: true,
+        }),
     );
     if (!descriptionCheck.ok) {
       toast.error(descriptionCheck.message);
@@ -280,11 +285,14 @@ function Productpage({ readOnly = false }) {
       return;
     }
 
-    const purchaseCheck = validateField("purchasePrice", purchasePrice, (value) =>
-      validateNumberInput(value, "Purchase price", {
-        min: 0,
-        allowZero: true,
-      }),
+    const purchaseCheck = validateField(
+      "purchasePrice",
+      purchasePrice,
+      (value) =>
+        validateNumberInput(value, "Purchase price", {
+          min: 0,
+          allowZero: true,
+        }),
     );
     if (!purchaseCheck.ok) {
       toast.error(purchaseCheck.message);
@@ -424,21 +432,8 @@ function Productpage({ readOnly = false }) {
       return;
     }
 
-    const quantityCheck = validateField("codeQuantity", codeForm.quantity, (value) =>
-      validateNumberInput(value, "Shade quantity", {
-        min: 1,
-        allowZero: false,
-        integer: true,
-      }),
-    );
-    if (!quantityCheck.ok) {
-      toast.error(quantityCheck.message);
-      return;
-    }
-
     const payload = {
       code: codeCheck.value,
-      quantity: quantityCheck.value,
     };
 
     dispatch(addProductCode({ productId: codeProductId, codeData: payload }))
@@ -965,7 +960,9 @@ function Productpage({ readOnly = false }) {
                 className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 required
               />
-              {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
+              {errors.name && (
+                <p className="mt-1 text-sm text-red-500">{errors.name}</p>
+              )}
             </div>
             <div>
               <label className="text-sm font-medium">Description</label>
@@ -995,7 +992,11 @@ function Productpage({ readOnly = false }) {
                 maxLength={500}
                 className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
-              {errors.description && <p className="mt-1 text-sm text-red-500">{errors.description}</p>}
+              {errors.description && (
+                <p className="mt-1 text-sm text-red-500">
+                  {errors.description}
+                </p>
+              )}
             </div>
             <div>
               <label className="text-sm font-medium">Company</label>
@@ -1026,7 +1027,9 @@ function Productpage({ readOnly = false }) {
                 className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 required
               />
-              {errors.company && <p className="mt-1 text-sm text-red-500">{errors.company}</p>}
+              {errors.company && (
+                <p className="mt-1 text-sm text-red-500">{errors.company}</p>
+              )}
             </div>
             <div>
               <label className="text-sm font-medium">Category</label>
@@ -1059,7 +1062,9 @@ function Productpage({ readOnly = false }) {
                   </option>
                 ))}
               </select>
-              {errors.Category && <p className="mt-1 text-sm text-red-500">{errors.Category}</p>}
+              {errors.Category && (
+                <p className="mt-1 text-sm text-red-500">{errors.Category}</p>
+              )}
             </div>
 
             <div>
@@ -1089,7 +1094,11 @@ function Productpage({ readOnly = false }) {
                 step="0.01"
                 className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
-              {errors.purchasePrice && <p className="mt-1 text-sm text-red-500">{errors.purchasePrice}</p>}
+              {errors.purchasePrice && (
+                <p className="mt-1 text-sm text-red-500">
+                  {errors.purchasePrice}
+                </p>
+              )}
             </div>
             <div>
               <label className="text-sm font-medium">Trade Price</label>
@@ -1118,7 +1127,9 @@ function Productpage({ readOnly = false }) {
                 step="0.01"
                 className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
-              {errors.tradePrice && <p className="mt-1 text-sm text-red-500">{errors.tradePrice}</p>}
+              {errors.tradePrice && (
+                <p className="mt-1 text-sm text-red-500">{errors.tradePrice}</p>
+              )}
             </div>
             <div>
               <label className="text-sm font-medium">Sale Price</label>
@@ -1147,7 +1158,9 @@ function Productpage({ readOnly = false }) {
                 step="0.01"
                 className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
-              {errors.salePrice && <p className="mt-1 text-sm text-red-500">{errors.salePrice}</p>}
+              {errors.salePrice && (
+                <p className="mt-1 text-sm text-red-500">{errors.salePrice}</p>
+              )}
             </div>
 
             <button
@@ -1225,8 +1238,9 @@ function Productpage({ readOnly = false }) {
                     maxLength={60}
                     className="w-full h-9 px-2 border rounded-lg mt-1"
                   />
-                  {errors.code && <p className="mt-1 text-xs text-red-500">{errors.code}</p>}
-                  {errors.codeQuantity && <p className="mt-1 text-xs text-red-500">{errors.codeQuantity}</p>}
+                  {errors.code && (
+                    <p className="mt-1 text-xs text-red-500">{errors.code}</p>
+                  )}
                 </div>
                 <button
                   type="button"

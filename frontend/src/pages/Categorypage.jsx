@@ -140,7 +140,11 @@ function Categorypage() {
   const displayCategory = query.trim() !== "" ? searchdata : getallCategory;
   const sortedCategory = useMemo(
     () =>
-      sortByDateValue(displayCategory || [], (category) => category.createdAt, createdAtSort),
+      sortByDateValue(
+        displayCategory || [],
+        (category) => category.createdAt,
+        createdAtSort,
+      ),
     [displayCategory, createdAtSort],
   );
 
@@ -165,7 +169,7 @@ function Categorypage() {
       </div>
 
       <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">
-          <input
+        <input
           type="text"
           value={query}
           onChange={(e) => setquery(e.target.value)}
@@ -181,13 +185,6 @@ function Categorypage() {
         >
           <IoMdAdd className="text-xl mr-2" />
           Create Category
-        </button>
-        <button
-          onClick={() => navigate("/price-list")}
-          className="bg-slate-900 hover:bg-slate-800 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
-        >
-          <MdOutlinePriceChange className="text-xl mr-2" />
-          Price List
         </button>
       </div>
       {/* OVERLAY */}
@@ -233,7 +230,9 @@ function Categorypage() {
                 className="mt-2 w-full rounded-xl border border-gray-300 px-4 h-11 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500"
                 required
               />
-              {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+              {errors.name && (
+                <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+              )}
             </div>
 
             <button
@@ -261,7 +260,9 @@ function Categorypage() {
                       label="Created At"
                       direction={createdAtSort}
                       onToggle={() =>
-                        setCreatedAtSort((prev) => (prev === "asc" ? "desc" : "asc"))
+                        setCreatedAtSort((prev) =>
+                          prev === "asc" ? "desc" : "asc",
+                        )
                       }
                     />
                     <th className="px-5 py-4 font-medium text-right">
