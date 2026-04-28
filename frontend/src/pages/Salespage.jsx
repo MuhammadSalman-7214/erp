@@ -1683,7 +1683,7 @@ function Salespage() {
           : [["-", "No items", "-", "-", "-"]],
         styles: {
           font: "helvetica",
-          fontSize: 8,
+          fontSize: 9,
           cellPadding: 1.5,
           overflow: "linebreak",
           valign: "middle",
@@ -2502,7 +2502,7 @@ function Salespage() {
                   </div>
 
                   <div className="overflow-hidden rounded-xl border">
-                    <table className="w-full text-sm">
+                    <table className="w-full text-[15px]">
                       <thead className="bg-teal-700 text-white">
                         <tr>
                           <th className="px-4 py-3 text-left">#</th>

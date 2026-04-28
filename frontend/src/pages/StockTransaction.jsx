@@ -190,22 +190,6 @@ function StockTransaction({ readOnly = false }) {
           className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="Enter your Stock"
         />
-
-        {canWrite && (
-          <button
-            onClick={() => {
-              openForm();
-            }}
-            className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
-          >
-            <IoMdAdd className="text-xl mr-2" /> Add Stock
-          </button>
-        )}
-        {isReadOnlyMode && (
-          <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-2 rounded">
-            Read-Only Mode
-          </div>
-        )}
       </div>
       <DrawerPanel
         open={isFormVisible}

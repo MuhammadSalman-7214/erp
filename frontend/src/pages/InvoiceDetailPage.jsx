@@ -276,7 +276,7 @@ function InvoiceDetailPage() {
           : [["-", "No items", "-", "-", "-"]],
         styles: {
           font: "helvetica",
-          fontSize: 8,
+          fontSize: 9,
           cellPadding: 1.5,
           overflow: "linebreak",
           valign: "middle",

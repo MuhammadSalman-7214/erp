@@ -57,7 +57,7 @@ function Orderpage() {
     const status = String(order?.status || "")
       .trim()
       .toLowerCase();
-    return status === "shipped";
+    return status === "shipped" || status === "delivered";
   };
 
   useEffect(() => {

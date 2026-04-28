@@ -468,7 +468,7 @@ export const buildInvoicePrintHtml = ({
       thead th {
         background: ${THEME_COLOR};
         color: white;
-        font-size: 2.45mm;
+        font-size: 2.9mm;
         padding: 1.5mm 1.2mm;
         text-align: center;
         font-weight: 700;
@@ -477,7 +477,7 @@ export const buildInvoicePrintHtml = ({
         border-top: 0.25mm solid #a9b1bb;
         padding: 1.4mm 1.2mm;
         vertical-align: top;
-        font-size: 2.4mm;
+        font-size: 2.85mm;
         word-break: break-word;
       }
       tbody tr:first-child td {
@@ -524,7 +524,7 @@ export const buildInvoicePrintHtml = ({
         border-radius: 999px;
         background: rgba(15, 118, 110, 0.1);
         color: ${THEME_DARK};
-        font-size: 2.2mm;
+        font-size: 2.55mm;
         font-weight: 700;
         white-space: nowrap;
         flex: 0 0 auto;

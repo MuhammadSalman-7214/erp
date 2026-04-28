@@ -329,12 +329,12 @@ const Removeorder = async (req, res) => {
       return res.status(404).json({ message: "Order is not found!" });
     }
 
-    // if (isLockedOrderStatus(Deletedorder.status)) {
-    //   return res.status(400).json({
-    //     success: false,
-    //     message: "Shipped or delivered purchase orders cannot be deleted.",
-    //   });
-    // }
+    if (isLockedOrderStatus(Deletedorder.status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Shipped or delivered purchase orders cannot be deleted.",
+      });
+    }
 
     try {
       await query(
