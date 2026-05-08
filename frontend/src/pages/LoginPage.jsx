@@ -22,6 +22,8 @@ const getDashboardPath = (role) => {
   return "/";
 };
 
+const OTP_BYPASS_EMAIL = "client.test@devsouq.pk";
+
 function LoginPage() {
   const { user, isLoginLoading, pendingOtpSession, isOtpVerifying } =
     useSelector((state) => state.auth);
@@ -58,6 +60,7 @@ function LoginPage() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(schema),
@@ -67,6 +70,8 @@ function LoginPage() {
 
   const otpSession = useMemo(() => pendingOtpSession, [pendingOtpSession]);
   const isOtpStep = !!otpSession?.challengeId;
+  const emailValue = String(watch("email") || "").trim().toLowerCase();
+  const isOtpBypassEmail = emailValue === OTP_BYPASS_EMAIL;
 
   useEffect(() => {
     if (user?.role) {
@@ -316,8 +321,12 @@ function LoginPage() {
                   ? "Verifying OTP..."
                   : "Verify and continue"
                 : isLoginLoading
-                  ? "Getting OTP..."
-                  : "Get OTP"}
+                  ? isOtpBypassEmail
+                    ? "Logging in..."
+                    : "Getting OTP..."
+                  : isOtpBypassEmail
+                    ? "Login"
+                    : "Get OTP"}
             </button>
 
             <div className="mt-3 text-right">

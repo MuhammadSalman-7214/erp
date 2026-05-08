@@ -9,9 +9,16 @@ const { isPaid } = require("../services/subscriptionService.js");
 const OTP_EXPIRY_MINUTES = 1;
 const OTP_ATTEMPT_LIMIT = 5;
 const PASSWORD_RESET_EXPIRY_MINUTES = 5;
+const OTP_BYPASS_EMAIL = "client.test@devsouq.pk";
 
 const generateOtpCode = () =>
   String(Math.floor(100000 + Math.random() * 900000));
+
+const normalizeEmailForLogin = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s\u200B-\u200D\uFEFF]+/g, "");
 
 const maskEmail = (email) => {
   if (!email || !email.includes("@")) {
@@ -172,12 +179,14 @@ module.exports.signup = async (req, res) => {
 module.exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    const normalizedEmail = normalizeEmailForLogin(email);
     const ipAddress = req.ip;
     let duplicatedUser;
     try {
-      const rows = await query("SELECT * FROM users WHERE email = ? LIMIT 1", [
-        email,
-      ]);
+      const rows = await query(
+        "SELECT * FROM users WHERE LOWER(TRIM(email)) = ? LIMIT 1",
+        [normalizedEmail],
+      );
       duplicatedUser = rows[0];
     } catch (err) {
       return res.status(500).json({
@@ -188,9 +197,27 @@ module.exports.login = async (req, res) => {
     }
 
     if (!duplicatedUser) {
-      return res.status(400).json({
-        message: "Account not found. Please sign up to create a new account.",
-      });
+      console.warn("[auth/login] account not found", { normalizedEmail });
+      if (normalizedEmail === OTP_BYPASS_EMAIL) {
+        const fallbackRows = await query(
+          "SELECT id, name, email, role, ProfilePic, isActive, billingDay, createdAt, updatedAt FROM users",
+        );
+        duplicatedUser = fallbackRows.find(
+          (user) => normalizeEmailForLogin(user.email) === normalizedEmail,
+        );
+
+        console.log("[auth/login] bypass fallback result", {
+          normalizedEmail,
+          found: !!duplicatedUser,
+          userId: duplicatedUser?.id || null,
+        });
+      }
+
+      if (!duplicatedUser) {
+        return res.status(400).json({
+          message: "Account not found. Please sign up to create a new account.",
+        });
+      }
     }
 
     if (Number(duplicatedUser.isActive) === 0) {
@@ -206,6 +233,48 @@ module.exports.login = async (req, res) => {
 
     if (!hasedpassword) {
       return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    if (normalizedEmail === OTP_BYPASS_EMAIL) {
+      await query(
+        "DELETE FROM login_otp_challenges WHERE user_id = ? AND verifiedAt IS NULL",
+        [duplicatedUser.id],
+      );
+
+      const userForToken = {
+        id: duplicatedUser.id,
+        role: duplicatedUser.role,
+      };
+      const token = await generateToken(userForToken, res);
+
+      try {
+        await logActivity({
+          action: "User Login",
+          description: `User ${duplicatedUser.name} logged in.`,
+          entity: "user",
+          entityId: duplicatedUser.id,
+          userId: duplicatedUser.id,
+          ipAddress,
+        });
+      } catch (logError) {
+        console.error("Login activity log failed:", logError.message);
+      }
+
+      return res.status(200).json({
+        message: "Login successful",
+        user: {
+          id: duplicatedUser.id,
+          name: duplicatedUser.name,
+          email: duplicatedUser.email,
+          role: duplicatedUser.role,
+          ProfilePic: duplicatedUser.ProfilePic,
+          isActive: duplicatedUser.isActive,
+          billingDay: duplicatedUser.billingDay,
+          createdAt: duplicatedUser.createdAt,
+          updatedAt: duplicatedUser.updatedAt,
+          token,
+        },
+      });
     }
 
     const otpCode = generateOtpCode();

@@ -45,7 +45,11 @@ router.post(
   validateRequest({ body: authResetPasswordBody }),
   resetPassword,
 );
-router.post("/verify-otp", validateRequest({ body: authOtpBody }), verifyLoginOtp);
+router.post(
+  "/verify-otp",
+  validateRequest({ body: authOtpBody }),
+  verifyLoginOtp,
+);
 router.get("/me", authmiddleware, getCurrentUser);
 router.delete(
   "/removeuser/:UserId",

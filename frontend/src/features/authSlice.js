@@ -87,6 +87,7 @@ export const login = createAsyncThunk(
           }),
         );
       } else if (response.data?.user) {
+        localStorage.removeItem("pendingOtpSession");
         localStorage.setItem(
           "user",
           JSON.stringify(sanitizeUser(response.data.user)),
@@ -399,6 +400,8 @@ const authSlice = createSlice({
           state.isAuthenticated = true;
           state.pendingOtpSession = null;
           state.isAuthChecked = true;
+        } else {
+          state.pendingOtpSession = null;
         }
       })
 
