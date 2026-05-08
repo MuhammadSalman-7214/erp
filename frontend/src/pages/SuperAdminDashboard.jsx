@@ -17,6 +17,14 @@ import { validateNumberInput } from "../lib/formValidation";
 const getDaysInMonth = (year, monthIndex) =>
   new Date(year, monthIndex + 1, 0).getDate();
 
+const createBillingDate = (year, monthIndex, billingDay) => {
+  const day = Math.min(
+    Math.max(Number(billingDay) || 1, 1),
+    getDaysInMonth(year, monthIndex),
+  );
+  return new Date(year, monthIndex, day);
+};
+
 const getCurrentMonthKey = () => {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -31,12 +39,32 @@ const getSafeBillingDay = (admin) => {
 };
 
 const getDueDateForAdmin = (admin) => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
+  const createdAt = admin?.createdAt ? new Date(admin.createdAt) : null;
+  if (!createdAt || Number.isNaN(createdAt.getTime())) {
+    return new Date();
+  }
+
   const billingDay = getSafeBillingDay(admin);
-  const day = Math.min(Math.max(billingDay, 1), getDaysInMonth(year, month));
-  return new Date(year, month, day);
+  let dueDate = createBillingDate(
+    createdAt.getFullYear(),
+    createdAt.getMonth() + 1,
+    billingDay,
+  );
+  const now = new Date();
+
+  while (true) {
+    const nextDueDate = createBillingDate(
+      dueDate.getFullYear(),
+      dueDate.getMonth() + 1,
+      billingDay,
+    );
+
+    if (now.getTime() < nextDueDate.getTime()) {
+      return dueDate;
+    }
+
+    dueDate = nextDueDate;
+  }
 };
 
 function SuperAdminDashboard() {
@@ -338,7 +366,7 @@ function SuperAdminDashboard() {
           </div>
 
           <div className="rounded-2xl bg-white border border-gray-200 p-5 shadow-sm hover:shadow-md transition">
-            <div className="text-sm text-slate-500">Unpaid This Month</div>
+          <div className="text-sm text-slate-500">Unpaid This Cycle</div>
             <div className="text-3xl font-bold mt-1 text-amber-600">
               {unpaidCount}
             </div>
