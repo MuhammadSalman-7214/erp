@@ -21,3 +21,39 @@
   }
 }
 
+@layer components {
+  .erp-ant-select .ant-select-selector {
+    @apply rounded-xl border-slate-200 bg-white shadow-sm transition;
+  }
+
+  .erp-ant-select .ant-select-selection-placeholder,
+  .erp-ant-select .ant-select-selection-item {
+    @apply text-slate-800;
+  }
+
+  .erp-ant-select .ant-select-arrow {
+    @apply text-teal-700;
+  }
+
+  .erp-ant-select-dropdown {
+    @apply rounded-2xl border border-slate-200 shadow-2xl;
+    overflow: hidden;
+  }
+
+  .erp-ant-select-dropdown .ant-select-item {
+    @apply rounded-lg mx-2 my-1 text-slate-700;
+  }
+
+  .erp-ant-select-dropdown .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+    @apply bg-teal-50 text-teal-800;
+  }
+
+  .erp-ant-select-dropdown .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+    @apply bg-slate-100;
+  }
+
+  .erp-ant-select-dropdown .ant-select-item-option-content {
+    @apply font-medium;
+  }
+}
+

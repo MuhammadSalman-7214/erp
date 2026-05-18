@@ -19,6 +19,7 @@ import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
 import InputField from "../Components/InputField";
 import { validateTextInput } from "../lib/formValidation";
+import { Button, Table } from "antd";
 
 function Categorypage() {
   const { getallCategory, searchdata } = useSelector((state) => state.category);
@@ -233,15 +234,34 @@ function Categorypage() {
 
       {/* CATEGORY TABLE */}
       <div className="mt-4">
-        <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
-          <div className="overflow-x-auto">
-            {Array.isArray(displayCategory) && displayCategory.length > 0 ? (
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 border-b">
-                  <tr className="text-left text-slate-500">
-                    <th className="px-5 py-4 font-medium">#</th>
-                    <th className="px-5 py-4 font-medium">Name</th>
-                    <th className="px-5 py-4 font-medium">Total Products</th>
+        <div className="bg-white rounded-2xl shadow-sm border overflow-hidden p-2">
+          {Array.isArray(displayCategory) && displayCategory.length > 0 ? (
+            <Table
+              rowKey="id"
+              pagination={false}
+              dataSource={sortedCategory}
+              className="erp-ant-table"
+              columns={[
+                {
+                  title: "#",
+                  render: (_, __, index) => index + 1,
+                  width: 70,
+                },
+                {
+                  title: "Name",
+                  dataIndex: "name",
+                  render: (value) => (
+                    <span className="font-semibold text-slate-800">{value}</span>
+                  ),
+                },
+                {
+                  title: "Total Products",
+                  dataIndex: "productCount",
+                  render: (value) => value ?? 0,
+                  width: 140,
+                },
+                {
+                  title: (
                     <DateSortHeader
                       label="Created At"
                       direction={createdAtSort}
@@ -251,94 +271,67 @@ function Categorypage() {
                         )
                       }
                     />
-                    <th className="px-5 py-4 font-medium text-right">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {sortedCategory.map((Category, index) => (
-                    <tr
-                      key={Category.id}
-                      className="border-b last:border-b-0 hover:bg-slate-50 transition"
-                    >
-                      <td className="px-5 py-4 text-slate-500">{index + 1}</td>
-                      <td className="px-5 py-4 font-semibold text-slate-800">
-                        {Category.name}
-                      </td>
-                      <td className="px-5 py-4 text-slate-700">
-                        {Category.productCount ?? 0}
-                      </td>
-                      <td className="px-5 py-4 text-slate-600">
-                        <FormattedTime timestamp={Category.createdAt} />
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="flex justify-end gap-2">
-                          <Popconfirm
-                            title={
-                              <div className="flex flex-col gap-1 max-w-xs">
-                                <span className="font-semibold text-red-600 text-sm">
-                                  Confirm Category Deletion
-                                </span>
-                                <span className="text-xs text-gray-600 leading-snug">
-                                  This action will permanently remove this
-                                  category. Products linked to this category may
-                                  be affected. This operation cannot be undone.
-                                </span>
-                              </div>
-                            }
-                            okText="Yes, Delete"
-                            cancelText="Cancel"
-                            okButtonProps={{
-                              danger: true,
-                              className: "font-semibold",
-                            }}
-                            cancelButtonProps={{
-                              className: "font-medium",
-                            }}
-                            placement="topRight"
-                            onConfirm={() => handleremove(Category.id)}
-                          >
-                            <button
-                              className="
-      p-2 rounded-xl
-      bg-slate-100
-      hover:bg-red-100
-      text-red-600
-      transition-all duration-200
-      hover:shadow-sm
-    "
-                              title="Delete Category"
-                            >
-                              <MdDelete size={18} />
-                            </button>
-                          </Popconfirm>
-
-                          <button
-                            onClick={() => {
-                              openForm(Category);
-                            }}
-                            className="p-2 rounded-xl bg-slate-100 hover:bg-teal-100 text-blue-600 transition"
-                            title="Edit"
-                          >
-                            <MdEdit size={18} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <div className="p-10">
-                <NoData
-                  title="No Categories Found"
-                  description="Try adjusting filters or add a new category to get started."
-                />
-              </div>
-            )}
-          </div>
+                  ),
+                  dataIndex: "createdAt",
+                  render: (_, record) => (
+                    <span className="text-slate-600">
+                      <FormattedTime timestamp={record.createdAt} />
+                    </span>
+                  ),
+                  width: 180,
+                },
+                {
+                  title: <div className="text-right">Actions</div>,
+                  key: "actions",
+                  render: (_, record) => (
+                    <div className="flex justify-end gap-2">
+                      <Popconfirm
+                        title={
+                          <div className="flex flex-col gap-1 max-w-xs">
+                            <span className="font-semibold text-red-600 text-sm">
+                              Confirm Category Deletion
+                            </span>
+                            <span className="text-xs text-gray-600 leading-snug">
+                              This action will permanently remove this category.
+                              Products linked to this category may be affected.
+                              This operation cannot be undone.
+                            </span>
+                          </div>
+                        }
+                        okText="Yes, Delete"
+                        cancelText="Cancel"
+                        okButtonProps={{ danger: true, className: "font-semibold" }}
+                        cancelButtonProps={{ className: "font-medium" }}
+                        placement="topRight"
+                        onConfirm={() => handleremove(record.id)}
+                      >
+                        <Button
+                          type="default"
+                          danger
+                          size="middle"
+                          icon={<MdDelete size={18} />}
+                        />
+                      </Popconfirm>
+                      <Button
+                        type="default"
+                        size="middle"
+                        icon={<MdEdit size={18} />}
+                        onClick={() => openForm(record)}
+                      />
+                    </div>
+                  ),
+                  width: 180,
+                },
+              ]}
+            />
+          ) : (
+            <div className="p-10">
+              <NoData
+                title="No Categories Found"
+                description="Try adjusting filters or add a new category to get started."
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

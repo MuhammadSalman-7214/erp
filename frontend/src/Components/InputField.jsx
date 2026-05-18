@@ -1,7 +1,7 @@
 import React, { forwardRef } from "react";
+import { Input } from "antd";
 
-const baseInputClass =
-  "mt-2 w-full rounded-lg border-b border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm transition focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 normal-case";
+const baseInputClass = "w-full";
 
 const InputField = forwardRef(function InputField(
   {
@@ -22,7 +22,30 @@ const InputField = forwardRef(function InputField(
   ref,
 ) {
   const inputId = id || props.name;
-  const hasAdornment = Boolean(prefix || suffix);
+  const commonProps = {
+    name: props.name,
+    className: `${baseInputClass} ${inputClassName}`.trim(),
+    disabled: props.disabled,
+    placeholder: props.placeholder,
+    maxLength: props.maxLength,
+    min: props.min,
+    max: props.max,
+    step: props.step,
+    inputMode: props.inputMode,
+    autoComplete: props.autoComplete,
+    autoCapitalize: props.autoCapitalize,
+    autoCorrect: props.autoCorrect,
+    spellCheck: props.spellCheck,
+    readOnly: props.readOnly,
+    onChange: props.onChange,
+    onBlur: props.onBlur,
+    onFocus: props.onFocus,
+    onKeyDown: props.onKeyDown,
+    onKeyUp: props.onKeyUp,
+    onKeyPress: props.onKeyPress,
+    value: props.value,
+    defaultValue: props.defaultValue,
+  };
 
   return (
     <div className={containerClassName}>
@@ -37,25 +60,68 @@ const InputField = forwardRef(function InputField(
       ) : null}
 
       <div className={`relative ${wrapperClassName}`}>
-        {prefix ? (
-          <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
-            {prefix}
-          </div>
-        ) : null}
-
-        <input
-          ref={ref}
-          id={inputId}
-          type={type}
-          className={`${baseInputClass} ${hasAdornment ? "px-10" : ""} ${prefix ? "pl-10" : ""} ${suffix ? "pr-12" : ""} ${inputClassName}`}
-          {...props}
-        />
-
-        {suffix ? (
-          <div className="absolute inset-y-0 right-3 flex items-center">
-            {suffix}
-          </div>
-        ) : null}
+        {type === "password" ? (
+          <Input.Password
+            ref={ref}
+            id={inputId}
+            name={commonProps.name}
+            type={type}
+            prefix={prefix}
+            suffix={suffix}
+            className={commonProps.className}
+            disabled={commonProps.disabled}
+            placeholder={commonProps.placeholder}
+            maxLength={commonProps.maxLength}
+            min={commonProps.min}
+            max={commonProps.max}
+            step={commonProps.step}
+            inputMode={commonProps.inputMode}
+            autoComplete={commonProps.autoComplete}
+            autoCapitalize={commonProps.autoCapitalize}
+            autoCorrect={commonProps.autoCorrect}
+            spellCheck={commonProps.spellCheck}
+            readOnly={commonProps.readOnly}
+            onChange={commonProps.onChange}
+            onBlur={commonProps.onBlur}
+            onFocus={commonProps.onFocus}
+            onKeyDown={commonProps.onKeyDown}
+            onKeyUp={commonProps.onKeyUp}
+            onKeyPress={commonProps.onKeyPress}
+            value={commonProps.value}
+            defaultValue={commonProps.defaultValue}
+            visibilityToggle={props.visibilityToggle}
+          />
+        ) : (
+          <Input
+            ref={ref}
+            id={inputId}
+            name={commonProps.name}
+            type={type}
+            prefix={prefix}
+            suffix={suffix}
+            className={commonProps.className}
+            disabled={commonProps.disabled}
+            placeholder={commonProps.placeholder}
+            maxLength={commonProps.maxLength}
+            min={commonProps.min}
+            max={commonProps.max}
+            step={commonProps.step}
+            inputMode={commonProps.inputMode}
+            autoComplete={commonProps.autoComplete}
+            autoCapitalize={commonProps.autoCapitalize}
+            autoCorrect={commonProps.autoCorrect}
+            spellCheck={commonProps.spellCheck}
+            readOnly={commonProps.readOnly}
+            onChange={commonProps.onChange}
+            onBlur={commonProps.onBlur}
+            onFocus={commonProps.onFocus}
+            onKeyDown={commonProps.onKeyDown}
+            onKeyUp={commonProps.onKeyUp}
+            onKeyPress={commonProps.onKeyPress}
+            value={commonProps.value}
+            defaultValue={commonProps.defaultValue}
+          />
+        )}
       </div>
 
       {hint ? <p className="mt-1 text-xs text-slate-500">{hint}</p> : null}

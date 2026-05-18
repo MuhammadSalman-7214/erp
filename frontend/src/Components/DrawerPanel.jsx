@@ -1,5 +1,11 @@
+import React from "react";
+import { Drawer, Button } from "antd";
 import { FiMaximize2, FiMinimize2 } from "react-icons/fi";
-import { MdClose } from "react-icons/md";
+
+const extractWidth = (widthClass) => {
+  const match = String(widthClass || "").match(/\[(\d+)px\]/);
+  return match ? Number(match[1]) : 420;
+};
 
 function DrawerPanel({
   open,
@@ -16,25 +22,38 @@ function DrawerPanel({
   if (!open) return null;
 
   return (
-    <>
-      {!isMinimized && (
-        <div className="fixed inset-0 z-[60] bg-black/40" aria-hidden="true" />
-      )}
-
+    <Drawer
+      open={open}
+      onClose={onClose}
+      placement="right"
+      width={isMinimized ? 0 : extractWidth(widthClass)}
+      closable={false}
+      destroyOnClose={false}
+      className={`erp-ant-drawer ${className}`.trim()}
+      styles={{
+        body: {
+          padding: 0,
+        },
+        mask: {
+          background: "rgba(15, 23, 42, 0.45)",
+        },
+        content: {
+          overflow: "hidden",
+        },
+      }}
+    >
       {isMinimized ? (
         <button
           type="button"
           onClick={onToggleMinimized}
-          className="fixed right-0 top-1/2 z-[80] -translate-y-1/2 rounded-l-2xl bg-teal-700 px-3 py-4 text-white shadow-2xl transition hover:bg-teal-600 "
+          className="fixed right-0 top-1/2 z-[80] -translate-y-1/2 rounded-l-2xl bg-teal-700 px-3 py-4 text-white shadow-2xl transition hover:bg-teal-600"
           title="Maximize drawer"
           aria-label="Maximize drawer"
         >
           <FiMaximize2 size={18} />
         </button>
       ) : (
-        <div
-          className={`fixed right-0 top-0 z-[70] flex h-full ${widthClass} flex-col overflow-hidden bg-white shadow-2xl transition-all duration-300 ease-in-out ${className}`}
-        >
+        <div className="h-full flex flex-col">
           <div
             className={`flex items-center justify-between gap-3 border-b border-slate-200 px-6 py-4 ${headerClassName}`}
           >
@@ -45,33 +64,27 @@ function DrawerPanel({
             </div>
 
             <div className="ml-auto flex items-center gap-2">
-              <button
-                type="button"
+              <Button
+                type="text"
+                icon={<FiMinimize2 size={18} />}
                 onClick={onToggleMinimized}
-                className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
-                title="Minimize drawer"
                 aria-label="Minimize drawer"
-              >
-                <FiMinimize2 size={18} />
-              </button>
-              <button
-                type="button"
+              />
+              <Button
+                type="text"
+                danger
                 onClick={onClose}
-                className="rounded-lg p-2 text-slate-500 transition hover:bg-red-50 hover:text-red-600"
-                title="Close drawer"
                 aria-label="Close drawer"
               >
-                <MdClose size={20} />
-              </button>
+                Close
+              </Button>
             </div>
           </div>
 
-          <div className={`flex-1 overflow-y-auto ${bodyClassName}`}>
-            {children}
-          </div>
+          <div className={`flex-1 overflow-y-auto ${bodyClassName}`}>{children}</div>
         </div>
       )}
-    </>
+    </Drawer>
   );
 }
 

@@ -11,6 +11,7 @@ import DateSortHeader from "../Components/DateSortHeader";
 import InputField from "../Components/InputField";
 import SelectField from "../Components/SelectField";
 import { formatDateLabel, sortByDateValue } from "../lib/dateFormat";
+import { Button, Table } from "antd";
 
 function InvoicesPage() {
   const [invoices, setInvoices] = useState([]);
@@ -106,7 +107,7 @@ function InvoicesPage() {
         </button>
       </div>
       {/* Card */}
-      <div className="mt-4 bg-white rounded-2xl shadow-sm border overflow-hidden">
+      <div className="mt-4 bg-white rounded-2xl shadow-sm border overflow-hidden p-2">
         {loading ? (
           <TableSkeleton rows={5} showFilters={false} />
         ) : invoices.length === 0 ? (
@@ -117,135 +118,121 @@ function InvoicesPage() {
             />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-b">
-                <tr className="text-left text-slate-500">
-                  <th className="px-5 py-4 font-medium">#</th>
-                  <th className="px-5 py-4 font-medium">Invoice</th>
-                  <th className="px-5 py-4 font-medium">Type</th>
-                  <th className="px-5 py-4 font-medium">Party</th>
-                  <th className="px-5 py-4 font-medium">Amount</th>
-                  <th className="px-5 py-4 font-medium">Status</th>
+          <Table
+            rowKey="id"
+            pagination={false}
+            dataSource={sortedInvoices}
+            className="erp-ant-table"
+            columns={[
+              {
+                title: "#",
+                render: (_, __, index) => index + 1,
+                width: 70,
+              },
+              {
+                title: "Invoice",
+                dataIndex: "invoiceNumber",
+                render: (value) => (
+                  <div className="font-medium text-slate-800">{value}</div>
+                ),
+              },
+              {
+                title: "Type",
+                dataIndex: "invoiceType",
+                render: (value) => <span className="capitalize">{value || "-"}</span>,
+                width: 120,
+              },
+              {
+                title: "Party",
+                key: "party",
+                render: (_, record) =>
+                  record.invoiceType === "purchase"
+                    ? record.vendor?.name || "-"
+                    : record.customerId?.name || record.customer?.name || "-",
+              },
+              {
+                title: "Amount",
+                dataIndex: "totalAmount",
+                render: (value) => (
+                  <span className="font-semibold text-slate-800">
+                    Rs {Number(value || 0).toLocaleString()}
+                  </span>
+                ),
+                width: 140,
+              },
+              {
+                title: "Status",
+                dataIndex: "status",
+                render: (value) => (
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      statusStyles[value] || "bg-gray-100 text-gray-700"
+                    }`}
+                  >
+                    {(value || "-").toUpperCase()}
+                  </span>
+                ),
+                width: 130,
+              },
+              {
+                title: (
                   <DateSortHeader
                     label="Due Date"
                     direction={dueDateSort}
                     onToggle={() =>
-                      setDueDateSort((prev) =>
-                        prev === "asc" ? "desc" : "asc",
-                      )
+                      setDueDateSort((prev) => (prev === "asc" ? "desc" : "asc"))
                     }
                   />
-                  <th className="px-5 py-4 font-medium text-right">Actions</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {sortedInvoices.map((inv, index) => (
-                  <tr
-                    key={inv.id}
-                    className="border-b last:border-b-0 hover:bg-slate-50 transition"
-                  >
-                    <td className="px-5 py-4 text-slate-500">{index + 1}</td>
-
-                    <td className="px-5 py-4">
-                      <div className="font-medium text-slate-800">
-                        {inv.invoiceNumber}
-                      </div>
-                    </td>
-
-                    <td className="px-5 py-4 text-slate-700 capitalize">
-                      {inv.invoiceType || "-"}
-                    </td>
-
-                    <td className="px-5 py-4 text-slate-700">
-                      {inv.invoiceType === "purchase"
-                        ? inv.vendor?.name || "-"
-                        : inv.customerId?.name || inv.customer?.name || "-"}
-                    </td>
-
-                    <td className="px-5 py-4 font-semibold text-slate-800">
-                      Rs {inv.totalAmount.toLocaleString()}
-                    </td>
-
-                    <td className="px-5 py-4">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          statusStyles[inv.status] ||
-                          "bg-gray-100 text-gray-700"
-                        }`}
-                      >
-                        {inv.status.toUpperCase()}
-                      </span>
-                    </td>
-
-                    <td className="px-5 py-4 text-slate-600">
-                      {formatDateLabel(inv.dueDate)}
-                    </td>
-
-                    <td className="px-5 py-4">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => navigate(`/invoice/${inv.id}`)}
-                          className="p-2 rounded-lg bg-slate-100 hover:bg-teal-100 text-teal-600 transition"
-                          title="View"
-                        >
-                          <MdVisibility size={18} />
-                        </button>
-
-                        <button
-                          onClick={() => navigate(`/editInvoice/${inv.id}`)}
-                          className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
-                          title="Edit"
-                        >
-                          <MdEdit size={18} />
-                        </button>
-                        <Popconfirm
-                          title={
-                            <div className="flex flex-col gap-1 max-w-xs">
-                              <span className="font-semibold text-red-600 text-sm">
-                                Confirm Invoice Deletion
-                              </span>
-                              <span className="text-xs text-gray-600 leading-snug">
-                                This action will permanently delete this invoice
-                                and all related payment and ledger records. This
-                                operation cannot be undone.
-                              </span>
-                            </div>
-                          }
-                          okText="Yes, Delete Invoice"
-                          cancelText="Cancel"
-                          okButtonProps={{
-                            danger: true,
-                            className: "font-semibold",
-                          }}
-                          cancelButtonProps={{
-                            className: "font-medium",
-                          }}
-                          placement="topRight"
-                          onConfirm={() => deleteInvoice(inv.id)}
-                        >
-                          <button
-                            className="
-      p-2 rounded-lg
-      bg-slate-100
-      hover:bg-red-100
-      text-red-600
-      transition-all duration-200
-      hover:shadow-sm
-    "
-                            title="Delete Invoice"
-                          >
-                            <MdDelete size={18} />
-                          </button>
-                        </Popconfirm>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                ),
+                dataIndex: "dueDate",
+                render: (_, record) => (
+                  <span className="text-slate-600">
+                    {formatDateLabel(record.dueDate)}
+                  </span>
+                ),
+                width: 150,
+              },
+              {
+                title: <div className="text-right">Actions</div>,
+                key: "actions",
+                width: 180,
+                render: (_, record) => (
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      icon={<MdVisibility size={18} />}
+                      onClick={() => navigate(`/invoice/${record.id}`)}
+                    />
+                    <Button
+                      icon={<MdEdit size={18} />}
+                      onClick={() => navigate(`/editInvoice/${record.id}`)}
+                    />
+                    <Popconfirm
+                      title={
+                        <div className="flex flex-col gap-1 max-w-xs">
+                          <span className="font-semibold text-red-600 text-sm">
+                            Confirm Invoice Deletion
+                          </span>
+                          <span className="text-xs text-gray-600 leading-snug">
+                            This action will permanently delete this invoice
+                            and all related payment and ledger records. This
+                            operation cannot be undone.
+                          </span>
+                        </div>
+                      }
+                      okText="Yes, Delete Invoice"
+                      cancelText="Cancel"
+                      okButtonProps={{ danger: true, className: "font-semibold" }}
+                      cancelButtonProps={{ className: "font-medium" }}
+                      placement="topRight"
+                      onConfirm={() => deleteInvoice(record.id)}
+                    >
+                      <Button danger icon={<MdDelete size={18} />} />
+                    </Popconfirm>
+                  </div>
+                ),
+              },
+            ]}
+          />
         )}
       </div>
     </div>

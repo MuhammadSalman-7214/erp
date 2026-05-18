@@ -11,6 +11,7 @@ import { TableSkeleton } from "../Components/LoadingSkeletons";
 import LoadingButton from "../Components/LoadingButton";
 import InputField from "../Components/InputField";
 import FormattedTime from "../lib/FormattedTime";
+import { Button, Table } from "antd";
 import {
   createPriceListItem,
   deletePriceListItem,
@@ -380,7 +381,7 @@ function PriceListPage() {
       </div>
 
       <div className="mt-4">
-        <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border overflow-hidden p-2">
           {loading ? (
             <TableSkeleton rows={6} showFilters={false} />
           ) : filteredItems.length === 0 ? (
@@ -391,73 +392,75 @@ function PriceListPage() {
               />
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 border-b">
-                  <tr className="text-left text-slate-500">
-                    <th className="px-5 py-4 font-medium">#</th>
-                    <th className="px-5 py-4 font-medium">Product Name</th>
-                    <th className="px-5 py-4 font-medium">Size</th>
-                    <th className="px-5 py-4 font-medium">Price</th>
-                    <th className="px-5 py-4 font-medium">Created At</th>
-                    <th className="px-5 py-4 font-medium text-right">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredItems.map((item, index) => (
-                    <tr
-                      key={item.id}
-                      className="border-b last:border-b-0 hover:bg-slate-50 transition"
-                    >
-                      <td className="px-5 py-4 text-slate-500">{index + 1}</td>
-                      <td className="px-5 py-4 font-medium text-slate-800">
-                        {item.productName}
-                      </td>
-                      <td className="px-5 py-4 text-slate-700">
-                        {formatOptionalText(item.size)}
-                      </td>
-                      <td className="px-5 py-4 text-slate-700 font-semibold">
-                        Rs {Number(item.price || 0).toLocaleString()}
-                      </td>
-                      <td className="px-5 py-4 text-slate-600">
-                        <FormattedTime timestamp={item.createdAt} />
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleEdit(item)}
-                            className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
-                            title="Edit"
-                          >
-                            <MdEdit size={18} />
-                          </button>
-                          <Popconfirm
-                            title="Delete price item?"
-                            description="This will permanently remove this price entry."
-                            okText="Delete"
-                            cancelText="Cancel"
-                            okButtonProps={{ danger: true }}
-                            onConfirm={() => handleDelete(item.id)}
-                          >
-                            <button
-                              type="button"
-                              disabled={deleting}
-                              className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition-all duration-200 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-70"
-                              title="Delete"
-                            >
-                              <MdDelete size={18} />
-                            </button>
-                          </Popconfirm>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              rowKey="id"
+              pagination={false}
+              dataSource={filteredItems}
+              className="erp-ant-table"
+              columns={[
+                {
+                  title: "#",
+                  render: (_, __, index) => index + 1,
+                  width: 70,
+                },
+                {
+                  title: "Product Name",
+                  dataIndex: "productName",
+                  render: (value) => (
+                    <span className="font-medium text-slate-800">{value}</span>
+                  ),
+                },
+                {
+                  title: "Size",
+                  dataIndex: "size",
+                  render: (value) => <span>{formatOptionalText(value)}</span>,
+                  width: 160,
+                },
+                {
+                  title: "Price",
+                  dataIndex: "price",
+                  render: (value) => (
+                    <span className="font-semibold text-slate-800">
+                      Rs {Number(value || 0).toLocaleString()}
+                    </span>
+                  ),
+                  width: 140,
+                },
+                {
+                  title: "Created At",
+                  dataIndex: "createdAt",
+                  render: (_, record) => (
+                    <span className="text-slate-600">
+                      <FormattedTime timestamp={record.createdAt} />
+                    </span>
+                  ),
+                  width: 160,
+                },
+                {
+                  title: <div className="text-right">Actions</div>,
+                  key: "actions",
+                  width: 150,
+                  render: (_, record) => (
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        icon={<MdEdit size={18} />}
+                        onClick={() => handleEdit(record)}
+                      />
+                      <Popconfirm
+                        title="Delete price item?"
+                        description="This will permanently remove this price entry."
+                        okText="Delete"
+                        cancelText="Cancel"
+                        okButtonProps={{ danger: true }}
+                        onConfirm={() => handleDelete(record.id)}
+                      >
+                        <Button danger disabled={deleting} icon={<MdDelete size={18} />} />
+                      </Popconfirm>
+                    </div>
+                  ),
+                },
+              ]}
+            />
           )}
         </div>
       </div>

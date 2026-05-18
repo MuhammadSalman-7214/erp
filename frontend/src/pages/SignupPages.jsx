@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { signup } from "../features/authSlice";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import toast from "react-hot-toast";
@@ -57,13 +57,18 @@ function SignupPage() {
   });
 
   const {
-    register,
+    control,
     handleSubmit,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(schema),
     mode: "onChange",
     reValidateMode: "onChange",
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+    },
   });
 
   const onSubmit = async (data) => {
@@ -99,47 +104,65 @@ function SignupPage() {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)}>
-            <InputField
-              containerClassName="mb-6"
-              label="Name"
-              id="name"
-              placeholder="Your name"
-              {...register("name")}
-              error={errors.name?.message}
+            <Controller
+              name="name"
+              control={control}
+              render={({ field }) => (
+                <InputField
+                  containerClassName="mb-6"
+                  label="Name"
+                  id="name"
+                  placeholder="Your name"
+                  {...field}
+                  error={errors.name?.message}
+                />
+              )}
             />
 
-            <InputField
-              containerClassName="mb-6"
-              label="Email"
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              {...register("email")}
-              error={errors.email?.message}
+            <Controller
+              name="email"
+              control={control}
+              render={({ field }) => (
+                <InputField
+                  containerClassName="mb-6"
+                  label="Email"
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  {...field}
+                  error={errors.email?.message}
+                />
+              )}
             />
 
-            <InputField
-              containerClassName="mb-6"
-              label="Password"
-              id="password"
-              type={showPassword ? "text" : "password"}
-              placeholder="Enter your password"
-              {...register("password")}
-              error={errors.password?.message}
-              suffix={
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  className="text-gray-500 hover:text-teal-600"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? (
-                    <IoEyeOffOutline size={20} />
-                  ) : (
-                    <IoEyeOutline size={20} />
-                  )}
-                </button>
-              }
+            <Controller
+              name="password"
+              control={control}
+              render={({ field }) => (
+                <InputField
+                  containerClassName="mb-6"
+                  label="Password"
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  {...field}
+                  error={errors.password?.message}
+                  suffix={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      className="text-gray-500 hover:text-teal-600"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? (
+                        <IoEyeOffOutline size={20} />
+                      ) : (
+                        <IoEyeOutline size={20} />
+                      )}
+                    </button>
+                  }
+                />
+              )}
             />
 
             {/* <div className="mb-6">

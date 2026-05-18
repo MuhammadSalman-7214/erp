@@ -1,7 +1,5 @@
 import React, { forwardRef } from "react";
-
-const baseTextareaClass =
-  "mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm transition focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 normal-case";
+import { Input } from "antd";
 
 const TextareaField = forwardRef(function TextareaField(
   {
@@ -32,13 +30,15 @@ const TextareaField = forwardRef(function TextareaField(
         </label>
       ) : null}
 
-      <textarea
-        ref={ref}
-        id={textareaId}
-        rows={rows}
-        className={`${baseTextareaClass} ${textareaClassName}`}
-        {...props}
-      />
+      <div className="mt-2">
+        <Input.TextArea
+          ref={ref}
+          id={textareaId}
+          rows={rows}
+          className={`${textareaClassName}`.trim()}
+          {...props}
+        />
+      </div>
 
       {hint ? <p className="mt-1 text-xs text-slate-500">{hint}</p> : null}
       {error ? <p className="mt-1 text-sm text-red-500">{error}</p> : null}

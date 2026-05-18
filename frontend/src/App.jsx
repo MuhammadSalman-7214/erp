@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Navigate, Route, Routes } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
+import { ConfigProvider, theme } from "antd";
 import HomePage from "./pages/HomePage";
 import SignupPage from "./pages/SignupPages";
 import ServicePage from "./pages/ServicePage";
@@ -79,11 +80,45 @@ const AuthBootstrapper = ({ children }) => {
 
 function App() {
   return (
-    <Router>
-      <AuthBootstrapper>
-        <div>
-          <Toaster />
-          <Routes>
+    <ConfigProvider
+      theme={{
+        algorithm: theme.defaultAlgorithm,
+        token: {
+          colorPrimary: "#0f766e",
+          colorInfo: "#0f766e",
+          colorSuccess: "#059669",
+          colorWarning: "#d97706",
+          colorError: "#dc2626",
+          borderRadius: 12,
+          fontSize: 14,
+        },
+        components: {
+          Button: {
+            controlHeight: 40,
+            borderRadius: 12,
+          },
+          Input: {
+            controlHeight: 40,
+            borderRadius: 12,
+          },
+          Select: {
+            controlHeight: 40,
+            borderRadius: 12,
+          },
+          Table: {
+            borderRadius: 16,
+          },
+          Drawer: {
+            borderRadiusLG: 20,
+          },
+        },
+      }}
+    >
+      <Router>
+        <AuthBootstrapper>
+          <div>
+            <Toaster />
+            <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -194,10 +229,11 @@ function App() {
           </Route>
 
             <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </div>
-      </AuthBootstrapper>
-    </Router>
+            </Routes>
+          </div>
+        </AuthBootstrapper>
+      </Router>
+    </ConfigProvider>
   );
 }
 
