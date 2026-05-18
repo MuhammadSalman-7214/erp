@@ -20,6 +20,8 @@ import NoData from "../Components/NoData";
 import { TrendingUp, CreditCard, AlertCircle, Clipboard } from "lucide-react";
 import { DetailSkeleton } from "../Components/LoadingSkeletons";
 import DrawerPanel from "../Components/DrawerPanel";
+import InputField from "../Components/InputField";
+import TextareaField from "../Components/TextareaField";
 import toast from "react-hot-toast";
 import { uppercasePayload } from "../lib/uppercasePayload";
 import {
@@ -1073,28 +1075,22 @@ function CustomerDetailPage() {
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">
-                    From
-                  </label>
-                  <input
-                    type="date"
-                    value={salesDateFrom}
-                    onChange={(e) => setSalesDateFrom(e.target.value)}
-                    className="h-10 rounded-lg border border-slate-300 px-3 text-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">
-                    To
-                  </label>
-                  <input
-                    type="date"
-                    value={salesDateTo}
-                    onChange={(e) => setSalesDateTo(e.target.value)}
-                    className="h-10 rounded-lg border border-slate-300 px-3 text-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
-                  />
-                </div>
+                <InputField
+                  containerClassName="w-full sm:w-auto"
+                  label="From"
+                  type="date"
+                  value={salesDateFrom}
+                  onChange={(e) => setSalesDateFrom(e.target.value)}
+                  inputClassName="h-10 text-sm"
+                />
+                <InputField
+                  containerClassName="w-full sm:w-auto"
+                  label="To"
+                  type="date"
+                  value={salesDateTo}
+                  onChange={(e) => setSalesDateTo(e.target.value)}
+                  inputClassName="h-10 text-sm"
+                />
                 <button
                   type="button"
                   onClick={() => {
@@ -1583,80 +1579,65 @@ function CustomerDetailPage() {
       >
         <div className="p-6">
           <form onSubmit={submitManualEntry} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700">
-                Amount
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={manualAmount}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setManualAmount(value);
-                  validateField("manualAmount", value, (current) =>
-                    validateNumberInput(current, "Amount", {
-                      min: 0.01,
-                      allowZero: false,
-                    }),
-                  );
-                }}
-                onBlur={(e) =>
-                  validateField("manualAmount", e.target.value, (current) =>
-                    validateNumberInput(current, "Amount", {
-                      min: 0.01,
-                      allowZero: false,
-                    }),
-                  )
-                }
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-teal-500"
-                placeholder="Enter amount"
-                required
-                inputMode="decimal"
-              />
-              {errors.manualAmount && (
-                <p className="mt-1 text-sm text-red-500">{errors.manualAmount}</p>
-              )}
-            </div>
+            <InputField
+              label="Amount"
+              type="number"
+              min="0"
+              step="0.01"
+              value={manualAmount}
+              onChange={(e) => {
+                const value = e.target.value;
+                setManualAmount(value);
+                validateField("manualAmount", value, (current) =>
+                  validateNumberInput(current, "Amount", {
+                    min: 0.01,
+                    allowZero: false,
+                  }),
+                );
+              }}
+              onBlur={(e) =>
+                validateField("manualAmount", e.target.value, (current) =>
+                  validateNumberInput(current, "Amount", {
+                    min: 0.01,
+                    allowZero: false,
+                  }),
+                )
+              }
+              placeholder="Enter amount"
+              required
+              inputMode="decimal"
+              error={errors.manualAmount}
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700">
-                Description
-              </label>
-              <textarea
-                value={manualDescription}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setManualDescription(value);
-                  validateField("manualDescription", value, (current) =>
-                    validateTextInput(current, "Description", {
-                      required: true,
-                      minLength: 2,
-                      maxLength: 240,
-                    }),
-                  );
-                }}
-                onBlur={(e) =>
-                  validateField("manualDescription", e.target.value, (current) =>
-                    validateTextInput(current, "Description", {
-                      required: true,
-                      minLength: 2,
-                      maxLength: 240,
-                    }),
-                  )
-                }
-                className="mt-1 min-h-[120px] w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-teal-500"
-                placeholder="Add a note for this manual entry"
-                required
-                maxLength={240}
-              />
-              {errors.manualDescription && (
-                <p className="mt-1 text-sm text-red-500">
-                  {errors.manualDescription}
-                </p>
-              )}
-            </div>
+            <TextareaField
+              label="Description"
+              value={manualDescription}
+              onChange={(e) => {
+                const value = e.target.value;
+                setManualDescription(value);
+                validateField("manualDescription", value, (current) =>
+                  validateTextInput(current, "Description", {
+                    required: true,
+                    minLength: 2,
+                    maxLength: 240,
+                  }),
+                );
+              }}
+              onBlur={(e) =>
+                validateField("manualDescription", e.target.value, (current) =>
+                  validateTextInput(current, "Description", {
+                    required: true,
+                    minLength: 2,
+                    maxLength: 240,
+                  }),
+                )
+              }
+              rows={4}
+              placeholder="Add a note for this manual entry"
+              required
+              maxLength={240}
+              error={errors.manualDescription}
+            />
 
             <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
               This amount is stored on the customer record as legacy balance and

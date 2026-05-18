@@ -9,6 +9,7 @@ import { useDispatch, useSelector } from "react-redux";
 import NoData from "../Components/NoData";
 import { TableSkeleton } from "../Components/LoadingSkeletons";
 import LoadingButton from "../Components/LoadingButton";
+import InputField from "../Components/InputField";
 import FormattedTime from "../lib/FormattedTime";
 import {
   createPriceListItem,
@@ -266,8 +267,7 @@ function PriceListPage() {
           onSubmit={handleSubmit}
           className="grid grid-cols-1 gap-3 lg:grid-cols-[1.5fr_0.7fr_0.8fr_auto]"
         >
-          <input
-            type="text"
+          <InputField
             value={productName}
             onChange={(e) => {
               const value = e.target.value;
@@ -292,13 +292,9 @@ function PriceListPage() {
             placeholder="Product name"
             autoComplete="off"
             maxLength={120}
-            className="w-full h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+            error={errors.productName}
           />
-          {errors.productName && (
-            <p className="text-red-500 text-sm -mt-1">{errors.productName}</p>
-          )}
-          <input
-            type="text"
+          <InputField
             value={size}
             onChange={(e) => {
               const value = e.target.value;
@@ -323,12 +319,9 @@ function PriceListPage() {
             placeholder="Size (optional)"
             autoComplete="off"
             maxLength={40}
-            className="w-full h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+            error={errors.size}
           />
-          {errors.size && (
-            <p className="text-red-500 text-sm -mt-1">{errors.size}</p>
-          )}
-          <input
+          <InputField
             type="number"
             min="0"
             step="0.01"
@@ -352,11 +345,8 @@ function PriceListPage() {
               )
             }
             placeholder="Price"
-            className="w-full h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+            error={errors.price}
           />
-          {errors.price && (
-            <p className="text-red-500 text-sm -mt-1">{errors.price}</p>
-          )}
           <div className="flex gap-2">
             <LoadingButton
               type="submit"
@@ -380,13 +370,11 @@ function PriceListPage() {
         </form>
 
         <div className="mt-4">
-          <input
-            type="text"
+          <InputField
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search product name or price..."
             maxLength={120}
-            className="w-full h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           />
         </div>
       </div>

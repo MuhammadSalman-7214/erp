@@ -7,6 +7,7 @@ import {
   requestPasswordReset,
   resetPassword,
 } from "../features/authSlice";
+import InputField from "../Components/InputField";
 
 const ForgotPasswordPage = () => {
   const RESET_CODE_EXPIRY_SECONDS = 5 * 60;
@@ -171,22 +172,16 @@ const ForgotPasswordPage = () => {
 
         {!isResetStep ? (
           <form onSubmit={handleRequestReset} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Email
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoCapitalize="off"
-                autoCorrect="off"
-                spellCheck={false}
-                style={{ textTransform: "none" }}
-                className="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 !normal-case"
-                placeholder="you@example.com"
-              />
-            </div>
+            <InputField
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder="you@example.com"
+            />
 
             <button
               type="submit"
@@ -214,48 +209,34 @@ const ForgotPasswordPage = () => {
               </span>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Reset Code
-              </label>
-              <input
-                type="text"
-                value={otp}
-                onChange={(e) =>
-                  setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
-                }
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                placeholder="Enter 6-digit code"
-                className="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-center tracking-[0.35em]"
-              />
-            </div>
+            <InputField
+              label="Reset Code"
+              type="text"
+              value={otp}
+              onChange={(e) =>
+                setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+              }
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              placeholder="Enter 6-digit code"
+              inputClassName="text-center tracking-[0.35em]"
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                New Password
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-                placeholder="Enter new password"
-              />
-            </div>
+            <InputField
+              label="New Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter new password"
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Confirm Password
-              </label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-                placeholder="Confirm new password"
-              />
-            </div>
+            <InputField
+              label="Confirm Password"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm new password"
+            />
 
             <button
               type="submit"

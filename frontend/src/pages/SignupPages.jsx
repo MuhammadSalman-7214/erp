@@ -7,6 +7,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import toast from "react-hot-toast";
 import { IoEyeOffOutline, IoEyeOutline } from "react-icons/io5";
+import InputField from "../Components/InputField";
 import {
   validateEmailInput,
   validatePasswordInput,
@@ -98,67 +99,38 @@ function SignupPage() {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="mb-6">
-              <label
-                htmlFor="name"
-                className="block text-gray-700 text-sm font-medium mb-2"
-              >
-                Name
-              </label>
-              <input
-                id="name"
-                type="text"
-                {...register("name")}
-                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-                placeholder="Your name"
-              />
-              {errors.name && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.name.message}
-                </p>
-              )}
-            </div>
+            <InputField
+              containerClassName="mb-6"
+              label="Name"
+              id="name"
+              placeholder="Your name"
+              {...register("name")}
+              error={errors.name?.message}
+            />
 
-            <div className="mb-6">
-              <label
-                htmlFor="email"
-                className="block text-gray-700 text-sm font-medium mb-2"
-              >
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                {...register("email")}
-                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-                placeholder="you@example.com"
-              />
-              {errors.email && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.email.message}
-                </p>
-              )}
-            </div>
+            <InputField
+              containerClassName="mb-6"
+              label="Email"
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              {...register("email")}
+              error={errors.email?.message}
+            />
 
-            <div className="mb-6">
-              <label
-                htmlFor="password"
-                className="block text-gray-700 text-sm font-medium mb-2"
-              >
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  {...register("password")}
-                  className="w-full p-3 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  placeholder="Enter your password"
-                />
+            <InputField
+              containerClassName="mb-6"
+              label="Password"
+              id="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Enter your password"
+              {...register("password")}
+              error={errors.password?.message}
+              suffix={
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-teal-600"
+                  className="text-gray-500 hover:text-teal-600"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? (
@@ -167,31 +139,23 @@ function SignupPage() {
                     <IoEyeOutline size={20} />
                   )}
                 </button>
-              </div>
-              {errors.password && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.password.message}
-                </p>
-              )}
-            </div>
+              }
+            />
 
             {/* <div className="mb-6">
               <label className="block text-gray-700 text-sm font-medium mb-2">
                 Role
               </label>
-              <select
+              <SelectField
+                label="Role"
+                options={[
+                  { label: "Staff", value: "staff" },
+                  { label: "Admin", value: "admin" },
+                  { label: "Manager", value: "manager" },
+                ]}
                 {...register("role")}
-                className="w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-gray-700"
-              >
-                <option value="staff">Staff</option>
-                <option value="admin">Admin</option>
-                <option value="manager">Manager</option>
-              </select>
-              {errors.role && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.role.message}
-                </p>
-              )}
+                error={errors.role?.message}
+              />
             </div> */}
 
             {/* <div className="flex items-center mb-6">

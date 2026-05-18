@@ -17,6 +17,7 @@ import DrawerPanel from "../Components/DrawerPanel";
 import LoadingButton from "../Components/LoadingButton";
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
+import InputField from "../Components/InputField";
 import { validateTextInput } from "../lib/formValidation";
 
 function Categorypage() {
@@ -160,13 +161,12 @@ function Categorypage() {
       </div>
 
       <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">
-        <input
-          type="text"
+        <InputField
+          containerClassName="w-full md:w-96"
           value={query}
           onChange={(e) => setquery(e.target.value)}
           placeholder="Search the category"
           maxLength={120}
-          className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
         />
         <button
           onClick={() => {
@@ -189,42 +189,35 @@ function Categorypage() {
       >
         <div className="p-6">
           <form onSubmit={submitCategory} className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-slate-700">
-                Category Name
-              </label>
-              <input
-                value={name}
-                placeholder="Enter category name"
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setname(value);
-                  validateField("name", value, (current) =>
-                    validateTextInput(current, "Category name", {
-                      required: true,
-                      minLength: 2,
-                      maxLength: 80,
-                    }),
-                  );
-                }}
-                onBlur={(e) =>
-                  validateField("name", e.target.value, (current) =>
-                    validateTextInput(current, "Category name", {
-                      required: true,
-                      minLength: 2,
-                      maxLength: 80,
-                    }),
-                  )
-                }
-                type="text"
-                maxLength={80}
-                className="mt-2 w-full rounded-xl border border-gray-300 px-4 h-11 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500"
-                required
-              />
-              {errors.name && (
-                <p className="text-red-500 text-sm mt-1">{errors.name}</p>
-              )}
-            </div>
+            <InputField
+              label="Category Name"
+              value={name}
+              placeholder="Enter category name"
+              onChange={(e) => {
+                const value = e.target.value;
+                setname(value);
+                validateField("name", value, (current) =>
+                  validateTextInput(current, "Category name", {
+                    required: true,
+                    minLength: 2,
+                    maxLength: 80,
+                  }),
+                );
+              }}
+              onBlur={(e) =>
+                validateField("name", e.target.value, (current) =>
+                  validateTextInput(current, "Category name", {
+                    required: true,
+                    minLength: 2,
+                    maxLength: 80,
+                  }),
+                )
+              }
+              type="text"
+              maxLength={80}
+              required
+              error={errors.name}
+            />
 
             <LoadingButton
               type="submit"

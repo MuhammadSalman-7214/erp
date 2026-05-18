@@ -11,6 +11,8 @@ import NoData from "../Components/NoData";
 import { TrendingUp, CreditCard, AlertCircle, Clipboard } from "lucide-react";
 import { DetailSkeleton } from "../Components/LoadingSkeletons";
 import DrawerPanel from "../Components/DrawerPanel";
+import InputField from "../Components/InputField";
+import TextareaField from "../Components/TextareaField";
 import { uppercasePayload } from "../lib/uppercasePayload";
 import toast from "react-hot-toast";
 import {
@@ -578,81 +580,65 @@ function SupplierDetailPage() {
       >
         <div className="p-6">
           <form onSubmit={submitManualEntry} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700">
-                Debit Amount
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={manualAmount}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setManualAmount(value);
-                  validateField("manualAmount", value, (current) =>
-                    validateNumberInput(current, "Amount", {
-                      min: 0.01,
-                      allowZero: false,
-                    }),
-                  );
-                }}
-                onBlur={(e) =>
-                  validateField("manualAmount", e.target.value, (current) =>
-                    validateNumberInput(current, "Amount", {
-                      min: 0.01,
-                      allowZero: false,
-                    }),
-                  )
-                }
-                className="mt-2 w-full h-11 rounded-xl border px-3 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500"
-                placeholder="Enter amount"
-                required
-                inputMode="decimal"
-              />
-              {errors.manualAmount && (
-                <p className="mt-1 text-sm text-red-500">{errors.manualAmount}</p>
-              )}
-            </div>
+            <InputField
+              label="Debit Amount"
+              type="number"
+              min="0"
+              step="0.01"
+              value={manualAmount}
+              onChange={(e) => {
+                const value = e.target.value;
+                setManualAmount(value);
+                validateField("manualAmount", value, (current) =>
+                  validateNumberInput(current, "Amount", {
+                    min: 0.01,
+                    allowZero: false,
+                  }),
+                );
+              }}
+              onBlur={(e) =>
+                validateField("manualAmount", e.target.value, (current) =>
+                  validateNumberInput(current, "Amount", {
+                    min: 0.01,
+                    allowZero: false,
+                  }),
+                )
+              }
+              placeholder="Enter amount"
+              required
+              inputMode="decimal"
+              error={errors.manualAmount}
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700">
-                Description
-              </label>
-              <textarea
-                value={manualDescription}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setManualDescription(value);
-                  validateField("manualDescription", value, (current) =>
-                    validateTextInput(current, "Description", {
-                      required: true,
-                      minLength: 2,
-                      maxLength: 240,
-                    }),
-                  );
-                }}
-                onBlur={(e) =>
-                  validateField("manualDescription", e.target.value, (current) =>
-                    validateTextInput(current, "Description", {
-                      required: true,
-                      minLength: 2,
-                      maxLength: 240,
-                    }),
-                  )
-                }
-                className="mt-2 w-full rounded-xl border px-3 py-2 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500"
-                rows={4}
-                placeholder="Enter description"
-                required
-                maxLength={240}
-              />
-              {errors.manualDescription && (
-                <p className="mt-1 text-sm text-red-500">
-                  {errors.manualDescription}
-                </p>
-              )}
-            </div>
+            <TextareaField
+              label="Description"
+              value={manualDescription}
+              onChange={(e) => {
+                const value = e.target.value;
+                setManualDescription(value);
+                validateField("manualDescription", value, (current) =>
+                  validateTextInput(current, "Description", {
+                    required: true,
+                    minLength: 2,
+                    maxLength: 240,
+                  }),
+                );
+              }}
+              onBlur={(e) =>
+                validateField("manualDescription", e.target.value, (current) =>
+                  validateTextInput(current, "Description", {
+                    required: true,
+                    minLength: 2,
+                    maxLength: 240,
+                  }),
+                )
+              }
+              rows={4}
+              placeholder="Enter description"
+              required
+              maxLength={240}
+              error={errors.manualDescription}
+            />
 
             <button
               type="submit"

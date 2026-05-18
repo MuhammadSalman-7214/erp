@@ -11,6 +11,7 @@ import {
 } from "../features/authSlice";
 import toast from "react-hot-toast";
 import { IoEyeOffOutline, IoEyeOutline } from "react-icons/io5";
+import InputField from "../Components/InputField";
 import {
   hasUnsafeInput,
   validateEmailInput,
@@ -211,46 +212,33 @@ function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="mb-6">
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Email
-              </label>
-              <input
-                type="email"
-                {...register("email")}
-                autoCapitalize="off"
-                autoCorrect="off"
-                spellCheck={false}
-                style={{ textTransform: "none" }}
-                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 !normal-case"
-                placeholder="you@example.com"
-              />
-              {errors.email && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.email.message}
-                </p>
-              )}
-            </div>
+            <InputField
+              containerClassName="mb-6"
+              label="Email"
+              type="email"
+              placeholder="you@example.com"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              {...register("email")}
+              error={errors.email?.message}
+            />
 
-            <div className="mb-6">
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  {...register("password")}
-                  autoCapitalize="off"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  style={{ textTransform: "none" }}
-                  className="w-full p-3 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 !normal-case"
-                  placeholder="Enter your password"
-                />
+            <InputField
+              containerClassName="mb-6"
+              label="Password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Enter your password"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              {...register("password")}
+              error={errors.password?.message}
+              suffix={
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-teal-600"
+                  className="text-gray-500 hover:text-teal-600"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? (
@@ -259,13 +247,8 @@ function LoginPage() {
                     <IoEyeOutline size={20} />
                   )}
                 </button>
-              </div>
-              {errors.password && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.password.message}
-                </p>
-              )}
-            </div>
+              }
+            />
 
             {isOtpStep && (
               <div className="mb-6">
@@ -279,14 +262,12 @@ function LoginPage() {
                 </div>
 
                 <div className="flex justify-between">
-                  <label className="block text-gray-700 text-sm font-medium mb-2">
-                    OTP
-                  </label>
                   <span className="text-sm font-semibold text-red-600">
                     {secondsLeft <= 0 ? "Expired" : `${secondsLeft}s`}
                   </span>
                 </div>
-                <input
+                <InputField
+                  label="OTP"
                   type="text"
                   value={otp}
                   onChange={(e) =>
@@ -295,7 +276,7 @@ function LoginPage() {
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   placeholder="Enter 6-digit OTP"
-                  className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-center tracking-[0.35em] !normal-case"
+                  inputClassName="text-center tracking-[0.35em]"
                 />
               </div>
             )}

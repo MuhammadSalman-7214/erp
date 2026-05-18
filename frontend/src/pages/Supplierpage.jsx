@@ -23,6 +23,8 @@ import axiosInstance from "../lib/axios";
 import DrawerPanel from "../Components/DrawerPanel";
 import LoadingButton from "../Components/LoadingButton";
 import DateSortHeader from "../Components/DateSortHeader";
+import InputField from "../Components/InputField";
+import SelectField from "../Components/SelectField";
 import { sortByDateValue } from "../lib/dateFormat";
 import {
   validateNumberInput,
@@ -470,12 +472,11 @@ function Supplierpage({ readOnly = false }) {
       </div>
 
       <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">
-        <input
-          type="text"
+        <InputField
+          containerClassName="w-full md:w-96"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           maxLength={120}
-          className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="Search vendor..."
         />
 
@@ -514,101 +515,88 @@ function Supplierpage({ readOnly = false }) {
               />
             </div> */}
 
-            <div className="mb-4">
-              <label>Name</label>
-              <input
-                value={name}
-                placeholder="Enter Vendor name"
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setName(value);
-                  validateField("name", value, (current) =>
-                    validateTextInput(current, "Vendor name", {
-                      required: true,
-                      minLength: 2,
-                      maxLength: 120,
-                    }),
-                  );
-                }}
-                onBlur={(e) =>
-                  validateField("name", e.target.value, (current) =>
-                    validateTextInput(current, "Vendor name", {
-                      required: true,
-                      minLength: 2,
-                      maxLength: 120,
-                    }),
-                  )
-                }
-                type="text"
-                maxLength={120}
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
-              />
-              {errors.name && (
-                <p className="text-red-500 text-sm mt-1">{errors.name}</p>
-              )}
-            </div>
+            <InputField
+              containerClassName="mb-4"
+              label="Name"
+              value={name}
+              placeholder="Enter Vendor name"
+              onChange={(e) => {
+                const value = e.target.value;
+                setName(value);
+                validateField("name", value, (current) =>
+                  validateTextInput(current, "Vendor name", {
+                    required: true,
+                    minLength: 2,
+                    maxLength: 120,
+                  }),
+                );
+              }}
+              onBlur={(e) =>
+                validateField("name", e.target.value, (current) =>
+                  validateTextInput(current, "Vendor name", {
+                    required: true,
+                    minLength: 2,
+                    maxLength: 120,
+                  }),
+                )
+              }
+              type="text"
+              maxLength={120}
+              error={errors.name}
+            />
 
-            <div className="mb-4">
-              <label>Phone</label>
-              <input
-                value={phone}
-                type="number"
-                placeholder="Enter Vendor Phone"
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setPhone(value);
-                  validateField("phone", value, (current) =>
-                    validatePhoneInput(current),
-                  );
-                }}
-                onBlur={(e) =>
-                  validateField("phone", e.target.value, (current) =>
-                    validatePhoneInput(current),
-                  )
-                }
-                // type="text"
-                inputMode="tel"
-                maxLength={20}
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
-              />
-              {errors.phone && (
-                <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
-              )}
-            </div>
+            <InputField
+              containerClassName="mb-4"
+              label="Phone"
+              value={phone}
+              type="number"
+              placeholder="Enter Vendor Phone"
+              onChange={(e) => {
+                const value = e.target.value;
+                setPhone(value);
+                validateField("phone", value, (current) =>
+                  validatePhoneInput(current),
+                );
+              }}
+              onBlur={(e) =>
+                validateField("phone", e.target.value, (current) =>
+                  validatePhoneInput(current),
+                )
+              }
+              inputMode="tel"
+              maxLength={20}
+              error={errors.phone}
+            />
 
-            <div className="mb-4">
-              <label>Address</label>
-              <input
-                type="text"
-                placeholder="Enter Vendor Address"
-                value={address}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setAddress(value);
-                  validateField("address", value, (current) =>
-                    validateTextInput(current, "Address", {
-                      required: false,
-                      maxLength: 200,
-                      allowEmpty: true,
-                    }),
-                  );
-                }}
-                onBlur={(e) =>
-                  validateField("address", e.target.value, (current) =>
-                    validateTextInput(current, "Address", {
-                      required: false,
-                      maxLength: 200,
-                      allowEmpty: true,
-                    }),
-                  )
-                }
-                maxLength={200}
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
-              />
-              {errors.address && (
-                <p className="text-red-500 text-sm mt-1">{errors.address}</p>
-              )}
-            </div>
+            <InputField
+              containerClassName="mb-4"
+              label="Address"
+              type="text"
+              placeholder="Enter Vendor Address"
+              value={address}
+              onChange={(e) => {
+                const value = e.target.value;
+                setAddress(value);
+                validateField("address", value, (current) =>
+                  validateTextInput(current, "Address", {
+                    required: false,
+                    maxLength: 200,
+                    allowEmpty: true,
+                  }),
+                );
+              }}
+              onBlur={(e) =>
+                validateField("address", e.target.value, (current) =>
+                  validateTextInput(current, "Address", {
+                    required: false,
+                    maxLength: 200,
+                    allowEmpty: true,
+                  }),
+                )
+              }
+              maxLength={200}
+              error={errors.address}
+            />
 
             {/* <div className="mb-4">
               <label>Opening Balance</label>
@@ -632,24 +620,17 @@ function Supplierpage({ readOnly = false }) {
               />
             </div> */}
 
-            <div className="mb-4">
-              <label>Product</label>
-              <select
-                value={product}
-                onChange={(e) => setProduct(e.target.value)}
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
-              >
-                <option value="">Select a product</option>
-                {getallproduct?.map((product) => (
-                  <option key={getId(product)} value={getId(product)}>
-                    {product.name}
-                    {product.company || product.brand
-                      ? ` • ${product.company || product.brand}`
-                      : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SelectField
+              containerClassName="mb-4"
+              label="Product"
+              value={product}
+              onChange={(e) => setProduct(e.target.value)}
+              placeholder="Select a product"
+              options={getallproduct?.map((product) => ({
+                label: `${product.name}${product.company || product.brand ? ` • ${product.company || product.brand}` : ""}`,
+                value: getId(product),
+              }))}
+            />
 
             <LoadingButton
               type="submit"

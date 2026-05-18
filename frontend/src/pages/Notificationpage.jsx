@@ -15,6 +15,8 @@ import FormattedTime from "../lib/FormattedTime";
 import NoData from "../Components/NoData";
 import { ListSkeleton } from "../Components/LoadingSkeletons";
 import DrawerPanel from "../Components/DrawerPanel";
+import InputField from "../Components/InputField";
+import TextareaField from "../Components/TextareaField";
 import { validateTextInput } from "../lib/formValidation";
 
 function NotificationPage() {
@@ -151,70 +153,67 @@ function NotificationPage() {
       >
         <div className="p-6">
           <form onSubmit={submitNotification}>
-            <div className="mb-4">
-              <label className="block font-medium">Title</label>
-              <input
-                value={name}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setName(value);
-                  validateField("name", value, (current) =>
-                    validateTextInput(current, "Title", {
-                      required: true,
-                      minLength: 2,
-                      maxLength: 120,
-                    }),
-                  );
-                }}
-                onBlur={(e) =>
-                  validateField("name", e.target.value, (current) =>
-                    validateTextInput(current, "Title", {
-                      required: true,
-                      minLength: 2,
-                      maxLength: 120,
-                    }),
-                  )
-                }
-                type="text"
-                className="mt-2 w-full rounded-lg border px-3 h-10"
-                placeholder="Enter title"
-                required
-                maxLength={120}
-              />
-              {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
-            </div>
+            <InputField
+              containerClassName="mb-4"
+              label="Title"
+              value={name}
+              onChange={(e) => {
+                const value = e.target.value;
+                setName(value);
+                validateField("name", value, (current) =>
+                  validateTextInput(current, "Title", {
+                    required: true,
+                    minLength: 2,
+                    maxLength: 120,
+                  }),
+                );
+              }}
+              onBlur={(e) =>
+                validateField("name", e.target.value, (current) =>
+                  validateTextInput(current, "Title", {
+                    required: true,
+                    minLength: 2,
+                    maxLength: 120,
+                  }),
+                )
+              }
+              type="text"
+              placeholder="Enter title"
+              required
+              maxLength={120}
+              error={errors.name}
+            />
 
-            <div className="mb-4">
-              <label className="block font-medium">Type</label>
-              <textarea
-                value={type}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setType(value);
-                  validateField("type", value, (current) =>
-                    validateTextInput(current, "Type", {
-                      required: true,
-                      minLength: 2,
-                      maxLength: 240,
-                    }),
-                  );
-                }}
-                onBlur={(e) =>
-                  validateField("type", e.target.value, (current) =>
-                    validateTextInput(current, "Type", {
-                      required: true,
-                      minLength: 2,
-                      maxLength: 240,
-                    }),
-                  )
-                }
-                className="mt-2 h-24 w-full rounded-lg border px-3"
-                placeholder="Enter type"
-                required
-                maxLength={240}
-              />
-              {errors.type && <p className="mt-1 text-sm text-red-500">{errors.type}</p>}
-            </div>
+            <TextareaField
+              containerClassName="mb-4"
+              label="Type"
+              value={type}
+              onChange={(e) => {
+                const value = e.target.value;
+                setType(value);
+                validateField("type", value, (current) =>
+                  validateTextInput(current, "Type", {
+                    required: true,
+                    minLength: 2,
+                    maxLength: 240,
+                  }),
+                );
+              }}
+              onBlur={(e) =>
+                validateField("type", e.target.value, (current) =>
+                  validateTextInput(current, "Type", {
+                    required: true,
+                    minLength: 2,
+                    maxLength: 240,
+                  }),
+                )
+              }
+              placeholder="Enter type"
+              required
+              maxLength={240}
+              rows={4}
+              error={errors.type}
+            />
 
             <button
               type="submit"

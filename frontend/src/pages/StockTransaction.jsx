@@ -13,6 +13,8 @@ import toast from "react-hot-toast";
 import { useRolePermissions } from "../hooks/useRolePermissions";
 import NoData from "../Components/NoData";
 import DrawerPanel from "../Components/DrawerPanel";
+import InputField from "../Components/InputField";
+import SelectField from "../Components/SelectField";
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
 import { validateNumberInput, validateTextInput } from "../lib/formValidation";
@@ -182,12 +184,11 @@ function StockTransaction({ readOnly = false }) {
       {/* <Stocktanscationgraph /> */}
 
       <div className="flex flex-col md:flex-row md:items-center gap-2">
-        <input
-          type="text"
+        <InputField
+          containerClassName="w-full md:w-96"
           value={query}
           onChange={(e) => setquery(e.target.value)}
           maxLength={120}
-          className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="Enter your Stock"
         />
       </div>
@@ -201,151 +202,125 @@ function StockTransaction({ readOnly = false }) {
       >
         <div className="p-6">
           <form onSubmit={submitstocktranscation}>
-            <div className="mb-4">
-              <label>Product</label>
-              <select
-                value={product}
-                onChange={(e) => {
-                  setproduct(e.target.value);
-                  setProductCode("");
-                }}
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2"
-              >
-                <option value="">Select a product</option>
-                {getallproduct?.map((product) => (
-                  <option key={product.id} value={product.id}>
-                    {product.name}
-                    {product.company || product.brand
-                      ? ` • ${product.company || product.brand}`
-                      : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SelectField
+              containerClassName="mb-4"
+              label="Product"
+              value={product}
+              onChange={(e) => {
+                setproduct(e.target.value);
+                setProductCode("");
+              }}
+              placeholder="Select a product"
+              options={getallproduct?.map((product) => ({
+                label: `${product.name}${product.company || product.brand ? ` • ${product.company || product.brand}` : ""}`,
+                value: product.id,
+              }))}
+            />
 
-            <div className="mb-4">
-              <label>Product Code</label>
-              <select
-                value={productCode}
-                onChange={(e) => setProductCode(e.target.value)}
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2"
-              >
-                <option value="">Select a product code</option>
-                {availableCodes.map((code) => (
-                  <option key={code.id} value={code.id}>
-                    {code.code}
-                    {code.variantName ? ` (${code.variantName})` : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SelectField
+              containerClassName="mb-4"
+              label="Product Code"
+              value={productCode}
+              onChange={(e) => setProductCode(e.target.value)}
+              placeholder="Select a product code"
+              options={availableCodes.map((code) => ({
+                label: `${code.code}${code.variantName ? ` (${code.variantName})` : ""}`,
+                value: code.id,
+              }))}
+            />
 
-            <div className="mb-4">
-              <label>Type</label>
-              <select
-                value={type}
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2"
-                onChange={(e) => {
-                  const value = e.target.value;
-                  settype(value);
-                  validateField("type", value, (current) =>
-                    validateTextInput(current, "Type", {
-                      required: true,
-                      maxLength: 40,
-                    }),
-                  );
-                }}
-                onBlur={(e) =>
-                  validateField("type", e.target.value, (current) =>
-                    validateTextInput(current, "Type", {
-                      required: true,
-                      maxLength: 40,
-                    }),
-                  )
-                }
-              >
-                <option value="">Select type</option>
+            <SelectField
+              containerClassName="mb-4"
+              label="Type"
+              value={type}
+              onChange={(e) => {
+                const value = e.target.value;
+                settype(value);
+                validateField("type", value, (current) =>
+                  validateTextInput(current, "Type", {
+                    required: true,
+                    maxLength: 40,
+                  }),
+                );
+              }}
+              onBlur={(e) =>
+                validateField("type", e.target.value, (current) =>
+                  validateTextInput(current, "Type", {
+                    required: true,
+                    maxLength: 40,
+                  }),
+                )
+              }
+              placeholder="Select type"
+              options={[
+                { label: "Stock-in", value: "Stock-in" },
+                { label: "Stock-out", value: "Stock-out" },
+              ]}
+              error={errors.type}
+            />
 
-                <option value={"Stock-in"}>Stock-in</option>
-                <option value={"Stock-out"}>Stock-out</option>
-              </select>
-              {errors.type && (
-                <p className="mt-1 text-sm text-red-500">{errors.type}</p>
-              )}
-            </div>
+            <InputField
+              containerClassName="mb-4"
+              label="Quantity"
+              type="number"
+              placeholder="Enter product quantity"
+              value={quantity}
+              onChange={(e) => {
+                const value = e.target.value;
+                setquantity(value);
+                validateField("quantity", value, (current) =>
+                  validateNumberInput(current, "Quantity", {
+                    min: 1,
+                    allowZero: false,
+                    integer: true,
+                  }),
+                );
+              }}
+              onBlur={(e) =>
+                validateField("quantity", e.target.value, (current) =>
+                  validateNumberInput(current, "Quantity", {
+                    min: 1,
+                    allowZero: false,
+                    integer: true,
+                  }),
+                )
+              }
+              min="1"
+              step="1"
+              error={errors.quantity}
+            />
 
-            <div className="mb-4">
-              <label>Quantity</label>
-              <input
-                type="number"
-                placeholder="Enter product quantity"
-                value={quantity}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setquantity(value);
-                  validateField("quantity", value, (current) =>
-                    validateNumberInput(current, "Quantity", {
-                      min: 1,
-                      allowZero: false,
-                      integer: true,
-                    }),
-                  );
-                }}
-                onBlur={(e) =>
-                  validateField("quantity", e.target.value, (current) =>
-                    validateNumberInput(current, "Quantity", {
-                      min: 1,
-                      allowZero: false,
-                      integer: true,
-                    }),
-                  )
-                }
-                min="1"
-                step="1"
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2"
-              />
-              {errors.quantity && (
-                <p className="mt-1 text-sm text-red-500">{errors.quantity}</p>
-              )}
-            </div>
-
-            <div className="mb-4">
-              <label>Vendor</label>
-              <select
-                value={supplier}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setsupplier(value);
-                  validateField("supplier", value, (current) =>
-                    validateTextInput(current, "Vendor", {
-                      required: false,
-                      maxLength: 80,
-                      allowEmpty: true,
-                    }),
-                  );
-                }}
-                onBlur={(e) =>
-                  validateField("supplier", e.target.value, (current) =>
-                    validateTextInput(current, "Vendor", {
-                      required: false,
-                      maxLength: 80,
-                      allowEmpty: true,
-                    }),
-                  )
-                }
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2"
-              >
-                <option value="">Select a Vendor</option>
-                {getallSupplier?.map((supplier) => (
-                  <option key={supplier.id} value={supplier.id}>
-                    {supplier.name}
-                  </option>
-                ))}
-              </select>
-              {errors.supplier && (
-                <p className="mt-1 text-sm text-red-500">{errors.supplier}</p>
-              )}
-            </div>
+            <SelectField
+              containerClassName="mb-4"
+              label="Vendor"
+              value={supplier}
+              onChange={(e) => {
+                const value = e.target.value;
+                setsupplier(value);
+                validateField("supplier", value, (current) =>
+                  validateTextInput(current, "Vendor", {
+                    required: false,
+                    maxLength: 80,
+                    allowEmpty: true,
+                  }),
+                );
+              }}
+              onBlur={(e) =>
+                validateField("supplier", e.target.value, (current) =>
+                  validateTextInput(current, "Vendor", {
+                    required: false,
+                    maxLength: 80,
+                    allowEmpty: true,
+                  }),
+                )
+              }
+              placeholder="Select a Vendor"
+              options={getallSupplier?.map((supplier) => ({
+                label: supplier.name,
+                value: supplier.id,
+              }))}
+              error={errors.supplier}
+            />
 
             <button
               type="submit"

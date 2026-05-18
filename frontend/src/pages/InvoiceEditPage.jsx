@@ -6,6 +6,8 @@ import { IoMdAdd } from "react-icons/io";
 import { MdDelete } from "react-icons/md";
 import { FormSkeleton } from "../Components/LoadingSkeletons";
 import { uppercasePayload } from "../lib/uppercasePayload";
+import InputField from "../Components/InputField";
+import SelectField from "../Components/SelectField";
 import {
   validateDateInput,
   validateNumberInput,
@@ -224,29 +226,19 @@ function InvoiceEditPage() {
 
           {/* Party */}
           <div className="mb-6">
-            <label className="block text-gray-700 font-semibold mb-2">
-              {invoiceType === "purchase" ? "Vendor Name" : "Customer Name"}
-            </label>
             {invoiceType === "purchase" ? (
-              <input
-                value={vendorName}
-                readOnly
-                className="w-full border border-gray-300 p-3 rounded-lg bg-gray-100"
-              />
+              <InputField label="Vendor Name" value={vendorName} readOnly />
             ) : (
-              <select
+              <SelectField
+                label="Customer Name"
                 value={customerId}
                 onChange={(e) => setCustomerId(e.target.value)}
-                className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              >
-                <option value="">Select Customer</option>
-                {customers.map((customer) => (
-                  <option key={customer.id} value={customer.id}>
-                    {customer.name}
-                    {customer.customerCode ? ` (${customer.customerCode})` : ""}
-                  </option>
-                ))}
-              </select>
+                placeholder="Select Customer"
+                options={customers.map((customer) => ({
+                  label: `${customer.name}${customer.customerCode ? ` (${customer.customerCode})` : ""}`,
+                  value: customer.id,
+                }))}
+              />
             )}
           </div>
 
@@ -260,15 +252,15 @@ function InvoiceEditPage() {
                   key={index}
                   className="relative grid grid-cols-12 gap-2 items-center bg-gray-50 p-3 rounded-lg"
                 >
-                  <input
-                    type="text"
+                  <InputField
+                    containerClassName="col-span-3"
                     value={item.name}
                     onChange={(e) => updateItem(index, "name", e.target.value)}
                     placeholder="Item Name"
                     maxLength={120}
-                    className="col-span-3 border border-gray-300 p-2 rounded"
                   />
-                  <input
+                  <InputField
+                    containerClassName="col-span-1"
                     type="number"
                     value={item.quantity}
                     onChange={(e) =>
@@ -276,9 +268,9 @@ function InvoiceEditPage() {
                     }
                     min="1"
                     step="1"
-                    className="col-span-1 border border-gray-300 p-2 rounded"
                   />
-                  <input
+                  <InputField
+                    containerClassName="col-span-2"
                     type="number"
                     value={item.unitPrice}
                     onChange={(e) =>
@@ -286,7 +278,6 @@ function InvoiceEditPage() {
                     }
                     min="0"
                     step="0.01"
-                    className="col-span-2 border border-gray-300 p-2 rounded"
                   />
                   <span className="col-span-1 text-gray-700 font-semibold">
                     Rs {item.total.toLocaleString()}
@@ -325,95 +316,65 @@ function InvoiceEditPage() {
 
           {/* Tax, Discount, Payment & Status */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-            <div>
-              <label className="block mb-1 text-gray-700 font-medium">
-                Tax Rate (%)
-              </label>
-              <input
-                type="number"
-                value={taxRate}
-                onChange={(e) => setTaxRate(Number(e.target.value))}
-                min="0"
-                step="0.01"
-                className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            </div>
-
-            <div>
-              <label className="block mb-1 text-gray-700 font-medium">
-                Discount
-              </label>
-              <input
-                type="number"
-                value={discount}
-                onChange={(e) => setDiscount(Number(e.target.value))}
-                min="0"
-                step="0.01"
-                className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            </div>
-
-            <div>
-              <label className="block mb-1 text-gray-700 font-medium">
-                Carage
-              </label>
-              <input
-                type="number"
-                value={carage}
-                onChange={(e) => setCarage(Number(e.target.value))}
-                min="0"
-                step="0.01"
-                className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            </div>
-
-            <div>
-              <label className="block mb-1 text-gray-700 font-medium">
-                Payment Method
-              </label>
-              <select
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
-              >
-                <option value="">Select</option>
-                <option value="cash">Cash</option>
-                <option value="bank_transfer">Bank Transfer</option>
-                <option value="card">Card</option>
-                <option value="upi">UPI</option>
-                <option value="paypal">Paypal</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block mb-1 text-gray-700 font-medium">
-                Status
-              </label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
-              >
-                <option value="draft">Draft</option>
-                <option value="sent">Sent</option>
-                <option value="paid">Paid</option>
-                <option value="overdue">Overdue</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </div>
+            <InputField
+              label="Tax Rate (%)"
+              type="number"
+              value={taxRate}
+              onChange={(e) => setTaxRate(Number(e.target.value))}
+              min="0"
+              step="0.01"
+            />
+            <InputField
+              label="Discount"
+              type="number"
+              value={discount}
+              onChange={(e) => setDiscount(Number(e.target.value))}
+              min="0"
+              step="0.01"
+            />
+            <InputField
+              label="Carage"
+              type="number"
+              value={carage}
+              onChange={(e) => setCarage(Number(e.target.value))}
+              min="0"
+              step="0.01"
+            />
+            <SelectField
+              label="Payment Method"
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value)}
+              placeholder="Select"
+              options={[
+                { label: "Cash", value: "cash" },
+                { label: "Bank Transfer", value: "bank_transfer" },
+                { label: "Card", value: "card" },
+                { label: "UPI", value: "upi" },
+                { label: "Paypal", value: "paypal" },
+                { label: "Other", value: "other" },
+              ]}
+            />
+            <SelectField
+              label="Status"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              options={[
+                { label: "Draft", value: "draft" },
+                { label: "Sent", value: "sent" },
+                { label: "Paid", value: "paid" },
+                { label: "Overdue", value: "overdue" },
+                { label: "Cancelled", value: "cancelled" },
+              ]}
+            />
           </div>
 
           {/* Due Date */}
           <div className="mb-6">
-            <label className="block mb-1 text-gray-700 font-medium">
-              Due Date
-            </label>
-            <input
+            <InputField
+              label="Due Date"
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
           </div>
 

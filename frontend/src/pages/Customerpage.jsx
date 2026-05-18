@@ -11,6 +11,8 @@ import DrawerPanel from "../Components/DrawerPanel";
 import LoadingButton from "../Components/LoadingButton";
 import axiosInstance from "../lib/axios";
 import { FaMoneyBill1Wave } from "react-icons/fa6";
+import InputField from "../Components/InputField";
+import SelectField from "../Components/SelectField";
 import { validatePhoneInput, validateTextInput } from "../lib/formValidation";
 import { useRolePermissions } from "../hooks/useRolePermissions";
 import {
@@ -341,24 +343,24 @@ function Customerpage({ readOnly = false }) {
       </div>
 
       <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">
-        <input
-          type="text"
+        <InputField
+          containerClassName="w-full md:w-96"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           maxLength={120}
-          className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="Search customer..."
         />
-        <select
+        <SelectField
+          containerClassName="w-full md:w-64"
           value={amountFilter}
           onChange={(e) => setAmountFilter(e.target.value)}
-          className="w-full md:w-64 h-10 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
-        >
-          <option value="all">All Customers</option>
-          <option value="total">Total Amount</option>
-          <option value="collected">Collected Amount</option>
-          <option value="remaining">Remaining Amount</option>
-        </select>
+          options={[
+            { label: "All Customers", value: "all" },
+            { label: "Total Amount", value: "total" },
+            { label: "Collected Amount", value: "collected" },
+            { label: "Remaining Amount", value: "remaining" },
+          ]}
+        />
 
         {canWrite && (
           <button
@@ -390,8 +392,7 @@ function Customerpage({ readOnly = false }) {
             onSubmit={selectedCustomer ? handleEditSubmit : submitCustomer}
             className="space-y-4"
           >
-            <input
-              type="text"
+            <InputField
               value={name}
               onChange={(e) => {
                 const value = e.target.value;
@@ -413,16 +414,13 @@ function Customerpage({ readOnly = false }) {
                   }),
                 )
               }
+              label="Customer Name"
               placeholder="Customer name"
               maxLength={120}
-              className="w-full h-10 rounded-xl border px-3"
               required
+              error={errors.name}
             />
-            {errors.name && (
-              <p className="text-red-500 text-sm">{errors.name}</p>
-            )}
-            <input
-              type="text"
+            <InputField
               value={phone}
               onChange={(e) => {
                 const value = e.target.value;
@@ -436,16 +434,13 @@ function Customerpage({ readOnly = false }) {
                   validatePhoneInput(current, { required: false }),
                 )
               }
+              label="Phone"
               placeholder="Phone"
               inputMode="tel"
               maxLength={20}
-              className="w-full h-10 rounded-xl border px-3"
+              error={errors.phone}
             />
-            {errors.phone && (
-              <p className="text-red-500 text-sm">{errors.phone}</p>
-            )}
-            <input
-              type="text"
+            <InputField
               value={address}
               onChange={(e) => {
                 const value = e.target.value;
@@ -467,13 +462,11 @@ function Customerpage({ readOnly = false }) {
                   }),
                 )
               }
+              label="Address"
               placeholder="Address"
               maxLength={200}
-              className="w-full h-10 rounded-xl border px-3"
+              error={errors.address}
             />
-            {errors.address && (
-              <p className="text-red-500 text-sm">{errors.address}</p>
-            )}
             <LoadingButton
               type="submit"
               loading={isSubmitting}

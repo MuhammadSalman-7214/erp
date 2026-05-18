@@ -7,6 +7,9 @@ import { IoMdAdd } from "react-icons/io";
 import LoadingButton from "../Components/LoadingButton";
 import { formatFixed } from "../lib/formatNumber";
 import { uppercasePayload } from "../lib/uppercasePayload";
+import InputField from "../Components/InputField";
+import SelectField from "../Components/SelectField";
+import TextareaField from "../Components/TextareaField";
 import {
   validateDateInput,
   validateNumberInput,
@@ -186,44 +189,25 @@ function CreateInvoicePage() {
 
           {/* Invoice Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div>
-              <label className="block mb-2 text-gray-700 font-medium">
-                Invoice Number
-              </label>
-              <input
-                value="Auto-generated"
-                disabled
-                className="w-full border border-gray-300 p-3 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            </div>
-
-            <div>
-              <label className="block mb-2 text-gray-700 font-medium">
-                Due Date
-              </label>
-              <input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            </div>
+            <InputField label="Invoice Number" value="Auto-generated" disabled />
+            <InputField
+              label="Due Date"
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div>
-              <label className="block mb-2 text-gray-700 font-medium">
-                Invoice Type
-              </label>
-              <select
-                value={invoiceType}
-                onChange={(e) => setInvoiceType(e.target.value)}
-                className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              >
-                <option value="sales">Sales</option>
-                <option value="purchase">Purchase</option>
-              </select>
-            </div>
+            <SelectField
+              label="Invoice Type"
+              value={invoiceType}
+              onChange={(e) => setInvoiceType(e.target.value)}
+              options={[
+                { label: "Sales", value: "sales" },
+                { label: "Purchase", value: "purchase" },
+              ]}
+            />
           </div>
 
           {invoiceType === "sales" ? (
@@ -232,21 +216,16 @@ function CreateInvoicePage() {
                 Customer
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <select
+                <SelectField
+                  containerClassName="md:col-span-2"
                   value={customerId}
                   onChange={(e) => setCustomerId(e.target.value)}
-                  className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 md:col-span-2"
-                >
-                  <option value="">Select Customer</option>
-                  {customers.map((customer) => (
-                    <option key={customer.id} value={customer.id}>
-                      {customer.name}
-                      {customer.customerCode
-                        ? ` (${customer.customerCode})`
-                        : ""}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Select Customer"
+                  options={customers.map((customer) => ({
+                    label: `${customer.name}${customer.customerCode ? ` (${customer.customerCode})` : ""}`,
+                    value: customer.id,
+                  }))}
+                />
               </div>
             </>
           ) : (
@@ -255,18 +234,15 @@ function CreateInvoicePage() {
                 Vendor
               </h2>
               <div className="mb-6">
-                <select
+                <SelectField
                   value={vendorId}
                   onChange={(e) => setVendorId(e.target.value)}
-                  className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                >
-                  <option value="">Select Vendor</option>
-                  {vendors.map((vendor) => (
-                    <option key={vendor.id} value={vendor.id}>
-                      {vendor.name}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Select Vendor"
+                  options={vendors.map((vendor) => ({
+                    label: vendor.name,
+                    value: vendor.id,
+                  }))}
+                />
               </div>
             </>
           )}
@@ -279,17 +255,17 @@ function CreateInvoicePage() {
                 key={idx}
                 className="grid grid-cols-12 gap-2 items-center bg-gray-50 p-3 rounded-lg"
               >
-                <input
-                  type="text"
+                <InputField
+                  containerClassName="col-span-3"
                   value={item.name}
                   placeholder="Item Name"
                   onChange={(e) =>
                     handleItemChange(idx, "name", e.target.value)
                   }
                   maxLength={120}
-                  className="col-span-3 border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
-                <input
+                <InputField
+                  containerClassName="col-span-1"
                   type="number"
                   value={item.quantity}
                   onChange={(e) =>
@@ -297,9 +273,9 @@ function CreateInvoicePage() {
                   }
                   min="1"
                   step="1"
-                  className="col-span-1 border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
-                <input
+                <InputField
+                  containerClassName="col-span-2"
                   type="number"
                   value={item.unitPrice}
                   onChange={(e) =>
@@ -307,7 +283,6 @@ function CreateInvoicePage() {
                   }
                   min="0"
                   step="0.01"
-                  className="col-span-2 border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
                 <span className="col-span-1 text-gray-700 font-semibold">
                   Rs {item.total.toLocaleString()}
@@ -333,32 +308,22 @@ function CreateInvoicePage() {
 
           {/* Totals */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div>
-              <label className="block mb-1 text-gray-700 font-medium">
-                Tax Rate (%)
-              </label>
-              <input
-                type="number"
-                value={taxRate}
-                onChange={(e) => setTaxRate(Number(e.target.value))}
-                min="0"
-                step="0.01"
-                className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            </div>
-            <div>
-              <label className="block mb-1 text-gray-700 font-medium">
-                Discount
-              </label>
-              <input
-                type="number"
-                value={discount}
-                onChange={(e) => setDiscount(Number(e.target.value))}
-                min="0"
-                step="0.01"
-                className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            </div>
+            <InputField
+              label="Tax Rate (%)"
+              type="number"
+              value={taxRate}
+              onChange={(e) => setTaxRate(Number(e.target.value))}
+              min="0"
+              step="0.01"
+            />
+            <InputField
+              label="Discount"
+              type="number"
+              value={discount}
+              onChange={(e) => setDiscount(Number(e.target.value))}
+              min="0"
+              step="0.01"
+            />
           </div>
 
           <div className="text-right mb-6 space-y-1">
@@ -371,35 +336,26 @@ function CreateInvoicePage() {
 
           {/* Payment & Notes */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div>
-              <label className="block mb-1 text-gray-700 font-medium">
-                Payment Method
-              </label>
-              <select
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              >
-                <option value="cash">Cash</option>
-                <option value="bank_transfer">Bank Transfer</option>
-                <option value="card">Card</option>
-                <option value="upi">UPI</option>
-                <option value="paypal">Paypal</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-            <div>
-              <label className="block mb-1 text-gray-700 font-medium">
-                Notes
-              </label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                rows={3}
-                maxLength={500}
-              />
-            </div>
+            <SelectField
+              label="Payment Method"
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value)}
+              options={[
+                { label: "Cash", value: "cash" },
+                { label: "Bank Transfer", value: "bank_transfer" },
+                { label: "Card", value: "card" },
+                { label: "UPI", value: "upi" },
+                { label: "Paypal", value: "paypal" },
+                { label: "Other", value: "other" },
+              ]}
+            />
+            <TextareaField
+              label="Notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              maxLength={500}
+            />
           </div>
 
           {/* Actions */}

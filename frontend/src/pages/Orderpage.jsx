@@ -19,6 +19,8 @@ import useKeyboardDropdown from "../hooks/useKeyboardDropdown";
 import { TableSkeleton } from "../Components/LoadingSkeletons";
 import DrawerPanel from "../Components/DrawerPanel";
 import LoadingButton from "../Components/LoadingButton";
+import InputField from "../Components/InputField";
+import SelectField from "../Components/SelectField";
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
 import { validateNumberInput, validateTextInput } from "../lib/formValidation";
@@ -426,12 +428,12 @@ function Orderpage() {
 
       {/* Search + Add */}
       <div className="flex flex-col md:flex-row md:items-center gap-2">
-        <input
+        <InputField
+          containerClassName="w-full md:w-96"
           type="text"
           value={query}
           onChange={(e) => setquery(e.target.value)}
           maxLength={120}
-          className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="Search order..."
         />
 
@@ -457,9 +459,9 @@ function Orderpage() {
         <div className="p-6">
           <form onSubmit={selectedOrder ? handleEditSubmit : submitOrder}>
             <div className="mb-4">
-              <label>Product Code</label>
               <div className="relative">
-                <input
+                <InputField
+                  label="Product Code"
                   type="text"
                   value={codeQuery}
                   onChange={(e) => {
@@ -472,7 +474,6 @@ function Orderpage() {
                   }}
                   onKeyDownCapture={onCodeKeyDown}
                   maxLength={120}
-                  className="w-full h-10 px-2 border-2 rounded-lg mt-2"
                   placeholder="Type product code"
                 />
                 {showCodeOptions && codeOptions.length > 0 && (
@@ -536,13 +537,14 @@ function Orderpage() {
                         </span>
                       </div>
                       <div className="col-span-2">
-                        <input
+                        <InputField
                           type="number"
                           value={item.quantity}
                           onChange={(e) =>
                             updateCartQuantity(item.codeId, e.target.value)
                           }
-                          className="w-full h-9 px-3 border rounded min-w-[90px]"
+                          containerClassName=""
+                          inputClassName="h-9 px-3 min-w-[90px]"
                         />
                       </div>
                       <div className="col-span-1 text-right">
@@ -564,32 +566,31 @@ function Orderpage() {
               )}
             </div>
             <div className="mb-4">
-              <label>Status</label>
-              <select
+              <SelectField
+                label="Status"
                 value={status}
                 onChange={(e) => setstatus(e.target.value)}
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2"
-              >
-                <option value="">Select status</option>
-                <option value="pending">Pending</option>
-                <option value="shipped">Shipped</option>
-                <option value="delivered">Delivered</option>
-              </select>
+                options={[
+                  { label: "Select status", value: "" },
+                  { label: "Pending", value: "pending" },
+                  { label: "Shipped", value: "shipped" },
+                  { label: "Delivered", value: "delivered" },
+                ]}
+              />
             </div>
             <div className="mb-4">
-              <label>Vendor (optional)</label>
-              <select
+              <SelectField
+                label="Vendor (optional)"
                 value={supplier}
                 onChange={(e) => setsupplier(e.target.value)}
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2"
-              >
-                <option value="">No vendor, stock only</option>
-                {getallSupplier?.map((supplier) => (
-                  <option key={getId(supplier)} value={getId(supplier)}>
-                    {supplier.name}
-                  </option>
-                ))}
-              </select>
+                options={[
+                  { label: "No vendor, stock only", value: "" },
+                  ...(getallSupplier?.map((supplier) => ({
+                    label: supplier.name,
+                    value: getId(supplier),
+                  })) || []),
+                ]}
+              />
             </div>
 
             <LoadingButton

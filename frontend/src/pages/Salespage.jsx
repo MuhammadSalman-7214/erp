@@ -25,6 +25,8 @@ import {
 } from "../lib/invoicePrintTemplate";
 import DrawerPanel from "../Components/DrawerPanel";
 import LoadingButton from "../Components/LoadingButton";
+import InputField from "../Components/InputField";
+import SelectField from "../Components/SelectField";
 import useKeyboardDropdown from "../hooks/useKeyboardDropdown";
 import {
   formatDateLabel,
@@ -1939,26 +1941,26 @@ function Salespage() {
       {/* <SalesChart /> */}
 
       <div className="flex flex-col md:flex-row md:items-center gap-2">
-        <input
+        <InputField
+          containerClassName="w-full md:w-80"
           value={query}
           onChange={(e) => setquery(e.target.value)}
           type="text"
           maxLength={120}
-          className="w-full md:w-80 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="Search invoice, customer, phone..."
         />
-        <input
+        <InputField
+          containerClassName="w-full md:w-44"
           type="date"
           value={dateFrom}
           onChange={(e) => setDateFrom(e.target.value)}
-          className="w-full md:w-44 h-10 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="Date from"
         />
-        <input
+        <InputField
+          containerClassName="w-full md:w-44"
           type="date"
           value={dateTo}
           onChange={(e) => setDateTo(e.target.value)}
-          className="w-full md:w-44 h-10 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="Date to"
         />
         <button
@@ -1995,8 +1997,8 @@ function Salespage() {
           className="flex flex-col gap-4"
         >
           <div className="flex flex-col gap-1 relative">
-            <label className="text-gray-700 font-medium">Customer</label>
-            <input
+            <InputField
+              label="Customer"
               value={customerSearch}
               onChange={(e) => {
                 setCustomerSearch(e.target.value);
@@ -2020,7 +2022,6 @@ function Salespage() {
               }}
               placeholder="Search or create customer (name or phone)"
               maxLength={120}
-              className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
               required
             />
             {showCustomerOptions && customerSearch.trim() !== "" && (
@@ -2072,7 +2073,7 @@ function Salespage() {
                 New Customer Details
               </div>
               <div className="grid grid-cols-1 gap-3">
-                <input
+                <InputField
                   type="text"
                   value={newCustomerData.phone}
                   onChange={(e) =>
@@ -2084,10 +2085,9 @@ function Salespage() {
                   placeholder="Phone"
                   maxLength={20}
                   inputMode="tel"
-                  className="w-full h-10 px-3 border rounded-xl"
                   required
                 />
-                <input
+                <InputField
                   type="text"
                   value={newCustomerData.address}
                   onChange={(e) =>
@@ -2098,7 +2098,6 @@ function Salespage() {
                   }
                   placeholder="Address"
                   maxLength={200}
-                  className="w-full h-10 px-3 border rounded-xl"
                   required
                 />
               </div>
@@ -2106,10 +2105,9 @@ function Salespage() {
           )}
 
           <div className="mb-4">
-            <label>Product Code</label>
             <div className="relative">
-              <input
-                type="text"
+              <InputField
+                label="Product Code"
                 value={codeQuery}
                 onChange={(e) => {
                   setCodeQuery(e.target.value);
@@ -2121,7 +2119,6 @@ function Salespage() {
                 }}
                 onKeyDownCapture={onCodeKeyDown}
                 maxLength={120}
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2"
                 placeholder="Type product code"
               />
               {showCodeOptions && codeOptions.length > 0 && (
@@ -2217,19 +2214,19 @@ function Salespage() {
                     </div>
                   </div>
 
-                  <input
+                  <InputField
+                    containerClassName="w-16"
                     type="number"
                     value={item.quantity}
                     onChange={(e) =>
                       updateCartQuantity(item.codeId, e.target.value)
                     }
-                    className={`w-16 h-9 text-center border rounded-lg ${
-                      isExceeded ? "border-red-500 focus:ring-red-500" : ""
-                    }`}
+                    inputClassName={`h-9 text-center ${isExceeded ? "border-red-500 focus:ring-red-500" : ""}`}
                   />
 
                   {/* PRICE */}
-                  <input
+                  <InputField
+                    containerClassName="w-20"
                     type="number"
                     value={item.unitPrice}
                     onChange={(e) =>
@@ -2237,7 +2234,7 @@ function Salespage() {
                     }
                     min="0"
                     step="0.01"
-                    className="w-20 h-9 text-center border rounded-lg"
+                    inputClassName="h-9 text-center"
                   />
 
                   {/* DELETE */}
@@ -2274,15 +2271,16 @@ function Salespage() {
               </span>
             </div>
             <div className="flex items-center justify-between px-3 py-2 bg-white border-t text-sm">
-              <span className="font-semibold text-slate-700">Carage</span>
-              <input
+              <InputField
+                label="Carage"
                 type="number"
                 min="0"
                 step="0.01"
                 value={carage}
                 onChange={(e) => setCarage(e.target.value)}
-                className="w-28 h-9 px-2 text-right border rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none"
                 placeholder="0"
+                containerClassName="w-28"
+                inputClassName="h-9 text-right"
               />
             </div>
             <div className="flex items-center justify-between px-3 py-3 bg-teal-50 border-t text-sm">
@@ -2294,14 +2292,13 @@ function Salespage() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-gray-700 font-medium">Received Amount</label>
-            <input
+            <InputField
+              label="Received Amount"
               type="number"
               min="0"
               step="0.01"
               value={receivedAmount}
               onChange={(e) => setReceivedAmount(e.target.value)}
-              className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
               placeholder="Enter amount received"
             />
             <div className="text-xs text-slate-500">
@@ -2310,24 +2307,22 @@ function Salespage() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-gray-700 font-medium">Payment Method</label>
-            <select
+            <SelectField
+              label="Payment Method"
               value={Payment}
               onChange={(e) => setPayment(e.target.value)}
-              className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
               required={Number(receivedAmount || 0) > 0}
               disabled={Number(receivedAmount || 0) <= 0}
-            >
-              {Number(receivedAmount || 0) <= 0 ? (
-                <option value="credit">Credit</option>
-              ) : (
-                <>
-                  <option value="">Select Payment</option>
-                  <option value="cash">Cash</option>
-                  <option value="banktransfer">Bank Transfer</option>
-                </>
-              )}
-            </select>
+              options={
+                Number(receivedAmount || 0) <= 0
+                  ? [{ label: "Credit", value: "credit" }]
+                  : [
+                      { label: "Select Payment", value: "" },
+                      { label: "Cash", value: "cash" },
+                      { label: "Bank Transfer", value: "banktransfer" },
+                    ]
+              }
+            />
             <div className="text-xs text-slate-500">
               {Number(receivedAmount || 0) <= 0
                 ? "No received amount means the sale will default to credit."
@@ -2338,18 +2333,18 @@ function Salespage() {
           {/* Payment Status intentionally disabled in sales flow */}
 
           <div className="flex flex-col gap-1">
-            <label className="text-gray-700 font-medium">Sale Status</label>
-            <select
+            <SelectField
+              label="Sale Status"
               value={Status}
               onChange={(e) => setStatus(e.target.value)}
-              className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
               required
-            >
-              <option value="">Select Status</option>
-              <option value="pending">Pending</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
+              options={[
+                { label: "Select Status", value: "" },
+                { label: "Pending", value: "pending" },
+                { label: "Completed", value: "completed" },
+                { label: "Cancelled", value: "cancelled" },
+              ]}
+            />
           </div>
 
           <LoadingButton

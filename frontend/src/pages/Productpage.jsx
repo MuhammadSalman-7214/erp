@@ -27,6 +27,8 @@ import { TableSkeleton } from "../Components/LoadingSkeletons";
 import DrawerPanel from "../Components/DrawerPanel";
 import LoadingButton from "../Components/LoadingButton";
 import DateSortHeader from "../Components/DateSortHeader";
+import InputField from "../Components/InputField";
+import SelectField from "../Components/SelectField";
 import { sortByDateValue } from "../lib/dateFormat";
 import { validateNumberInput, validateTextInput } from "../lib/formValidation";
 
@@ -702,12 +704,11 @@ function Productpage({ readOnly = false }) {
 
       {/* SEARCH + ADD */}
       <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">
-        <input
-          type="text"
+        <InputField
+          containerClassName="w-full md:w-96"
           value={productCodeQuery}
           onChange={(e) => setProductCodeQuery(e.target.value)}
           maxLength={120}
-          className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="Search by name, code, company, or category..."
         />
 
@@ -929,237 +930,194 @@ function Productpage({ readOnly = false }) {
             onSubmit={selectedProduct ? handleEditSubmit : submitProduct}
             className="space-y-4"
           >
-            <div>
-              <label className="text-sm font-medium">Name</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setName(value);
-                  validateField("name", value, (current) =>
-                    validateTextInput(current, "Product name", {
-                      required: true,
-                      minLength: 2,
-                      maxLength: 150,
-                    }),
-                  );
-                }}
-                onBlur={(e) =>
-                  validateField("name", e.target.value, (current) =>
-                    validateTextInput(current, "Product name", {
-                      required: true,
-                      minLength: 2,
-                      maxLength: 150,
-                    }),
-                  )
-                }
-                maxLength={150}
-                className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                required
-              />
-              {errors.name && (
-                <p className="mt-1 text-sm text-red-500">{errors.name}</p>
-              )}
-            </div>
-            <div>
-              <label className="text-sm font-medium">Description</label>
-              <input
-                type="text"
-                value={description}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setDescription(value);
-                  validateField("description", value, (current) =>
-                    validateTextInput(current, "Description", {
-                      required: false,
-                      maxLength: 500,
-                      allowEmpty: true,
-                    }),
-                  );
-                }}
-                onBlur={(e) =>
-                  validateField("description", e.target.value, (current) =>
-                    validateTextInput(current, "Description", {
-                      required: false,
-                      maxLength: 500,
-                      allowEmpty: true,
-                    }),
-                  )
-                }
-                maxLength={500}
-                className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
-              {errors.description && (
-                <p className="mt-1 text-sm text-red-500">
-                  {errors.description}
-                </p>
-              )}
-            </div>
-            <div>
-              <label className="text-sm font-medium">Company</label>
-              <input
-                type="text"
-                value={company}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setCompany(value);
-                  validateField("company", value, (current) =>
-                    validateTextInput(current, "Company", {
-                      required: false,
-                      maxLength: 120,
-                      allowEmpty: true,
-                    }),
-                  );
-                }}
-                onBlur={(e) =>
-                  validateField("company", e.target.value, (current) =>
-                    validateTextInput(current, "Company", {
-                      required: false,
-                      maxLength: 120,
-                      allowEmpty: true,
-                    }),
-                  )
-                }
-                maxLength={120}
-                className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                required
-              />
-              {errors.company && (
-                <p className="mt-1 text-sm text-red-500">{errors.company}</p>
-              )}
-            </div>
-            <div>
-              <label className="text-sm font-medium">Category</label>
-              <select
-                value={Category}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setCategory(value);
-                  validateField("Category", value, (current) =>
-                    validateTextInput(current, "Category", {
-                      required: true,
-                      maxLength: 80,
-                    }),
-                  );
-                }}
-                onBlur={(e) =>
-                  validateField("Category", e.target.value, (current) =>
-                    validateTextInput(current, "Category", {
-                      required: true,
-                      maxLength: 80,
-                    }),
-                  )
-                }
-                className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              >
-                <option value="">Select category</option>
-                {getallCategory?.map((c) => (
-                  <option key={getId(c)} value={getId(c)}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-              {errors.Category && (
-                <p className="mt-1 text-sm text-red-500">{errors.Category}</p>
-              )}
-            </div>
+            <InputField
+              label="Name"
+              value={name}
+              onChange={(e) => {
+                const value = e.target.value;
+                setName(value);
+                validateField("name", value, (current) =>
+                  validateTextInput(current, "Product name", {
+                    required: true,
+                    minLength: 2,
+                    maxLength: 150,
+                  }),
+                );
+              }}
+              onBlur={(e) =>
+                validateField("name", e.target.value, (current) =>
+                  validateTextInput(current, "Product name", {
+                    required: true,
+                    minLength: 2,
+                    maxLength: 150,
+                  }),
+                )
+              }
+              maxLength={150}
+              required
+              error={errors.name}
+            />
+            <InputField
+              label="Description"
+              value={description}
+              onChange={(e) => {
+                const value = e.target.value;
+                setDescription(value);
+                validateField("description", value, (current) =>
+                  validateTextInput(current, "Description", {
+                    required: false,
+                    maxLength: 500,
+                    allowEmpty: true,
+                  }),
+                );
+              }}
+              onBlur={(e) =>
+                validateField("description", e.target.value, (current) =>
+                  validateTextInput(current, "Description", {
+                    required: false,
+                    maxLength: 500,
+                    allowEmpty: true,
+                  }),
+                )
+              }
+              maxLength={500}
+              error={errors.description}
+            />
+            <InputField
+              label="Company"
+              value={company}
+              onChange={(e) => {
+                const value = e.target.value;
+                setCompany(value);
+                validateField("company", value, (current) =>
+                  validateTextInput(current, "Company", {
+                    required: false,
+                    maxLength: 120,
+                    allowEmpty: true,
+                  }),
+                );
+              }}
+              onBlur={(e) =>
+                validateField("company", e.target.value, (current) =>
+                  validateTextInput(current, "Company", {
+                    required: false,
+                    maxLength: 120,
+                    allowEmpty: true,
+                  }),
+                )
+              }
+              maxLength={120}
+              required
+              error={errors.company}
+            />
+            <SelectField
+              label="Category"
+              value={Category}
+              onChange={(e) => {
+                const value = e.target.value;
+                setCategory(value);
+                validateField("Category", value, (current) =>
+                  validateTextInput(current, "Category", {
+                    required: true,
+                    maxLength: 80,
+                  }),
+                );
+              }}
+              onBlur={(e) =>
+                validateField("Category", e.target.value, (current) =>
+                  validateTextInput(current, "Category", {
+                    required: true,
+                    maxLength: 80,
+                  }),
+                )
+              }
+              placeholder="Select category"
+              options={getallCategory?.map((c) => ({
+                label: c.name,
+                value: getId(c),
+              }))}
+              required
+              error={errors.Category}
+            />
 
-            <div>
-              <label className="text-sm font-medium">Purchase Price</label>
-              <input
-                type="number"
-                value={purchasePrice}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setPurchasePrice(value);
-                  validateField("purchasePrice", value, (current) =>
-                    validateNumberInput(current, "Purchase price", {
-                      min: 0,
-                      allowZero: true,
-                    }),
-                  );
-                }}
-                onBlur={(e) =>
-                  validateField("purchasePrice", e.target.value, (current) =>
-                    validateNumberInput(current, "Purchase price", {
-                      min: 0,
-                      allowZero: true,
-                    }),
-                  )
-                }
-                min="0"
-                step="0.01"
-                className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
-              {errors.purchasePrice && (
-                <p className="mt-1 text-sm text-red-500">
-                  {errors.purchasePrice}
-                </p>
-              )}
-            </div>
-            <div>
-              <label className="text-sm font-medium">Trade Price</label>
-              <input
-                type="number"
-                value={tradePrice}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setTradePrice(value);
-                  validateField("tradePrice", value, (current) =>
-                    validateNumberInput(current, "Trade price", {
-                      min: 0,
-                      allowZero: true,
-                    }),
-                  );
-                }}
-                onBlur={(e) =>
-                  validateField("tradePrice", e.target.value, (current) =>
-                    validateNumberInput(current, "Trade price", {
-                      min: 0,
-                      allowZero: true,
-                    }),
-                  )
-                }
-                min="0"
-                step="0.01"
-                className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
-              {errors.tradePrice && (
-                <p className="mt-1 text-sm text-red-500">{errors.tradePrice}</p>
-              )}
-            </div>
-            <div>
-              <label className="text-sm font-medium">Sale Price</label>
-              <input
-                type="number"
-                value={salePrice}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setSalePrice(value);
-                  validateField("salePrice", value, (current) =>
-                    validateNumberInput(current, "Sale price", {
-                      min: 0,
-                      allowZero: true,
-                    }),
-                  );
-                }}
-                onBlur={(e) =>
-                  validateField("salePrice", e.target.value, (current) =>
-                    validateNumberInput(current, "Sale price", {
-                      min: 0,
-                      allowZero: true,
-                    }),
-                  )
-                }
-                min="0"
-                step="0.01"
-                className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
-              {errors.salePrice && (
-                <p className="mt-1 text-sm text-red-500">{errors.salePrice}</p>
-              )}
-            </div>
+            <InputField
+              label="Purchase Price"
+              type="number"
+              value={purchasePrice}
+              onChange={(e) => {
+                const value = e.target.value;
+                setPurchasePrice(value);
+                validateField("purchasePrice", value, (current) =>
+                  validateNumberInput(current, "Purchase price", {
+                    min: 0,
+                    allowZero: true,
+                  }),
+                );
+              }}
+              onBlur={(e) =>
+                validateField("purchasePrice", e.target.value, (current) =>
+                  validateNumberInput(current, "Purchase price", {
+                    min: 0,
+                    allowZero: true,
+                  }),
+                )
+              }
+              min="0"
+              step="0.01"
+              error={errors.purchasePrice}
+            />
+            <InputField
+              label="Trade Price"
+              type="number"
+              value={tradePrice}
+              onChange={(e) => {
+                const value = e.target.value;
+                setTradePrice(value);
+                validateField("tradePrice", value, (current) =>
+                  validateNumberInput(current, "Trade price", {
+                    min: 0,
+                    allowZero: true,
+                  }),
+                );
+              }}
+              onBlur={(e) =>
+                validateField("tradePrice", e.target.value, (current) =>
+                  validateNumberInput(current, "Trade price", {
+                    min: 0,
+                    allowZero: true,
+                  }),
+                )
+              }
+              min="0"
+              step="0.01"
+              error={errors.tradePrice}
+            />
+            <InputField
+              label="Sale Price"
+              type="number"
+              value={salePrice}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSalePrice(value);
+                validateField("salePrice", value, (current) =>
+                  validateNumberInput(current, "Sale price", {
+                    min: 0,
+                    allowZero: true,
+                  }),
+                );
+              }}
+              onBlur={(e) =>
+                validateField("salePrice", e.target.value, (current) =>
+                  validateNumberInput(current, "Sale price", {
+                    min: 0,
+                    allowZero: true,
+                  }),
+                )
+              }
+              min="0"
+              step="0.01"
+              error={errors.salePrice}
+            />
 
             <LoadingButton
               type="submit"
@@ -1207,41 +1165,35 @@ function Productpage({ readOnly = false }) {
             <div className="p-5 space-y-4 flex-1 min-h-0 overflow-y-auto">
               <div className="border rounded-xl p-4 bg-slate-50">
                 <h4 className="text-sm font-semibold mb-3">Add New Code</h4>
-                <div>
-                  <label className="text-xs font-medium">Shade Code</label>
-                  <input
-                    type="text"
-                    value={codeForm.code}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setCodeForm((prev) => ({
-                        ...prev,
-                        code: value,
-                      }));
-                      validateField("code", value, (current) =>
-                        validateTextInput(current, "Shade code", {
-                          required: true,
-                          minLength: 1,
-                          maxLength: 60,
-                        }),
-                      );
-                    }}
-                    onBlur={(e) =>
-                      validateField("code", e.target.value, (current) =>
-                        validateTextInput(current, "Shade code", {
-                          required: true,
-                          minLength: 1,
-                          maxLength: 60,
-                        }),
-                      )
-                    }
-                    maxLength={60}
-                    className="w-full h-9 px-2 border rounded-lg mt-1"
-                  />
-                  {errors.code && (
-                    <p className="mt-1 text-xs text-red-500">{errors.code}</p>
-                  )}
-                </div>
+                <InputField
+                  label="Shade Code"
+                  value={codeForm.code}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setCodeForm((prev) => ({
+                      ...prev,
+                      code: value,
+                    }));
+                    validateField("code", value, (current) =>
+                      validateTextInput(current, "Shade code", {
+                        required: true,
+                        minLength: 1,
+                        maxLength: 60,
+                      }),
+                    );
+                  }}
+                  onBlur={(e) =>
+                    validateField("code", e.target.value, (current) =>
+                      validateTextInput(current, "Shade code", {
+                        required: true,
+                        minLength: 1,
+                        maxLength: 60,
+                      }),
+                    )
+                  }
+                  maxLength={60}
+                  error={errors.code}
+                />
                 <LoadingButton
                   type="button"
                   onClick={handleAddCode}

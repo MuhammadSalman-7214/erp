@@ -8,6 +8,8 @@ import NoData from "../Components/NoData";
 import { Popconfirm } from "antd";
 import { TableSkeleton } from "../Components/LoadingSkeletons";
 import DateSortHeader from "../Components/DateSortHeader";
+import InputField from "../Components/InputField";
+import SelectField from "../Components/SelectField";
 import { formatDateLabel, sortByDateValue } from "../lib/dateFormat";
 
 function InvoicesPage() {
@@ -78,22 +80,22 @@ function InvoicesPage() {
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
       <div className="flex flex-col md:flex-row md:items-center gap-2">
-        <input
-          type="text"
+        <InputField
+          containerClassName="w-full md:w-96"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="Search invoice..."
         />
-        <select
+        <SelectField
+          containerClassName="w-full md:w-56"
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
-          className="w-full md:w-56 h-10 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white"
-        >
-          <option value="all">All Types</option>
-          <option value="sales">Sales</option>
-          <option value="purchase">Purchase</option>
-        </select>
+          options={[
+            { label: "All Types", value: "all" },
+            { label: "Sales", value: "sales" },
+            { label: "Purchase", value: "purchase" },
+          ]}
+        />
 
         <button
           onClick={() => navigate("/createInvoice")}
