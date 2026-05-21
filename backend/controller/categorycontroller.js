@@ -147,11 +147,23 @@ module.exports.updateCategory = async (req, res) => {
     const { CategoryId } = req.params;
     const userId = req.user.userId;
     const ipAddress = req.ip;
+    const updatedCategoryName =
+      typeof updatedCategory === "string"
+        ? updatedCategory
+        : updatedCategory?.name;
+
+    if (!updatedCategoryName) {
+      return res.status(400).json({
+        success: false,
+        message: "Category name is required",
+      });
+    }
+
     let updateResult;
     try {
       updateResult = await query(
         "UPDATE categories SET name = ? WHERE id = ? AND user_id = ?",
-        [updatedCategory?.name, CategoryId, userId],
+        [updatedCategoryName, CategoryId, userId],
       );
     } catch (err) {
       return res.status(500).json({

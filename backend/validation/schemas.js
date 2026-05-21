@@ -103,7 +103,9 @@ const categoryBody = Joi.object({
 });
 
 const categoryUpdateBody = Joi.object({
-  updatedCategory: anyText.required(),
+  updatedCategory: Joi.object({
+    name: anyText.required(),
+  }).required(),
 });
 
 const customerBody = Joi.object({

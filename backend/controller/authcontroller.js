@@ -9,7 +9,7 @@ const { isPaid } = require("../services/subscriptionService.js");
 const OTP_EXPIRY_MINUTES = 1;
 const OTP_ATTEMPT_LIMIT = 5;
 const PASSWORD_RESET_EXPIRY_MINUTES = 5;
-const OTP_BYPASS_EMAIL = "client.test@devsouq.pk";
+const OTP_BYPASS_EMAIL = process.env.TEST_USER;
 
 const generateOtpCode = () =>
   String(Math.floor(100000 + Math.random() * 900000));

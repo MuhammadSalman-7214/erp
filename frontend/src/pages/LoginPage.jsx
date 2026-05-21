@@ -22,7 +22,7 @@ const getDashboardPath = (role) => {
   return "/";
 };
 
-const OTP_BYPASS_EMAIL = "client.test@devsouq.pk";
+const OTP_BYPASS_EMAIL = process.env.REACT_APP_TEST_USER;
 
 function LoginPage() {
   const { user, isLoginLoading, pendingOtpSession, isOtpVerifying } =
@@ -70,7 +70,9 @@ function LoginPage() {
 
   const otpSession = useMemo(() => pendingOtpSession, [pendingOtpSession]);
   const isOtpStep = !!otpSession?.challengeId;
-  const emailValue = String(watch("email") || "").trim().toLowerCase();
+  const emailValue = String(watch("email") || "")
+    .trim()
+    .toLowerCase();
   const isOtpBypassEmail = emailValue === OTP_BYPASS_EMAIL;
 
   useEffect(() => {
@@ -254,9 +256,9 @@ function LoginPage() {
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? (
-                    <IoEyeOffOutline size={20} />
-                  ) : (
                     <IoEyeOutline size={20} />
+                  ) : (
+                    <IoEyeOffOutline size={20} />
                   )}
                 </button>
               </div>
