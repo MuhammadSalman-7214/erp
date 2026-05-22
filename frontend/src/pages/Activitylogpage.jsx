@@ -6,6 +6,7 @@ import {
 } from "../features/activitySlice";
 import { useSocket } from "../lib/useSocket";
 import FormattedTime from "../lib/FormattedTime";
+import { Button } from "../UI";
 
 function Activitylogpage() {
   const [logs, setLogs] = useState([]);
@@ -115,25 +116,25 @@ function Activitylogpage() {
 
       <div className="flex justify-end">
         <div className="join mt-4">
-          <button
+          <Button
             className="join-item btn"
             onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
           >
             Prev
-          </button>
+          </Button>
 
           {[...Array(totalPages)].map((_, index) => (
-            <button
+            <Button
               key={index}
               className={`join-item btn ${currentPage === index + 1 ? "btn-active" : ""}`}
               onClick={() => setCurrentPage(index + 1)}
             >
               {index + 1}
-            </button>
+            </Button>
           ))}
 
-          <button
+          <Button
             className="join-item btn"
             onClick={() =>
               setCurrentPage((prev) => Math.min(prev + 1, totalPages))
@@ -141,7 +142,7 @@ function Activitylogpage() {
             disabled={currentPage === totalPages}
           >
             Next
-          </button>
+          </Button>
         </div>
       </div>
     </div>

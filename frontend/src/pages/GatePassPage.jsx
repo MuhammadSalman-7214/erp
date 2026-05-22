@@ -4,6 +4,7 @@ import axiosInstance from "../lib/axios";
 import { toast } from "react-hot-toast";
 import { buildInvoicePrintHtml } from "../lib/invoicePrintTemplate";
 import { PreviewSkeleton } from "../Components/LoadingSkeletons";
+import { Button } from "../UI";
 
 function GatePassPage() {
   const { id } = useParams();
@@ -80,19 +81,19 @@ function GatePassPage() {
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <div className="flex justify-between items-center mb-4 print:hidden">
-        <button
+        <Button
           onClick={() => navigate(-1)}
           className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
         >
           Back
-        </button>
+        </Button>
 
-        <button
+        <Button
           onClick={printGatePass}
           className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
         >
           Print Gate Pass
-        </button>
+        </Button>
       </div>
 
       <div className="relative bg-white rounded-xl shadow p-8 print:shadow-none print:p-0">

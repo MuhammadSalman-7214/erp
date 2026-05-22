@@ -13,6 +13,7 @@ import {
 } from "react-icons/fi";
 import { TableSkeleton } from "../Components/LoadingSkeletons";
 import { validateNumberInput } from "../lib/formValidation";
+import { Button, Inputfield } from "../UI";
 
 const getDaysInMonth = (year, monthIndex) =>
   new Date(year, monthIndex + 1, 0).getDate();
@@ -327,13 +328,13 @@ function SuperAdminDashboard() {
             </p>
           </div>
 
-          <button
+          <Button
             onClick={handleLogout}
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-700 px-4 py-3 text-sm font-semibold text-white hover:bg-teal-600 transition shadow-md"
           >
             <FiLogOut />
             Logout
-          </button>
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -386,7 +387,7 @@ function SuperAdminDashboard() {
             </div>
 
             <div className="relative md:w-96">
-              <input
+              <Inputfield
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -467,21 +468,21 @@ function SuperAdminDashboard() {
                         </td>
                         <td className="px-5 py-4">
                           <div className="flex flex-wrap justify-end gap-2">
-                            <button
+                            <Button
                               onClick={() => openHistoryModal(admin)}
                               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-slate-700 text-white hover:bg-slate-600 transition"
                             >
                               <FiFileText />
                               History
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                               onClick={() => openPaymentModal(admin)}
                               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-sky-600 text-white hover:bg-sky-500 transition"
                             >
                               <FiCreditCard />
                               Add Payment
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                               onClick={() => toggleAdmin(admin.id)}
                               className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
                                 isActive
@@ -490,7 +491,7 @@ function SuperAdminDashboard() {
                               }`}
                             >
                               {isActive ? "Deactivate" : "Activate"}
-                            </button>
+                            </Button>
                           </div>
                         </td>
                       </tr>
@@ -516,14 +517,14 @@ function SuperAdminDashboard() {
                 </h3>
                 <p className="text-sm text-slate-500">{getCurrentMonthKey()}</p>
               </div>
-              <button
+              <Button
                 type="button"
                 onClick={closePaymentModal}
                 className="rounded-lg px-3 py-2 text-slate-500 hover:bg-slate-100"
                 disabled={submittingPayment}
               >
                 X
-              </button>
+              </Button>
             </div>
 
             <form onSubmit={submitPayment} className="space-y-4">
@@ -531,7 +532,7 @@ function SuperAdminDashboard() {
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   Amount
                 </label>
-                <input
+                <Inputfield
                   type="number"
                   min="0"
                   step="0.01"
@@ -565,22 +566,22 @@ function SuperAdminDashboard() {
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">
-                <button
+                <Button
                   type="button"
                   onClick={closePaymentModal}
                   className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                   disabled={submittingPayment}
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   className="inline-flex items-center gap-2 rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-600 disabled:opacity-60"
                   disabled={submittingPayment}
                 >
                   <FiCheckCircle />
                   {submittingPayment ? "Saving..." : "Save Payment"}
-                </button>
+                </Button>
               </div>
             </form>
           </div>
@@ -602,13 +603,13 @@ function SuperAdminDashboard() {
                   {historyModal.admin.email}
                 </p>
               </div>
-              <button
+              <Button
                 type="button"
                 onClick={closeHistoryModal}
                 className="rounded-lg px-3 py-2 text-slate-500 hover:bg-slate-100"
               >
                 X
-              </button>
+              </Button>
             </div>
 
             <div className="mb-4 rounded-2xl bg-slate-50 border border-slate-200 p-4">

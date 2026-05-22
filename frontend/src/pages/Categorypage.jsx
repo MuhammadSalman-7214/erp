@@ -12,12 +12,12 @@ import {
 } from "../features/categorySlice";
 import toast from "react-hot-toast";
 import NoData from "../Components/NoData";
-import { Popconfirm } from "antd";
 import DrawerPanel from "../Components/DrawerPanel";
 import LoadingButton from "../Components/LoadingButton";
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
 import { validateTextInput } from "../lib/formValidation";
+import { Button, ConfirmDialog, Inputfield } from "../UI";
 
 function Categorypage() {
   const { getallCategory, searchdata } = useSelector((state) => state.category);
@@ -160,15 +160,15 @@ function Categorypage() {
       </div>
 
       <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">
-        <input
+        <Inputfield
           type="text"
           value={query}
           onChange={(e) => setquery(e.target.value)}
           placeholder="Search the category"
           maxLength={120}
-          className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+          className="w-full md:w-96"
         />
-        <button
+        <Button
           onClick={() => {
             openForm();
           }}
@@ -176,7 +176,7 @@ function Categorypage() {
         >
           <IoMdAdd className="text-xl mr-2" />
           Create Category
-        </button>
+        </Button>
       </div>
       {/* OVERLAY */}
       <DrawerPanel
@@ -193,7 +193,7 @@ function Categorypage() {
               <label className="text-sm font-medium text-slate-700">
                 Category Name
               </label>
-              <input
+              <Inputfield
                 value={name}
                 placeholder="Enter category name"
                 onChange={(e) => {
@@ -218,7 +218,7 @@ function Categorypage() {
                 }
                 type="text"
                 maxLength={80}
-                className="mt-2 w-full rounded-xl border border-gray-300 px-4 h-11 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500"
+                className="mt-2 w-full"
                 required
               />
               {errors.name && (
@@ -282,7 +282,7 @@ function Categorypage() {
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-2">
-                          <Popconfirm
+                          <ConfirmDialog
                             title={
                               <div className="flex flex-col gap-1 max-w-xs">
                                 <span className="font-semibold text-red-600 text-sm">
@@ -307,7 +307,7 @@ function Categorypage() {
                             placement="topRight"
                             onConfirm={() => handleremove(Category.id)}
                           >
-                            <button
+                            <Button
                               className="
       p-2 rounded-xl
       bg-slate-100
@@ -319,10 +319,10 @@ function Categorypage() {
                               title="Delete Category"
                             >
                               <MdDelete size={18} />
-                            </button>
-                          </Popconfirm>
+                            </Button>
+                          </ConfirmDialog>
 
-                          <button
+                          <Button
                             onClick={() => {
                               openForm(Category);
                             }}
@@ -330,7 +330,7 @@ function Categorypage() {
                             title="Edit"
                           >
                             <MdEdit size={18} />
-                          </button>
+                          </Button>
                         </div>
                       </td>
                     </tr>

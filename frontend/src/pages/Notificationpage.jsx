@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import TopNavbar from "../Components/TopNavbar";
 import { IoMdAdd } from "react-icons/io";
 import { MdDelete } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
@@ -16,6 +15,7 @@ import NoData from "../Components/NoData";
 import { ListSkeleton } from "../Components/LoadingSkeletons";
 import DrawerPanel from "../Components/DrawerPanel";
 import { validateTextInput } from "../lib/formValidation";
+import { Button, Inputfield, Textarea } from "../UI";
 
 function NotificationPage() {
   const dispatch = useDispatch();
@@ -26,7 +26,7 @@ function NotificationPage() {
   const [errors, setErrors] = useState({});
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
-  const [socket, setSocket] = useState(null);
+  const [, setSocket] = useState(null);
 
   useEffect(() => {
     const newSocket = io(
@@ -55,12 +55,12 @@ function NotificationPage() {
               <p className="font-medium">{newNotification.name}</p>
               <p className="text-sm text-gray-600">{newNotification.type}</p>
             </div>
-            <button
+            <Button
               onClick={() => toast.dismiss(t.id)}
               className="ml-4 text-gray-500 hover:text-gray-700"
             >
               &times;
-            </button>
+            </Button>
           </div>
         ),
         {
@@ -127,7 +127,7 @@ function NotificationPage() {
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
       <div className="flex justify-end items-center">
-        <button
+        <Button
           onClick={() => {
             setIsDrawerMinimized(false);
             setIsFormVisible(true);
@@ -135,7 +135,7 @@ function NotificationPage() {
           className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
         >
           <IoMdAdd className="text-xl mr-2" /> Add Notification
-        </button>
+        </Button>
       </div>
 
       <DrawerPanel
@@ -153,7 +153,7 @@ function NotificationPage() {
           <form onSubmit={submitNotification}>
             <div className="mb-4">
               <label className="block font-medium">Title</label>
-              <input
+              <Inputfield
                 value={name}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -176,7 +176,7 @@ function NotificationPage() {
                   )
                 }
                 type="text"
-                className="mt-2 w-full rounded-lg border px-3 h-10"
+                className="mt-2 w-full"
                 placeholder="Enter title"
                 required
                 maxLength={120}
@@ -186,7 +186,7 @@ function NotificationPage() {
 
             <div className="mb-4">
               <label className="block font-medium">Type</label>
-              <textarea
+              <Textarea
                 value={type}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -208,7 +208,7 @@ function NotificationPage() {
                     }),
                   )
                 }
-                className="mt-2 h-24 w-full rounded-lg border px-3"
+                className="mt-2 h-24 w-full"
                 placeholder="Enter type"
                 required
                 maxLength={240}
@@ -216,12 +216,12 @@ function NotificationPage() {
               {errors.type && <p className="mt-1 text-sm text-red-500">{errors.type}</p>}
             </div>
 
-            <button
+            <Button
               type="submit"
               className="mt-4 h-12 w-full rounded-lg bg-teal-800 text-white hover:bg-teal-700"
             >
               Add Notification
-            </button>
+            </Button>
           </form>
         </div>
       </DrawerPanel>
@@ -252,13 +252,13 @@ function NotificationPage() {
                 </p>
               </div>
 
-              <button
+              <Button
                 onClick={() => dispatch(deleteNotification(notification.id))}
                 className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition"
                 title="Delete"
               >
                 <MdDelete size={20} />
-              </button>
+              </Button>
             </div>
           ))
         ) : (

@@ -16,6 +16,7 @@ import {
   Clock,
 } from "lucide-react";
 import { formatDateLabel } from "../lib/dateFormat";
+import { Button } from "../UI";
 
 function Dashboardpage() {
   const navigate = useNavigate();

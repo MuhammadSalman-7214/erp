@@ -12,6 +12,7 @@ import {
   validateNumberInput,
   validateTextInput,
 } from "../lib/formValidation";
+import { Button, Inputfield, SelectDropdown } from "../UI";
 
 const getLocalDateInputValue = (date = new Date()) => {
   const offsetMinutes = date.getTimezoneOffset();
@@ -302,7 +303,7 @@ function PaymentsPage() {
         >
           <div>
             <label className="text-sm font-medium">Type</label>
-            <select
+            <SelectDropdown
               value={type}
               onChange={(e) => {
                 const value = e.target.value;
@@ -318,13 +319,13 @@ function PaymentsPage() {
             >
               <option value="received">Receive</option>
               <option value="paid">Pay</option>
-            </select>
+            </SelectDropdown>
             {errors.type && <p className="mt-1 text-sm text-red-500">{errors.type}</p>}
           </div>
 
           <div>
             <label className="text-sm font-medium">Method</label>
-            <select
+            <SelectDropdown
               value={method}
               onChange={(e) => {
                 const value = e.target.value;
@@ -344,13 +345,13 @@ function PaymentsPage() {
               <option value="upi">UPI</option>
               <option value="paypal">PayPal</option>
               <option value="other">Other</option>
-            </select>
+            </SelectDropdown>
             {errors.method && <p className="mt-1 text-sm text-red-500">{errors.method}</p>}
           </div>
 
           <div>
             <label className="text-sm font-medium">Date</label>
-            <input
+            <Inputfield
               type="date"
               value={paidAt}
               onChange={(e) => {
@@ -372,7 +373,7 @@ function PaymentsPage() {
 
           <div>
             <label className="text-sm font-medium">Amount</label>
-            <input
+            <Inputfield
               type="number"
               value={amount}
               onChange={(e) => {
@@ -403,7 +404,7 @@ function PaymentsPage() {
 
           <div>
             <label className="text-sm font-medium">Description</label>
-            <input
+            <Inputfield
               type="text"
               value={description}
               onChange={(e) => {
@@ -437,7 +438,7 @@ function PaymentsPage() {
             <>
               <div className="relative">
                 <label className="text-sm font-medium">Customer</label>
-              <input
+              <Inputfield
                 type="text"
                 value={customerQuery}
                 onChange={(e) => {
@@ -481,7 +482,7 @@ function PaymentsPage() {
                 {showCustomerOptions && filteredCustomers.length > 0 && (
                   <div className="absolute z-50 mt-1 w-full max-h-56 overflow-auto rounded-lg border bg-white shadow">
                     {filteredCustomers.map((customer) => (
-                      <button
+                      <Button
                         key={getId(customer)}
                         type="button"
                         className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 ${
@@ -499,7 +500,7 @@ function PaymentsPage() {
                         {customer.customerCode
                           ? ` (${customer.customerCode})`
                           : ""}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 )}
@@ -508,7 +509,7 @@ function PaymentsPage() {
           ) : (
             <div className="relative">
               <label className="text-sm font-medium">Vendor</label>
-              <input
+              <Inputfield
                 type="text"
                 value={vendorQuery}
                 onChange={(e) => {
@@ -552,7 +553,7 @@ function PaymentsPage() {
               {showVendorOptions && filteredVendors.length > 0 && (
                 <div className="absolute z-50 mt-1 w-full max-h-56 overflow-auto rounded-lg border bg-white shadow">
                   {filteredVendors.map((vendor) => (
-                    <button
+                    <Button
                       key={getId(vendor)}
                       type="button"
                       className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 ${
@@ -568,7 +569,7 @@ function PaymentsPage() {
                     >
                       {vendor.name}
                       {vendor.vendorCode ? ` (${vendor.vendorCode})` : ""}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               )}

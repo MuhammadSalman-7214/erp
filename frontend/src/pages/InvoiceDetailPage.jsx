@@ -10,6 +10,7 @@ import {
   buildInvoicePrintHtml,
   combineInvoicePagesHtml,
 } from "../lib/invoicePrintTemplate";
+import { Button } from "../UI";
 import { PreviewSkeleton } from "../Components/LoadingSkeletons";
 
 const sanitizeFileName = (value) =>
@@ -362,34 +363,34 @@ function InvoiceDetailPage() {
     <div className="p-6 max-w-5xl mx-auto">
       {/* ACTION BAR (outside invoice) */}
       <div className="flex justify-between items-center mb-4 print:hidden">
-        <button
+        <Button
           onClick={() => navigate("/invoices")}
           className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
         >
           ← Back
-        </button>
+        </Button>
 
         <div className="flex gap-2">
-          <button
+          <Button
             onClick={() => navigate(`/editInvoice/${invoice.id}`)}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             Edit
-          </button>
+          </Button>
 
-          <button
+          <Button
             onClick={printInvoice}
             className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
           >
             Print Invoice
-          </button>
+          </Button>
 
-          <button
+          <Button
             onClick={downloadInvoice}
             className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
           >
             Download Invoice
-          </button>
+          </Button>
         </div>
       </div>
 

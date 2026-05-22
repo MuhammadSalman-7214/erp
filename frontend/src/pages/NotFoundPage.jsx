@@ -1,9 +1,7 @@
-import { Link, useLocation } from "react-router-dom";
 import { AlertTriangle } from "lucide-react";
+import { Button } from "../UI";
 
 export default function NotFoundPage() {
-  const location = useLocation();
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
       <div className="max-w-md w-full text-center bg-white shadow-xl rounded-2xl p-8">
@@ -20,19 +18,19 @@ export default function NotFoundPage() {
         </p>
 
         <div className="mt-6 flex justify-center gap-4">
-          <Link
-            to="/"
+          <Button
+            onClick={() => (window.location.href = "/")}
             className="px-5 py-2 rounded-xl bg-teal-800 text-white hover:bg-teal-700 transition"
           >
             Go Home
-          </Link>
+          </Button>
 
-          <button
+          <Button
             onClick={() => window.history.back()}
             className="px-5 py-2 rounded-xl border border-gray-300 hover:bg-gray-100 transition text-teal-800"
           >
             Go Back
-          </button>
+          </Button>
         </div>
       </div>
     </div>

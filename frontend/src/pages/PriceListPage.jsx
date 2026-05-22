@@ -3,7 +3,6 @@ import { MdDelete, MdEdit } from "react-icons/md";
 import { IoMdAdd } from "react-icons/io";
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
-import { Popconfirm } from "antd";
 import toast from "react-hot-toast";
 import { useDispatch, useSelector } from "react-redux";
 import NoData from "../Components/NoData";
@@ -18,6 +17,7 @@ import {
 } from "../features/priceListSlice";
 import { sortByDateValue } from "../lib/dateFormat";
 import { validateNumberInput, validateTextInput } from "../lib/formValidation";
+import { Button, ConfirmDialog, Inputfield } from "../UI";
 
 const sanitizeFileName = (value) =>
   String(value || "price_list")
@@ -252,13 +252,13 @@ function PriceListPage() {
             Add product name and price to the separate price list.
           </p>
         </div>
-        <button
+        <Button
           type="button"
           onClick={downloadPdf}
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 h-10 text-white shadow-md transition hover:bg-slate-800"
         >
           Download PDF
-        </button>
+        </Button>
       </div>
 
       <div className="mt-4 bg-white rounded-2xl shadow-sm border overflow-hidden p-4">
@@ -266,7 +266,7 @@ function PriceListPage() {
           onSubmit={handleSubmit}
           className="grid grid-cols-1 gap-3 lg:grid-cols-[1.5fr_0.7fr_0.8fr_auto]"
         >
-          <input
+          <Inputfield
             type="text"
             value={productName}
             onChange={(e) => {
@@ -297,7 +297,7 @@ function PriceListPage() {
           {errors.productName && (
             <p className="text-red-500 text-sm -mt-1">{errors.productName}</p>
           )}
-          <input
+          <Inputfield
             type="text"
             value={size}
             onChange={(e) => {
@@ -328,7 +328,7 @@ function PriceListPage() {
           {errors.size && (
             <p className="text-red-500 text-sm -mt-1">{errors.size}</p>
           )}
-          <input
+          <Inputfield
             type="number"
             min="0"
             step="0.01"
@@ -368,19 +368,19 @@ function PriceListPage() {
               {selectedItem ? "Update" : "Save"}
             </LoadingButton>
             {selectedItem ? (
-              <button
+              <Button
                 type="button"
                 onClick={resetForm}
                 className="h-10 rounded-xl border border-slate-300 px-4 font-medium text-slate-700 transition hover:bg-slate-50"
               >
                 Cancel
-              </button>
+              </Button>
             ) : null}
           </div>
         </form>
 
         <div className="mt-4">
-          <input
+          <Inputfield
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -438,15 +438,15 @@ function PriceListPage() {
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-2">
-                          <button
+                          <Button
                             type="button"
                             onClick={() => handleEdit(item)}
                             className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
                             title="Edit"
                           >
                             <MdEdit size={18} />
-                          </button>
-                          <Popconfirm
+                          </Button>
+                          <ConfirmDialog
                             title="Delete price item?"
                             description="This will permanently remove this price entry."
                             okText="Delete"
@@ -454,15 +454,15 @@ function PriceListPage() {
                             okButtonProps={{ danger: true }}
                             onConfirm={() => handleDelete(item.id)}
                           >
-                            <button
+                            <Button
                               type="button"
                               disabled={deleting}
                               className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition-all duration-200 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-70"
                               title="Delete"
                             >
                               <MdDelete size={18} />
-                            </button>
-                          </Popconfirm>
+                            </Button>
+                          </ConfirmDialog>
                         </div>
                       </td>
                     </tr>

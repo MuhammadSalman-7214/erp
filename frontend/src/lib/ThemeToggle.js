@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { LuMoon } from "react-icons/lu";
 import { IoIosSunny } from "react-icons/io";
+import { Button } from "../UI";
 
 
 
@@ -19,9 +20,9 @@ const ThemeToggle = () => {
   };
 
   return (
-    <button onClick={toggleTheme} >
+    <Button type="button" onClick={toggleTheme} aria-label="Toggle theme">
       {theme === "light" ? <LuMoon className="text-3xl" /> :<IoIosSunny  className="text-3xl text-orange-500"/>}
-    </button>
+    </Button>
   );
 };
 

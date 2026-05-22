@@ -5,13 +5,13 @@ import { MdDelete, MdEdit } from "react-icons/md";
 import { PiUsersBold } from "react-icons/pi";
 import { useDispatch, useSelector } from "react-redux";
 import toast from "react-hot-toast";
-import { Popconfirm } from "antd";
 import NoData from "../Components/NoData";
 import DrawerPanel from "../Components/DrawerPanel";
 import LoadingButton from "../Components/LoadingButton";
 import axiosInstance from "../lib/axios";
 import { FaMoneyBill1Wave } from "react-icons/fa6";
 import { validatePhoneInput, validateTextInput } from "../lib/formValidation";
+import { Button, ConfirmDialog, Inputfield, SelectDropdown } from "../UI";
 import { useRolePermissions } from "../hooks/useRolePermissions";
 import {
   createCustomer,
@@ -341,7 +341,7 @@ function Customerpage({ readOnly = false }) {
       </div>
 
       <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">
-        <input
+        <Inputfield
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -349,7 +349,7 @@ function Customerpage({ readOnly = false }) {
           className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="Search customer..."
         />
-        <select
+        <SelectDropdown
           value={amountFilter}
           onChange={(e) => setAmountFilter(e.target.value)}
           className="w-full md:w-64 h-10 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
@@ -358,17 +358,17 @@ function Customerpage({ readOnly = false }) {
           <option value="total">Total Amount</option>
           <option value="collected">Collected Amount</option>
           <option value="remaining">Remaining Amount</option>
-        </select>
+        </SelectDropdown>
 
         {canWrite && (
-          <button
+          <Button
             onClick={() => {
               openForm();
             }}
             className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
           >
             <IoMdAdd className="text-xl mr-2" /> Create Customer
-          </button>
+          </Button>
         )}
         {isReadOnlyMode && (
           <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-2 rounded">
@@ -390,7 +390,7 @@ function Customerpage({ readOnly = false }) {
             onSubmit={selectedCustomer ? handleEditSubmit : submitCustomer}
             className="space-y-4"
           >
-            <input
+            <Inputfield
               type="text"
               value={name}
               onChange={(e) => {
@@ -421,7 +421,7 @@ function Customerpage({ readOnly = false }) {
             {errors.name && (
               <p className="text-red-500 text-sm">{errors.name}</p>
             )}
-            <input
+            <Inputfield
               type="text"
               value={phone}
               onChange={(e) => {
@@ -444,7 +444,7 @@ function Customerpage({ readOnly = false }) {
             {errors.phone && (
               <p className="text-red-500 text-sm">{errors.phone}</p>
             )}
-            <input
+            <Inputfield
               type="text"
               value={address}
               onChange={(e) => {
@@ -531,32 +531,32 @@ function Customerpage({ readOnly = false }) {
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-2">
-                          <button
+                          <Button
                             onClick={() => handleViewCustomer(getId(customer))}
                             className="p-2 rounded-lg bg-slate-100 hover:bg-teal-100 text-emerald-700 transition"
                           >
                             <IoMdEye size={18} />
-                          </button>
+                          </Button>
                           {canWrite && (
-                            <button
+                            <Button
                               onClick={() => handleEditClick(customer)}
                               className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
                             >
                               <MdEdit size={18} />
-                            </button>
+                            </Button>
                           )}
                           {canDelete && (
-                            <Popconfirm
+                            <ConfirmDialog
                               title="Delete Customer"
                               description="Are you sure to delete this customer?"
                               okText="Delete"
                               cancelText="Cancel"
                               onConfirm={() => handleRemove(getId(customer))}
                             >
-                              <button className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition">
+                              <Button className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition">
                                 <MdDelete size={18} />
-                              </button>
-                            </Popconfirm>
+                              </Button>
+                            </ConfirmDialog>
                           )}
                         </div>
                       </td>

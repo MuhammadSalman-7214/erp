@@ -204,157 +204,7 @@ function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-base-100 flex bg-gray-50">
-      <div className="w-full sm:w-1/2 p-6 flex items-center justify-center bg-white shadow-lg rounded-xl">
-        <div className="max-w-md w-full">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-teal-900">InventorySouq</h1>
-            <p className="text-gray-600">by DevSouq Technologies</p>
-          </div>
-
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="mb-6">
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Email
-              </label>
-              <input
-                type="email"
-                {...register("email")}
-                autoCapitalize="off"
-                autoCorrect="off"
-                spellCheck={false}
-                style={{ textTransform: "none" }}
-                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 !normal-case"
-                placeholder="you@example.com"
-              />
-              {errors.email && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.email.message}
-                </p>
-              )}
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  {...register("password")}
-                  autoCapitalize="off"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  style={{ textTransform: "none" }}
-                  className="w-full p-3 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 !normal-case"
-                  placeholder="Enter your password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-teal-600"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? (
-                    <IoEyeOutline size={20} />
-                  ) : (
-                    <IoEyeOffOutline size={20} />
-                  )}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.password.message}
-                </p>
-              )}
-            </div>
-
-            {isOtpStep && (
-              <div className="mb-6">
-                <div className="rounded-md border border-teal-200 bg-teal-50 px-4 py-3 mb-4">
-                  <p className="text-sm text-gray-700 font-medium">
-                    One time OTP sent to your email{" "}
-                    <span className="text-teal-700">
-                      {otpSession?.maskedEmail || otpSession?.email}
-                    </span>
-                  </p>
-                </div>
-
-                <div className="flex justify-between">
-                  <label className="block text-gray-700 text-sm font-medium mb-2">
-                    OTP
-                  </label>
-                  <span className="text-sm font-semibold text-red-600">
-                    {secondsLeft <= 0 ? "Expired" : `${secondsLeft}s`}
-                  </span>
-                </div>
-                <input
-                  type="text"
-                  value={otp}
-                  onChange={(e) =>
-                    setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
-                  }
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  placeholder="Enter 6-digit OTP"
-                  className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-center tracking-[0.35em] !normal-case"
-                />
-              </div>
-            )}
-
-            {/* <div className="flex items-center mb-6">
-              <input type="checkbox" id="terms" className="mr-2" />
-              <label htmlFor="terms" className="text-gray-600 text-sm">
-                Agree on terms and conditions
-              </label>
-            </div> */}
-
-            <button
-              type="submit"
-              className="w-full bg-teal-600 text-white p-3 rounded-md hover:bg-teal-700 transition duration-300 disabled:cursor-not-allowed disabled:opacity-70"
-              disabled={
-                isLoginLoading ||
-                isOtpVerifying ||
-                (isOtpStep && secondsLeft <= 0)
-              }
-            >
-              {isOtpStep
-                ? isOtpVerifying
-                  ? "Verifying OTP..."
-                  : "Verify and continue"
-                : isLoginLoading
-                  ? isOtpBypassEmail
-                    ? "Logging in..."
-                    : "Getting OTP..."
-                  : isOtpBypassEmail
-                    ? "Login"
-                    : "Get OTP"}
-            </button>
-
-            <div className="mt-3 text-right">
-              <Link
-                to="/forgot-password"
-                className="text-sm text-teal-700 hover:underline"
-              >
-                Forgot password?
-              </Link>
-            </div>
-          </form>
-
-          {/* <div className="text-center mt-6">
-            <p>
-              Don't have an account?{" "}
-              <Link
-                to="/signup"
-                className="text-teal-600 text-sm hover:underline"
-              >
-                Click here
-              </Link>
-            </p>
-          </div> */}
-        </div>
-      </div>
-
+    <div className="min-h-screen bg-base-100 flex bg-gray-50 bg-teal-900 ">
       {/* RIGHT SIDE – Professional Info Panel with Dark Teal BG */}
       <div className="hidden sm:flex w-1/2 bg-teal-900 px-12 py-16 items-center mx-auto justify-center">
         <div className="max-w-md space-y-8">
@@ -415,6 +265,163 @@ function LoginPage() {
             reserved.
           </p>
         </div>
+      </div>
+
+      <div className="w-full sm:w-1/2 p-6 flex items-center justify-center bg-white shadow-lg rounded-bl-[400px]">
+        <div className="max-w-md w-full">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-teal-900">InventorySouq</h1>
+            <p className="text-gray-600">by DevSouq Technologies</p>
+          </div>
+
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <div className="mb-6">
+              <label
+                htmlFor="email"
+                className="block text-gray-700 text-sm font-medium mb-2"
+              >
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                {...register("email")}
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck={false}
+                style={{ textTransform: "none" }}
+                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 !normal-case"
+                placeholder="you@example.com"
+              />
+              {errors.email && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.email.message}
+                </p>
+              )}
+            </div>
+
+            <div className="mb-6">
+              <label
+                htmlFor="password"
+                className="block text-gray-700 text-sm font-medium mb-2"
+              >
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  {...register("password")}
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  style={{ textTransform: "none" }}
+                  className="w-full p-3 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 !normal-case"
+                  placeholder="Enter your password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-teal-600"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <IoEyeOutline size={20} />
+                  ) : (
+                    <IoEyeOffOutline size={20} />
+                  )}
+                </button>
+              </div>
+              {errors.password && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.password.message}
+                </p>
+              )}
+            </div>
+
+            {isOtpStep && (
+              <div className="mb-6">
+                <div className="rounded-md border border-teal-200 bg-teal-50 px-4 py-3 mb-4">
+                  <p className="text-sm text-gray-700 font-medium">
+                    One time OTP sent to your email{" "}
+                    <span className="text-teal-700">
+                      {otpSession?.maskedEmail || otpSession?.email}
+                    </span>
+                  </p>
+                </div>
+
+                <div className="flex justify-between">
+                  <label className="block text-gray-700 text-sm font-medium mb-2">
+                    OTP
+                  </label>
+                  <span className="text-sm font-semibold text-red-600">
+                    {secondsLeft <= 0 ? "Expired" : `${secondsLeft}s`}
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  value={otp}
+                  onChange={(e) =>
+                    setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                  }
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  placeholder="Enter 6-digit OTP"
+                  style={{ textTransform: "none" }}
+                  className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-center tracking-[0.35em] !normal-case"
+                />
+              </div>
+            )}
+
+            {/* <div className="flex items-center mb-6">
+              <input type="checkbox" id="terms" className="mr-2" />
+              <label htmlFor="terms" className="text-gray-600 text-sm">
+                Agree on terms and conditions
+              </label>
+            </div> */}
+
+            <button
+              type="submit"
+              className="w-full bg-teal-600 text-white p-3 rounded-md hover:bg-teal-700 transition duration-300 disabled:cursor-not-allowed disabled:opacity-70"
+              disabled={
+                isLoginLoading ||
+                isOtpVerifying ||
+                (isOtpStep && secondsLeft <= 0)
+              }
+            >
+              {isOtpStep
+                ? isOtpVerifying
+                  ? "Verifying OTP..."
+                  : "Verify and continue"
+                : isLoginLoading
+                  ? isOtpBypassEmail
+                    ? "Logging in..."
+                    : "Getting OTP..."
+                  : isOtpBypassEmail
+                    ? "Login"
+                    : "Get OTP"}
+            </button>
+
+            <div className="mt-3 text-right">
+              <Link
+                to="/forgot-password"
+                className="text-sm text-teal-700 hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
+          </form>
+        </div>
+        {/* <div className="px-2 pb-2">
+          <a
+            href="https://devsouq.com/"
+            target="_blank"
+            rel="noreferrer"
+            className="flex w-[300px] items-center justify-center rounded-md border border-teal-100 bg-teal-50 px-2 py-1 text-[11px] font-medium text-teal-700 transition hover:bg-teal-100 hover:text-teal-800"
+          >
+            Powered by DevSouq Technologies
+          </a>
+        </div> */}
       </div>
     </div>
   );

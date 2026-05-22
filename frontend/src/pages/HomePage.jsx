@@ -1,13 +1,16 @@
 import { FaArrowRightLong } from "react-icons/fa6";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   FiBox,
   FiFileText,
   FiTrendingUp,
   FiShoppingCart,
 } from "react-icons/fi";
+import { Button } from "../UI";
 
 function HomePage() {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen bg-slate-50 flex justify-center item-center px-4 sm:px-6 md:px-10 lg:px-16 py-10">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12 items-center">
@@ -24,19 +27,23 @@ function HomePage() {
           </p>
 
           <div className="flex flex-col gap-4">
-            <Link to="/login">
-              <button className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 sm:py-4 px-6 rounded-xl transition flex items-center justify-between">
-                <span>Sign In To Your Account</span>
-                <FaArrowRightLong />
-              </button>
-            </Link>
+            <Button
+              type="button"
+              onClick={() => navigate("/login")}
+              className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 sm:py-4 px-6 rounded-xl transition flex items-center justify-between"
+            >
+              <span>Sign In To Your Account</span>
+              <FaArrowRightLong />
+            </Button>
 
-            <Link to="/signup">
-              <button className="w-full bg-white hover:bg-slate-100 text-teal-700 font-semibold py-3 sm:py-4 px-6 rounded-xl border border-slate-200 transition flex items-center justify-between">
-                <span>Create New Account</span>
-                <FaArrowRightLong />
-              </button>
-            </Link>
+            <Button
+              type="button"
+              onClick={() => navigate("/signup")}
+              className="w-full bg-white hover:bg-slate-100 text-teal-700 font-semibold py-3 sm:py-4 px-6 rounded-xl border border-slate-200 transition flex items-center justify-between"
+            >
+              <span>Create New Account</span>
+              <FaArrowRightLong />
+            </Button>
           </div>
         </div>
 

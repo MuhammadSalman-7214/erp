@@ -5,10 +5,10 @@ import axiosInstance from "../lib/axios";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import NoData from "../Components/NoData";
-import { Popconfirm } from "antd";
 import { TableSkeleton } from "../Components/LoadingSkeletons";
 import DateSortHeader from "../Components/DateSortHeader";
 import { formatDateLabel, sortByDateValue } from "../lib/dateFormat";
+import { Button, ConfirmDialog, Inputfield, SelectDropdown } from "../UI";
 
 function InvoicesPage() {
   const [invoices, setInvoices] = useState([]);
@@ -78,30 +78,31 @@ function InvoicesPage() {
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
       <div className="flex flex-col md:flex-row md:items-center gap-2">
-        <input
+        <Inputfield
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+          className="w-full md:w-96"
           placeholder="Search invoice..."
         />
-        <select
+        <SelectDropdown
           value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
-          className="w-full md:w-56 h-10 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white"
-        >
-          <option value="all">All Types</option>
-          <option value="sales">Sales</option>
-          <option value="purchase">Purchase</option>
-        </select>
+          onChange={(value) => setTypeFilter(value)}
+          className="w-full md:w-56"
+          options={[
+            { value: "all", label: "All Types" },
+            { value: "sales", label: "Sales" },
+            { value: "purchase", label: "Purchase" },
+          ]}
+        />
 
-        <button
+        <Button
           onClick={() => navigate("/createInvoice")}
           className="bg-teal-800 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
         >
           <IoMdAdd size={18} />
           Create Invoice
-        </button>
+        </Button>
       </div>
       {/* Card */}
       <div className="mt-4 bg-white rounded-2xl shadow-sm border overflow-hidden">
@@ -183,22 +184,22 @@ function InvoicesPage() {
 
                     <td className="px-5 py-4">
                       <div className="flex justify-end gap-2">
-                        <button
+                        <Button
                           onClick={() => navigate(`/invoice/${inv.id}`)}
                           className="p-2 rounded-lg bg-slate-100 hover:bg-teal-100 text-teal-600 transition"
                           title="View"
                         >
                           <MdVisibility size={18} />
-                        </button>
+                        </Button>
 
-                        <button
+                        <Button
                           onClick={() => navigate(`/editInvoice/${inv.id}`)}
                           className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
                           title="Edit"
                         >
                           <MdEdit size={18} />
-                        </button>
-                        <Popconfirm
+                        </Button>
+                        <ConfirmDialog
                           title={
                             <div className="flex flex-col gap-1 max-w-xs">
                               <span className="font-semibold text-red-600 text-sm">
@@ -223,7 +224,7 @@ function InvoicesPage() {
                           placement="topRight"
                           onConfirm={() => deleteInvoice(inv.id)}
                         >
-                          <button
+                          <Button
                             className="
       p-2 rounded-lg
       bg-slate-100
@@ -235,8 +236,8 @@ function InvoicesPage() {
                             title="Delete Invoice"
                           >
                             <MdDelete size={18} />
-                          </button>
-                        </Popconfirm>
+                          </Button>
+                        </ConfirmDialog>
                       </div>
                     </td>
                   </tr>

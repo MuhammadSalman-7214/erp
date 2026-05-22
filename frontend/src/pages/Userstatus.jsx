@@ -13,6 +13,7 @@ import {
 } from "../features/authSlice";
 import toast from "react-hot-toast";
 import UserRoleChart from "../lib/Usersgraph";
+import { Button } from "../UI";
 
 function Userstatus() {
   const { staffuser, manageruser, adminuser } = useSelector(
@@ -63,13 +64,13 @@ function Userstatus() {
                     </div>
                   </div>
 
-                  <button
+                  <Button
                     onClick={() => handleremove(user.id)}
                     className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition"
                     title="Delete"
                   >
                     <MdDelete size={18} />
-                  </button>
+                  </Button>
                 </div>
               ))
             ) : (
@@ -100,13 +101,13 @@ function Userstatus() {
                     </div>
                   </div>
 
-                  <button
+                  <Button
                     onClick={() => handleremove(user.id)}
                     className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition"
                     title="Delete"
                   >
                     <MdDelete size={18} />
-                  </button>
+                  </Button>
                 </div>
               ))
             ) : (
@@ -135,13 +136,13 @@ function Userstatus() {
                       <p className=" bg-base-100 text-sm">{user.email}</p>
                     </div>
                   </div>
-                  <button
+                  <Button
                     onClick={() => handleremove(user.id)}
                     className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition"
                     title="Delete"
                   >
                     <MdDelete size={18} />
-                  </button>
+                  </Button>
                 </div>
               ))
             ) : (

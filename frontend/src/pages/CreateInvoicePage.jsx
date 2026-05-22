@@ -12,6 +12,7 @@ import {
   validateNumberInput,
   validateTextInput,
 } from "../lib/formValidation";
+import { Button, Inputfield, SelectDropdown, Textarea } from "../UI";
 
 function CreateInvoicePage() {
   const navigate = useNavigate();
@@ -190,7 +191,7 @@ function CreateInvoicePage() {
               <label className="block mb-2 text-gray-700 font-medium">
                 Invoice Number
               </label>
-              <input
+              <Inputfield
                 value="Auto-generated"
                 disabled
                 className="w-full border border-gray-300 p-3 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -201,7 +202,7 @@ function CreateInvoicePage() {
               <label className="block mb-2 text-gray-700 font-medium">
                 Due Date
               </label>
-              <input
+              <Inputfield
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
@@ -215,14 +216,14 @@ function CreateInvoicePage() {
               <label className="block mb-2 text-gray-700 font-medium">
                 Invoice Type
               </label>
-              <select
+              <SelectDropdown
                 value={invoiceType}
                 onChange={(e) => setInvoiceType(e.target.value)}
                 className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               >
                 <option value="sales">Sales</option>
                 <option value="purchase">Purchase</option>
-              </select>
+              </SelectDropdown>
             </div>
           </div>
 
@@ -232,7 +233,7 @@ function CreateInvoicePage() {
                 Customer
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <select
+                <SelectDropdown
                   value={customerId}
                   onChange={(e) => setCustomerId(e.target.value)}
                   className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 md:col-span-2"
@@ -246,7 +247,7 @@ function CreateInvoicePage() {
                         : ""}
                     </option>
                   ))}
-                </select>
+                </SelectDropdown>
               </div>
             </>
           ) : (
@@ -255,7 +256,7 @@ function CreateInvoicePage() {
                 Vendor
               </h2>
               <div className="mb-6">
-                <select
+                <SelectDropdown
                   value={vendorId}
                   onChange={(e) => setVendorId(e.target.value)}
                   className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -266,7 +267,7 @@ function CreateInvoicePage() {
                       {vendor.name}
                     </option>
                   ))}
-                </select>
+                </SelectDropdown>
               </div>
             </>
           )}
@@ -279,7 +280,7 @@ function CreateInvoicePage() {
                 key={idx}
                 className="grid grid-cols-12 gap-2 items-center bg-gray-50 p-3 rounded-lg"
               >
-                <input
+                <Inputfield
                   type="text"
                   value={item.name}
                   placeholder="Item Name"
@@ -289,7 +290,7 @@ function CreateInvoicePage() {
                   maxLength={120}
                   className="col-span-3 border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
-                <input
+                <Inputfield
                   type="number"
                   value={item.quantity}
                   onChange={(e) =>
@@ -299,7 +300,7 @@ function CreateInvoicePage() {
                   step="1"
                   className="col-span-1 border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
-                <input
+                <Inputfield
                   type="number"
                   value={item.unitPrice}
                   onChange={(e) =>
@@ -312,24 +313,24 @@ function CreateInvoicePage() {
                 <span className="col-span-1 text-gray-700 font-semibold">
                   Rs {item.total.toLocaleString()}
                 </span>
-                <button
+                <Button
                   onClick={() => removeItem(idx)}
                   className="col-span-1 flex items-center justify-center bg-red-500 text-white p-2 rounded-lg hover:bg-red-600"
                 >
                   <MdDelete />
-                </button>
+                </Button>
               </div>
             ))}
           </div>
 
-          <button
+          <Button
             type="button"
             onClick={addItem}
             disabled={isSubmitting}
             className="mb-6 inline-flex items-center gap-2 bg-teal-800 text-white px-4 py-2 rounded-lg hover:bg-teal-600 disabled:cursor-not-allowed disabled:opacity-70"
           >
             <IoMdAdd /> Add Item
-          </button>
+          </Button>
 
           {/* Totals */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -337,7 +338,7 @@ function CreateInvoicePage() {
               <label className="block mb-1 text-gray-700 font-medium">
                 Tax Rate (%)
               </label>
-              <input
+              <Inputfield
                 type="number"
                 value={taxRate}
                 onChange={(e) => setTaxRate(Number(e.target.value))}
@@ -350,7 +351,7 @@ function CreateInvoicePage() {
               <label className="block mb-1 text-gray-700 font-medium">
                 Discount
               </label>
-              <input
+              <Inputfield
                 type="number"
                 value={discount}
                 onChange={(e) => setDiscount(Number(e.target.value))}
@@ -375,7 +376,7 @@ function CreateInvoicePage() {
               <label className="block mb-1 text-gray-700 font-medium">
                 Payment Method
               </label>
-              <select
+              <SelectDropdown
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
                 className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -386,13 +387,13 @@ function CreateInvoicePage() {
                 <option value="upi">UPI</option>
                 <option value="paypal">Paypal</option>
                 <option value="other">Other</option>
-              </select>
+              </SelectDropdown>
             </div>
             <div>
               <label className="block mb-1 text-gray-700 font-medium">
                 Notes
               </label>
-              <textarea
+              <Textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -413,13 +414,13 @@ function CreateInvoicePage() {
             >
               Create Invoice
             </LoadingButton>
-            <button
+            <Button
               onClick={() => navigate("/invoices")}
               className="px-6 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500"
               disabled={isSubmitting}
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       </div>

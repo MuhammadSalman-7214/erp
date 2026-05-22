@@ -20,6 +20,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../features/authSlice";
 import toast from "react-hot-toast";
 import { LuUsers } from "react-icons/lu";
+import { Button } from "../UI";
 const navItemClass = (isActive) =>
   `flex items-center space-x-3 cursor-pointer p-2 rounded-md transition
    ${
@@ -78,12 +79,12 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
         {sidebarOpen && (
           <h1 className="text-xl font-bold text-teal-700">InventorySouq</h1>
         )}
-        <button
+        <Button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="p-2 rounded-md hover:bg-gray-100"
         >
           <CiMenuFries className="text-xl" />
-        </button>
+        </Button>
       </div>
 
       <nav className="space-y-1 p-2">
@@ -354,7 +355,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
         </div>
 
         <div className="border-t p-2">
-          <button
+          <Button
             onClick={handleLogout}
             className="group relative flex items-center gap-3 w-full p-2 rounded-md text-gray-700 hover:bg-red-50 hover:text-red-600"
           >
@@ -367,7 +368,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
                 Logout
               </span>
             )}
-          </button>
+          </Button>
         </div>
       </div>
     </aside>

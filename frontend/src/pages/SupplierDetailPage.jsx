@@ -17,6 +17,7 @@ import {
   validateNumberInput,
   validateTextInput,
 } from "../lib/formValidation";
+import { Button, Inputfield, Textarea } from "../UI";
 
 const sanitizeFileName = (value) =>
   String(value || "vendor_ledger")
@@ -375,21 +376,21 @@ function SupplierDetailPage() {
               </div>
               <div className="flex flex-col items-end gap-1">
                 <div className="flex flex-wrap justify-end gap-2">
-                  <button
+                  <Button
                     type="button"
                     onClick={downloadLedgerPdf}
                     className="inline-flex items-center gap-2 rounded-xl bg-slate-800 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-700"
                   >
                     Download PDF
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
                     onClick={openManualEntry}
                     className="inline-flex items-center gap-2 rounded-xl bg-teal-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-teal-600"
                   >
                     <IoMdAdd className="text-lg" />
                     Add Manual Entry
-                  </button>
+                  </Button>
                 </div>
                 <div className="text-sm text-slate-600 space-x-3">
                   <span>
@@ -582,7 +583,7 @@ function SupplierDetailPage() {
               <label className="block text-sm font-medium text-slate-700">
                 Debit Amount
               </label>
-              <input
+              <Inputfield
                 type="number"
                 min="0"
                 step="0.01"
@@ -619,7 +620,7 @@ function SupplierDetailPage() {
               <label className="block text-sm font-medium text-slate-700">
                 Description
               </label>
-              <textarea
+              <Textarea
                 value={manualDescription}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -654,12 +655,12 @@ function SupplierDetailPage() {
               )}
             </div>
 
-            <button
+            <Button
               type="submit"
               className="h-12 w-full rounded-xl bg-teal-700 font-medium text-white transition hover:bg-teal-600"
             >
               Save Manual Debit
-            </button>
+            </Button>
           </form>
         </div>
       </DrawerPanel>

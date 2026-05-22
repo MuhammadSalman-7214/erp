@@ -7,6 +7,7 @@ import {
   requestPasswordReset,
   resetPassword,
 } from "../features/authSlice";
+import { Button, Inputfield } from "../UI";
 
 const ForgotPasswordPage = () => {
   const RESET_CODE_EXPIRY_SECONDS = 5 * 60;
@@ -175,26 +176,26 @@ const ForgotPasswordPage = () => {
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Email
               </label>
-              <input
+              <Inputfield
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoCapitalize="off"
                 autoCorrect="off"
                 spellCheck={false}
-                style={{ textTransform: "none" }}
-                className="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 !normal-case"
+                className="w-full"
                 placeholder="you@example.com"
+                uppercase={false}
               />
             </div>
 
-            <button
+            <Button
               type="submit"
               disabled={isForgotPasswordLoading}
               className="w-full bg-teal-600 text-white p-3 rounded-md hover:bg-teal-700 disabled:opacity-70"
             >
               {isForgotPasswordLoading ? "Sending code..." : "Send reset code"}
-            </button>
+            </Button>
           </form>
         ) : (
           <form onSubmit={handleResetPassword} className="space-y-4">
@@ -218,7 +219,7 @@ const ForgotPasswordPage = () => {
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Reset Code
               </label>
-              <input
+              <Inputfield
                 type="text"
                 value={otp}
                 onChange={(e) =>
@@ -227,7 +228,8 @@ const ForgotPasswordPage = () => {
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 placeholder="Enter 6-digit code"
-                className="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-center tracking-[0.35em]"
+                className="w-full text-center tracking-[0.35em]"
+                uppercase={false}
               />
             </div>
 
@@ -235,12 +237,13 @@ const ForgotPasswordPage = () => {
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 New Password
               </label>
-              <input
+              <Inputfield
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full"
                 placeholder="Enter new password"
+                uppercase={false}
               />
             </div>
 
@@ -248,32 +251,33 @@ const ForgotPasswordPage = () => {
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Confirm Password
               </label>
-              <input
+              <Inputfield
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full"
                 placeholder="Confirm new password"
+                uppercase={false}
               />
             </div>
 
-            <button
+            <Button
               type="submit"
               disabled={isResetPasswordLoading}
               className="w-full bg-teal-600 text-white p-3 rounded-md hover:bg-teal-700 disabled:opacity-70"
             >
               {isResetPasswordLoading ? "Resetting..." : "Reset password"}
-            </button>
+            </Button>
           </form>
         )}
 
-        <button
+        <Button
           type="button"
           className="mt-4 w-full text-sm text-teal-700 hover:underline"
           onClick={handleBackToLogin}
         >
           Back to login
-        </button>
+        </Button>
       </div>
     </div>
   );

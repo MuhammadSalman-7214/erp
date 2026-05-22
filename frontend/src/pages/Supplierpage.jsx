@@ -18,7 +18,6 @@ import { AiOutlineProduct } from "react-icons/ai";
 import { TfiSupport } from "react-icons/tfi";
 import { FaMoneyBill1Wave } from "react-icons/fa6";
 import NoData from "../Components/NoData";
-import { Popconfirm } from "antd";
 import axiosInstance from "../lib/axios";
 import DrawerPanel from "../Components/DrawerPanel";
 import LoadingButton from "../Components/LoadingButton";
@@ -29,6 +28,7 @@ import {
   validatePhoneInput,
   validateTextInput,
 } from "../lib/formValidation";
+import { Button, ConfirmDialog, Inputfield, SelectDropdown } from "../UI";
 
 function Supplierpage({ readOnly = false }) {
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
@@ -470,7 +470,7 @@ function Supplierpage({ readOnly = false }) {
       </div>
 
       <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">
-        <input
+        <Inputfield
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -480,12 +480,12 @@ function Supplierpage({ readOnly = false }) {
         />
 
         {canWrite && (
-          <button
+          <Button
             onClick={() => openForm()}
             className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
           >
             <IoMdAdd className="text-xl mr-2" /> Create Vendor
-          </button>
+          </Button>
         )}
         {isReadOnlyMode && (
           <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-2 rounded">
@@ -505,7 +505,7 @@ function Supplierpage({ readOnly = false }) {
           <form onSubmit={selectedSupplier ? handleEditSubmit : submitSupplier}>
             {/* <div className="mb-4">
               <label>Vendor Code</label>
-              <input
+              <Inputfield
                 value={vendorCode}
                 placeholder="VND-0001"
                 onChange={(e) => setVendorCode(e.target.value)}
@@ -516,7 +516,7 @@ function Supplierpage({ readOnly = false }) {
 
             <div className="mb-4">
               <label>Name</label>
-              <input
+              <Inputfield
                 value={name}
                 placeholder="Enter Vendor name"
                 onChange={(e) => {
@@ -550,7 +550,7 @@ function Supplierpage({ readOnly = false }) {
 
             <div className="mb-4">
               <label>Phone</label>
-              <input
+              <Inputfield
                 value={phone}
                 type="number"
                 placeholder="Enter Vendor Phone"
@@ -578,7 +578,7 @@ function Supplierpage({ readOnly = false }) {
 
             <div className="mb-4">
               <label>Address</label>
-              <input
+              <Inputfield
                 type="text"
                 placeholder="Enter Vendor Address"
                 value={address}
@@ -612,7 +612,7 @@ function Supplierpage({ readOnly = false }) {
 
             {/* <div className="mb-4">
               <label>Opening Balance</label>
-              <input
+              <Inputfield
                 type="number"
                 placeholder="0"
                 value={openingBalance}
@@ -623,7 +623,7 @@ function Supplierpage({ readOnly = false }) {
 
             {/* <div className="mb-4">
               <label>Payment Terms</label>
-              <input
+              <Inputfield
                 type="text"
                 placeholder="Net 30"
                 value={paymentTerms}
@@ -634,7 +634,7 @@ function Supplierpage({ readOnly = false }) {
 
             <div className="mb-4">
               <label>Product</label>
-              <select
+              <SelectDropdown
                 value={product}
                 onChange={(e) => setProduct(e.target.value)}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
@@ -648,7 +648,7 @@ function Supplierpage({ readOnly = false }) {
                       : ""}
                   </option>
                 ))}
-              </select>
+              </SelectDropdown>
             </div>
 
             <LoadingButton
@@ -746,7 +746,7 @@ function Supplierpage({ readOnly = false }) {
 
                         <td className="px-5 py-4">
                           <div className="flex gap-2">
-                            <button
+                            <Button
                               onClick={() =>
                                 handleViewSupplier(getId(supplier))
                               }
@@ -754,9 +754,9 @@ function Supplierpage({ readOnly = false }) {
                               title="View Details"
                             >
                               <IoMdEye size={18} />
-                            </button>
+                            </Button>
                             {!isReadOnlyMode && canDelete && (
-                              <Popconfirm
+                              <ConfirmDialog
                                 title={
                                   <div className="flex flex-col gap-1 max-w-xs">
                                     <span className="font-semibold text-red-600 text-sm">
@@ -781,7 +781,7 @@ function Supplierpage({ readOnly = false }) {
                                 placement="topRight"
                                 onConfirm={() => handleRemove(getId(supplier))}
                               >
-                                <button
+                                <Button
                                   className="
       p-2 rounded-lg
       bg-slate-100
@@ -793,17 +793,17 @@ function Supplierpage({ readOnly = false }) {
                                   title="Delete Supplier"
                                 >
                                   <MdDelete size={18} />
-                                </button>
-                              </Popconfirm>
+                                </Button>
+                              </ConfirmDialog>
                             )}
                             {!isReadOnlyMode && canWrite && (
-                              <button
+                              <Button
                                 onClick={() => handleEditClick(supplier)}
                                 className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
                                 title="Edit"
                               >
                                 <MdEdit size={18} />
-                              </button>
+                              </Button>
                             )}
                           </div>
                         </td>

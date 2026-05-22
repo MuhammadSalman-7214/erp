@@ -13,7 +13,6 @@ import {
 } from "../features/orderSlice";
 import { gettingallproducts } from "../features/productSlice";
 import NoData from "../Components/NoData";
-import { Popconfirm } from "antd";
 import { gettingallSupplier } from "../features/SupplierSlice";
 import useKeyboardDropdown from "../hooks/useKeyboardDropdown";
 import { TableSkeleton } from "../Components/LoadingSkeletons";
@@ -22,6 +21,7 @@ import LoadingButton from "../Components/LoadingButton";
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
 import { validateNumberInput, validateTextInput } from "../lib/formValidation";
+import { Button, ConfirmDialog, Inputfield, SelectDropdown } from "../UI";
 
 function Orderpage() {
   const getId = (value) => value?.id ?? value?.id ?? value;
@@ -426,7 +426,7 @@ function Orderpage() {
 
       {/* Search + Add */}
       <div className="flex flex-col md:flex-row md:items-center gap-2">
-        <input
+        <Inputfield
           type="text"
           value={query}
           onChange={(e) => setquery(e.target.value)}
@@ -435,13 +435,13 @@ function Orderpage() {
           placeholder="Search order..."
         />
 
-        <button
+        <Button
           onClick={openForm}
           className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
         >
           <IoMdAdd className="text-xl mr-2" />
           Purchase Order
-        </button>
+        </Button>
       </div>
 
       <DrawerPanel
@@ -459,7 +459,7 @@ function Orderpage() {
             <div className="mb-4">
               <label>Product Code</label>
               <div className="relative">
-                <input
+                <Inputfield
                   type="text"
                   value={codeQuery}
                   onChange={(e) => {
@@ -478,7 +478,7 @@ function Orderpage() {
                 {showCodeOptions && codeOptions.length > 0 && (
                   <div className="absolute z-50 mt-1 w-full max-h-56 overflow-auto rounded-lg border bg-white shadow">
                     {codeOptions.map((option) => (
-                      <button
+                      <Button
                         key={`${option.codeId}`}
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
@@ -498,7 +498,7 @@ function Orderpage() {
                           {" "}
                           - {option.description}
                         </span>
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 )}
@@ -536,7 +536,7 @@ function Orderpage() {
                         </span>
                       </div>
                       <div className="col-span-2">
-                        <input
+                        <Inputfield
                           type="number"
                           value={item.quantity}
                           onChange={(e) =>
@@ -546,13 +546,13 @@ function Orderpage() {
                         />
                       </div>
                       <div className="col-span-1 text-right">
-                        <button
+                        <Button
                           type="button"
                           className="text-red-600 text-xs"
                           onClick={() => removeFromCart(item.codeId)}
                         >
                           <MdDelete size={18} />
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -565,7 +565,7 @@ function Orderpage() {
             </div>
             <div className="mb-4">
               <label>Status</label>
-              <select
+              <SelectDropdown
                 value={status}
                 onChange={(e) => setstatus(e.target.value)}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2"
@@ -574,11 +574,11 @@ function Orderpage() {
                 <option value="pending">Pending</option>
                 <option value="shipped">Shipped</option>
                 <option value="delivered">Delivered</option>
-              </select>
+              </SelectDropdown>
             </div>
             <div className="mb-4">
               <label>Vendor (optional)</label>
-              <select
+              <SelectDropdown
                 value={supplier}
                 onChange={(e) => setsupplier(e.target.value)}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2"
@@ -589,7 +589,7 @@ function Orderpage() {
                     {supplier.name}
                   </option>
                 ))}
-              </select>
+              </SelectDropdown>
             </div>
 
             <LoadingButton
@@ -692,16 +692,16 @@ function Orderpage() {
                   </td>
                   <td className="px-5 py-4 ">
                     {isLockedOrder(order) ? (
-                      <button
+                      <Button
                         type="button"
                         className="p-2 rounded-lg bg-slate-100 text-slate-300 cursor-not-allowed mr-2"
                         title="Locked after shipped or delivered"
                         disabled
                       >
                         <MdDelete size={18} />
-                      </button>
+                      </Button>
                     ) : (
-                      <Popconfirm
+                      <ConfirmDialog
                         title={
                           <div className="flex flex-col gap-1 max-w-xs">
                             <span className="font-semibold text-red-600 text-sm">
@@ -726,7 +726,7 @@ function Orderpage() {
                         placement="topRight"
                         onConfirm={() => handleRemove(getId(order))}
                       >
-                        <button
+                        <Button
                           className="
       p-2 rounded-lg
       bg-slate-100
@@ -739,10 +739,10 @@ function Orderpage() {
                           title="Delete Order"
                         >
                           <MdDelete size={18} />
-                        </button>
-                      </Popconfirm>
+                        </Button>
+                      </ConfirmDialog>
                     )}
-                    <button
+                    <Button
                       onClick={() => handleEditClick(order)}
                       disabled={isLockedOrder(order)}
                       className={`p-2 rounded-lg transition ${
@@ -753,7 +753,7 @@ function Orderpage() {
                       title="Edit"
                     >
                       <MdEdit size={18} />
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               ))}

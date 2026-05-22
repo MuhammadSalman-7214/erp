@@ -18,7 +18,6 @@ import { PiInvoiceBold } from "react-icons/pi";
 import NoData from "../Components/NoData";
 import { createCustomer, getAllCustomers } from "../features/customerSlice";
 import axiosInstance from "../lib/axios";
-import { Popconfirm } from "antd";
 import {
   buildInvoicePrintHtml,
   combineInvoicePagesHtml,
@@ -34,6 +33,7 @@ import {
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
 import { validateNumberInput, validateTextInput } from "../lib/formValidation";
+import { Button, ConfirmDialog, Inputfield, SelectDropdown } from "../UI";
 
 const sanitizeFileName = (value) =>
   String(value || "invoice")
@@ -1939,7 +1939,7 @@ function Salespage() {
       {/* <SalesChart /> */}
 
       <div className="flex flex-col md:flex-row md:items-center gap-2">
-        <input
+        <Inputfield
           value={query}
           onChange={(e) => setquery(e.target.value)}
           type="text"
@@ -1947,21 +1947,21 @@ function Salespage() {
           className="w-full md:w-80 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="Search invoice, customer, phone..."
         />
-        <input
+        <Inputfield
           type="date"
           value={dateFrom}
           onChange={(e) => setDateFrom(e.target.value)}
           className="w-full md:w-44 h-10 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="Date from"
         />
-        <input
+        <Inputfield
           type="date"
           value={dateTo}
           onChange={(e) => setDateTo(e.target.value)}
           className="w-full md:w-44 h-10 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="Date to"
         />
-        <button
+        <Button
           onClick={() => {
             setquery("");
             setDateFrom("");
@@ -1971,13 +1971,13 @@ function Salespage() {
           type="button"
         >
           Reset
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => openForm()}
           className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
         >
           <IoMdAdd className="text-xl mr-2" /> Create Sales
-        </button>
+        </Button>
       </div>
 
       <DrawerPanel
@@ -1996,7 +1996,7 @@ function Salespage() {
         >
           <div className="flex flex-col gap-1 relative">
             <label className="text-gray-700 font-medium">Customer</label>
-            <input
+            <Inputfield
               value={customerSearch}
               onChange={(e) => {
                 setCustomerSearch(e.target.value);
@@ -2027,7 +2027,7 @@ function Salespage() {
               <div className="absolute z-50 top-[72px] w-full bg-white border rounded-xl shadow-lg max-h-56 overflow-y-auto">
                 {filteredCustomers.length > 0
                   ? filteredCustomers.map((customer) => (
-                      <button
+                      <Button
                         key={getId(customer)}
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
@@ -2047,7 +2047,7 @@ function Salespage() {
                         <div className="text-xs text-slate-500">
                           {customer.contactInfo?.phone || customer.phone || "-"}
                         </div>
-                      </button>
+                      </Button>
                     ))
                   : null}
               </div>
@@ -2072,7 +2072,7 @@ function Salespage() {
                 New Customer Details
               </div>
               <div className="grid grid-cols-1 gap-3">
-                <input
+                <Inputfield
                   type="text"
                   value={newCustomerData.phone}
                   onChange={(e) =>
@@ -2087,7 +2087,7 @@ function Salespage() {
                   className="w-full h-10 px-3 border rounded-xl"
                   required
                 />
-                <input
+                <Inputfield
                   type="text"
                   value={newCustomerData.address}
                   onChange={(e) =>
@@ -2108,7 +2108,7 @@ function Salespage() {
           <div className="mb-4">
             <label>Product Code</label>
             <div className="relative">
-              <input
+              <Inputfield
                 type="text"
                 value={codeQuery}
                 onChange={(e) => {
@@ -2127,7 +2127,7 @@ function Salespage() {
               {showCodeOptions && codeOptions.length > 0 && (
                 <div className="absolute z-50 mt-1 w-full max-h-56 overflow-auto rounded-lg border bg-white shadow">
                   {codeOptions.map((option) => (
-                    <button
+                    <Button
                       key={`${option.codeId}`}
                       type="button"
                       onMouseDown={(e) => e.preventDefault()}
@@ -2160,7 +2160,7 @@ function Salespage() {
                           {formatCurrency(option.unitPrice)}
                         </span>
                       </div>
-                    </button>
+                    </Button>
                   ))}
                 </div>
               )}
@@ -2217,7 +2217,7 @@ function Salespage() {
                     </div>
                   </div>
 
-                  <input
+                  <Inputfield
                     type="number"
                     value={item.quantity}
                     onChange={(e) =>
@@ -2229,7 +2229,7 @@ function Salespage() {
                   />
 
                   {/* PRICE */}
-                  <input
+                  <Inputfield
                     type="number"
                     value={item.unitPrice}
                     onChange={(e) =>
@@ -2241,13 +2241,13 @@ function Salespage() {
                   />
 
                   {/* DELETE */}
-                  <button
+                  <Button
                     type="button"
                     onClick={() => removeFromCart(item.codeId)}
                     className="text-red-500 hover:text-red-700 transition"
                   >
                     <MdDelete size={18} />
-                  </button>
+                  </Button>
 
                   {/* ERROR */}
                   {/* {Number(item.quantity) >
@@ -2275,7 +2275,7 @@ function Salespage() {
             </div>
             <div className="flex items-center justify-between px-3 py-2 bg-white border-t text-sm">
               <span className="font-semibold text-slate-700">Carage</span>
-              <input
+              <Inputfield
                 type="number"
                 min="0"
                 step="0.01"
@@ -2295,7 +2295,7 @@ function Salespage() {
 
           <div className="flex flex-col gap-1">
             <label className="text-gray-700 font-medium">Received Amount</label>
-            <input
+            <Inputfield
               type="number"
               min="0"
               step="0.01"
@@ -2311,7 +2311,7 @@ function Salespage() {
 
           <div className="flex flex-col gap-1">
             <label className="text-gray-700 font-medium">Payment Method</label>
-            <select
+            <SelectDropdown
               value={Payment}
               onChange={(e) => setPayment(e.target.value)}
               className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
@@ -2327,7 +2327,7 @@ function Salespage() {
                   <option value="banktransfer">Bank Transfer</option>
                 </>
               )}
-            </select>
+            </SelectDropdown>
             <div className="text-xs text-slate-500">
               {Number(receivedAmount || 0) <= 0
                 ? "No received amount means the sale will default to credit."
@@ -2339,7 +2339,7 @@ function Salespage() {
 
           <div className="flex flex-col gap-1">
             <label className="text-gray-700 font-medium">Sale Status</label>
-            <select
+            <SelectDropdown
               value={Status}
               onChange={(e) => setStatus(e.target.value)}
               className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
@@ -2349,7 +2349,7 @@ function Salespage() {
               <option value="pending">Pending</option>
               <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
-            </select>
+            </SelectDropdown>
           </div>
 
           <LoadingButton
@@ -2392,12 +2392,12 @@ function Salespage() {
                     Review the invoice before printing
                   </p>
                 </div>
-                <button
+                <Button
                   onClick={closeBillPreview}
                   className="text-sm text-slate-500 hover:text-slate-700"
                 >
                   Close
-                </button>
+                </Button>
               </div>
 
               <div className="absolute inset-x-0 top-[57px] bottom-[72px] z-20 bg-slate-100 p-4">
@@ -2593,41 +2593,41 @@ function Salespage() {
               </div>
 
               <div className="flex flex-col sm:flex-row justify-end gap-3 px-6 py-4 border-t bg-slate-50">
-                <button
+                <Button
                   type="button"
                   onClick={closeBillPreview}
                   className="px-5 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-white"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={handlePrintBillOnly}
                   className="px-5 py-2 rounded-lg bg-teal-700 text-white hover:bg-teal-600"
                 >
                   Print Bill
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={handleDownloadBillOnly}
                   className="px-5 py-2 rounded-lg bg-emerald-700 text-white hover:bg-emerald-600"
                 >
                   Download Bill
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={handlePrintGatePassOnly}
                   className="px-5 py-2 rounded-lg bg-slate-800 text-white hover:bg-slate-700"
                 >
                   Print Gate Pass
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={handlePrintBoth}
                   className="px-5 py-2 rounded-lg bg-indigo-700 text-white hover:bg-indigo-600"
                 >
                   Print Both
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -2775,23 +2775,23 @@ function Salespage() {
                     </td>{" "}
                     <td className="px-5 py-4">
                       <div className="flex justify-end gap-2">
-                        <button
+                        <Button
                           type="button"
                           onClick={() => handleEditClick(sale)}
                           className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
                           title="Edit sale"
                         >
                           <MdEdit size={18} />
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           type="button"
                           onClick={() => openBillPreview(sale)}
                           className="p-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition"
                           title="Generate / View Bill"
                         >
                           <PiInvoiceBold size={18} />
-                        </button>
-                        <Popconfirm
+                        </Button>
+                        <ConfirmDialog
                           title="Delete sale?"
                           description="This will remove the sale, reverse its stock impact, and delete its linked payment records."
                           okText="Delete"
@@ -2799,14 +2799,14 @@ function Salespage() {
                           okButtonProps={{ danger: true }}
                           onConfirm={() => dispatch(DeleteSales(getId(sale)))}
                         >
-                          <button
+                          <Button
                             type="button"
                             className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition"
                             title="Delete sale"
                           >
                             <MdDelete size={18} />
-                          </button>
-                        </Popconfirm>
+                          </Button>
+                        </ConfirmDialog>
                       </div>
                     </td>
                   </tr>

@@ -4,7 +4,6 @@ import { IoMdAdd } from "react-icons/io";
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
 import { Download } from "lucide-react";
-import { Popconfirm } from "antd";
 import { MdDelete } from "react-icons/md";
 import { PiInvoiceBold } from "react-icons/pi";
 import axiosInstance from "../lib/axios";
@@ -30,6 +29,7 @@ import {
   validateNumberInput,
   validateTextInput,
 } from "../lib/formValidation";
+import { Button, ConfirmDialog, Inputfield, Textarea } from "../UI";
 
 const sanitizeFileName = (value) =>
   String(value || "customer_ledger")
@@ -961,14 +961,14 @@ function CustomerDetailPage() {
                 </div>
               </div>
               <div className="flex flex-col items-end gap-2">
-                <button
+                <Button
                   type="button"
                   onClick={downloadLedgerPdf}
                   className="inline-flex items-center gap-2 rounded-xl bg-slate-800 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-700"
                 >
                   <Download className="h-4 w-4" />
                   Download PDF
-                </button>
+                </Button>
                 <div className="flex flex-wrap justify-end gap-3 text-sm text-slate-600">
                   <span>
                     Credit:{" "}
@@ -1077,7 +1077,7 @@ function CustomerDetailPage() {
                   <label className="block text-xs font-medium text-slate-500 mb-1">
                     From
                   </label>
-                  <input
+                  <Inputfield
                     type="date"
                     value={salesDateFrom}
                     onChange={(e) => setSalesDateFrom(e.target.value)}
@@ -1088,14 +1088,14 @@ function CustomerDetailPage() {
                   <label className="block text-xs font-medium text-slate-500 mb-1">
                     To
                   </label>
-                  <input
+                  <Inputfield
                     type="date"
                     value={salesDateTo}
                     onChange={(e) => setSalesDateTo(e.target.value)}
                     className="h-10 rounded-lg border border-slate-300 px-3 text-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
                   />
                 </div>
-                <button
+                <Button
                   type="button"
                   onClick={() => {
                     setSalesDateFrom("");
@@ -1104,7 +1104,7 @@ function CustomerDetailPage() {
                   className="h-10 rounded-lg border border-teal-200 px-4 text-sm font-medium text-teal-700 hover:bg-teal-50"
                 >
                   Clear filter
-                </button>
+                </Button>
               </div>
             </div>
             {sortedSales.length === 0 ? (
@@ -1189,7 +1189,7 @@ function CustomerDetailPage() {
                           </td>
                           <td className="px-5 py-4">
                             <div className="flex justify-end">
-                              <button
+                              <Button
                                 type="button"
                                 onClick={() => openBillPreview(sale)}
                                 className="inline-flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100"
@@ -1197,7 +1197,7 @@ function CustomerDetailPage() {
                               >
                                 <PiInvoiceBold size={18} />
                                 Bill
-                              </button>
+                              </Button>
                             </div>
                           </td>
                         </tr>
@@ -1218,14 +1218,14 @@ function CustomerDetailPage() {
                   Imported legacy balance saved on the customer record.
                 </div>
               </div>
-              <button
+              <Button
                 type="button"
                 onClick={openManualEntry}
                 className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-teal-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-teal-600"
               >
                 <IoMdAdd className="text-lg" />
                 Add Legacy Amount
-              </button>
+              </Button>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -1269,7 +1269,7 @@ function CustomerDetailPage() {
                       <td className="px-5 py-4">
                         <div className="flex justify-end">
                           {Number(entry.amount || 0) !== 0 ? (
-                            <Popconfirm
+                            <ConfirmDialog
                               title={
                                 <div className="flex flex-col gap-1 max-w-xs">
                                   <span className="font-semibold text-red-600 text-sm">
@@ -1293,7 +1293,7 @@ function CustomerDetailPage() {
                               placement="topRight"
                               onConfirm={deleteLegacyAmount}
                             >
-                              <button
+                              <Button
                                 type="button"
                                 className="inline-flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
                                 title="Delete legacy amount"
@@ -1301,8 +1301,8 @@ function CustomerDetailPage() {
                               >
                                 <MdDelete size={18} />
                                 Delete
-                              </button>
-                            </Popconfirm>
+                              </Button>
+                            </ConfirmDialog>
                           ) : (
                             <span className="text-xs text-slate-400">
                               No legacy amount
@@ -1336,12 +1336,12 @@ function CustomerDetailPage() {
                     Review the invoice before printing
                   </p>
                 </div>
-                <button
+                <Button
                   onClick={closeBillPreview}
                   className="text-sm text-slate-500 hover:text-slate-700"
                 >
                   Close
-                </button>
+                </Button>
               </div>
 
               <div className="absolute inset-x-0 top-[57px] bottom-[72px] z-20 bg-slate-100 p-4">
@@ -1532,41 +1532,41 @@ function CustomerDetailPage() {
               </div>
 
               <div className="flex flex-col sm:flex-row justify-end gap-3 px-6 py-4 border-t bg-slate-50">
-                <button
+                <Button
                   type="button"
                   onClick={closeBillPreview}
                   className="px-5 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-white"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={handlePrintBillOnly}
                   className="px-5 py-2 rounded-lg bg-teal-700 text-white hover:bg-teal-600"
                 >
                   Print Bill
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={handleDownloadBillOnly}
                   className="px-5 py-2 rounded-lg bg-emerald-700 text-white hover:bg-emerald-600"
                 >
                   Download Bill
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={handlePrintGatePassOnly}
                   className="px-5 py-2 rounded-lg bg-slate-800 text-white hover:bg-slate-700"
                 >
                   Print Gate Pass
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={handlePrintBoth}
                   className="px-5 py-2 rounded-lg bg-indigo-700 text-white hover:bg-indigo-600"
                 >
                   Print Both
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -1587,7 +1587,7 @@ function CustomerDetailPage() {
               <label className="block text-sm font-medium text-slate-700">
                 Amount
               </label>
-              <input
+              <Inputfield
                 type="number"
                 min="0"
                 step="0.01"
@@ -1624,7 +1624,7 @@ function CustomerDetailPage() {
               <label className="block text-sm font-medium text-slate-700">
                 Description
               </label>
-              <textarea
+              <Textarea
                 value={manualDescription}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -1664,19 +1664,19 @@ function CustomerDetailPage() {
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-2">
-              <button
+              <Button
                 type="button"
                 onClick={closeManualEntry}
                 className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
                 className="rounded-xl bg-teal-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-teal-600"
               >
                 Save Entry
-              </button>
+              </Button>
             </div>
           </form>
         </div>

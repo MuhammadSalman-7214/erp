@@ -12,6 +12,7 @@ import {
   validatePasswordInput,
   validateTextInput,
 } from "../lib/formValidation";
+import { Button, Inputfield } from "../UI";
 
 const getDashboardPath = (role) => {
   if (role === "super_admin") return "/super-admin";
@@ -105,11 +106,11 @@ function SignupPage() {
               >
                 Name
               </label>
-              <input
+              <Inputfield
                 id="name"
                 type="text"
                 {...register("name")}
-                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full"
                 placeholder="Your name"
               />
               {errors.name && (
@@ -126,12 +127,13 @@ function SignupPage() {
               >
                 Email
               </label>
-              <input
+              <Inputfield
                 id="email"
                 type="email"
                 {...register("email")}
-                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full"
                 placeholder="you@example.com"
+                uppercase={false}
               />
               {errors.email && (
                 <p className="text-red-500 text-sm mt-1">
@@ -147,27 +149,28 @@ function SignupPage() {
               >
                 Password
               </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  {...register("password")}
-                  className="w-full p-3 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  placeholder="Enter your password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-teal-600"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? (
-                    <IoEyeOffOutline size={20} />
-                  ) : (
-                    <IoEyeOutline size={20} />
-                  )}
-                </button>
-              </div>
+              <Inputfield
+                id="password"
+                type={showPassword ? "text" : "password"}
+                {...register("password")}
+                className="w-full pr-12"
+                placeholder="Enter your password"
+                uppercase={false}
+                suffix={
+                  <Button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    icon={
+                      showPassword ? (
+                        <IoEyeOffOutline size={20} />
+                      ) : (
+                        <IoEyeOutline size={20} />
+                      )
+                    }
+                  />
+                }
+              />
               {errors.password && (
                 <p className="text-red-500 text-sm mt-1">
                   {errors.password.message}
@@ -201,13 +204,13 @@ function SignupPage() {
               </label>
             </div> */}
 
-            <button
+            <Button
               type="submit"
               className="w-full bg-teal-600 text-white p-3 rounded-md hover:bg-teal-700 transition duration-300"
               disabled={isUserSignup}
             >
               {isUserSignup ? "Signing up..." : "Sign Up"}
-            </button>
+            </Button>
           </form>
 
           <div className="text-center mt-6">

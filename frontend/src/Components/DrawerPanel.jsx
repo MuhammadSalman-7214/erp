@@ -1,5 +1,6 @@
 import { FiMaximize2, FiMinimize2 } from "react-icons/fi";
 import { MdClose } from "react-icons/md";
+import { Button } from "../UI";
 
 function DrawerPanel({
   open,
@@ -22,7 +23,7 @@ function DrawerPanel({
       )}
 
       {isMinimized ? (
-        <button
+        <Button
           type="button"
           onClick={onToggleMinimized}
           className="fixed right-0 top-1/2 z-[80] -translate-y-1/2 rounded-l-2xl bg-teal-700 px-3 py-4 text-white shadow-2xl transition hover:bg-teal-600 "
@@ -30,7 +31,7 @@ function DrawerPanel({
           aria-label="Maximize drawer"
         >
           <FiMaximize2 size={18} />
-        </button>
+        </Button>
       ) : (
         <div
           className={`fixed right-0 top-0 z-[70] flex h-full ${widthClass} flex-col overflow-hidden bg-white shadow-2xl transition-all duration-300 ease-in-out ${className}`}
@@ -45,7 +46,7 @@ function DrawerPanel({
             </div>
 
             <div className="ml-auto flex items-center gap-2">
-              <button
+              <Button
                 type="button"
                 onClick={onToggleMinimized}
                 className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
@@ -53,8 +54,8 @@ function DrawerPanel({
                 aria-label="Minimize drawer"
               >
                 <FiMinimize2 size={18} />
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={onClose}
                 className="rounded-lg p-2 text-slate-500 transition hover:bg-red-50 hover:text-red-600"
@@ -62,7 +63,7 @@ function DrawerPanel({
                 aria-label="Close drawer"
               >
                 <MdClose size={20} />
-              </button>
+              </Button>
             </div>
           </div>
 

@@ -22,13 +22,13 @@ import toast from "react-hot-toast";
 import { useRolePermissions } from "../hooks/useRolePermissions";
 import { AiOutlineProduct } from "react-icons/ai";
 import NoData from "../Components/NoData";
-import { Popconfirm } from "antd";
 import { TableSkeleton } from "../Components/LoadingSkeletons";
 import DrawerPanel from "../Components/DrawerPanel";
 import LoadingButton from "../Components/LoadingButton";
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
 import { validateNumberInput, validateTextInput } from "../lib/formValidation";
+import { Button, ConfirmDialog, Inputfield, SelectDropdown } from "../UI";
 
 const emptyCode = {
   code: "",
@@ -702,7 +702,7 @@ function Productpage({ readOnly = false }) {
 
       {/* SEARCH + ADD */}
       <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">
-        <input
+        <Inputfield
           type="text"
           value={productCodeQuery}
           onChange={(e) => setProductCodeQuery(e.target.value)}
@@ -711,22 +711,22 @@ function Productpage({ readOnly = false }) {
           placeholder="Search by name, code, company, or category..."
         />
 
-        <button
+        <Button
           type="button"
           onClick={handleDownloadStock}
           className="bg-slate-900 hover:bg-slate-800 text-white px-5 h-10 rounded-xl flex items-center justify-center shadow-md transition"
         >
           <AiOutlineDownload className="text-lg mr-2" />
           Download Stock
-        </button>
+        </Button>
 
         {canWrite && (
-          <button
+          <Button
             onClick={() => openForm()}
             className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
           >
             <IoMdAdd className="text-xl mr-2" /> Create Product
-          </button>
+          </Button>
         )}
         {isReadOnlyMode && (
           <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-2 rounded">
@@ -844,7 +844,7 @@ function Productpage({ readOnly = false }) {
                           <td className="px-5 py-4">
                             <div className="flex gap-2">
                               {canDelete && (
-                                <Popconfirm
+                                <ConfirmDialog
                                   title={
                                     <div className="flex flex-col gap-1 max-w-xs">
                                       <span className="font-semibold text-red-600 text-sm">
@@ -877,31 +877,31 @@ function Productpage({ readOnly = false }) {
                                     })
                                   }
                                 >
-                                  <button
+                                  <Button
                                     className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition-all duration-200 hover:shadow-sm"
                                     title="Delete Product"
                                   >
                                     <MdDelete size={18} />
-                                  </button>
-                                </Popconfirm>
+                                  </Button>
+                                </ConfirmDialog>
                               )}
                               {canWrite && (
-                                <button
+                                <Button
                                   onClick={() => handleEditClick(product)}
                                   className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
                                   title="Edit"
                                 >
                                   <MdEdit size={18} />
-                                </button>
+                                </Button>
                               )}
                               {canWrite && (
-                                <button
+                                <Button
                                   onClick={() => openCodeModal(getId(product))}
                                   className="px-3 py-2 rounded-lg bg-slate-100 hover:bg-orange-100 text-orange-500 text-xs font-semibold transition"
                                   title="Manage Codes"
                                 >
                                   <FaPalette size={16} />
-                                </button>
+                                </Button>
                               )}
                             </div>
                           </td>
@@ -931,7 +931,7 @@ function Productpage({ readOnly = false }) {
           >
             <div>
               <label className="text-sm font-medium">Name</label>
-              <input
+              <Inputfield
                 type="text"
                 value={name}
                 onChange={(e) => {
@@ -964,7 +964,7 @@ function Productpage({ readOnly = false }) {
             </div>
             <div>
               <label className="text-sm font-medium">Description</label>
-              <input
+              <Inputfield
                 type="text"
                 value={description}
                 onChange={(e) => {
@@ -998,7 +998,7 @@ function Productpage({ readOnly = false }) {
             </div>
             <div>
               <label className="text-sm font-medium">Company</label>
-              <input
+              <Inputfield
                 type="text"
                 value={company}
                 onChange={(e) => {
@@ -1031,7 +1031,7 @@ function Productpage({ readOnly = false }) {
             </div>
             <div>
               <label className="text-sm font-medium">Category</label>
-              <select
+              <SelectDropdown
                 value={Category}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -1059,7 +1059,7 @@ function Productpage({ readOnly = false }) {
                     {c.name}
                   </option>
                 ))}
-              </select>
+              </SelectDropdown>
               {errors.Category && (
                 <p className="mt-1 text-sm text-red-500">{errors.Category}</p>
               )}
@@ -1067,7 +1067,7 @@ function Productpage({ readOnly = false }) {
 
             <div>
               <label className="text-sm font-medium">Purchase Price</label>
-              <input
+              <Inputfield
                 type="number"
                 value={purchasePrice}
                 onChange={(e) => {
@@ -1100,7 +1100,7 @@ function Productpage({ readOnly = false }) {
             </div>
             <div>
               <label className="text-sm font-medium">Trade Price</label>
-              <input
+              <Inputfield
                 type="number"
                 value={tradePrice}
                 onChange={(e) => {
@@ -1131,7 +1131,7 @@ function Productpage({ readOnly = false }) {
             </div>
             <div>
               <label className="text-sm font-medium">Sale Price</label>
-              <input
+              <Inputfield
                 type="number"
                 value={salePrice}
                 onChange={(e) => {
@@ -1196,12 +1196,12 @@ function Productpage({ readOnly = false }) {
                     : ""}
                 </p>
               </div>
-              <button
+              <Button
                 onClick={closeCodeModal}
                 className="text-sm text-slate-500 hover:text-slate-700"
               >
                 Close
-              </button>
+              </Button>
             </div>
 
             <div className="p-5 space-y-4 flex-1 min-h-0 overflow-y-auto">
@@ -1209,7 +1209,7 @@ function Productpage({ readOnly = false }) {
                 <h4 className="text-sm font-semibold mb-3">Add New Code</h4>
                 <div>
                   <label className="text-xs font-medium">Shade Code</label>
-                  <input
+                  <Inputfield
                     type="text"
                     value={codeForm.code}
                     onChange={(e) => {
@@ -1280,14 +1280,14 @@ function Productpage({ readOnly = false }) {
 
                         {/* Bottom Actions */}
                         <div className="pt-4 mt-4 border-t flex justify-center">
-                          <button
+                          <Button
                             onClick={() => handleDeleteCode(getId(code))}
                             className="flex w-full items-center justify-center gap-1 px-3 py-2 rounded-lg 
               bg-red-200 text-red-600 hover:bg-red-300 
               text-xs font-semibold transition"
                           >
                             <IoMdTrash size={16} /> Delete
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     ))}

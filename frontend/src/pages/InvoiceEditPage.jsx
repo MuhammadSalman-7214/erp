@@ -11,6 +11,7 @@ import {
   validateNumberInput,
   validateTextInput,
 } from "../lib/formValidation";
+import { Button, Inputfield, SelectDropdown } from "../UI";
 
 function InvoiceEditPage() {
   const { id } = useParams();
@@ -228,13 +229,13 @@ function InvoiceEditPage() {
               {invoiceType === "purchase" ? "Vendor Name" : "Customer Name"}
             </label>
             {invoiceType === "purchase" ? (
-              <input
+              <Inputfield
                 value={vendorName}
                 readOnly
                 className="w-full border border-gray-300 p-3 rounded-lg bg-gray-100"
               />
             ) : (
-              <select
+              <SelectDropdown
                 value={customerId}
                 onChange={(e) => setCustomerId(e.target.value)}
                 className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -246,7 +247,7 @@ function InvoiceEditPage() {
                     {customer.customerCode ? ` (${customer.customerCode})` : ""}
                   </option>
                 ))}
-              </select>
+              </SelectDropdown>
             )}
           </div>
 
@@ -260,7 +261,7 @@ function InvoiceEditPage() {
                   key={index}
                   className="relative grid grid-cols-12 gap-2 items-center bg-gray-50 p-3 rounded-lg"
                 >
-                  <input
+                  <Inputfield
                     type="text"
                     value={item.name}
                     onChange={(e) => updateItem(index, "name", e.target.value)}
@@ -268,7 +269,7 @@ function InvoiceEditPage() {
                     maxLength={120}
                     className="col-span-3 border border-gray-300 p-2 rounded"
                   />
-                  <input
+                  <Inputfield
                     type="number"
                     value={item.quantity}
                     onChange={(e) =>
@@ -278,7 +279,7 @@ function InvoiceEditPage() {
                     step="1"
                     className="col-span-1 border border-gray-300 p-2 rounded"
                   />
-                  <input
+                  <Inputfield
                     type="number"
                     value={item.unitPrice}
                     onChange={(e) =>
@@ -292,7 +293,7 @@ function InvoiceEditPage() {
                     Rs {item.total.toLocaleString()}
                   </span>
 
-                  <button
+                  <Button
                     onClick={() => removeItem(index)}
                     className="
       absolute -top-3 -right-3
@@ -310,17 +311,17 @@ function InvoiceEditPage() {
                     title="Remove"
                   >
                     <MdDelete size={16} />
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>
 
-            <button
+            <Button
               onClick={addItem}
               className="mt-3 inline-flex items-center gap-2 bg-teal-800 text-white px-4 py-2 rounded-lg hover:bg-teal-600"
             >
               <IoMdAdd /> Add Item
-            </button>
+            </Button>
           </div>
 
           {/* Tax, Discount, Payment & Status */}
@@ -329,7 +330,7 @@ function InvoiceEditPage() {
               <label className="block mb-1 text-gray-700 font-medium">
                 Tax Rate (%)
               </label>
-              <input
+              <Inputfield
                 type="number"
                 value={taxRate}
                 onChange={(e) => setTaxRate(Number(e.target.value))}
@@ -343,7 +344,7 @@ function InvoiceEditPage() {
               <label className="block mb-1 text-gray-700 font-medium">
                 Discount
               </label>
-              <input
+              <Inputfield
                 type="number"
                 value={discount}
                 onChange={(e) => setDiscount(Number(e.target.value))}
@@ -357,7 +358,7 @@ function InvoiceEditPage() {
               <label className="block mb-1 text-gray-700 font-medium">
                 Carage
               </label>
-              <input
+              <Inputfield
                 type="number"
                 value={carage}
                 onChange={(e) => setCarage(Number(e.target.value))}
@@ -371,7 +372,7 @@ function InvoiceEditPage() {
               <label className="block mb-1 text-gray-700 font-medium">
                 Payment Method
               </label>
-              <select
+              <SelectDropdown
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
                 className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -383,14 +384,14 @@ function InvoiceEditPage() {
                 <option value="upi">UPI</option>
                 <option value="paypal">Paypal</option>
                 <option value="other">Other</option>
-              </select>
+              </SelectDropdown>
             </div>
 
             <div>
               <label className="block mb-1 text-gray-700 font-medium">
                 Status
               </label>
-              <select
+              <SelectDropdown
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
                 className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -400,7 +401,7 @@ function InvoiceEditPage() {
                 <option value="paid">Paid</option>
                 <option value="overdue">Overdue</option>
                 <option value="cancelled">Cancelled</option>
-              </select>
+              </SelectDropdown>
             </div>
           </div>
 
@@ -409,7 +410,7 @@ function InvoiceEditPage() {
             <label className="block mb-1 text-gray-700 font-medium">
               Due Date
             </label>
-            <input
+            <Inputfield
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
@@ -419,18 +420,18 @@ function InvoiceEditPage() {
 
           {/* Actions */}
           <div className="flex justify-end gap-3">
-            <button
+            <Button
               onClick={handleUpdate}
               className="px-6 py-2 bg-teal-800 text-white rounded-lg hover:bg-teal-700 transition"
             >
               Save Changes
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => navigate(`/invoice/${id}`)}
               className="px-6 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 transition"
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       </div>

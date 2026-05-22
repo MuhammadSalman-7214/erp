@@ -16,6 +16,7 @@ import DrawerPanel from "../Components/DrawerPanel";
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
 import { validateNumberInput, validateTextInput } from "../lib/formValidation";
+import { Button, Inputfield, SelectDropdown } from "../UI";
 
 function StockTransaction({ readOnly = false }) {
   const { getallStocks, iscreatedStocks, searchdata } = useSelector(
@@ -182,7 +183,7 @@ function StockTransaction({ readOnly = false }) {
       {/* <Stocktanscationgraph /> */}
 
       <div className="flex flex-col md:flex-row md:items-center gap-2">
-        <input
+        <Inputfield
           type="text"
           value={query}
           onChange={(e) => setquery(e.target.value)}
@@ -203,7 +204,7 @@ function StockTransaction({ readOnly = false }) {
           <form onSubmit={submitstocktranscation}>
             <div className="mb-4">
               <label>Product</label>
-              <select
+              <SelectDropdown
                 value={product}
                 onChange={(e) => {
                   setproduct(e.target.value);
@@ -220,12 +221,12 @@ function StockTransaction({ readOnly = false }) {
                       : ""}
                   </option>
                 ))}
-              </select>
+              </SelectDropdown>
             </div>
 
             <div className="mb-4">
               <label>Product Code</label>
-              <select
+              <SelectDropdown
                 value={productCode}
                 onChange={(e) => setProductCode(e.target.value)}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2"
@@ -237,12 +238,12 @@ function StockTransaction({ readOnly = false }) {
                     {code.variantName ? ` (${code.variantName})` : ""}
                   </option>
                 ))}
-              </select>
+              </SelectDropdown>
             </div>
 
             <div className="mb-4">
               <label>Type</label>
-              <select
+              <SelectDropdown
                 value={type}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2"
                 onChange={(e) => {
@@ -268,7 +269,7 @@ function StockTransaction({ readOnly = false }) {
 
                 <option value={"Stock-in"}>Stock-in</option>
                 <option value={"Stock-out"}>Stock-out</option>
-              </select>
+              </SelectDropdown>
               {errors.type && (
                 <p className="mt-1 text-sm text-red-500">{errors.type}</p>
               )}
@@ -276,7 +277,7 @@ function StockTransaction({ readOnly = false }) {
 
             <div className="mb-4">
               <label>Quantity</label>
-              <input
+              <Inputfield
                 type="number"
                 placeholder="Enter product quantity"
                 value={quantity}
@@ -311,7 +312,7 @@ function StockTransaction({ readOnly = false }) {
 
             <div className="mb-4">
               <label>Vendor</label>
-              <select
+              <SelectDropdown
                 value={supplier}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -341,18 +342,18 @@ function StockTransaction({ readOnly = false }) {
                     {supplier.name}
                   </option>
                 ))}
-              </select>
+              </SelectDropdown>
               {errors.supplier && (
                 <p className="mt-1 text-sm text-red-500">{errors.supplier}</p>
               )}
             </div>
 
-            <button
+            <Button
               type="submit"
               className="bg-teal-800 text-white w-full h-12 rounded-lg hover:bg-teal-700 mt-4"
             >
               {iscreatedStocks ? "Add Stock...." : "Add Stock"}
-            </button>
+            </Button>
           </form>
         </div>
       </DrawerPanel>

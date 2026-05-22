@@ -1,4 +1,4 @@
-import { FiLoader } from "react-icons/fi";
+import { Button } from "../UI";
 
 function LoadingButton({
   loading = false,
@@ -12,22 +12,17 @@ function LoadingButton({
   const isDisabled = disabled || loading;
 
   return (
-    <button
+    <Button
       type={type}
       disabled={isDisabled}
       aria-busy={loading}
+      loading={loading}
+      loadingText={loadingText}
       className={`${className} ${isDisabled ? "cursor-not-allowed opacity-70" : ""}`}
       {...props}
     >
-      {loading ? (
-        <span className="inline-flex items-center justify-center gap-2">
-          <FiLoader className="h-4 w-4 animate-spin" />
-          {loadingText}
-        </span>
-      ) : (
-        children
-      )}
-    </button>
+      {children}
+    </Button>
   );
 }
 
