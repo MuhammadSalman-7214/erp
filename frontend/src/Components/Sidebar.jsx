@@ -79,10 +79,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
         {sidebarOpen && (
           <h1 className="text-xl font-bold text-teal-700">InventorySouq</h1>
         )}
-        <Button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="p-2 rounded-md hover:bg-gray-100"
-        >
+        <Button onClick={() => setSidebarOpen(!sidebarOpen)} variant="ghost">
           <CiMenuFries className="text-xl" />
         </Button>
       </div>
@@ -343,22 +340,8 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
       </nav>
 
       <div className="absolute bottom-0 w-full">
-        <div className="px-2 pb-2">
-          <a
-            href="https://devsouq.com/"
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center justify-center rounded-md border border-teal-100 bg-teal-50 px-2 py-1 text-[11px] font-medium text-teal-700 transition hover:bg-teal-100 hover:text-teal-800"
-          >
-            {sidebarOpen ? "Powered by DevSouq Technologies" : "DevSouq"}
-          </a>
-        </div>
-
         <div className="border-t p-2">
-          <Button
-            onClick={handleLogout}
-            className="group relative flex items-center gap-3 w-full p-2 rounded-md text-gray-700 hover:bg-red-50 hover:text-red-600"
-          >
+          <Button onClick={handleLogout} className="w-full" variant="primary">
             <FiLogOut className="text-xl" />
             {sidebarOpen && <span>Logout</span>}
 

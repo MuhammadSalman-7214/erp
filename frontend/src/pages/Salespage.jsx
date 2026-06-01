@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { IoMdAdd } from "react-icons/io";
+import { IoMdAdd, IoMdRefresh } from "react-icons/io";
 import { MdDelete, MdEdit } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
 import { jsPDF } from "jspdf";
@@ -1967,15 +1967,13 @@ function Salespage() {
             setDateFrom("");
             setDateTo("");
           }}
-          className="bg-white border hover:bg-slate-200 text-slate-700 px-5 h-10 rounded-xl flex items-center justify-center"
+          className="bg-white border border-slate-200 shadow-sm"
+          variant="ghost"
           type="button"
         >
-          Reset
+          <IoMdRefresh className="text-xl" />{" "}
         </Button>
-        <Button
-          onClick={() => openForm()}
-          className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
-        >
+        <Button onClick={() => openForm()} variant="primary">
           <IoMdAdd className="text-xl mr-2" /> Create Sales
         </Button>
       </div>
@@ -2313,7 +2311,9 @@ function Salespage() {
             <label className="text-gray-700 font-medium">Payment Method</label>
             <SelectDropdown
               value={Payment}
-              onChange={(e) => setPayment(e.target.value)}
+              onChange={(value) =>
+                setPayment(value?.target?.value ?? value ?? "")
+              }
               className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
               required={Number(receivedAmount || 0) > 0}
               disabled={Number(receivedAmount || 0) <= 0}
@@ -2341,7 +2341,9 @@ function Salespage() {
             <label className="text-gray-700 font-medium">Sale Status</label>
             <SelectDropdown
               value={Status}
-              onChange={(e) => setStatus(e.target.value)}
+              onChange={(value) =>
+                setStatus(value?.target?.value ?? value ?? "")
+              }
               className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
               required
             >

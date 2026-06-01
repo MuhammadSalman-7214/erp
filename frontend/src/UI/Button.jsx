@@ -4,15 +4,14 @@ const joinClasses = (...classes) => classes.filter(Boolean).join(" ").trim();
 
 const variantStyles = {
   primary:
-    "bg-teal-700 text-white shadow-sm hover:bg-teal-600 focus-visible:ring-teal-500",
+    "bg-teal-700 text-white shadow-sm border border-teal-700 hover:bg-white hover:text-teal-700 hover:border-teal-700 focus-visible:ring-teal-500",
   secondary:
-    "bg-slate-100 text-slate-800 hover:bg-slate-200 focus-visible:ring-slate-400",
+    "bg-slate-800 text-white shadow-sm border border-slate-800 hover:bg-white hover:text-slate-800 hover:border-slate-800 focus-visible:ring-slate-400",
   outline:
     "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 focus-visible:ring-slate-400",
   ghost:
     "bg-transparent text-slate-700 hover:bg-slate-100 focus-visible:ring-slate-400",
-  danger:
-    "bg-red-600 text-white hover:bg-red-500 focus-visible:ring-red-500",
+  danger: "bg-red-600 text-white hover:bg-red-500 focus-visible:ring-red-500",
 };
 
 const sizeStyles = {

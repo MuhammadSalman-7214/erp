@@ -435,10 +435,7 @@ function Orderpage() {
           placeholder="Search order..."
         />
 
-        <Button
-          onClick={openForm}
-          className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
-        >
+        <Button onClick={openForm} variant="primary">
           <IoMdAdd className="text-xl mr-2" />
           Purchase Order
         </Button>

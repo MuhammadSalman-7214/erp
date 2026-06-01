@@ -204,8 +204,18 @@ function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-base-100 flex bg-gray-50 bg-teal-900 ">
-      {/* RIGHT SIDE – Professional Info Panel with Dark Teal BG */}
+    <div className="min-h-screen flex bg-teal-900">
+      <div className="fixed bottom-0 right-0 z-10">
+        <a
+          href="https://devsouq.com/"
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center justify-center rounded-tl-md border border-teal-200 bg-teal-100 px-4 py-1 text-[11px] font-medium text-teal-700 transition hover:bg-teal-100 hover:text-teal-800"
+        >
+          Powered by DevSouq Technologies
+        </a>
+      </div>
+      {/* LEFT SIDE – Professional Info Panel with Dark Teal BG */}
       <div className="hidden sm:flex w-1/2 bg-teal-900 px-12 py-16 items-center mx-auto justify-center">
         <div className="max-w-md space-y-8">
           <div>
@@ -267,7 +277,8 @@ function LoginPage() {
         </div>
       </div>
 
-      <div className="w-full sm:w-1/2 p-6 flex items-center justify-center bg-white shadow-lg rounded-bl-[400px]">
+      {/* RIGHT SIDE – Clean Login Panel (Removed non-professional curve) */}
+      <div className="w-full sm:w-1/2 p-6 flex items-center justify-center bg-white shadow-xl [clip-path:ellipse(100%_130%_at_100%_50%)]">
         <div className="max-w-md w-full">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-teal-900">InventorySouq</h1>
@@ -373,13 +384,6 @@ function LoginPage() {
               </div>
             )}
 
-            {/* <div className="flex items-center mb-6">
-              <input type="checkbox" id="terms" className="mr-2" />
-              <label htmlFor="terms" className="text-gray-600 text-sm">
-                Agree on terms and conditions
-              </label>
-            </div> */}
-
             <button
               type="submit"
               className="w-full bg-teal-600 text-white p-3 rounded-md hover:bg-teal-700 transition duration-300 disabled:cursor-not-allowed disabled:opacity-70"
@@ -412,16 +416,6 @@ function LoginPage() {
             </div>
           </form>
         </div>
-        {/* <div className="px-2 pb-2">
-          <a
-            href="https://devsouq.com/"
-            target="_blank"
-            rel="noreferrer"
-            className="flex w-[300px] items-center justify-center rounded-md border border-teal-100 bg-teal-50 px-2 py-1 text-[11px] font-medium text-teal-700 transition hover:bg-teal-100 hover:text-teal-800"
-          >
-            Powered by DevSouq Technologies
-          </a>
-        </div> */}
       </div>
     </div>
   );
