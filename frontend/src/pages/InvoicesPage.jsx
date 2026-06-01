@@ -184,60 +184,57 @@ function InvoicesPage() {
 
                     <td className="px-5 py-4">
                       <div className="flex justify-end gap-2">
-                        <Button
-                          onClick={() => navigate(`/invoice/${inv.id}`)}
-                          className="p-2 rounded-lg bg-slate-100 hover:bg-teal-100 text-teal-600 transition"
-                          title="View"
-                        >
-                          <MdVisibility size={18} />
-                        </Button>
-
-                        <Button
-                          onClick={() => navigate(`/editInvoice/${inv.id}`)}
-                          className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
-                          title="Edit"
-                        >
-                          <MdEdit size={18} />
-                        </Button>
-                        <ConfirmDialog
-                          title={
-                            <div className="flex flex-col gap-1 max-w-xs">
-                              <span className="font-semibold text-red-600 text-sm">
-                                Confirm Invoice Deletion
-                              </span>
-                              <span className="text-xs text-gray-600 leading-snug">
-                                This action will permanently delete this invoice
-                                and all related payment and ledger records. This
-                                operation cannot be undone.
-                              </span>
-                            </div>
-                          }
-                          okText="Yes, Delete Invoice"
-                          cancelText="Cancel"
-                          okButtonProps={{
-                            danger: true,
-                            className: "font-semibold",
-                          }}
-                          cancelButtonProps={{
-                            className: "font-medium",
-                          }}
-                          placement="topRight"
-                          onConfirm={() => deleteInvoice(inv.id)}
-                        >
-                          <Button
-                            className="
-      p-2 rounded-lg
-      bg-slate-100
-      hover:bg-red-100
-      text-red-600
-      transition-all duration-200
-      hover:shadow-sm
-    "
-                            title="Delete Invoice"
+                        <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 p-1">
+                          <ConfirmDialog
+                            title={
+                              <div className="flex flex-col gap-1 max-w-xs">
+                                <span className="font-semibold text-red-600 text-sm">
+                                  Confirm Invoice Deletion
+                                </span>
+                                <span className="text-xs text-gray-600 leading-snug">
+                                  This action will permanently delete this
+                                  invoice and all related payment and ledger
+                                  records. This operation cannot be undone.
+                                </span>
+                              </div>
+                            }
+                            okText="Yes, Delete Invoice"
+                            cancelText="Cancel"
+                            okButtonProps={{
+                              danger: true,
+                              className: "font-semibold",
+                            }}
+                            cancelButtonProps={{
+                              className: "font-medium",
+                            }}
+                            placement="topRight"
+                            onConfirm={() => deleteInvoice(inv.id)}
                           >
-                            <MdDelete size={18} />
+                            <Button
+                              className=" h-9 w-9 !p-0 rounded-lg"
+                              variant="danger"
+                              title="Delete Invoice"
+                            >
+                              <MdDelete size={18} />
+                            </Button>
+                          </ConfirmDialog>
+                          <Button
+                            onClick={() => navigate(`/editInvoice/${inv.id}`)}
+                            className="h-6 w-9 !p-0 rounded-none border-r border-l"
+                            variant="info"
+                            title="Edit"
+                          >
+                            <MdEdit size={18} />
                           </Button>
-                        </ConfirmDialog>
+                          <Button
+                            onClick={() => navigate(`/invoice/${inv.id}`)}
+                            className="h-9 w-9 !p-0 rounded-lg"
+                            variant="emerald"
+                            title="View"
+                          >
+                            <MdVisibility size={18} />
+                          </Button>
+                        </div>
                       </div>
                     </td>
                   </tr>

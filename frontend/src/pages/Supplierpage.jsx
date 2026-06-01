@@ -746,65 +746,66 @@ function Supplierpage({ readOnly = false }) {
 
                         <td className="px-5 py-4">
                           <div className="flex gap-2">
-                            <Button
-                              onClick={() =>
-                                handleViewSupplier(getId(supplier))
-                              }
-                              className="p-2 rounded-lg bg-slate-100 hover:bg-teal-100 text-emerald-700 transition"
-                              title="View Details"
-                            >
-                              <IoMdEye size={18} />
-                            </Button>
-                            {!isReadOnlyMode && canDelete && (
-                              <ConfirmDialog
-                                title={
-                                  <div className="flex flex-col gap-1 max-w-xs">
-                                    <span className="font-semibold text-red-600 text-sm">
-                                      Confirm Supplier Deletion
-                                    </span>
-                                    <span className="text-xs text-gray-600 leading-snug">
-                                      This action will permanently remove this
-                                      supplier and may affect linked purchase
-                                      records. This operation cannot be undone.
-                                    </span>
-                                  </div>
-                                }
-                                okText="Yes, Delete"
-                                cancelText="Cancel"
-                                okButtonProps={{
-                                  danger: true,
-                                  className: "font-semibold",
-                                }}
-                                cancelButtonProps={{
-                                  className: "font-medium",
-                                }}
-                                placement="topRight"
-                                onConfirm={() => handleRemove(getId(supplier))}
-                              >
-                                <Button
-                                  className="
-      p-2 rounded-lg
-      bg-slate-100
-      hover:bg-red-100
-      text-red-600
-      transition-all duration-200
-      hover:shadow-sm
-    "
-                                  title="Delete Supplier"
+                            <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 p-1">
+                              {!isReadOnlyMode && canDelete && (
+                                <ConfirmDialog
+                                  title={
+                                    <div className="flex flex-col gap-1 max-w-xs">
+                                      <span className="font-semibold text-red-600 text-sm">
+                                        Confirm Supplier Deletion
+                                      </span>
+                                      <span className="text-xs text-gray-600 leading-snug">
+                                        This action will permanently remove this
+                                        supplier and may affect linked purchase
+                                        records. This operation cannot be
+                                        undone.
+                                      </span>
+                                    </div>
+                                  }
+                                  okText="Yes, Delete"
+                                  cancelText="Cancel"
+                                  okButtonProps={{
+                                    danger: true,
+                                    className: "font-semibold",
+                                  }}
+                                  cancelButtonProps={{
+                                    className: "font-medium",
+                                  }}
+                                  placement="topRight"
+                                  onConfirm={() =>
+                                    handleRemove(getId(supplier))
+                                  }
                                 >
-                                  <MdDelete size={18} />
+                                  <Button
+                                    className=" h-9 w-9 !p-0 rounded-lg"
+                                    title="Delete Supplier"
+                                    variant="danger"
+                                  >
+                                    <MdDelete size={18} />
+                                  </Button>
+                                </ConfirmDialog>
+                              )}
+                              {!isReadOnlyMode && canWrite && (
+                                <Button
+                                  onClick={() => handleEditClick(supplier)}
+                                  className="h-6 w-9 !p-0 rounded-none border-r border-l"
+                                  title="Edit"
+                                  variant="info"
+                                >
+                                  <MdEdit size={18} />
                                 </Button>
-                              </ConfirmDialog>
-                            )}
-                            {!isReadOnlyMode && canWrite && (
+                              )}
                               <Button
-                                onClick={() => handleEditClick(supplier)}
-                                className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
-                                title="Edit"
+                                onClick={() =>
+                                  handleViewSupplier(getId(supplier))
+                                }
+                                className="h-9 w-9 !p-0 rounded-lg"
+                                title="View Details"
+                                variant="emerald"
                               >
-                                <MdEdit size={18} />
+                                <IoMdEye size={18} />
                               </Button>
-                            )}
+                            </div>
                           </div>
                         </td>
                       </tr>

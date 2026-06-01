@@ -282,55 +282,53 @@ function Categorypage() {
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-2">
-                          <ConfirmDialog
-                            title={
-                              <div className="flex flex-col gap-1 max-w-xs">
-                                <span className="font-semibold text-red-600 text-sm">
-                                  Confirm Category Deletion
-                                </span>
-                                <span className="text-xs text-gray-600 leading-snug">
-                                  This action will permanently remove this
-                                  category. Products linked to this category may
-                                  be affected. This operation cannot be undone.
-                                </span>
-                              </div>
-                            }
-                            okText="Yes, Delete"
-                            cancelText="Cancel"
-                            okButtonProps={{
-                              danger: true,
-                              className: "font-semibold",
-                            }}
-                            cancelButtonProps={{
-                              className: "font-medium",
-                            }}
-                            placement="topRight"
-                            onConfirm={() => handleremove(Category.id)}
-                          >
-                            <Button
-                              className="
-      p-2 rounded-xl
-      bg-slate-100
-      hover:bg-red-100
-      text-red-600
-      transition-all duration-200
-      hover:shadow-sm
-    "
-                              title="Delete Category"
+                          <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 p-1">
+                            <ConfirmDialog
+                              title={
+                                <div className="flex flex-col gap-1 max-w-xs">
+                                  <span className="font-semibold text-red-600 text-sm">
+                                    Confirm Category Deletion
+                                  </span>
+                                  <span className="text-xs text-gray-600 leading-snug">
+                                    This action will permanently remove this
+                                    category. Products linked to this category
+                                    may be affected. This operation cannot be
+                                    undone.
+                                  </span>
+                                </div>
+                              }
+                              okText="Yes, Delete"
+                              cancelText="Cancel"
+                              okButtonProps={{
+                                danger: true,
+                                className: "font-semibold",
+                              }}
+                              cancelButtonProps={{
+                                className: "font-medium",
+                              }}
+                              placement="topRight"
+                              onConfirm={() => handleremove(Category.id)}
                             >
-                              <MdDelete size={18} />
-                            </Button>
-                          </ConfirmDialog>
+                              <Button
+                                className="h-9 w-9 !p-0 rounded-lg"
+                                variant="danger"
+                                title="Delete Category"
+                              >
+                                <MdDelete size={18} />
+                              </Button>
+                            </ConfirmDialog>
 
-                          <Button
-                            onClick={() => {
-                              openForm(Category);
-                            }}
-                            className="p-2 rounded-xl bg-slate-100 hover:bg-teal-100 text-blue-600 transition"
-                            title="Edit"
-                          >
-                            <MdEdit size={18} />
-                          </Button>
+                            <Button
+                              onClick={() => {
+                                openForm(Category);
+                              }}
+                              className="h-6 w-9 !p-0 rounded-none border-l"
+                              title="Edit"
+                              variant="info"
+                            >
+                              <MdEdit size={18} />
+                            </Button>
+                          </div>
                         </div>
                       </td>
                     </tr>
