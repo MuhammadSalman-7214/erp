@@ -712,7 +712,7 @@ function Productpage({ readOnly = false }) {
         />
 
         <Button type="button" onClick={handleDownloadStock} variant="secondary">
-          <AiOutlineDownload className="text-lg mr-2" />
+          <AiOutlineDownload size={18} />
           Download Stock
         </Button>
 
@@ -852,11 +852,12 @@ function Productpage({ readOnly = false }) {
                                       </span>
                                     </div>
                                   }
-                                  okText="Yes, Delete"
+                                  okText="Delete"
                                   cancelText="Cancel"
                                   okButtonProps={{
                                     danger: true,
-                                    className: "font-semibold",
+                                    className:
+                                      "font-semibold bg-red-50 hover:bg-red-100 border border-red-100",
                                   }}
                                   cancelButtonProps={{
                                     className: "font-medium",

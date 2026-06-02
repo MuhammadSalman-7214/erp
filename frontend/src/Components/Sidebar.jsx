@@ -341,7 +341,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
 
       <div className="absolute bottom-0 w-full">
         <div className="border-t p-2">
-          <Button onClick={handleLogout} className="w-full" variant="primary">
+          <Button onClick={handleLogout} className="w-full" variant="danger">
             <FiLogOut className="text-xl" />
             {sidebarOpen && <span>Logout</span>}
 

@@ -480,11 +480,9 @@ function Supplierpage({ readOnly = false }) {
         />
 
         {canWrite && (
-          <Button
-            onClick={() => openForm()}
-            className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
-          >
-            <IoMdAdd className="text-xl mr-2" /> Create Vendor
+          <Button onClick={() => openForm()} variant="primary">
+            <IoMdAdd size={18} />
+            Create Vendor
           </Button>
         )}
         {isReadOnlyMode && (
@@ -769,11 +767,12 @@ function Supplierpage({ readOnly = false }) {
                                     </span>
                                   </div>
                                 }
-                                okText="Yes, Delete"
+                                okText="Delete"
                                 cancelText="Cancel"
                                 okButtonProps={{
                                   danger: true,
-                                  className: "font-semibold",
+                                  className:
+                                    "font-semibold bg-red-50 hover:bg-red-100 border border-red-100",
                                 }}
                                 cancelButtonProps={{
                                   className: "font-medium",

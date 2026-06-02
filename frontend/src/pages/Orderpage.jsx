@@ -564,7 +564,7 @@ function Orderpage() {
               <label>Status</label>
               <SelectDropdown
                 value={status}
-                onChange={(e) => setstatus(e.target.value)}
+                onChange={(value) => setstatus(value?.target?.value ?? value ?? "")}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2"
               >
                 <option value="">Select status</option>
@@ -577,7 +577,7 @@ function Orderpage() {
               <label>Vendor (optional)</label>
               <SelectDropdown
                 value={supplier}
-                onChange={(e) => setsupplier(e.target.value)}
+                onChange={(value) => setsupplier(value?.target?.value ?? value ?? "")}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2"
               >
                 <option value="">No vendor, stock only</option>

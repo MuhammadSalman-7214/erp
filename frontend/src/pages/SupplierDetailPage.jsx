@@ -8,15 +8,18 @@ import FormattedTime from "../lib/FormattedTime";
 import DateSortHeader from "../Components/DateSortHeader";
 import { formatDateLabel, sortByDateValue } from "../lib/dateFormat";
 import NoData from "../Components/NoData";
-import { TrendingUp, CreditCard, AlertCircle, Clipboard } from "lucide-react";
+import {
+  TrendingUp,
+  CreditCard,
+  AlertCircle,
+  Clipboard,
+  Download,
+} from "lucide-react";
 import { DetailSkeleton } from "../Components/LoadingSkeletons";
 import DrawerPanel from "../Components/DrawerPanel";
 import { uppercasePayload } from "../lib/uppercasePayload";
 import toast from "react-hot-toast";
-import {
-  validateNumberInput,
-  validateTextInput,
-} from "../lib/formValidation";
+import { validateNumberInput, validateTextInput } from "../lib/formValidation";
 import { Button, Inputfield, Textarea } from "../UI";
 
 const sanitizeFileName = (value) =>
@@ -233,7 +236,11 @@ function SupplierDetailPage() {
     pdf.text(vendor.name || "Vendor", marginX, y + 7);
     pdf.setFontSize(9);
     pdf.setTextColor(71, 85, 105);
-    pdf.text("Debit shows what you owe the vendor, credit shows payments.", marginX, y + 13);
+    pdf.text(
+      "Debit shows what you owe the vendor, credit shows payments.",
+      marginX,
+      y + 13,
+    );
 
     y += 20;
     pdf.setDrawColor(203, 213, 225);
@@ -247,7 +254,11 @@ function SupplierDetailPage() {
       body: (ledger || []).map((entry) => [
         formatDateLabel(entry.date),
         String(entry.source?.replace(/_/g, " ") || "-"),
-        String(entry.source === "manual" ? entry.notes || "-" : entry.reference || "-"),
+        String(
+          entry.source === "manual"
+            ? entry.notes || "-"
+            : entry.reference || "-",
+        ),
         entry.type === "debit" ? currency(entry.amount) : "-",
         entry.type === "credit" ? currency(entry.amount) : "-",
         currency(entry.balance),
@@ -279,9 +290,21 @@ function SupplierDetailPage() {
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(9);
     pdf.setTextColor(15, 23, 42);
-    pdf.text(`Total Debit: ${currency(ledgerTotals.debit)}`, marginX, finalY + 10);
-    pdf.text(`Total Credit: ${currency(ledgerTotals.credit)}`, marginX, finalY + 16);
-    pdf.text(`Balance: ${currency(ledgerTotals.balance)}`, marginX, finalY + 22);
+    pdf.text(
+      `Total Debit: ${currency(ledgerTotals.debit)}`,
+      marginX,
+      finalY + 10,
+    );
+    pdf.text(
+      `Total Credit: ${currency(ledgerTotals.credit)}`,
+      marginX,
+      finalY + 16,
+    );
+    pdf.text(
+      `Balance: ${currency(ledgerTotals.balance)}`,
+      marginX,
+      finalY + 22,
+    );
 
     pdf.save(fileName);
   };
@@ -379,14 +402,16 @@ function SupplierDetailPage() {
                   <Button
                     type="button"
                     onClick={downloadLedgerPdf}
+                    variant="secondary"
                     className="inline-flex items-center gap-2 rounded-xl bg-slate-800 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-700"
                   >
+                    <Download size={18} />
                     Download PDF
                   </Button>
                   <Button
                     type="button"
                     onClick={openManualEntry}
-                    className="inline-flex items-center gap-2 rounded-xl bg-teal-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-teal-600"
+                    variant="primary"
                   >
                     <IoMdAdd className="text-lg" />
                     Add Manual Entry
@@ -428,8 +453,8 @@ function SupplierDetailPage() {
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                <thead className="bg-slate-50 border-b text-left text-slate-500">
-                  <tr>
+                  <thead className="bg-slate-50 border-b text-left text-slate-500">
+                    <tr>
                       <DateSortHeader
                         label="Date"
                         direction={ledgerDateSort}
@@ -612,7 +637,9 @@ function SupplierDetailPage() {
                 inputMode="decimal"
               />
               {errors.manualAmount && (
-                <p className="mt-1 text-sm text-red-500">{errors.manualAmount}</p>
+                <p className="mt-1 text-sm text-red-500">
+                  {errors.manualAmount}
+                </p>
               )}
             </div>
 
@@ -634,12 +661,15 @@ function SupplierDetailPage() {
                   );
                 }}
                 onBlur={(e) =>
-                  validateField("manualDescription", e.target.value, (current) =>
-                    validateTextInput(current, "Description", {
-                      required: true,
-                      minLength: 2,
-                      maxLength: 240,
-                    }),
+                  validateField(
+                    "manualDescription",
+                    e.target.value,
+                    (current) =>
+                      validateTextInput(current, "Description", {
+                        required: true,
+                        minLength: 2,
+                        maxLength: 240,
+                      }),
                   )
                 }
                 className="mt-2 w-full rounded-xl border px-3 py-2 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500"

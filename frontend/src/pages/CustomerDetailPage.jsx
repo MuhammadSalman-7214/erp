@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { IoMdAdd } from "react-icons/io";
+import { IoMdAdd, IoMdRefresh } from "react-icons/io";
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
 import { Download } from "lucide-react";
@@ -25,10 +25,7 @@ import {
   buildInvoicePrintHtml,
   combineInvoicePagesHtml,
 } from "../lib/invoicePrintTemplate";
-import {
-  validateNumberInput,
-  validateTextInput,
-} from "../lib/formValidation";
+import { validateNumberInput, validateTextInput } from "../lib/formValidation";
 import { Button, ConfirmDialog, Inputfield, Textarea } from "../UI";
 
 const sanitizeFileName = (value) =>
@@ -157,8 +154,7 @@ function CustomerDetailPage() {
   );
 
   const sortedLegacyEntries = useMemo(
-    () =>
-      sortByDateValue(legacyEntries, (entry) => entry.date, legacyDateSort),
+    () => sortByDateValue(legacyEntries, (entry) => entry.date, legacyDateSort),
     [legacyEntries, legacyDateSort],
   );
 
@@ -641,9 +637,14 @@ function CustomerDetailPage() {
       pdf.setTextColor(255, 255, 255);
       pdf.setFont("helvetica", "bold");
       pdf.text("Total Bill", summaryX, summaryY + 2.6);
-      pdf.text(currency(data.totalAmount), pageWidth - marginX, summaryY + 2.6, {
-        align: "right",
-      });
+      pdf.text(
+        currency(data.totalAmount),
+        pageWidth - marginX,
+        summaryY + 2.6,
+        {
+          align: "right",
+        },
+      );
 
       if (data.notes) {
         const notesY = summaryY + 10;
@@ -964,9 +965,9 @@ function CustomerDetailPage() {
                 <Button
                   type="button"
                   onClick={downloadLedgerPdf}
-                  className="inline-flex items-center gap-2 rounded-xl bg-slate-800 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-700"
+                  variant="primary"
                 >
-                  <Download className="h-4 w-4" />
+                  <Download size={18} />
                   Download PDF
                 </Button>
                 <div className="flex flex-wrap justify-end gap-3 text-sm text-slate-600">
@@ -1101,9 +1102,10 @@ function CustomerDetailPage() {
                     setSalesDateFrom("");
                     setSalesDateTo("");
                   }}
-                  className="h-10 rounded-lg border border-teal-200 px-4 text-sm font-medium text-teal-700 hover:bg-teal-50"
+                  className="bg-white border border-slate-300 shadow-sm"
+                  variant="ghost"
                 >
-                  Clear filter
+                  <IoMdRefresh className="text-xl" />{" "}
                 </Button>
               </div>
             </div>
@@ -1423,15 +1425,11 @@ function CustomerDetailPage() {
                       </p>
                       <p className="text-sm text-slate-600">
                         Received Amount:{" "}
-                        {currency(
-                          currentBillTotals?.receivedAmountValue || 0,
-                        )}
+                        {currency(currentBillTotals?.receivedAmountValue || 0)}
                       </p>
                       <p className="text-sm text-slate-600">
                         Remaining Amount:{" "}
-                        {currency(
-                          currentBillTotals?.remainingAmountValue || 0,
-                        )}
+                        {currency(currentBillTotals?.remainingAmountValue || 0)}
                       </p>
                       <p className="text-sm text-slate-600">
                         Payment Method: {billSale.paymentMethod || "-"}
@@ -1616,7 +1614,9 @@ function CustomerDetailPage() {
                 inputMode="decimal"
               />
               {errors.manualAmount && (
-                <p className="mt-1 text-sm text-red-500">{errors.manualAmount}</p>
+                <p className="mt-1 text-sm text-red-500">
+                  {errors.manualAmount}
+                </p>
               )}
             </div>
 
@@ -1638,12 +1638,15 @@ function CustomerDetailPage() {
                   );
                 }}
                 onBlur={(e) =>
-                  validateField("manualDescription", e.target.value, (current) =>
-                    validateTextInput(current, "Description", {
-                      required: true,
-                      minLength: 2,
-                      maxLength: 240,
-                    }),
+                  validateField(
+                    "manualDescription",
+                    e.target.value,
+                    (current) =>
+                      validateTextInput(current, "Description", {
+                        required: true,
+                        minLength: 2,
+                        maxLength: 240,
+                      }),
                   )
                 }
                 className="mt-1 min-h-[120px] w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-teal-500"

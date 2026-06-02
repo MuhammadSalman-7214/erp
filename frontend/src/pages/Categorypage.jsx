@@ -168,13 +168,14 @@ function Categorypage() {
           maxLength={120}
           className="w-full md:w-96"
         />
+
         <Button
           onClick={() => {
             openForm();
           }}
-          className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
+          variant="primary"
         >
-          <IoMdAdd className="text-xl mr-2" />
+          <IoMdAdd size={18} />
           Create Category
         </Button>
       </div>
@@ -295,11 +296,12 @@ function Categorypage() {
                                 </span>
                               </div>
                             }
-                            okText="Yes, Delete"
+                            okText="Delete"
                             cancelText="Cancel"
                             okButtonProps={{
                               danger: true,
-                              className: "font-semibold",
+                              className:
+                                "font-semibold bg-red-50 hover:bg-red-100 border border-red-100",
                             }}
                             cancelButtonProps={{
                               className: "font-medium",

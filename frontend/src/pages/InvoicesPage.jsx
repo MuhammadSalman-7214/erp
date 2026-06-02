@@ -96,10 +96,7 @@ function InvoicesPage() {
           ]}
         />
 
-        <Button
-          onClick={() => navigate("/createInvoice")}
-          className="bg-teal-800 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
-        >
+        <Button onClick={() => navigate("/createInvoice")} variant="primary">
           <IoMdAdd size={18} />
           Create Invoice
         </Button>

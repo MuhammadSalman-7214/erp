@@ -18,7 +18,7 @@ function LoadingButton({
       aria-busy={loading}
       loading={loading}
       loadingText={loadingText}
-      className={`${className} ${isDisabled ? "cursor-not-allowed opacity-70" : ""}`}
+      className={`${className} ${isDisabled ? "cursor-not-allowed opacity-70" : ""} app-btn inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2`}
       {...props}
     >
       {children}

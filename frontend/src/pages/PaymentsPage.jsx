@@ -225,12 +225,15 @@ function PaymentsPage() {
       return;
     }
 
-    const descriptionCheck = validateField("description", description, (value) =>
-      validateTextInput(value, "Description", {
-        required: false,
-        maxLength: 200,
-        allowEmpty: true,
-      }),
+    const descriptionCheck = validateField(
+      "description",
+      description,
+      (value) =>
+        validateTextInput(value, "Description", {
+          required: false,
+          maxLength: 200,
+          allowEmpty: true,
+        }),
     );
     if (!descriptionCheck.ok) {
       toast.error(descriptionCheck.message);
@@ -320,7 +323,9 @@ function PaymentsPage() {
               <option value="received">Receive</option>
               <option value="paid">Pay</option>
             </SelectDropdown>
-            {errors.type && <p className="mt-1 text-sm text-red-500">{errors.type}</p>}
+            {errors.type && (
+              <p className="mt-1 text-sm text-red-500">{errors.type}</p>
+            )}
           </div>
 
           <div>
@@ -346,7 +351,9 @@ function PaymentsPage() {
               <option value="paypal">PayPal</option>
               <option value="other">Other</option>
             </SelectDropdown>
-            {errors.method && <p className="mt-1 text-sm text-red-500">{errors.method}</p>}
+            {errors.method && (
+              <p className="mt-1 text-sm text-red-500">{errors.method}</p>
+            )}
           </div>
 
           <div>
@@ -368,7 +375,9 @@ function PaymentsPage() {
               }
               className="w-full h-10 px-3 border rounded-xl mt-1"
             />
-            {errors.paidAt && <p className="mt-1 text-sm text-red-500">{errors.paidAt}</p>}
+            {errors.paidAt && (
+              <p className="mt-1 text-sm text-red-500">{errors.paidAt}</p>
+            )}
           </div>
 
           <div>
@@ -399,7 +408,9 @@ function PaymentsPage() {
               min="0"
               step="0.01"
             />
-            {errors.amount && <p className="mt-1 text-sm text-red-500">{errors.amount}</p>}
+            {errors.amount && (
+              <p className="mt-1 text-sm text-red-500">{errors.amount}</p>
+            )}
           </div>
 
           <div>
@@ -431,42 +442,44 @@ function PaymentsPage() {
               placeholder="Enter payment description"
               maxLength={200}
             />
-            {errors.description && <p className="mt-1 text-sm text-red-500">{errors.description}</p>}
+            {errors.description && (
+              <p className="mt-1 text-sm text-red-500">{errors.description}</p>
+            )}
           </div>
 
           {partyType === "customer" ? (
             <>
               <div className="relative">
                 <label className="text-sm font-medium">Customer</label>
-              <Inputfield
-                type="text"
-                value={customerQuery}
-                onChange={(e) => {
-                  const value = e.target.value;
+                <Inputfield
+                  type="text"
+                  value={customerQuery}
+                  onChange={(e) => {
+                    const value = e.target.value;
                     setCustomerQuery(value);
                     setCustomerId("");
                     setShowCustomerOptions(true);
-                  validateField("customerQuery", value, (current) =>
-                    validateTextInput(current, "Customer", {
-                      required: true,
-                      minLength: 2,
-                      maxLength: 120,
-                    }),
-                  );
-                }}
-                onBlur={(e) => {
-                  validateField("customerQuery", e.target.value, (current) =>
-                    validateTextInput(current, "Customer", {
-                      required: true,
-                      minLength: 2,
-                      maxLength: 120,
-                    }),
-                  );
-                  setTimeout(() => {
-                    setShowCustomerOptions(false);
-                    setCustomerActiveIndex(-1);
-                  }, 150);
-                }}
+                    validateField("customerQuery", value, (current) =>
+                      validateTextInput(current, "Customer", {
+                        required: true,
+                        minLength: 2,
+                        maxLength: 120,
+                      }),
+                    );
+                  }}
+                  onBlur={(e) => {
+                    validateField("customerQuery", e.target.value, (current) =>
+                      validateTextInput(current, "Customer", {
+                        required: true,
+                        minLength: 2,
+                        maxLength: 120,
+                      }),
+                    );
+                    setTimeout(() => {
+                      setShowCustomerOptions(false);
+                      setCustomerActiveIndex(-1);
+                    }, 150);
+                  }}
                   maxLength={120}
                   onFocus={() => {
                     setShowCustomerOptions(true);
@@ -474,11 +487,13 @@ function PaymentsPage() {
                   }}
                   onKeyDownCapture={onCustomerKeyDown}
                   className="w-full h-10 px-3 border rounded-xl mt-1"
-                placeholder="Search customer..."
-              />
-              {errors.customerQuery && (
-                <p className="mt-1 text-sm text-red-500">{errors.customerQuery}</p>
-              )}
+                  placeholder="Search customer..."
+                />
+                {errors.customerQuery && (
+                  <p className="mt-1 text-sm text-red-500">
+                    {errors.customerQuery}
+                  </p>
+                )}
                 {showCustomerOptions && filteredCustomers.length > 0 && (
                   <div className="absolute z-50 mt-1 w-full max-h-56 overflow-auto rounded-lg border bg-white shadow">
                     {filteredCustomers.map((customer) => (
@@ -548,7 +563,9 @@ function PaymentsPage() {
                 placeholder="Search vendor..."
               />
               {errors.vendorQuery && (
-                <p className="mt-1 text-sm text-red-500">{errors.vendorQuery}</p>
+                <p className="mt-1 text-sm text-red-500">
+                  {errors.vendorQuery}
+                </p>
               )}
               {showVendorOptions && filteredVendors.length > 0 && (
                 <div className="absolute z-50 mt-1 w-full max-h-56 overflow-auto rounded-lg border bg-white shadow">
@@ -581,7 +598,7 @@ function PaymentsPage() {
               type="submit"
               loading={isSubmitting}
               loadingText="Saving..."
-              className="w-full h-11 bg-teal-700 text-white rounded-xl hover:bg-teal-600"
+              className="w-full"
             >
               Save Payment
             </LoadingButton>

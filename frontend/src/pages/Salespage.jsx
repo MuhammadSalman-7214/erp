@@ -34,6 +34,7 @@ import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
 import { validateNumberInput, validateTextInput } from "../lib/formValidation";
 import { Button, ConfirmDialog, Inputfield, SelectDropdown } from "../UI";
+import { AiOutlineDownload } from "react-icons/ai";
 
 const sanitizeFileName = (value) =>
   String(value || "invoice")
@@ -1506,32 +1507,28 @@ function Salespage() {
     };
   };
 
-  const buildBillPdfData = () => {
-    if (!billSale) return null;
+  const buildBillPdfData = (sale = billSale) => {
+    if (!sale) return null;
 
-    const items = Array.isArray(billSale.products) ? billSale.products : [];
+    const items = Array.isArray(sale.products) ? sale.products : [];
     const {
       totalAmount,
       carageAmount,
       subTotal,
       receivedAmountValue,
       remainingAmountValue,
-    } = getSaleTotals(billSale);
+    } = getSaleTotals(sale);
 
     return {
-      invoiceNumber: billSale.invoiceNumber || billSale.id || "-",
-      issueDate: billSale.createdAt || new Date().toISOString(),
-      customerName: billSale.customerName || "Customer",
+      invoiceNumber: sale.invoiceNumber || sale.id || "-",
+      issueDate: sale.createdAt || new Date().toISOString(),
+      customerName: sale.customerName || "Customer",
       customerPhone:
-        billSale.customer?.contactInfo?.phone ||
-        billSale.customer?.phone ||
-        "-",
+        sale.customer?.contactInfo?.phone || sale.customer?.phone || "-",
       customerAddress:
-        billSale.customer?.contactInfo?.address ||
-        billSale.customer?.address ||
-        "-",
-      paymentMethod: billSale.paymentMethod || "-",
-      status: billSale.status || "-",
+        sale.customer?.contactInfo?.address || sale.customer?.address || "-",
+      paymentMethod: sale.paymentMethod || "-",
+      status: sale.status || "-",
       items: items.map((item) => {
         const qty = Number(item.quantity || 0);
         const unitPrice = Number(item.price || 0);
@@ -1548,12 +1545,12 @@ function Salespage() {
       totalAmount,
       receivedAmountValue,
       remainingAmountValue,
-      notes: String(billSale.notes || "").trim(),
+      notes: String(sale.notes || "").trim(),
     };
   };
 
-  const downloadBillPdf = async () => {
-    const data = buildBillPdfData();
+  const downloadBillPdf = async (sale = billSale) => {
+    const data = buildBillPdfData(sale);
     if (!data) return;
 
     const fileName = `${sanitizeFileName(data.invoiceNumber || "invoice")}.pdf`;
@@ -1779,59 +1776,59 @@ function Salespage() {
     }
   };
 
-  const buildBillInvoiceHtml = () => {
-    if (!billSale) return "";
+  // const buildBillInvoiceHtml = () => {
+  //   if (!billSale) return "";
 
-    const items = Array.isArray(billSale.products) ? billSale.products : [];
-    const {
-      totalAmount,
-      carageAmount,
-      subTotal,
-      receivedAmountValue,
-      remainingAmountValue,
-    } = getSaleTotals(billSale);
+  //   const items = Array.isArray(billSale.products) ? billSale.products : [];
+  //   const {
+  //     totalAmount,
+  //     carageAmount,
+  //     subTotal,
+  //     receivedAmountValue,
+  //     remainingAmountValue,
+  //   } = getSaleTotals(billSale);
 
-    return buildInvoicePrintHtml({
-      documentTitle: "Sales Invoice",
-      companyName: "Imran Traders",
-      slogan: "",
-      logoUrl: `${window.location.origin}/ITLOGO.svg`,
-      invoiceLabel: "Invoice #",
-      invoiceNumber: billSale.invoiceNumber || billSale.id || "-",
-      issueLabel: "Date",
-      issueDate: billSale.createdAt || new Date().toISOString(),
-      partyLabel: "Invoice To",
-      partyName: billSale.customerName || "Customer",
-      partyPhone:
-        billSale.customer?.contactInfo?.phone || billSale.customer?.phone || "",
-      partyAddress:
-        billSale.customer?.contactInfo?.address ||
-        billSale.customer?.address ||
-        "",
-      paymentMethod: billSale.paymentMethod || "-",
-      status: billSale.status || "-",
-      items: items.map((item) => {
-        const qty = Number(item.quantity || 0);
-        const unitPrice = Number(item.price || 0);
-        return {
-          name: item.product?.name || "Product",
-          description: "",
-          company: "",
-          code: item.productCode?.code || "",
-          quantity: qty,
-          unitPrice,
-          total: qty * unitPrice,
-        };
-      }),
-      currency: "Rs",
-      subTotal,
-      carage: carageAmount,
-      totalAmount,
-      receivedAmount: receivedAmountValue,
-      remainingAmount: remainingAmountValue,
-      notes: billSale.notes || "",
-    });
-  };
+  //   return buildInvoicePrintHtml({
+  //     documentTitle: "Sales Invoice",
+  //     companyName: "Imran Traders",
+  //     slogan: "",
+  //     logoUrl: `${window.location.origin}/ITLOGO.svg`,
+  //     invoiceLabel: "Invoice #",
+  //     invoiceNumber: billSale.invoiceNumber || billSale.id || "-",
+  //     issueLabel: "Date",
+  //     issueDate: billSale.createdAt || new Date().toISOString(),
+  //     partyLabel: "Invoice To",
+  //     partyName: billSale.customerName || "Customer",
+  //     partyPhone:
+  //       billSale.customer?.contactInfo?.phone || billSale.customer?.phone || "",
+  //     partyAddress:
+  //       billSale.customer?.contactInfo?.address ||
+  //       billSale.customer?.address ||
+  //       "",
+  //     paymentMethod: billSale.paymentMethod || "-",
+  //     status: billSale.status || "-",
+  //     items: items.map((item) => {
+  //       const qty = Number(item.quantity || 0);
+  //       const unitPrice = Number(item.price || 0);
+  //       return {
+  //         name: item.product?.name || "Product",
+  //         description: "",
+  //         company: "",
+  //         code: item.productCode?.code || "",
+  //         quantity: qty,
+  //         unitPrice,
+  //         total: qty * unitPrice,
+  //       };
+  //     }),
+  //     currency: "Rs",
+  //     subTotal,
+  //     carage: carageAmount,
+  //     totalAmount,
+  //     receivedAmount: receivedAmountValue,
+  //     remainingAmount: remainingAmountValue,
+  //     notes: billSale.notes || "",
+  //   });
+  // };
 
   const buildBillGatePassHtml = () => {
     if (!billSale) return "";
@@ -1881,14 +1878,14 @@ function Salespage() {
     });
   };
 
-  const handlePrintBillOnly = () => {
-    const invoiceHtml = buildBillInvoiceHtml();
-    if (!invoiceHtml) return;
-    openPrintWindow(invoiceHtml);
-  };
+  // const handlePrintBillOnly = () => {
+  //   const invoiceHtml = buildBillInvoiceHtml();
+  //   if (!invoiceHtml) return;
+  //   openPrintWindow(invoiceHtml);
+  // };
 
-  const handleDownloadBillOnly = async () => {
-    await downloadBillPdf();
+  const handleDownloadBillOnly = async (sale) => {
+    await downloadBillPdf(sale);
   };
 
   const handlePrintGatePassOnly = () => {
@@ -1962,14 +1959,14 @@ function Salespage() {
           placeholder="Date to"
         />
         <Button
+          type="button"
           onClick={() => {
             setquery("");
             setDateFrom("");
             setDateTo("");
           }}
-          className="bg-white border border-slate-200 shadow-sm"
+          className="bg-white border border-slate-300 shadow-sm"
           variant="ghost"
-          type="button"
         >
           <IoMdRefresh className="text-xl" />{" "}
         </Button>
@@ -2385,7 +2382,7 @@ function Salespage() {
           />
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
             <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl border overflow-hidden">
-              <div className="flex items-center justify-between px-6 py-4 border-b bg-slate-50">
+              <div className="flex items-center justify-between px-6 py-2 border-b bg-slate-50">
                 <div>
                   <h3 className="text-lg font-semibold text-slate-800">
                     Sales Bill Preview
@@ -2394,12 +2391,15 @@ function Salespage() {
                     Review the invoice before printing
                   </p>
                 </div>
-                <Button
-                  onClick={closeBillPreview}
-                  className="text-sm text-slate-500 hover:text-slate-700"
-                >
-                  Close
-                </Button>
+                <div className="flex items-center justify-center gap-2">
+                  <Button
+                    variant="ghost"
+                    className="bg-white border border-slate-300 shadow-sm"
+                    onClick={closeBillPreview}
+                  >
+                    Close
+                  </Button>
+                </div>
               </div>
 
               <div className="absolute inset-x-0 top-[57px] bottom-[72px] z-20 bg-slate-100 p-4">
@@ -2597,24 +2597,10 @@ function Salespage() {
               <div className="flex flex-col sm:flex-row justify-end gap-3 px-6 py-4 border-t bg-slate-50">
                 <Button
                   type="button"
-                  onClick={closeBillPreview}
-                  className="px-5 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-white"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handlePrintBillOnly}
-                  className="px-5 py-2 rounded-lg bg-teal-700 text-white hover:bg-teal-600"
+                  onClick={handlePrintBoth}
+                  className="px-5 py-2 rounded-lg bg-indigo-700 text-white hover:bg-indigo-600"
                 >
                   Print Bill
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleDownloadBillOnly}
-                  className="px-5 py-2 rounded-lg bg-emerald-700 text-white hover:bg-emerald-600"
-                >
-                  Download Bill
                 </Button>
                 <Button
                   type="button"
@@ -2622,13 +2608,6 @@ function Salespage() {
                   className="px-5 py-2 rounded-lg bg-slate-800 text-white hover:bg-slate-700"
                 >
                   Print Gate Pass
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handlePrintBoth}
-                  className="px-5 py-2 rounded-lg bg-indigo-700 text-white hover:bg-indigo-600"
-                >
-                  Print Both
                 </Button>
               </div>
             </div>
@@ -2793,22 +2772,15 @@ function Salespage() {
                         >
                           <PiInvoiceBold size={18} />
                         </Button>
-                        <ConfirmDialog
-                          title="Delete sale?"
-                          description="This will remove the sale, reverse its stock impact, and delete its linked payment records."
-                          okText="Delete"
-                          cancelText="Cancel"
-                          okButtonProps={{ danger: true }}
-                          onConfirm={() => dispatch(DeleteSales(getId(sale)))}
+
+                        <Button
+                          type="button"
+                          onClick={() => handleDownloadBillOnly(sale)}
+                          className="p-2 rounded-lg bg-slate-100 hover:bg-emerald-100 text-emerald-700 transition"
+                          title="Download bill"
                         >
-                          <Button
-                            type="button"
-                            className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition"
-                            title="Delete sale"
-                          >
-                            <MdDelete size={18} />
-                          </Button>
-                        </ConfirmDialog>
+                          <AiOutlineDownload size={18} />
+                        </Button>
                       </div>
                     </td>
                   </tr>

@@ -365,9 +365,10 @@ function Customerpage({ readOnly = false }) {
             onClick={() => {
               openForm();
             }}
-            className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
+            variant="primary"
           >
-            <IoMdAdd className="text-xl mr-2" /> Create Customer
+            <IoMdAdd size={18} />
+            Create Customer
           </Button>
         )}
         {isReadOnlyMode && (
@@ -549,8 +550,14 @@ function Customerpage({ readOnly = false }) {
                             <ConfirmDialog
                               title="Delete Customer"
                               description="Are you sure to delete this customer?"
-                              okText="Delete"
-                              cancelText="Cancel"
+                              okButtonProps={{
+                                danger: true,
+                                className:
+                                  "font-semibold bg-red-50 hover:bg-red-100 border border-red-100",
+                              }}
+                              cancelButtonProps={{
+                                className: "font-medium",
+                              }}
                               onConfirm={() => handleRemove(getId(customer))}
                             >
                               <Button className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition">

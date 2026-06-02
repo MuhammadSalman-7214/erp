@@ -18,6 +18,7 @@ import {
 import { sortByDateValue } from "../lib/dateFormat";
 import { validateNumberInput, validateTextInput } from "../lib/formValidation";
 import { Button, ConfirmDialog, Inputfield } from "../UI";
+import { Download } from "lucide-react";
 
 const sanitizeFileName = (value) =>
   String(value || "price_list")
@@ -252,12 +253,8 @@ function PriceListPage() {
             Add product name and price to the separate price list.
           </p>
         </div>
-        <Button
-          type="button"
-          onClick={downloadPdf}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 h-10 text-white shadow-md transition hover:bg-slate-800"
-        >
-          Download PDF
+        <Button type="button" onClick={downloadPdf} variant="primary">
+          <Download size={18} /> Download PDF
         </Button>
       </div>
 
@@ -362,9 +359,7 @@ function PriceListPage() {
               type="submit"
               loading={saving || updating}
               loadingText={selectedItem ? "Updating..." : "Saving..."}
-              className="bg-teal-700 hover:bg-teal-600 text-white px-6 h-10 rounded-xl flex items-center justify-center shadow-md"
             >
-              <IoMdAdd className="text-xl mr-2" />
               {selectedItem ? "Update" : "Save"}
             </LoadingButton>
             {selectedItem ? (
@@ -451,7 +446,14 @@ function PriceListPage() {
                             description="This will permanently remove this price entry."
                             okText="Delete"
                             cancelText="Cancel"
-                            okButtonProps={{ danger: true }}
+                            okButtonProps={{
+                              danger: true,
+                              className:
+                                "font-semibold bg-red-50 hover:bg-red-100 border border-red-100",
+                            }}
+                            cancelButtonProps={{
+                              className: "font-medium",
+                            }}
                             onConfirm={() => handleDelete(item.id)}
                           >
                             <Button
