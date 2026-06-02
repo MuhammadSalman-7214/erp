@@ -766,7 +766,9 @@ function Productpage({ readOnly = false }) {
                       }
                     />
                     {!isReadOnlyMode && (
-                      <th className="px-5 py-4 font-medium">Actions</th>
+                      <th className="px-5 py-4 font-medium text-right">
+                        Actions
+                      </th>
                     )}
                   </tr>
                 </thead>
@@ -835,68 +837,78 @@ function Productpage({ readOnly = false }) {
 
                         {!isReadOnlyMode && (
                           <td className="px-5 py-4">
-                            <div className="flex gap-2">
-                              {canDelete && (
-                                <ConfirmDialog
-                                  title={
-                                    <div className="flex flex-col gap-1 max-w-xs">
-                                      <span className="font-semibold text-red-600 text-sm">
-                                        {isCodeDelete
-                                          ? "Confirm Code Deletion"
-                                          : "Confirm Product Deletion"}
-                                      </span>
-                                      <span className="text-xs text-gray-600 leading-snug">
-                                        {isCodeDelete
-                                          ? "This action will permanently remove this code from inventory. This operation cannot be undone."
-                                          : "This action will permanently remove this product from inventory. This operation cannot be undone."}
-                                      </span>
-                                    </div>
-                                  }
-                                  okText="Delete"
-                                  cancelText="Cancel"
-                                  okButtonProps={{
-                                    danger: true,
-                                    className:
-                                      "font-semibold bg-red-50 hover:bg-red-100 border border-red-100",
-                                  }}
-                                  cancelButtonProps={{
-                                    className: "font-medium",
-                                  }}
-                                  placement="topRight"
-                                  onConfirm={() =>
-                                    handleRowDelete({
-                                      productId: getId(product),
-                                      codeId: getId(code),
-                                      codeCount,
-                                    })
-                                  }
-                                >
-                                  <Button
-                                    className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition-all duration-200 hover:shadow-sm"
-                                    title="Delete Product"
+                            <div className="flex justify-end">
+                              <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 p-1">
+                                {canDelete && (
+                                  <ConfirmDialog
+                                    title={
+                                      <div className="flex flex-col gap-1 max-w-xs">
+                                        <span className="font-semibold text-red-600 text-sm">
+                                          {isCodeDelete
+                                            ? "Confirm Code Deletion"
+                                            : "Confirm Product Deletion"}
+                                        </span>
+                                        <span className="text-xs text-gray-600 leading-snug">
+                                          {isCodeDelete
+                                            ? "This action will permanently remove this code from inventory. This operation cannot be undone."
+                                            : "This action will permanently remove this product from inventory. This operation cannot be undone."}
+                                        </span>
+                                      </div>
+                                    }
+                                    okText="Delete"
+                                    cancelText="Cancel"
+                                    okButtonProps={{
+                                      danger: true,
+                                      className:
+                                        "font-semibold bg-red-50 hover:bg-red-100 border border-red-100",
+                                    }}
+                                    cancelButtonProps={{
+                                      className: "font-medium",
+                                    }}
+                                    placement="topRight"
+                                    onConfirm={() =>
+                                      handleRowDelete({
+                                        productId: getId(product),
+                                        codeId: getId(code),
+                                        codeCount,
+                                      })
+                                    }
                                   >
-                                    <MdDelete size={18} />
+                                    <Button
+                                      type="button"
+                                      className="h-9 w-9 !p-0 rounded-lg"
+                                      title="Delete Product"
+                                      variant="danger"
+                                    >
+                                      <MdDelete size={18} />
+                                    </Button>
+                                  </ConfirmDialog>
+                                )}
+                                {canWrite && (
+                                  <Button
+                                    type="button"
+                                    onClick={() => handleEditClick(product)}
+                                    className="h-6 w-9 !p-0 rounded-none border-r border-l"
+                                    title="Edit"
+                                    variant="info"
+                                  >
+                                    <MdEdit size={18} />
                                   </Button>
-                                </ConfirmDialog>
-                              )}
-                              {canWrite && (
-                                <Button
-                                  onClick={() => handleEditClick(product)}
-                                  className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
-                                  title="Edit"
-                                >
-                                  <MdEdit size={18} />
-                                </Button>
-                              )}
-                              {canWrite && (
-                                <Button
-                                  onClick={() => openCodeModal(getId(product))}
-                                  className="px-3 py-2 rounded-lg bg-slate-100 hover:bg-orange-100 text-orange-500 text-xs font-semibold transition"
-                                  title="Manage Codes"
-                                >
-                                  <FaPalette size={16} />
-                                </Button>
-                              )}
+                                )}
+                                {canWrite && (
+                                  <Button
+                                    type="button"
+                                    onClick={() =>
+                                      openCodeModal(getId(product))
+                                    }
+                                    className="h-9 w-9 !p-0 rounded-lg"
+                                    variant="orange"
+                                    title="Manage Codes"
+                                  >
+                                    <FaPalette size={16} />
+                                  </Button>
+                                )}
+                              </div>
                             </div>
                           </td>
                         )}

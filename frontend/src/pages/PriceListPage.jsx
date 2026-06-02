@@ -432,39 +432,43 @@ function PriceListPage() {
                         <FormattedTime timestamp={item.createdAt} />
                       </td>
                       <td className="px-5 py-4">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            type="button"
-                            onClick={() => handleEdit(item)}
-                            className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
-                            title="Edit"
-                          >
-                            <MdEdit size={18} />
-                          </Button>
-                          <ConfirmDialog
-                            title="Delete price item?"
-                            description="This will permanently remove this price entry."
-                            okText="Delete"
-                            cancelText="Cancel"
-                            okButtonProps={{
-                              danger: true,
-                              className:
-                                "font-semibold bg-red-50 hover:bg-red-100 border border-red-100",
-                            }}
-                            cancelButtonProps={{
-                              className: "font-medium",
-                            }}
-                            onConfirm={() => handleDelete(item.id)}
-                          >
+                        <div className="flex justify-end">
+                          <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 p-1">
+                            <ConfirmDialog
+                              title="Delete price item?"
+                              description="This will permanently remove this price entry."
+                              okText="Delete"
+                              cancelText="Cancel"
+                              okButtonProps={{
+                                danger: true,
+                                className:
+                                  "font-semibold bg-red-50 hover:bg-red-100 border border-red-100",
+                              }}
+                              cancelButtonProps={{
+                                className: "font-medium",
+                              }}
+                              onConfirm={() => handleDelete(item.id)}
+                            >
+                              <Button
+                                type="button"
+                                onClick={() => handleEdit(item)}
+                                className="h-9 w-9 !p-0 rounded-lg"
+                                title="Delete"
+                                variant="danger"
+                              >
+                                <MdEdit size={18} />
+                              </Button>
+                            </ConfirmDialog>
                             <Button
                               type="button"
-                              disabled={deleting}
-                              className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition-all duration-200 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-70"
-                              title="Delete"
+                              onClick={() => handleEdit(item)}
+                              className="h-6 w-9 !p-0 rounded-none border-l"
+                              variant="info"
+                              title="Edit"
                             >
-                              <MdDelete size={18} />
+                              <MdEdit size={18} />
                             </Button>
-                          </ConfirmDialog>
+                          </div>
                         </div>
                       </td>
                     </tr>

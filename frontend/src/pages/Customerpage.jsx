@@ -515,7 +515,7 @@ function Customerpage({ readOnly = false }) {
                   return (
                     <tr
                       key={getId(customer)}
-                      className="border-b last:border-b-0 hover:bg-slate-50 transition"
+                      className="border-b last:border-b-0 hover:bg-slate-50 transition-all duration-200"
                     >
                       <td className="px-5 py-4">{customer.name}</td>
                       <td className="px-5 py-4">
@@ -531,40 +531,53 @@ function Customerpage({ readOnly = false }) {
                         {currency(customerSummary.remainingAmount)}
                       </td>
                       <td className="px-5 py-4">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            onClick={() => handleViewCustomer(getId(customer))}
-                            className="p-2 rounded-lg bg-slate-100 hover:bg-teal-100 text-emerald-700 transition"
-                          >
-                            <IoMdEye size={18} />
-                          </Button>
-                          {canWrite && (
-                            <Button
-                              onClick={() => handleEditClick(customer)}
-                              className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
-                            >
-                              <MdEdit size={18} />
-                            </Button>
-                          )}
-                          {canDelete && (
-                            <ConfirmDialog
-                              title="Delete Customer"
-                              description="Are you sure to delete this customer?"
-                              okButtonProps={{
-                                danger: true,
-                                className:
-                                  "font-semibold bg-red-50 hover:bg-red-100 border border-red-100",
-                              }}
-                              cancelButtonProps={{
-                                className: "font-medium",
-                              }}
-                              onConfirm={() => handleRemove(getId(customer))}
-                            >
-                              <Button className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition">
-                                <MdDelete size={18} />
+                        <div className="flex justify-end">
+                          <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 p-1">
+                            {canDelete && (
+                              <ConfirmDialog
+                                title="Delete Customer"
+                                description="Are you sure to delete this customer?"
+                                okButtonProps={{
+                                  danger: true,
+                                  className:
+                                    "font-semibold bg-red-50 hover:bg-red-100 border border-red-100",
+                                }}
+                                cancelButtonProps={{
+                                  className: "font-medium",
+                                }}
+                                onConfirm={() => handleRemove(getId(customer))}
+                              >
+                                <Button
+                                  type="button"
+                                  className="h-9 w-9 !p-0 rounded-lg"
+                                  variant="danger"
+                                >
+                                  <MdDelete size={18} />
+                                </Button>
+                              </ConfirmDialog>
+                            )}
+
+                            {canWrite && (
+                              <Button
+                                type="button"
+                                onClick={() => handleEditClick(customer)}
+                                className="h-6 w-9 !p-0 rounded-none border-r border-l"
+                                variant="info"
+                              >
+                                <MdEdit size={18} />
                               </Button>
-                            </ConfirmDialog>
-                          )}
+                            )}
+                            <Button
+                              type="button"
+                              onClick={() =>
+                                handleViewCustomer(getId(customer))
+                              }
+                              className="h-9 w-9 !p-0 rounded-lg"
+                              variant="emerald"
+                            >
+                              <IoMdEye size={18} />
+                            </Button>
+                          </div>
                         </div>
                       </td>
                     </tr>

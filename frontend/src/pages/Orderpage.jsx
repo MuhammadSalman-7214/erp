@@ -564,7 +564,9 @@ function Orderpage() {
               <label>Status</label>
               <SelectDropdown
                 value={status}
-                onChange={(value) => setstatus(value?.target?.value ?? value ?? "")}
+                onChange={(value) =>
+                  setstatus(value?.target?.value ?? value ?? "")
+                }
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2"
               >
                 <option value="">Select status</option>
@@ -577,7 +579,9 @@ function Orderpage() {
               <label>Vendor (optional)</label>
               <SelectDropdown
                 value={supplier}
-                onChange={(value) => setsupplier(value?.target?.value ?? value ?? "")}
+                onChange={(value) =>
+                  setsupplier(value?.target?.value ?? value ?? "")
+                }
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2"
               >
                 <option value="">No vendor, stock only</option>
@@ -624,7 +628,7 @@ function Orderpage() {
                     )
                   }
                 />
-                <th className="px-5 py-4 font-medium">Actions</th>
+                <th className="px-5 py-4 font-medium text-right">Actions</th>
               </tr>
             </thead>
 
@@ -688,69 +692,72 @@ function Orderpage() {
                     <FormattedTime timestamp={order.createdAt} />
                   </td>
                   <td className="px-5 py-4 ">
-                    {isLockedOrder(order) ? (
-                      <Button
-                        type="button"
-                        className="p-2 rounded-lg bg-slate-100 text-slate-300 cursor-not-allowed mr-2"
-                        title="Locked after shipped or delivered"
-                        disabled
-                      >
-                        <MdDelete size={18} />
-                      </Button>
-                    ) : (
-                      <ConfirmDialog
-                        title={
-                          <div className="flex flex-col gap-1 max-w-xs">
-                            <span className="font-semibold text-red-600 text-sm">
-                              Confirm Permanent Deletion
-                            </span>
-                            <span className="text-xs text-gray-600 leading-snug">
-                              This action will permanently delete this order and
-                              all related transaction records. This operation
-                              cannot be undone.
-                            </span>
-                          </div>
-                        }
-                        okText="Yes, Delete"
-                        cancelText="Cancel"
-                        okButtonProps={{
-                          danger: true,
-                          className: "font-semibold",
-                        }}
-                        cancelButtonProps={{
-                          className: "font-medium",
-                        }}
-                        placement="topRight"
-                        onConfirm={() => handleRemove(getId(order))}
-                      >
-                        <Button
-                          className="
-      p-2 rounded-lg
-      bg-slate-100
-      hover:bg-red-100
-      text-red-600
+                    <div className="flex justify-end">
+                      <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 p-1">
+                        {isLockedOrder(order) ? (
+                          <Button
+                            type="button"
+                            className=" cursor-not-allowed h-9 w-9 !p-0 rounded-lg"
+                            title="Locked after shipped or delivered"
+                            variant="danger"
+                            disabled
+                          >
+                            <MdDelete size={18} />
+                          </Button>
+                        ) : (
+                          <ConfirmDialog
+                            title={
+                              <div className="flex flex-col gap-1 max-w-xs">
+                                <span className="font-semibold text-red-600 text-sm">
+                                  Confirm Permanent Deletion
+                                </span>
+                                <span className="text-xs text-gray-600 leading-snug">
+                                  This action will permanently delete this order
+                                  and all related transaction records. This
+                                  operation cannot be undone.
+                                </span>
+                              </div>
+                            }
+                            okText="Yes, Delete"
+                            cancelText="Cancel"
+                            okButtonProps={{
+                              danger: true,
+                              className: "font-semibold",
+                            }}
+                            cancelButtonProps={{
+                              className: "font-medium",
+                            }}
+                            placement="topRight"
+                            onConfirm={() => handleRemove(getId(order))}
+                          >
+                            <Button
+                              className="
+                              h-9 w-9 !p-0 rounded-lg
       transition-all duration-200
       hover:shadow-sm
-      mr-2
     "
-                          title="Delete Order"
+                              variant="danger"
+                              title="Delete Order"
+                            >
+                              <MdDelete size={18} />
+                            </Button>
+                          </ConfirmDialog>
+                        )}
+                        <Button
+                          onClick={() => handleEditClick(order)}
+                          disabled={isLockedOrder(order)}
+                          className={`h-6 w-9 !p-0 rounded-none border-l p-2 rounded-lg transition ${
+                            isLockedOrder(order)
+                              ? " text-blue-300 cursor-not-allowed"
+                              : ""
+                          }`}
+                          variant="info"
+                          title="Edit"
                         >
-                          <MdDelete size={18} />
+                          <MdEdit size={18} />
                         </Button>
-                      </ConfirmDialog>
-                    )}
-                    <Button
-                      onClick={() => handleEditClick(order)}
-                      disabled={isLockedOrder(order)}
-                      className={`p-2 rounded-lg transition ${
-                        isLockedOrder(order)
-                          ? "bg-slate-100 text-slate-300 cursor-not-allowed"
-                          : "bg-slate-100 hover:bg-blue-100 text-blue-600"
-                      }`}
-                      title="Edit"
-                    >
-                      <MdEdit size={18} />
-                    </Button>
+                      </div>
+                    </div>
                   </td>
                 </tr>
               ))}
