@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
 import FormattedTime from "../lib/FormattedTime";
+import { CgSoftwareDownload } from "react-icons/cg";
 
 import {
   CreateSales,
@@ -2173,196 +2174,294 @@ function Salespage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-b">
-                <tr className="text-left text-slate-500">
-                  <th className="px-5 py-4 font-medium">#</th>
-                  <th className="px-5 py-4 font-medium">Invoice No</th>
-                  <th className="px-5 py-4 font-medium">Customer</th>
-                  <th className="px-5 py-4 font-medium">Products</th>
-                  <th className="px-5 py-4 font-medium">Carage</th>
-                  <th className="px-5 py-4 font-medium">Total Amount</th>
-                  <th className="px-5 py-4 font-medium">Status</th>
-                  <DateSortHeader
-                    label="Date"
-                    direction={saleDateSort}
-                    onToggle={() =>
-                      setSaleDateSort((prev) =>
-                        prev === "asc" ? "desc" : "asc",
-                      )
-                    }
-                  />
-                  <th className="px-5 py-4 font-medium">Payment</th>
-                  <th className="px-5 py-4 font-medium">Payment Status</th>
-                  <th className="px-5 py-4 font-medium text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedSales.map((sale, index) => (
-                  <tr
-                    key={getId(sale)}
-                    className="border-b last:border-b-0 hover:bg-slate-50 transition"
-                  >
-                    <td className="px-5 py-4 text-slate-500">{index + 1}</td>
-                    <td className="px-5 py-4 font-medium text-slate-700">
-                      {sale.invoiceNumber || "-"}
-                    </td>
-                    <td className="px-5 py-4">{sale.customerName}</td>
-                    <td className="px-5 py-4">
-                      {(sale.products || []).map((item) => (
-                        <div
-                          key={getId(item.productCode) || getId(item)}
-                          className="flex items-center gap-2 px-3 py-2 mb-1 last:mb-0 rounded-md bg-slate-50 border border-slate-300"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm text-slate-800 flex items-center gap-2 flex-wrap">
-                              {/* 🔹 Product Name */}
-                              <span className="font-semibold truncate">
-                                {item.product?.name || "N/A"}
-                              </span>
-
-                              {/* 🔹 Description (inline, subtle) */}
-                              {item.product?.description && (
-                                <span
-                                  className="text-xs text-slate-500 truncate max-w-[200px]"
-                                  title={item.product.description}
-                                >
-                                  — {item.product.description}
-                                </span>
-                              )}
-                            </div>
-
-                            {/* 🔹 Company / Brand */}
-                            {(item.product?.company || item.product?.brand) && (
-                              <div className="text-xs text-slate-400 truncate mt-0.5">
-                                {item.product?.company || item.product?.brand}
-                              </div>
-                            )}
-                          </div>
-
-                          <span className="text-xs font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full whitespace-nowrap">
-                            {item.productCode?.code || "-"}
-                          </span>
-
-                          <span className="text-xs font-semibold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full whitespace-nowrap">
-                            × {item.quantity}
-                          </span>
-                        </div>
-                      ))}
-                    </td>
-                    <td className="px-5 py-4 font-semibold text-slate-700">
-                      {formatCurrency(sale.carage || 0)}
-                    </td>
-                    <td className="px-5 py-4 font-semibold text-slate-800">
-                      {formatCurrency(sale.totalAmount)}
-                    </td>
-                    <td className="px-5 py-4">
-                      <span
-                        className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full capitalize ${getStatusBadge(sale.status)}`}
+            <div className="max-w-[1390px] overflow-x-auto relative">
+              <div className="flex gap-2 w-max">
+                <table className="w-full text-sm border-collapse">
+                  {/* HEADER */}
+                  <thead>
+                    <tr className="text-left text-xs font-semibold text-slate-400 uppercase tracking-[.25] bg-slate-50 border-y border-slate-200">
+                      <th className="px-4 py-1 font-semibold">#</th>
+                      <th className="px-4 py-1 font-semibold">Invoice No</th>
+                      <th className="px-4 py-1 font-semibold">Customer</th>
+                      <th className="px-4 py-1 font-semibold">Products</th>
+                      <th className="px-4 py-1 font-semibold">Carage</th>
+                      <th className="px-4 py-1 font-semibold">Total Amount</th>
+                      <th className="px-4 py-1 font-semibold">Status</th>
+                      <th className="px-4 py-1 font-semibold">
+                        <DateSortHeader
+                          label="Date"
+                          direction={saleDateSort}
+                          onToggle={() =>
+                            setSaleDateSort((prev) =>
+                              prev === "asc" ? "desc" : "asc",
+                            )
+                          }
+                        />
+                      </th>
+                      <th className="px-4 py-1 font-semibold">Payment</th>
+                      <th className="px-4 py-1 font-semibold">
+                        Payment Status
+                      </th>
+                      <th
+                        className="px-4 py-1 font-semibold text-center sticky right-0 bg-slate-50 z-20"
+                        style={{
+                          boxShadow: "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
+                        }}
                       >
-                        {sale.status}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-slate-600">
-                      <FormattedTime timestamp={sale.createdAt} />
-                    </td>
-                    <td className="px-5 py-4">{sale.paymentMethod}</td>
-                    <td className="px-5 py-4">
-                      {(() => {
-                        const info = paymentInfoBySaleId.get(
-                          String(getId(sale)),
-                        );
-                        const status =
-                          info?.paymentStatus || sale.paymentStatus || "unpaid";
-                        const remaining =
-                          info?.remainingAmount ??
-                          Math.max(Number(sale.totalAmount || 0), 0);
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
 
-                        const statusClasses =
-                          status === "paid"
-                            ? "bg-green-100 text-green-700"
-                            : status === "partial"
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-yellow-100 text-yellow-700";
+                  {/* BODY */}
+                  <tbody className="divide-y divide-slate-100">
+                    {sortedSales.map((sale, index) => (
+                      <tr
+                        key={getId(sale)}
+                        className="group bg-white hover:bg-blue-50/30 transition-colors duration-150"
+                      >
+                        {/* # */}
+                        <td className="px-4 py-4 text-slate-400 text-xs font-medium">
+                          {String(index + 1).padStart(2, "0")}
+                        </td>
 
-                        return (
-                          <div className="flex flex-col gap-1">
-                            <span
-                              className={`px-3 py-1 text-xs rounded-full font-semibold capitalize ${statusClasses}`}
-                            >
-                              {status}
+                        {/* INVOICE NO */}
+                        <td className="px-4 py-4">
+                          <span className="inline-flex items-center px-2.5 py-1 bg-[#baf4d73d] border border-[#6ee7b769] rounded-md text-teal-800 text-xs font-mono font-semibold tracking-wide">
+                            {sale.invoiceNumber || "—"}
+                          </span>
+                        </td>
+
+                        {/* CUSTOMER */}
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-1.5">
+                            {/* <div className="w-5 h-5 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                              {(sale.customerName || "?")[0].toUpperCase()}
+                            </div> */}
+                            <span className="text-slate-700 font-medium whitespace-nowrap">
+                              {sale.customerName || "—"}
                             </span>
-                            {status !== "paid" && (
-                              <span className="text-xs text-slate-500">
-                                Remaining: {formatCurrency(remaining)}
-                              </span>
-                            )}
                           </div>
-                        );
-                      })()}
-                    </td>{" "}
-                    <td className="px-5 py-4">
-                      <div className="flex justify-end">
-                        <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 p-1">
-                          {/* <ConfirmDialog
-                          title="Delete sale?"
-                          description="This will remove the sale, reverse its stock impact, and delete its linked payment records."
-                          okText="Delete"
-                          cancelText="Cancel"
-                          okButtonProps={{
-                            danger: true,
-                            className:
-                              "font-semibold bg-red-50 hover:bg-red-100 border border-red-100",
-                          }}
-                          cancelButtonProps={{
-                            className: "font-medium",
-                          }}
-                          onConfirm={() => dispatch(DeleteSales(getId(sale)))}
-                        >
-                          <Button
-                            type="button"
-                            className=" h-9 w-9 !p-0 rounded-lg"
-                            title="Delete sale"
-                            variant="danger"
-                          >
-                            <MdDelete size={18} />
-                          </Button>
-                        </ConfirmDialog> */}
-                          <Button
-                            type="button"
-                            onClick={() => handleEditClick(sale)}
-                            className="h-9 w-9 !p-0 rounded-lg"
-                            variant="info"
-                            title="Edit sale"
-                          >
-                            <MdEdit size={18} />
-                          </Button>
-                          <Button
-                            type="button"
-                            onClick={() => openBillPreview(sale)}
-                            className="h-6 w-9 !p-0 rounded-none border-r border-l"
-                            variant="orange"
-                            title="Generate / View Bill"
-                          >
-                            <PiInvoiceBold size={18} />
-                          </Button>
+                        </td>
 
-                          <Button
-                            type="button"
-                            onClick={() => handleDownloadBillOnly(sale)}
-                            className="h-9 w-9 !p-0 rounded-lg"
-                            variant="ghost"
-                            title="Download bill"
-                          >
-                            <AiOutlineDownload size={18} />
-                          </Button>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        {/* PRODUCTS */}
+                        <td className="px-4 py-4">
+                          <div className="flex flex-col gap-1.5">
+                            {(sale.products || []).map((item) => (
+                              <div
+                                key={getId(item.productCode) || getId(item)}
+                                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100"
+                                style={{
+                                  boxShadow: `
+    0 0 0 1px rgba(232, 229, 229, 0.9),
+    0 0 10px rgba(15,23,42,0.06),
+    0 0 20px rgba(15,23,42,0.08)
+  `,
+                                }}
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-sm font-semibold text-slate-800 truncate">
+                                      {item.product?.name || "N/A"}
+                                    </span>
+                                    {item.product?.description && (
+                                      <span
+                                        className="text-xs text-slate-500 truncate max-w-[180px]"
+                                        title={item.product.description}
+                                      >
+                                        {item.product.description}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {(item.product?.company ||
+                                    item.product?.brand) && (
+                                    <div className="text-xs text-slate-500 mt-0.5">
+                                      {item.product?.company ||
+                                        item.product?.brand}
+                                    </div>
+                                  )}
+                                </div>
+                                <span className="text-xs font-semibold text-violet-700 bg-violet-50 border border-violet-200 px-2 py-0.5 rounded-md whitespace-nowrap">
+                                  {item.productCode?.code || "—"}
+                                </span>
+                                <span className="text-xs font-bold text-teal-700 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-md whitespace-nowrap">
+                                  ×{item.quantity}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </td>
+
+                        {/* CARAGE */}
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <span className="text-slate-600 font-medium">
+                            {formatCurrency(sale.carage || 0)}
+                          </span>
+                        </td>
+
+                        {/* TOTAL AMOUNT */}
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <span className="text-slate-900 font-bold text-[13px]">
+                            {formatCurrency(sale.totalAmount)}
+                          </span>
+                        </td>
+
+                        {/* STATUS */}
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          {(() => {
+                            const map = {
+                              pending:
+                                "bg-amber-50 text-amber-700 border-amber-200",
+                              completed:
+                                "bg-blue-50 text-blue-700 border-blue-200",
+                              cancelled:
+                                "bg-rose-50 text-rose-600 border-rose-200",
+                            };
+                            const dot = {
+                              pending: "bg-amber-400",
+                              completed: "bg-blue-500",
+                              cancelled: "bg-rose-400",
+                            };
+                            return (
+                              <span
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border capitalize ${map[sale.status] || "bg-slate-100 text-slate-600 border-slate-200"}`}
+                              >
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full ${dot[sale.status] || "bg-slate-400"}`}
+                                />
+                                {sale.status}
+                              </span>
+                            );
+                          })()}
+                        </td>
+
+                        {/* DATE */}
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="flex flex-col">
+                            <span className="text-slate-700 text-xs font-medium">
+                              <FormattedTime timestamp={sale.createdAt} />
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* PAYMENT METHOD */}
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          {(() => {
+                            const map = {
+                              cash: "bg-emerald-50 text-emerald-700 border-emerald-200",
+                              banktransfer:
+                                "bg-blue-50 text-blue-700 border-blue-200",
+                              credit:
+                                "bg-orange-50 text-orange-700 border-orange-200",
+                            };
+                            const method = (
+                              sale.paymentMethod || ""
+                            ).toLowerCase();
+                            const label =
+                              method === "banktransfer"
+                                ? "Bank Transfer"
+                                : method
+                                  ? method.charAt(0).toUpperCase() +
+                                    method.slice(1)
+                                  : "—";
+                            return (
+                              <span
+                                className={`inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full border ${map[method] || "bg-slate-100 text-slate-500 border-slate-200"}`}
+                              >
+                                {label}
+                              </span>
+                            );
+                          })()}
+                        </td>
+
+                        {/* PAYMENT STATUS */}
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          {(() => {
+                            const info = paymentInfoBySaleId.get(
+                              String(getId(sale)),
+                            );
+                            const status =
+                              info?.paymentStatus ||
+                              sale.paymentStatus ||
+                              "unpaid";
+                            const remaining =
+                              info?.remainingAmount ??
+                              Math.max(Number(sale.totalAmount || 0), 0);
+                            const map = {
+                              paid: "bg-emerald-50 text-emerald-700 border-emerald-200",
+                              partial: "bg-sky-50 text-sky-700 border-sky-200",
+                              unpaid:
+                                "bg-rose-50 text-rose-600 border-rose-200",
+                            };
+                            const dot = {
+                              paid: "bg-emerald-500",
+                              partial: "bg-sky-500",
+                              unpaid: "bg-rose-400",
+                            };
+                            return (
+                              <div className="flex flex-col gap-1">
+                                <span
+                                  className={`inline-flex items-center gap-1.5 w-fit px-2.5 py-1 text-xs font-semibold rounded-full border capitalize ${map[status] || "bg-slate-100 text-slate-600 border-slate-200"}`}
+                                >
+                                  <span
+                                    className={`w-1.5 h-1.5 rounded-full ${dot[status] || "bg-slate-400"}`}
+                                  />
+                                  {status}
+                                </span>
+                                {/* {status !== "paid" && (
+                                  <span className="text-xs text-slate-400 font-medium">
+                                    Due: {formatCurrency(remaining)}
+                                  </span>
+                                )} */}
+                              </div>
+                            );
+                          })()}
+                        </td>
+
+                        {/* STICKY ACTIONS */}
+                        <td
+                          className="px-4 py-4 sticky right-0 bg-white z-10 group-hover:bg-gray-50/80 transition-colors duration-150"
+                          style={{
+                            boxShadow: "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
+                          }}
+                        >
+                          <div className="flex justify-end">
+                            <div className="flex items-center rounded-xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+                              <Button
+                                type="button"
+                                onClick={() => handleEditClick(sale)}
+                                variant="info"
+                                title="Edit sale"
+                              >
+                                <MdEdit size={16} />
+                              </Button>
+                              <div className="w-px h-5 bg-slate-200" />
+                              <Button
+                                type="button"
+                                onClick={() => openBillPreview(sale)}
+                                variant="orange"
+                                title="Print Bill"
+                              >
+                                <PiInvoiceBold size={16} />
+                              </Button>
+                              <div className="w-px h-5 bg-slate-200" />
+                              <Button
+                                type="button"
+                                onClick={() => handleDownloadBillOnly(sale)}
+                                variant="violet"
+                                title="Download Bill"
+                              >
+                                <CgSoftwareDownload size={18} />
+                              </Button>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
       </div>

@@ -11,10 +11,11 @@ const variantStyles = {
     "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 focus-visible:ring-slate-400",
   ghost:
     "bg-transparent text-slate-700 hover:bg-slate-100 focus-visible:ring-slate-400",
-  danger: "text-red-500",
-  info: " text-blue-500 ",
-  orange: "text-orange-500",
-  emerald: "text-emerald-600 ",
+  danger: "text-red-500 hover:text-red-600",
+  info: " text-blue-600 hover:text-blue-700",
+  orange: "text-orange-500 hover:text-orange-700",
+  emerald: "text-emerald-600 hover:text-emerald-700",
+  violet: "text-violet-600 hover:text-violet-700 ",
 };
 
 const sizeStyles = {

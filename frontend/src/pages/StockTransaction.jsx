@@ -171,7 +171,7 @@ function StockTransaction({ readOnly = false }) {
   const getRowStyle = (type = "") => {
     const normalizedType = String(type).trim().toLowerCase();
     if (normalizedType === "stock-in") {
-      return "bg-emerald-50/70 hover:bg-emerald-100/80 border-emerald-200";
+      return "bg-emerald-50/70 hover:bg-emerald-100/80 border-[#40de90]";
     }
     if (normalizedType === "stock-out") {
       return "bg-amber-50/70 hover:bg-amber-100/80 border-amber-200";

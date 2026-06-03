@@ -417,7 +417,7 @@ function Supplierpage({ readOnly = false }) {
     <div className="min-h-[92vh] bg-gray-100 p-4">
       {/* KPI CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 lg:grid-cols-3">
-        <div className="rounded-xl p-5 border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
+        <div className="rounded-xl p-5 border-2 border-[#40de90] bg-gradient-to-br from-emerald-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
           <div className="flex items-center justify-between mb-2">
             <div className="text-sm font-medium text-gray-600">
               Vendor Total Owed
@@ -437,7 +437,7 @@ function Supplierpage({ readOnly = false }) {
             </span>
           </div>
         </div>
-        <div className="rounded-xl p-5 border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
+        <div className="rounded-xl p-5 border-2 border-[#f3a74f] bg-gradient-to-br from-orange-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
           <div className="flex items-center justify-between mb-2">
             <div className="text-sm font-medium text-gray-600">
               Total Vendors
@@ -449,7 +449,7 @@ function Supplierpage({ readOnly = false }) {
           </div>
         </div>
 
-        <div className="rounded-xl p-5 border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
+        <div className="rounded-xl p-5 border-2 border-[#b884f2] bg-gradient-to-br from-purple-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
           <div className="flex items-center justify-between mb-2">
             <div className="text-sm font-medium text-gray-600">
               Products Linked

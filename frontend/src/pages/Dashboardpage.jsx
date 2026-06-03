@@ -240,14 +240,14 @@ function Dashboardpage() {
                 value: summary?.totalReceivable ?? 0,
                 bg: "bg-gradient-to-br from-emerald-50 to-emerald-100",
                 icon: <TrendingUp className="w-5 h-5 text-emerald-600" />,
-                borderColor: "border-emerald-200",
+                borderColor: "border-[#40de90]",
               },
               {
                 label: "Total Payable",
                 value: summary?.totalPayable ?? 0,
                 bg: "bg-gradient-to-br from-rose-50 to-rose-100",
                 icon: <TrendingDown className="w-5 h-5 text-rose-600" />,
-                borderColor: "border-rose-200",
+                borderColor: "border-[#f7929e]",
               },
               {
                 label: "Today's Sales",
@@ -370,7 +370,7 @@ function Dashboardpage() {
           ))
         ) : (
           <>
-            <div className="rounded-xl p-5 border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
+            <div className="rounded-xl p-5 border-2 border-[#40de90] bg-gradient-to-br from-emerald-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-sm font-medium text-gray-600">
                   Today's Received Payments
@@ -388,7 +388,7 @@ function Dashboardpage() {
                 ).toLocaleString()}
               </div>
             </div>
-            <div className="rounded-xl p-5 border-2 border-rose-200 bg-gradient-to-br from-rose-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
+            <div className="rounded-xl p-5 border-2 border-[#f7929e] bg-gradient-to-br from-rose-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-sm font-medium text-gray-600">
                   Today's Paid Payments

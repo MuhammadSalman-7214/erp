@@ -283,7 +283,7 @@ function PaymentsPage() {
       return "bg-amber-50/70 hover:bg-amber-100/80 border-amber-200";
     }
     if (normalizedType === "paid") {
-      return "bg-emerald-50/70 hover:bg-emerald-100/80 border-emerald-200";
+      return "bg-emerald-50/70 hover:bg-emerald-100/80 border-[#40de90]";
     }
     return "bg-white hover:bg-slate-50 border-slate-200";
   };

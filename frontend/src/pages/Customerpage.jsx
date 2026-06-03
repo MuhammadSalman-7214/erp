@@ -306,7 +306,7 @@ function Customerpage({ readOnly = false }) {
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-        <div className="rounded-xl p-5 border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
+        <div className="rounded-xl p-5 border-2 border-[#40de90] bg-gradient-to-br from-emerald-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
           <div className="flex items-center justify-between mb-2">
             <div className="text-sm font-medium text-gray-600">
               Total Customers
@@ -318,7 +318,7 @@ function Customerpage({ readOnly = false }) {
           </div>
         </div>
 
-        <div className="rounded-xl p-5 border-2 border-rose-200 bg-gradient-to-br from-rose-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
+        <div className="rounded-xl p-5 border-2 border-[#f7929e] bg-gradient-to-br from-rose-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
           <div className="flex items-center justify-between mb-2">
             <div className="text-sm font-medium text-gray-600">
               Customer Total Sales

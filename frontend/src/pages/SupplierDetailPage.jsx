@@ -349,7 +349,7 @@ function SupplierDetailPage() {
                 value: currency(summary.total),
                 bg: "bg-gradient-to-br from-emerald-50 to-emerald-100",
                 icon: <TrendingUp className="w-5 h-5 text-emerald-600" />,
-                borderColor: "border-emerald-200",
+                borderColor: "border-[#40de90]",
               },
               {
                 label: "Paid",
@@ -363,7 +363,7 @@ function SupplierDetailPage() {
                 value: currency(summary.remaining),
                 bg: "bg-gradient-to-br from-rose-50 to-rose-100",
                 icon: <AlertCircle className="w-5 h-5 text-rose-600" />,
-                borderColor: "border-rose-200",
+                borderColor: "border-[#f7929e]",
               },
               {
                 label: "Total Orders",

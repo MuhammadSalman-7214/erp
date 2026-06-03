@@ -265,14 +265,11 @@ function SuperAdminDashboard() {
       return;
     }
 
-    const amountCheck = validateField(
-      "amount",
-      paymentModal.amount,
-      (value) =>
-        validateNumberInput(value, "Payment amount", {
-          min: 0.01,
-          allowZero: false,
-        }),
+    const amountCheck = validateField("amount", paymentModal.amount, (value) =>
+      validateNumberInput(value, "Payment amount", {
+        min: 0.01,
+        allowZero: false,
+      }),
     );
     if (!amountCheck.ok) {
       toast.error(amountCheck.message);
@@ -303,8 +300,8 @@ function SuperAdminDashboard() {
 
   const statusBadge = (isActive) =>
     Number(isActive) === 1
-      ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-      : "bg-rose-100 text-rose-700 border-rose-200";
+      ? "bg-emerald-100 text-emerald-700 border-[#40de90]"
+      : "bg-rose-100 text-rose-700 border-[#f7929e]";
 
   const paymentBadge = (isPaid) =>
     isPaid
@@ -367,7 +364,7 @@ function SuperAdminDashboard() {
           </div>
 
           <div className="rounded-2xl bg-white border border-gray-200 p-5 shadow-sm hover:shadow-md transition">
-          <div className="text-sm text-slate-500">Unpaid This Cycle</div>
+            <div className="text-sm text-slate-500">Unpaid This Cycle</div>
             <div className="text-3xl font-bold mt-1 text-amber-600">
               {unpaidCount}
             </div>
@@ -562,7 +559,9 @@ function SuperAdminDashboard() {
                   placeholder="Enter payment amount"
                   inputMode="decimal"
                 />
-                {errors.amount && <p className="mt-1 text-sm text-red-500">{errors.amount}</p>}
+                {errors.amount && (
+                  <p className="mt-1 text-sm text-red-500">{errors.amount}</p>
+                )}
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">
@@ -625,7 +624,7 @@ function SuperAdminDashboard() {
             {historyModal.loading ? (
               <TableSkeleton rows={3} showFilters={false} />
             ) : historyModal.error ? (
-              <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-700">
+              <div className="rounded-2xl border border-[#f7929e] bg-rose-50 p-4 text-rose-700">
                 {historyModal.error}
               </div>
             ) : historyModal.payments.length === 0 ? (
