@@ -168,7 +168,7 @@ function Dashboardpage() {
   };
 
   return (
-    <div className="min-h-[92vh] bg-gradient-to-br from-gray-50 to-gray-100 p-6">
+    <div className="min-h-[92vh] bg-gradient-to-br from-gray-50 to-gray-100 p-4">
       {bannerLoading ? null : banner ? (
         <div className="mb-6 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-3 shadow-sm">
           <div className="flex items-start gap-3">
@@ -190,7 +190,7 @@ function Dashboardpage() {
         {/* <h1 className="text-3xl font-bold text-gray-800 mb-2">
           Welcome back, {user?.name || "User"}!
         </h1> */}
-        <p className="text-gray-600">
+        <p className="rounded-md border border-1 border-teal-100 bg-teal-50 px-4 py-1 text-[13px] font-medium text-teal-700 hover:text-teal-800">
           Here's what's happening with your business today.
         </p>
         <button
