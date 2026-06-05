@@ -598,7 +598,7 @@ function PaymentsPage() {
               type="submit"
               loading={isSubmitting}
               loadingText="Saving..."
-              className="w-full"
+              className="ml-auto"
             >
               Save Payment
             </LoadingButton>
