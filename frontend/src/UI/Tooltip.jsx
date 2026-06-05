@@ -180,7 +180,7 @@ function Tooltip({
               id={tooltipId}
               role="tooltip"
               className={joinClasses(
-                "fixed z-[110] pointer-events-none max-w-xs rounded-xl bg-slate-900 px-3 py-2 text-xs font-medium text-white shadow-xl transition-opacity duration-150",
+                "fixed z-[110] pointer-events-none max-w-xs rounded-xl bg-teal-100 px-3 py-2 text-xs font-medium text-slate-600 border border-teal-300 shadow-xl transition-opacity duration-150",
                 className,
               )}
               style={{
