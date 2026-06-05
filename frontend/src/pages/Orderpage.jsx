@@ -619,15 +619,18 @@ function Orderpage() {
                 <th className="px-5 py-4 font-medium">Products</th>
                 <th className="px-5 py-4 font-medium">Total Amount</th>
                 <th className="px-5 py-4 font-medium">Status</th>
-                <DateSortHeader
-                  label="Date"
-                  direction={timestampSort}
-                  onToggle={() =>
-                    setTimestampSort((prev) =>
-                      prev === "asc" ? "desc" : "asc",
-                    )
-                  }
-                />
+                <th className="px-5 py-4 font-medium">
+                  <DateSortHeader
+                    label="Date"
+                    direction={timestampSort}
+                    onToggle={() =>
+                      setTimestampSort((prev) =>
+                        prev === "asc" ? "desc" : "asc",
+                      )
+                    }
+                  />
+                </th>
+
                 <th className="px-5 py-4 font-medium text-right">Actions</th>
               </tr>
             </thead>

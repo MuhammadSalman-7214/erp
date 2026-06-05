@@ -249,15 +249,18 @@ function Categorypage() {
                     <th className="px-5 py-4 font-medium">#</th>
                     <th className="px-5 py-4 font-medium">Name</th>
                     <th className="px-5 py-4 font-medium">Total Products</th>
-                    <DateSortHeader
-                      label="Created At"
-                      direction={createdAtSort}
-                      onToggle={() =>
-                        setCreatedAtSort((prev) =>
-                          prev === "asc" ? "desc" : "asc",
-                        )
-                      }
-                    />
+                    <th className="px-5 py-4 font-medium">
+                      <DateSortHeader
+                        label="Created At"
+                        direction={createdAtSort}
+                        onToggle={() =>
+                          setCreatedAtSort((prev) =>
+                            prev === "asc" ? "desc" : "asc",
+                          )
+                        }
+                      />
+                    </th>
+
                     <th className="px-5 py-4 font-medium text-right">
                       Actions
                     </th>

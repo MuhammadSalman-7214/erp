@@ -3,3 +3,4 @@ export { default as Textarea } from "./Textarea";
 export { default as SelectDropdown } from "./SelectDropdown";
 export { default as Button } from "./Button";
 export { default as ConfirmDialog } from "./ConfirmDialog";
+export { default as Tooltip } from "./Tooltip";

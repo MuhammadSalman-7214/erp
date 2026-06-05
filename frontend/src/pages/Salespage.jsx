@@ -34,7 +34,13 @@ import {
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
 import { validateNumberInput, validateTextInput } from "../lib/formValidation";
-import { Button, ConfirmDialog, Inputfield, SelectDropdown } from "../UI";
+import {
+  Button,
+  ConfirmDialog,
+  Inputfield,
+  SelectDropdown,
+  Tooltip,
+} from "../UI";
 import { AiOutlineDownload } from "react-icons/ai";
 
 const sanitizeFileName = (value) =>
@@ -2179,15 +2185,15 @@ function Salespage() {
                 <table className="w-full text-sm border-collapse">
                   {/* HEADER */}
                   <thead>
-                    <tr className="text-left text-xs font-semibold text-slate-400 uppercase tracking-[.25] bg-slate-50 border-y border-slate-200">
-                      <th className="px-4 py-1 font-semibold">#</th>
-                      <th className="px-4 py-1 font-semibold">Invoice No</th>
-                      <th className="px-4 py-1 font-semibold">Customer</th>
-                      <th className="px-4 py-1 font-semibold">Products</th>
-                      <th className="px-4 py-1 font-semibold">Carage</th>
-                      <th className="px-4 py-1 font-semibold">Total Amount</th>
-                      <th className="px-4 py-1 font-semibold">Status</th>
-                      <th className="px-4 py-1 font-semibold">
+                    <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-[.25] bg-slate-50 border-y border-slate-200">
+                      <th className="px-4 py-4 font-semibold">#</th>
+                      <th className="px-4 py-4 font-semibold">Invoice No</th>
+                      <th className="px-4 py-4 font-semibold">Customer</th>
+                      <th className="px-4 py-4 font-semibold">Products</th>
+                      <th className="px-4 py-4 font-semibold">Carage</th>
+                      <th className="px-4 py-4 font-semibold">Total Amount</th>
+                      <th className="px-4 py-4 font-semibold">Status</th>
+                      <th className="px-4 py-4 ">
                         <DateSortHeader
                           label="Date"
                           direction={saleDateSort}
@@ -2198,12 +2204,12 @@ function Salespage() {
                           }
                         />
                       </th>
-                      <th className="px-4 py-1 font-semibold">Payment</th>
-                      <th className="px-4 py-1 font-semibold">
+                      <th className="px-4 py-4 font-semibold">Payment</th>
+                      <th className="px-4 py-4 font-semibold">
                         Payment Status
                       </th>
                       <th
-                        className="px-4 py-1 font-semibold text-center sticky right-0 bg-slate-50 z-20"
+                        className="px-4 py-4 font-semibold text-center sticky right-0 bg-slate-50 z-20"
                         style={{
                           boxShadow: "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
                         }}
@@ -2427,32 +2433,38 @@ function Salespage() {
                         >
                           <div className="flex justify-end">
                             <div className="flex items-center rounded-xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-                              <Button
-                                type="button"
-                                onClick={() => handleEditClick(sale)}
-                                variant="info"
-                                title="Edit sale"
-                              >
-                                <MdEdit size={16} />
-                              </Button>
+                              <Tooltip content="Edit sale">
+                                <Button
+                                  type="button"
+                                  onClick={() => handleEditClick(sale)}
+                                  variant="info"
+                                  aria-label="Edit sale"
+                                >
+                                  <MdEdit size={16} />
+                                </Button>
+                              </Tooltip>
                               <div className="w-px h-5 bg-slate-200" />
-                              <Button
-                                type="button"
-                                onClick={() => openBillPreview(sale)}
-                                variant="orange"
-                                title="Print Bill"
-                              >
-                                <PiInvoiceBold size={16} />
-                              </Button>
+                              <Tooltip content="Print Bill">
+                                <Button
+                                  type="button"
+                                  onClick={() => openBillPreview(sale)}
+                                  variant="orange"
+                                  aria-label="Print Bill"
+                                >
+                                  <PiInvoiceBold size={16} />
+                                </Button>
+                              </Tooltip>
                               <div className="w-px h-5 bg-slate-200" />
-                              <Button
-                                type="button"
-                                onClick={() => handleDownloadBillOnly(sale)}
-                                variant="violet"
-                                title="Download Bill"
-                              >
-                                <CgSoftwareDownload size={18} />
-                              </Button>
+                              <Tooltip content="Download Bill">
+                                <Button
+                                  type="button"
+                                  onClick={() => handleDownloadBillOnly(sale)}
+                                  variant="violet"
+                                  aria-label="Download Bill"
+                                >
+                                  <CgSoftwareDownload size={18} />
+                                </Button>
+                              </Tooltip>
                             </div>
                           </div>
                         </td>
