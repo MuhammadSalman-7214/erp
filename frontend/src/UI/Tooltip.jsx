@@ -19,7 +19,7 @@ function Tooltip({
   children,
   placement = "top",
   delay = 120,
-  offset = 10,
+  offset = 6,
   disabled = false,
   className = "",
 }) {
@@ -53,6 +53,7 @@ function Tooltip({
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
     const padding = 12;
+    const arrowInset = 16;
     const preferredPlacement = placement === "bottom" ? "bottom" : "top";
     const canFitTop = rect.top >= tooltipRect.height + offset + padding;
     const canFitBottom =
@@ -74,6 +75,12 @@ function Tooltip({
       padding + tooltipRect.width / 2,
       viewportWidth - padding - tooltipRect.width / 2,
     );
+    const tooltipLeft = left - tooltipRect.width / 2;
+    const arrowLeft = clamp(
+      rect.left + rect.width / 2 - tooltipLeft,
+      arrowInset,
+      tooltipRect.width - arrowInset,
+    );
 
     setPosition({
       top: clamp(
@@ -82,6 +89,7 @@ function Tooltip({
         Math.max(padding, viewportHeight - tooltipRect.height - padding),
       ),
       left,
+      arrowLeft,
       placement: resolvedPlacement,
     });
   }, [offset, placement]);
@@ -180,19 +188,35 @@ function Tooltip({
               id={tooltipId}
               role="tooltip"
               className={joinClasses(
-                "fixed z-[110] pointer-events-none max-w-xs rounded-xl bg-teal-100 px-3 py-2 text-xs font-medium text-slate-600 border border-teal-300 shadow-xl transition-opacity duration-150",
+                "fixed z-[110] pointer-events-none max-w-[min(28rem,calc(100vw-24px))] rounded-md bg-teal-100 px-3 py-2 text-xs font-medium text-slate-600 border border-teal-300 shadow-xl transition-opacity duration-150 overflow-visible",
                 className,
               )}
               style={{
                 top: position?.top ?? -9999,
                 left: position?.left ?? -9999,
-                transform:
-                  position?.placement === "top"
-                    ? "translate(-50%, -100%)"
-                    : "translate(-50%, 0)",
+                transform: "translate(-50%, 0)",
               }}
             >
-              {content}
+              <span
+                aria-hidden="true"
+                className={joinClasses(
+                  "absolute h-2.5 w-2.5 -translate-x-1/2 rotate-45 border border-teal-300 bg-teal-100",
+                  position?.placement === "top" ? "-bottom-1.5" : "-top-1.5",
+                )}
+                style={{
+                  left: position?.arrowLeft ?? "50%",
+                }}
+              />
+              <span
+                className={joinClasses(
+                  "relative z-[1] inline-block text-left",
+                  typeof content === "string" && content.length <= 24
+                    ? "whitespace-nowrap"
+                    : "whitespace-normal break-words",
+                )}
+              >
+                {content}
+              </span>
             </div>,
             document.body,
           )

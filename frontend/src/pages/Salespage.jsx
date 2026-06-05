@@ -48,6 +48,12 @@ const sanitizeFileName = (value) =>
     .replace(/[^a-z0-9-_]+/gi, "_")
     .replace(/^_+|_+$/g, "") || "invoice";
 
+const normalizePaymentMethod = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, "");
+
 const splitLongText = (doc, text, width) =>
   doc.splitTextToSize(String(text || "-"), width);
 
@@ -164,7 +170,10 @@ function Salespage() {
       return;
     }
 
-    if (!Payment || Payment === "credit") {
+    if (
+      !normalizePaymentMethod(Payment) ||
+      normalizePaymentMethod(Payment) === "credit"
+    ) {
       setPayment("");
     }
   }, [receivedAmount, Payment]);
@@ -344,9 +353,10 @@ function Salespage() {
     }
 
     const parsedReceivedAmount = Number(receivedAmount || 0);
+    const normalizedPayment = normalizePaymentMethod(Payment);
     if (parsedReceivedAmount <= 0) {
       setPayment("credit");
-    } else if (!["cash", "banktransfer"].includes(Payment)) {
+    } else if (!["cash", "banktransfer"].includes(normalizedPayment)) {
       toast.error(
         "Please select Cash or Bank Transfer when received amount is entered",
       );
@@ -380,7 +390,7 @@ function Salespage() {
           ...(Number.isFinite(resolvedPrice) ? { price: resolvedPrice } : {}),
         };
       }),
-      paymentMethod: Payment,
+      paymentMethod: normalizedPayment,
       receivedAmount: Number(receivedAmount || 0),
       carage: carageAmount,
       status: Status,
@@ -738,7 +748,7 @@ function Salespage() {
       setCartItems(buildCartItemsFromSale(sale));
       setCodeQuery("");
       setShowCodeOptions(false);
-      setPayment(sale.paymentMethod || "");
+      setPayment(normalizePaymentMethod(sale.paymentMethod));
       setReceivedAmount(String(sale.paidAmount ?? 0));
       setCarage(String(sale.carage ?? 0));
       setStatus(sale.status || "");
@@ -808,7 +818,7 @@ function Salespage() {
         .trim();
       const invoiceNumber = String(sale.invoiceNumber || "").toLowerCase();
       const statusValue = String(sale.status || "").toLowerCase();
-      const paymentValue = String(sale.paymentMethod || "").toLowerCase();
+      const paymentValue = normalizePaymentMethod(sale.paymentMethod);
 
       const normalizedPhoneQuery = normalizedQuery.replace(/[^\d+]/g, "");
 
@@ -2360,9 +2370,9 @@ function Salespage() {
                               credit:
                                 "bg-orange-50 text-orange-700 border-orange-200",
                             };
-                            const method = (
-                              sale.paymentMethod || ""
-                            ).toLowerCase();
+                            const method = normalizePaymentMethod(
+                              sale.paymentMethod,
+                            );
                             const label =
                               method === "banktransfer"
                                 ? "Bank Transfer"
