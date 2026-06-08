@@ -1639,12 +1639,13 @@ function Salespage() {
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => handleSelectCustomer(customer)}
+                        variant="ghost"
                         className={`w-full !justify-start px-3 py-2 text-sm !text-black !border-0 !shadow-none !rounded-none !bg-white ${
                           customerActiveIndex ===
                           filteredCustomers.findIndex(
                             (item) => getId(item) === getId(customer),
                           )
-                            ? "!bg-slate-200"
+                            ? "!bg-slate-100"
                             : ""
                         }`}
                       >
@@ -1738,12 +1739,13 @@ function Salespage() {
                       key={`${option.codeId}`}
                       type="button"
                       onMouseDown={(e) => e.preventDefault()}
+                      variant="ghost"
                       className={`w-full !justify-start !text-left px-3 py-2 text-sm !text-black !border-0 !shadow-none !rounded-none !bg-white ${
                         codeActiveIndex ===
                         codeOptions.findIndex(
                           (item) => item.codeId === option.codeId,
                         )
-                          ? "!bg-slate-200"
+                          ? "!bg-slate-100"
                           : ""
                       }`}
                       onClick={() => addToCart(option)}

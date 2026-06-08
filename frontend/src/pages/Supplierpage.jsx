@@ -634,10 +634,10 @@ function Supplierpage({ readOnly = false }) {
               <label>Product</label>
               <SelectDropdown
                 value={product}
-                onChange={(e) => setProduct(e.target.value)}
+                onChange={(e) => setProduct(e?.target?.value ?? e ?? "")}
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
+                placeholder="Select a product"
               >
-                <option value="">Select a product</option>
                 {getallproduct?.map((product) => (
                   <option key={getId(product)} value={getId(product)}>
                     {product.name}
@@ -649,14 +649,15 @@ function Supplierpage({ readOnly = false }) {
               </SelectDropdown>
             </div>
 
-            <LoadingButton
+            <Button
               type="submit"
               loading={isSubmitting}
               loadingText={selectedSupplier ? "Updating..." : "Creating..."}
-              className="mt-4 h-12 w-full rounded-lg bg-teal-800 text-white hover:bg-teal-700"
+              variant="primary"
+              className="w-full"
             >
               {selectedSupplier ? "Update Vendor" : "Create Vendor"}
-            </LoadingButton>
+            </Button>
           </form>
         </div>
       </DrawerPanel>

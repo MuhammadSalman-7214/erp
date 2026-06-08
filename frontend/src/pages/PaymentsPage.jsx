@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import axiosInstance from "../lib/axios";
 import toast from "react-hot-toast";
 import NoData from "../Components/NoData";
-import LoadingButton from "../Components/LoadingButton";
 import useKeyboardDropdown from "../hooks/useKeyboardDropdown";
 import DateSortHeader from "../Components/DateSortHeader";
 import { formatDateLabel, sortByDateValue } from "../lib/dateFormat";
@@ -13,6 +12,8 @@ import {
   validateTextInput,
 } from "../lib/formValidation";
 import { Button, Inputfield, SelectDropdown } from "../UI";
+import DrawerPanel from "../Components/DrawerPanel";
+import { IoMdAdd } from "react-icons/io";
 
 const getLocalDateInputValue = (date = new Date()) => {
   const offsetMinutes = date.getTimezoneOffset();
@@ -69,6 +70,9 @@ function PaymentsPage() {
   const [showVendorOptions, setShowVendorOptions] = useState(false);
   const [paymentDateSort, setPaymentDateSort] = useState("asc");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFormVisible, setIsFormVisible] = useState(false);
+  const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
+  const [query, setquery] = useState("");
 
   const getId = (value) => value?.id ?? value?.id ?? value;
 
@@ -295,172 +299,305 @@ function PaymentsPage() {
       paymentDateSort,
     );
   }, [payments, paymentDateSort]);
-
+  const resetForm = () => {
+    setType("received");
+    setPartyType("customer");
+    setAmount("");
+    setMethod("cash");
+    setPaidAt(getLocalDateInputValue());
+    setDescription("");
+    setCustomerId("");
+    setVendorId("");
+    setCustomerQuery("");
+    setVendorQuery("");
+    setErrors({});
+    setShowCustomerOptions(false);
+    setShowVendorOptions(false);
+    setIsDrawerMinimized(false);
+  };
+  const openForm = (category = null) => {
+    setErrors({});
+    setIsDrawerMinimized(false);
+    setIsFormVisible(true);
+  };
+  const closeForm = () => {
+    setIsFormVisible(false);
+    setIsDrawerMinimized(false);
+    resetForm();
+  };
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
-      <div className="bg-white rounded-2xl shadow-sm border p-4">
-        <h2 className="text-lg font-semibold mb-4">Record Payment</h2>
-        <form
-          onSubmit={handleSubmit}
-          className="grid grid-cols-1 md:grid-cols-2 gap-3"
+      <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">
+        <Inputfield
+          type="text"
+          value={query}
+          onChange={(e) => setquery(e.target.value)}
+          placeholder="Search the category"
+          maxLength={120}
+          className="w-full md:w-96"
+        />
+        <Button
+          onClick={() => {
+            openForm();
+          }}
+          variant="primary"
         >
-          <div>
-            <label className="text-sm font-medium">Type</label>
-            <SelectDropdown
-              value={type}
-              onChange={(e) => {
-                const value = e.target.value;
-                setType(value);
-                validateField("type", value, (current) =>
-                  validateTextInput(current, "Type", {
-                    required: true,
-                    maxLength: 20,
-                  }),
-                );
-              }}
-              className="w-full h-10 px-3 border rounded-xl mt-1"
-            >
-              <option value="received">Receive</option>
-              <option value="paid">Pay</option>
-            </SelectDropdown>
-            {errors.type && (
-              <p className="mt-1 text-sm text-red-500">{errors.type}</p>
-            )}
-          </div>
+          <IoMdAdd size={18} />
+          Add Payment
+        </Button>
+      </div>
 
-          <div>
-            <label className="text-sm font-medium">Method</label>
-            <SelectDropdown
-              value={method}
-              onChange={(e) => {
-                const value = e.target.value;
-                setMethod(value);
-                validateField("method", value, (current) =>
-                  validateTextInput(current, "Method", {
-                    required: true,
-                    maxLength: 40,
-                  }),
-                );
-              }}
-              className="w-full h-10 px-3 border rounded-xl mt-1"
-            >
-              <option value="cash">Cash</option>
-              <option value="bank_transfer">Bank Transfer</option>
-              <option value="card">Card</option>
-              <option value="upi">UPI</option>
-              <option value="paypal">PayPal</option>
-              <option value="other">Other</option>
-            </SelectDropdown>
-            {errors.method && (
-              <p className="mt-1 text-sm text-red-500">{errors.method}</p>
-            )}
-          </div>
+      <DrawerPanel
+        open={isFormVisible}
+        title="Make Payment"
+        onClose={closeForm}
+        isMinimized={isDrawerMinimized}
+        onToggleMinimized={() => setIsDrawerMinimized((prev) => !prev)}
+        widthClass="w-full sm:w-[420px]"
+      >
+        <div className="p-6">
+          <form
+            onSubmit={handleSubmit}
+            className="grid grid-cols-1 md:grid-cols-2 gap-3"
+          >
+            <div>
+              <label className="text-sm font-medium">Type</label>
+              <SelectDropdown
+                value={type}
+                onChange={(e) => {
+                  const value = e?.target?.value ?? e ?? "";
+                  setType(value);
+                  validateField("type", value, (current) =>
+                    validateTextInput(current, "Type", {
+                      required: true,
+                      maxLength: 20,
+                    }),
+                  );
+                }}
+                placeholder="Select Payment Type"
+                className="w-full h-10 px-3 border rounded-xl mt-1"
+              >
+                <option value="received">Receive</option>
+                <option value="paid">Pay</option>
+              </SelectDropdown>
+              {errors.type && (
+                <p className="mt-1 text-sm text-red-500">{errors.type}</p>
+              )}
+            </div>
 
-          <div>
-            <label className="text-sm font-medium">Date</label>
-            <Inputfield
-              type="date"
-              value={paidAt}
-              onChange={(e) => {
-                const value = e.target.value;
-                setPaidAt(value);
-                validateField("paidAt", value, (current) =>
-                  validateDateInput(current, "Payment date"),
-                );
-              }}
-              onBlur={(e) =>
-                validateField("paidAt", e.target.value, (current) =>
-                  validateDateInput(current, "Payment date"),
-                )
-              }
-              className="w-full h-10 px-3 border rounded-xl mt-1"
-            />
-            {errors.paidAt && (
-              <p className="mt-1 text-sm text-red-500">{errors.paidAt}</p>
-            )}
-          </div>
+            <div>
+              <label className="text-sm font-medium">Method</label>
+              <SelectDropdown
+                value={method}
+                onChange={(e) => {
+                  const value = e?.target?.value ?? e ?? "";
+                  setMethod(value);
+                  validateField("method", value, (current) =>
+                    validateTextInput(current, "Method", {
+                      required: true,
+                      maxLength: 40,
+                    }),
+                  );
+                }}
+                placeholder="Select Method"
+                className="w-full h-10 px-3 border rounded-xl mt-1"
+              >
+                <option value="cash">Cash</option>
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="card">Card</option>
+                <option value="upi">UPI</option>
+                <option value="paypal">PayPal</option>
+                <option value="other">Other</option>
+              </SelectDropdown>
+              {errors.method && (
+                <p className="mt-1 text-sm text-red-500">{errors.method}</p>
+              )}
+            </div>
 
-          <div>
-            <label className="text-sm font-medium">Amount</label>
-            <Inputfield
-              type="number"
-              value={amount}
-              onChange={(e) => {
-                const value = e.target.value;
-                setAmount(value);
-                validateField("amount", value, (current) =>
-                  validateNumberInput(current, "Amount", {
-                    min: 0.01,
-                    allowZero: false,
-                  }),
-                );
-              }}
-              onBlur={(e) =>
-                validateField("amount", e.target.value, (current) =>
-                  validateNumberInput(current, "Amount", {
-                    min: 0.01,
-                    allowZero: false,
-                  }),
-                )
-              }
-              className="w-full h-10 px-3 border rounded-xl mt-1"
-              required
-              min="0"
-              step="0.01"
-            />
-            {errors.amount && (
-              <p className="mt-1 text-sm text-red-500">{errors.amount}</p>
-            )}
-          </div>
+            <div>
+              <label className="text-sm font-medium">Date</label>
+              <Inputfield
+                type="date"
+                value={paidAt}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setPaidAt(value);
+                  validateField("paidAt", value, (current) =>
+                    validateDateInput(current, "Payment date"),
+                  );
+                }}
+                onBlur={(e) =>
+                  validateField("paidAt", e.target.value, (current) =>
+                    validateDateInput(current, "Payment date"),
+                  )
+                }
+                className="w-full h-10 px-3 border rounded-xl mt-1"
+              />
+              {errors.paidAt && (
+                <p className="mt-1 text-sm text-red-500">{errors.paidAt}</p>
+              )}
+            </div>
 
-          <div>
-            <label className="text-sm font-medium">Description</label>
-            <Inputfield
-              type="text"
-              value={description}
-              onChange={(e) => {
-                const value = e.target.value;
-                setDescription(value);
-                validateField("description", value, (current) =>
-                  validateTextInput(current, "Description", {
-                    required: false,
-                    maxLength: 200,
-                    allowEmpty: true,
-                  }),
-                );
-              }}
-              onBlur={(e) =>
-                validateField("description", e.target.value, (current) =>
-                  validateTextInput(current, "Description", {
-                    required: false,
-                    maxLength: 200,
-                    allowEmpty: true,
-                  }),
-                )
-              }
-              className="w-full h-10 px-3 border rounded-xl mt-1"
-              placeholder="Enter payment description"
-              maxLength={200}
-            />
-            {errors.description && (
-              <p className="mt-1 text-sm text-red-500">{errors.description}</p>
-            )}
-          </div>
+            <div>
+              <label className="text-sm font-medium">Amount</label>
+              <Inputfield
+                type="number"
+                value={amount}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setAmount(value);
+                  validateField("amount", value, (current) =>
+                    validateNumberInput(current, "Amount", {
+                      min: 0.01,
+                      allowZero: false,
+                    }),
+                  );
+                }}
+                onBlur={(e) =>
+                  validateField("amount", e.target.value, (current) =>
+                    validateNumberInput(current, "Amount", {
+                      min: 0.01,
+                      allowZero: false,
+                    }),
+                  )
+                }
+                className="w-full h-10 px-3 border rounded-xl mt-1"
+                required
+                min="0"
+                step="0.01"
+              />
+              {errors.amount && (
+                <p className="mt-1 text-sm text-red-500">{errors.amount}</p>
+              )}
+            </div>
 
-          {partyType === "customer" ? (
-            <>
+            <div>
+              <label className="text-sm font-medium">Description</label>
+              <Inputfield
+                type="text"
+                value={description}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setDescription(value);
+                  validateField("description", value, (current) =>
+                    validateTextInput(current, "Description", {
+                      required: false,
+                      maxLength: 200,
+                      allowEmpty: true,
+                    }),
+                  );
+                }}
+                onBlur={(e) =>
+                  validateField("description", e.target.value, (current) =>
+                    validateTextInput(current, "Description", {
+                      required: false,
+                      maxLength: 200,
+                      allowEmpty: true,
+                    }),
+                  )
+                }
+                className="w-full h-10 px-3 border rounded-xl mt-1"
+                placeholder="Enter payment description"
+                maxLength={200}
+              />
+              {errors.description && (
+                <p className="mt-1 text-sm text-red-500">
+                  {errors.description}
+                </p>
+              )}
+            </div>
+
+            {partyType === "customer" ? (
+              <>
+                <div className="relative">
+                  <label className="text-sm font-medium">Customer</label>
+                  <Inputfield
+                    type="text"
+                    value={customerQuery}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setCustomerQuery(value);
+                      setCustomerId("");
+                      setShowCustomerOptions(true);
+                      validateField("customerQuery", value, (current) =>
+                        validateTextInput(current, "Customer", {
+                          required: true,
+                          minLength: 2,
+                          maxLength: 120,
+                        }),
+                      );
+                    }}
+                    onBlur={(e) => {
+                      validateField(
+                        "customerQuery",
+                        e.target.value,
+                        (current) =>
+                          validateTextInput(current, "Customer", {
+                            required: true,
+                            minLength: 2,
+                            maxLength: 120,
+                          }),
+                      );
+                      setTimeout(() => {
+                        setShowCustomerOptions(false);
+                        setCustomerActiveIndex(-1);
+                      }, 150);
+                    }}
+                    maxLength={120}
+                    onFocus={() => {
+                      setShowCustomerOptions(true);
+                      setCustomerActiveIndex(0);
+                    }}
+                    onKeyDownCapture={onCustomerKeyDown}
+                    className="w-full h-10 px-3 border rounded-xl mt-1"
+                    placeholder="Search customer..."
+                  />
+                  {errors.customerQuery && (
+                    <p className="mt-1 text-sm text-red-500">
+                      {errors.customerQuery}
+                    </p>
+                  )}
+                  {showCustomerOptions && filteredCustomers.length > 0 && (
+                    <div className="absolute z-50 mt-1 w-full max-h-56 overflow-auto rounded-lg border bg-white shadow">
+                      {filteredCustomers.map((customer) => (
+                        <Button
+                          key={getId(customer)}
+                          type="button"
+                          className={`w-full text-left px-3 py-2 text-sm !text-black !border-0 !shadow-none !rounded-none !bg-white ${
+                            customerActiveIndex ===
+                            filteredCustomers.findIndex(
+                              (item) => getId(item) === getId(customer),
+                            )
+                              ? "!bg-slate-100"
+                              : ""
+                          }`}
+                          variant="ghost"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => selectCustomer(customer)}
+                        >
+                          {customer.name}
+                          {customer.customerCode
+                            ? ` (${customer.customerCode})`
+                            : ""}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
               <div className="relative">
-                <label className="text-sm font-medium">Customer</label>
+                <label className="text-sm font-medium">Vendor</label>
                 <Inputfield
                   type="text"
-                  value={customerQuery}
+                  value={vendorQuery}
                   onChange={(e) => {
                     const value = e.target.value;
-                    setCustomerQuery(value);
-                    setCustomerId("");
-                    setShowCustomerOptions(true);
-                    validateField("customerQuery", value, (current) =>
-                      validateTextInput(current, "Customer", {
+                    setVendorQuery(value);
+                    setVendorId("");
+                    setShowVendorOptions(true);
+                    validateField("vendorQuery", value, (current) =>
+                      validateTextInput(current, "Vendor", {
                         required: true,
                         minLength: 2,
                         maxLength: 120,
@@ -468,146 +605,75 @@ function PaymentsPage() {
                     );
                   }}
                   onBlur={(e) => {
-                    validateField("customerQuery", e.target.value, (current) =>
-                      validateTextInput(current, "Customer", {
+                    validateField("vendorQuery", e.target.value, (current) =>
+                      validateTextInput(current, "Vendor", {
                         required: true,
                         minLength: 2,
                         maxLength: 120,
                       }),
                     );
                     setTimeout(() => {
-                      setShowCustomerOptions(false);
-                      setCustomerActiveIndex(-1);
+                      setShowVendorOptions(false);
+                      setVendorActiveIndex(-1);
                     }, 150);
                   }}
                   maxLength={120}
                   onFocus={() => {
-                    setShowCustomerOptions(true);
-                    setCustomerActiveIndex(0);
+                    setShowVendorOptions(true);
+                    setVendorActiveIndex(0);
                   }}
-                  onKeyDownCapture={onCustomerKeyDown}
+                  onKeyDownCapture={onVendorKeyDown}
                   className="w-full h-10 px-3 border rounded-xl mt-1"
-                  placeholder="Search customer..."
+                  placeholder="Search vendor..."
                 />
-                {errors.customerQuery && (
+                {errors.vendorQuery && (
                   <p className="mt-1 text-sm text-red-500">
-                    {errors.customerQuery}
+                    {errors.vendorQuery}
                   </p>
                 )}
-                {showCustomerOptions && filteredCustomers.length > 0 && (
+                {showVendorOptions && filteredVendors.length > 0 && (
                   <div className="absolute z-50 mt-1 w-full max-h-56 overflow-auto rounded-lg border bg-white shadow">
-                    {filteredCustomers.map((customer) => (
+                    {filteredVendors.map((vendor) => (
                       <Button
-                        key={getId(customer)}
+                        key={getId(vendor)}
                         type="button"
-                        className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 ${
-                          customerActiveIndex ===
-                          filteredCustomers.findIndex(
-                            (item) => getId(item) === getId(customer),
+                        className={`w-full text-left px-3 py-2 text-sm !text-black !border-0 !shadow-none !rounded-none !bg-white ${
+                          vendorActiveIndex ===
+                          filteredVendors.findIndex(
+                            (item) => getId(item) === getId(vendor),
                           )
-                            ? "bg-slate-50"
+                            ? "!bg-slate-100"
                             : ""
                         }`}
+                        variant="ghost"
                         onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => selectCustomer(customer)}
+                        onClick={() => selectVendor(vendor)}
                       >
-                        {customer.name}
-                        {customer.customerCode
-                          ? ` (${customer.customerCode})`
-                          : ""}
+                        {vendor.name}
+                        {vendor.vendorCode ? ` (${vendor.vendorCode})` : ""}
                       </Button>
                     ))}
                   </div>
                 )}
               </div>
-            </>
-          ) : (
-            <div className="relative">
-              <label className="text-sm font-medium">Vendor</label>
-              <Inputfield
-                type="text"
-                value={vendorQuery}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setVendorQuery(value);
-                  setVendorId("");
-                  setShowVendorOptions(true);
-                  validateField("vendorQuery", value, (current) =>
-                    validateTextInput(current, "Vendor", {
-                      required: true,
-                      minLength: 2,
-                      maxLength: 120,
-                    }),
-                  );
-                }}
-                onBlur={(e) => {
-                  validateField("vendorQuery", e.target.value, (current) =>
-                    validateTextInput(current, "Vendor", {
-                      required: true,
-                      minLength: 2,
-                      maxLength: 120,
-                    }),
-                  );
-                  setTimeout(() => {
-                    setShowVendorOptions(false);
-                    setVendorActiveIndex(-1);
-                  }, 150);
-                }}
-                maxLength={120}
-                onFocus={() => {
-                  setShowVendorOptions(true);
-                  setVendorActiveIndex(0);
-                }}
-                onKeyDownCapture={onVendorKeyDown}
-                className="w-full h-10 px-3 border rounded-xl mt-1"
-                placeholder="Search vendor..."
-              />
-              {errors.vendorQuery && (
-                <p className="mt-1 text-sm text-red-500">
-                  {errors.vendorQuery}
-                </p>
-              )}
-              {showVendorOptions && filteredVendors.length > 0 && (
-                <div className="absolute z-50 mt-1 w-full max-h-56 overflow-auto rounded-lg border bg-white shadow">
-                  {filteredVendors.map((vendor) => (
-                    <Button
-                      key={getId(vendor)}
-                      type="button"
-                      className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 ${
-                        vendorActiveIndex ===
-                        filteredVendors.findIndex(
-                          (item) => getId(item) === getId(vendor),
-                        )
-                          ? "bg-slate-50"
-                          : ""
-                      }`}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => selectVendor(vendor)}
-                    >
-                      {vendor.name}
-                      {vendor.vendorCode ? ` (${vendor.vendorCode})` : ""}
-                    </Button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+            )}
 
-          <div className="md:col-span-2">
-            <LoadingButton
-              type="submit"
-              loading={isSubmitting}
-              loadingText="Saving..."
-              className="ml-auto"
-            >
-              Save Payment
-            </LoadingButton>
-          </div>
-        </form>
-      </div>
+            <div className="md:col-span-2">
+              <Button
+                type="submit"
+                loading={isSubmitting}
+                loadingText="Saving..."
+                variant="primary"
+                className="w-full"
+              >
+                Save Payment
+              </Button>
+            </div>
+          </form>
+        </div>
+      </DrawerPanel>
 
       <div className="mt-4 bg-white rounded-2xl shadow-sm border p-4">
-        <h2 className="text-lg font-semibold mb-4">Payment History</h2>
         {payments.length === 0 ? (
           <NoData
             title="No Payments"

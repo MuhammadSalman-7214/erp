@@ -479,12 +479,13 @@ function Orderpage() {
                         key={`${option.codeId}`}
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
+                        variant="ghost"
                         className={`w-full !justify-start px-3 py-2 text-sm !text-black !border-0 !shadow-none !rounded-none !bg-white ${
                           codeActiveIndex ===
                           codeOptions.findIndex(
                             (item) => item.codeId === option.codeId,
                           )
-                            ? "bg-slate-50"
+                            ? "!bg-slate-100"
                             : ""
                         }`}
                         onClick={() => addToCart(option)}
@@ -619,18 +620,15 @@ function Orderpage() {
                 <th className="px-5 py-4 font-medium">Products</th>
                 <th className="px-5 py-4 font-medium">Total Amount</th>
                 <th className="px-5 py-4 font-medium">Status</th>
-                <th className="px-5 py-4 font-medium">
-                  <DateSortHeader
-                    label="Date"
-                    direction={timestampSort}
-                    onToggle={() =>
-                      setTimestampSort((prev) =>
-                        prev === "asc" ? "desc" : "asc",
-                      )
-                    }
-                  />
-                </th>
-
+                <DateSortHeader
+                  label="Date"
+                  direction={timestampSort}
+                  onToggle={() =>
+                    setTimestampSort((prev) =>
+                      prev === "asc" ? "desc" : "asc",
+                    )
+                  }
+                />
                 <th className="px-5 py-4 font-medium text-right">Actions</th>
               </tr>
             </thead>

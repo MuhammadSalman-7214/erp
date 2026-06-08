@@ -369,9 +369,7 @@ function InvoiceEditPage() {
               </label>
               <SelectDropdown
                 value={paymentMethod}
-                onChange={(e) =>
-                  setPaymentMethod(e?.target?.value ?? e ?? "")
-                }
+                onChange={(e) => setPaymentMethod(e?.target?.value ?? e ?? "")}
                 placeholder="Select payment method"
                 className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
               >
@@ -390,7 +388,7 @@ function InvoiceEditPage() {
               </label>
               <SelectDropdown
                 value={status}
-                onChange={(e) => setStatus(e.target.value)}
+                onChange={(e) => setStatus(e?.target?.value ?? e ?? "")}
                 className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
               >
                 <option value="draft">Draft</option>

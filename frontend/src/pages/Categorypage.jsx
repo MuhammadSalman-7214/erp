@@ -226,14 +226,15 @@ function Categorypage() {
               )}
             </div>
 
-            <LoadingButton
+            <Button
               type="submit"
               loading={isSubmitting}
               loadingText={selectedProduct ? "Updating..." : "Creating..."}
-              className="mt-6 h-12 w-full rounded-xl bg-teal-700 font-medium text-white shadow-md transition hover:bg-teal-600"
+              variant="primary"
+              className="w-full"
             >
               {selectedProduct ? "Update Category" : "Create Category"}
-            </LoadingButton>
+            </Button>
           </form>
         </div>
       </DrawerPanel>

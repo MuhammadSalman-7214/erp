@@ -475,14 +475,15 @@ function Customerpage({ readOnly = false }) {
             {errors.address && (
               <p className="text-red-500 text-sm">{errors.address}</p>
             )}
-            <LoadingButton
+            <Button
               type="submit"
               loading={isSubmitting}
               loadingText={selectedCustomer ? "Updating..." : "Creating..."}
-              className="h-11 w-full rounded-xl bg-teal-700 text-white hover:bg-teal-600"
+              variant="primary"
+              className="w-full"
             >
               {selectedCustomer ? "Update Customer" : "Create Customer"}
-            </LoadingButton>
+            </Button>
           </form>
         </div>
       </DrawerPanel>
