@@ -2210,14 +2210,14 @@ function Salespage() {
                 <Button
                   type="button"
                   onClick={handlePrintBoth}
-                  className="px-5 py-2 rounded-lg bg-indigo-700 text-white hover:bg-indigo-600"
+                  variant="primary"
                 >
                   Print Bill
                 </Button>
                 <Button
                   type="button"
                   onClick={handlePrintGatePassOnly}
-                  className="px-5 py-2 rounded-lg bg-slate-800 text-white hover:bg-slate-700"
+                  variant="primary"
                 >
                   Print Gate Pass
                 </Button>
