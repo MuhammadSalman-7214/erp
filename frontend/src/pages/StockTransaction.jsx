@@ -365,19 +365,22 @@ function StockTransaction({ readOnly = false }) {
             <thead className="bg-slate-50 border-b">
               <tr className="text-left text-slate-500">
                 <th className="px-5 py-4 font-medium">#</th>
-                <DateSortHeader
-                  label="Date"
-                  direction={transactionDateSort}
-                  onToggle={() =>
-                    setTransactionDateSort((prev) =>
-                      prev === "asc" ? "desc" : "asc",
-                    )
-                  }
-                />
+
                 <th className="px-5 py-4 font-medium">Product</th>
                 <th className="px-5 py-4 font-medium">Product Code</th>
                 <th className="px-5 py-4 font-medium">Type</th>
                 <th className="px-5 py-4 font-medium">Quantity</th>
+                <th className="px-5 py-4 font-medium">
+                  <DateSortHeader
+                    label="Date"
+                    direction={transactionDateSort}
+                    onToggle={() =>
+                      setTransactionDateSort((prev) =>
+                        prev === "asc" ? "desc" : "asc",
+                      )
+                    }
+                  />
+                </th>
                 <th className="px-5 py-4 font-medium">Vendor/Customer</th>
               </tr>
             </thead>
@@ -391,9 +394,7 @@ function StockTransaction({ readOnly = false }) {
                   )}`}
                 >
                   <td className="px-5 py-4">{index + 1}</td>
-                  <td className="px-5 py-4">
-                    <FormattedTime timestamp={stock.transactionDate} />
-                  </td>
+
                   <td className="px-5 py-4">
                     <div className="font-medium text-slate-800">
                       {stock.product?.name || "N/A"}
@@ -411,6 +412,9 @@ function StockTransaction({ readOnly = false }) {
                   </td>
                   <td className="px-5 py-4">{stock.type}</td>
                   <td className="px-5 py-4">{stock.quantity}</td>
+                  <td className="px-5 py-4">
+                    <FormattedTime timestamp={stock.transactionDate} />
+                  </td>
                   <td className="px-5 py-4">
                     {stock.type === "Stock-out"
                       ? stock.customer?.name ||

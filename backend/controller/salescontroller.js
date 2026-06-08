@@ -699,7 +699,7 @@ module.exports.createSale = async (req, res) => {
     );
     const paymentMethodMap = {
       cash: "cash",
-      banktransfer: "bank_transfer",
+      banktransfer: "Bank Transfer",
     };
     const resolvedPaymentMethod =
       parsedReceivedAmount <= 0

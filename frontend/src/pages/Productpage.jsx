@@ -755,16 +755,19 @@ function Productpage({ readOnly = false }) {
                     <th className="px-5 py-4 font-medium">Trade Price</th>
                     <th className="px-5 py-4 font-medium">Sale Price</th>
                     <th className="px-5 py-4 font-medium">Category</th>
-                    <th className="px-5 py-4 font-medium">Qty</th>
-                    <DateSortHeader
-                      label="Date"
-                      direction={createdAtSort}
-                      onToggle={() =>
-                        setCreatedAtSort((prev) =>
-                          prev === "asc" ? "desc" : "asc",
-                        )
-                      }
-                    />
+                    <th className="px-5 py-4 font-medium">Quantity</th>
+                    <th className="px-5 py-4 font-medium">
+                      <DateSortHeader
+                        label="Date"
+                        direction={createdAtSort}
+                        onToggle={() =>
+                          setCreatedAtSort((prev) =>
+                            prev === "asc" ? "desc" : "asc",
+                          )
+                        }
+                      />
+                    </th>
+
                     {!isReadOnlyMode && (
                       <th className="px-5 py-4 font-medium text-right">
                         Actions

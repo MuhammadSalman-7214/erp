@@ -4,7 +4,7 @@ const joinClasses = (...classes) => classes.filter(Boolean).join(" ").trim();
 
 const variantStyles = {
   primary:
-    "bg-teal-700 text-white shadow-sm border border-teal-700 hover:bg-white hover:text-teal-700 hover:border-teal-700 focus-visible:ring-teal-500",
+    "rounded-2xl bg-gradient-to-r from-teal-600 to-cyan-600 px-5 text-white hover:text-teal-900 shadow-[0_10px_30px_rgba(13,148,136,0.28)] transition hover:from-teal-500 hover:to-cyan-500 ",
   secondary:
     "bg-slate-800 text-white shadow-sm border border-slate-800 hover:bg-white hover:text-slate-800 hover:border-slate-800 focus-visible:ring-slate-400",
   outline:
@@ -19,7 +19,7 @@ const variantStyles = {
 };
 
 const sizeStyles = {
-  sm: "px-3 py-1.5 text-sm",
+  sm: "px-2 py-2 text-sm",
   middle: "px-3.5 py-2.5 text-sm",
   lg: "px-5 py-3 text-base",
 };

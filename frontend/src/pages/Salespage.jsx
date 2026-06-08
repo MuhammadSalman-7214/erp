@@ -6,6 +6,7 @@ import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
 import FormattedTime from "../lib/FormattedTime";
 import { CgSoftwareDownload } from "react-icons/cg";
+import { IoMdSearch } from "react-icons/io";
 
 import {
   CreateSales,
@@ -33,13 +34,25 @@ import {
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
 import { validateNumberInput, validateTextInput } from "../lib/formValidation";
-import { Button, Inputfield, SelectDropdown } from "../UI";
+import {
+  Button,
+  ConfirmDialog,
+  Inputfield,
+  SelectDropdown,
+  Tooltip,
+} from "../UI";
 import { AiOutlineDownload } from "react-icons/ai";
 
 const sanitizeFileName = (value) =>
   String(value || "invoice")
     .replace(/[^a-z0-9-_]+/gi, "_")
     .replace(/^_+|_+$/g, "") || "invoice";
+
+const normalizePaymentMethod = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, "");
 
 const splitLongText = (doc, text, width) =>
   doc.splitTextToSize(String(text || "-"), width);
@@ -157,7 +170,10 @@ function Salespage() {
       return;
     }
 
-    if (!Payment || Payment === "credit") {
+    if (
+      !normalizePaymentMethod(Payment) ||
+      normalizePaymentMethod(Payment) === "credit"
+    ) {
       setPayment("");
     }
   }, [receivedAmount, Payment]);
@@ -337,9 +353,10 @@ function Salespage() {
     }
 
     const parsedReceivedAmount = Number(receivedAmount || 0);
+    const normalizedPayment = normalizePaymentMethod(Payment);
     if (parsedReceivedAmount <= 0) {
       setPayment("credit");
-    } else if (!["cash", "banktransfer"].includes(Payment)) {
+    } else if (!["cash", "banktransfer"].includes(normalizedPayment)) {
       toast.error(
         "Please select Cash or Bank Transfer when received amount is entered",
       );
@@ -373,7 +390,7 @@ function Salespage() {
           ...(Number.isFinite(resolvedPrice) ? { price: resolvedPrice } : {}),
         };
       }),
-      paymentMethod: Payment,
+      paymentMethod: normalizedPayment,
       receivedAmount: Number(receivedAmount || 0),
       carage: carageAmount,
       status: Status,
@@ -731,7 +748,7 @@ function Salespage() {
       setCartItems(buildCartItemsFromSale(sale));
       setCodeQuery("");
       setShowCodeOptions(false);
-      setPayment(sale.paymentMethod || "");
+      setPayment(normalizePaymentMethod(sale.paymentMethod));
       setReceivedAmount(String(sale.paidAmount ?? 0));
       setCarage(String(sale.carage ?? 0));
       setStatus(sale.status || "");
@@ -801,7 +818,7 @@ function Salespage() {
         .trim();
       const invoiceNumber = String(sale.invoiceNumber || "").toLowerCase();
       const statusValue = String(sale.status || "").toLowerCase();
-      const paymentValue = String(sale.paymentMethod || "").toLowerCase();
+      const paymentValue = normalizePaymentMethod(sale.paymentMethod);
 
       const normalizedPhoneQuery = normalizedQuery.replace(/[^\d+]/g, "");
 
@@ -1479,47 +1496,92 @@ function Salespage() {
   });
 
   return (
-    <div className="min-h-[92vh] bg-gray-100 p-4">
+    <div className="min-h-[92vh] bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.14),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#f1f5f9_100%)] p-4">
       {/* <SalesChart /> */}
 
-      <div className="flex flex-col md:flex-row md:items-center gap-2">
-        <Inputfield
-          value={query}
-          onChange={(e) => setquery(e.target.value)}
-          type="text"
-          maxLength={120}
-          className="w-full md:w-80 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
-          placeholder="Search invoice, customer, phone..."
-        />
-        <Inputfield
-          type="date"
-          value={dateFrom}
-          onChange={(e) => setDateFrom(e.target.value)}
-          className="w-full md:w-44 h-10 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
-          placeholder="Date from"
-        />
-        <Inputfield
-          type="date"
-          value={dateTo}
-          onChange={(e) => setDateTo(e.target.value)}
-          className="w-full md:w-44 h-10 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
-          placeholder="Date to"
-        />
-        <Button
-          type="button"
-          onClick={() => {
-            setquery("");
-            setDateFrom("");
-            setDateTo("");
-          }}
-          className="bg-white border border-slate-300 shadow-sm"
-          variant="ghost"
-        >
-          <IoMdRefresh className="text-xl" />{" "}
-        </Button>
-        <Button onClick={() => openForm()} variant="primary">
-          <IoMdAdd className="text-xl mr-2" /> Create Sales
-        </Button>
+      <div className="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-start gap-3">
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700 ring-1 ring-teal-100">
+                <IoMdSearch className="text-lg" />
+              </span>
+              <div>
+                <h2 className="text-sm font-semibold text-slate-800">
+                  Sales Filters
+                </h2>
+                <p className="mt-0.5 text-sm text-slate-500">
+                  Search invoices, customers, and phone numbers, then narrow by
+                  date.
+                </p>
+              </div>
+            </div>
+
+            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
+              <span className="h-2 w-2 rounded-full bg-teal-500" />
+              {sortedSales.length} records shown
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-3 p-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(180px,0.8fr)_minmax(180px,0.8fr)_auto_auto]">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-slate-600">Search</label>
+            <Inputfield
+              value={query}
+              onChange={(e) => setquery(e.target.value)}
+              type="text"
+              maxLength={120}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-700 shadow-sm transition focus:border-teal-400 focus:ring-4 focus:ring-teal-100 focus:outline-none"
+              placeholder="Search invoice, customer, phone..."
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-slate-600">From</label>
+            <Inputfield
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm transition focus:border-teal-400 focus:ring-4 focus:ring-teal-100 focus:outline-none"
+              placeholder="Date from"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-slate-600">To</label>
+            <Inputfield
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm transition focus:border-teal-400 focus:ring-4 focus:ring-teal-100 focus:outline-none"
+              placeholder="Date to"
+            />
+          </div>
+
+          <div className="flex items-end">
+            <Button
+              type="button"
+              onClick={() => {
+                setquery("");
+                setDateFrom("");
+                setDateTo("");
+              }}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-slate-100 hover:text-slate-800"
+              variant="ghost"
+            >
+              <IoMdRefresh className="mr-2 text-lg" />
+              Reset
+            </Button>
+          </div>
+
+          <div className="flex items-end">
+            <Button onClick={() => openForm()} className="" variant="primary">
+              <IoMdAdd className="mr-2 text-xl" />
+              Create Sales
+            </Button>
+          </div>
+        </div>
       </div>
 
       <DrawerPanel
@@ -2176,15 +2238,15 @@ function Salespage() {
                 <table className="w-full text-sm border-collapse">
                   {/* HEADER */}
                   <thead>
-                    <tr className="text-left text-xs font-semibold text-slate-400 uppercase tracking-[.25] bg-slate-50 border-y border-slate-200">
-                      <th className="px-4 py-1 font-semibold">#</th>
-                      <th className="px-4 py-1 font-semibold">Invoice No</th>
-                      <th className="px-4 py-1 font-semibold">Customer</th>
-                      <th className="px-4 py-1 font-semibold">Products</th>
-                      <th className="px-4 py-1 font-semibold">Carage</th>
-                      <th className="px-4 py-1 font-semibold">Total Amount</th>
-                      <th className="px-4 py-1 font-semibold">Status</th>
-                      <th className="px-4 py-1 font-semibold">
+                    <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-[.25] bg-slate-50 border-y border-slate-200">
+                      <th className="px-4 py-4 font-semibold">#</th>
+                      <th className="px-4 py-4 font-semibold">Invoice No</th>
+                      <th className="px-4 py-4 font-semibold">Customer</th>
+                      <th className="px-4 py-4 font-semibold">Products</th>
+                      <th className="px-4 py-4 font-semibold">Carage</th>
+                      <th className="px-4 py-4 font-semibold">Total Amount</th>
+                      <th className="px-4 py-4 font-semibold">Status</th>
+                      <th className="px-4 py-4 ">
                         <DateSortHeader
                           label="Date"
                           direction={saleDateSort}
@@ -2195,12 +2257,12 @@ function Salespage() {
                           }
                         />
                       </th>
-                      <th className="px-4 py-1 font-semibold">Payment</th>
-                      <th className="px-4 py-1 font-semibold">
+                      <th className="px-4 py-4 font-semibold">Payment</th>
+                      <th className="px-4 py-4 font-semibold">
                         Payment Status
                       </th>
                       <th
-                        className="px-4 py-1 font-semibold text-center sticky right-0 bg-slate-50 z-20"
+                        className="px-4 py-4 font-semibold text-center sticky right-0 bg-slate-50 z-20"
                         style={{
                           boxShadow: "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
                         }}
@@ -2351,9 +2413,9 @@ function Salespage() {
                               credit:
                                 "bg-orange-50 text-orange-700 border-orange-200",
                             };
-                            const method = (
-                              sale.paymentMethod || ""
-                            ).toLowerCase();
+                            const method = normalizePaymentMethod(
+                              sale.paymentMethod,
+                            );
                             const label =
                               method === "banktransfer"
                                 ? "Bank Transfer"
@@ -2417,39 +2479,51 @@ function Salespage() {
 
                         {/* STICKY ACTIONS */}
                         <td
-                          className="px-4 py-4 sticky right-0 bg-white z-10 group-hover:bg-gray-50/80 transition-colors duration-150"
+                          className="px-4 py-4 sticky right-0 z-10 bg-gray-50/80 transition-colors duration-150"
                           style={{
                             boxShadow: "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
                           }}
                         >
                           <div className="flex justify-end">
-                            <div className="flex items-center rounded-xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-                              <Button
-                                type="button"
-                                onClick={() => handleEditClick(sale)}
-                                variant="info"
-                                title="Edit sale"
-                              >
-                                <MdEdit size={16} />
-                              </Button>
-                              <div className="w-px h-5 bg-slate-200" />
-                              <Button
-                                type="button"
-                                onClick={() => openBillPreview(sale)}
-                                variant="orange"
-                                title="Print Bill"
-                              >
-                                <PiInvoiceBold size={16} />
-                              </Button>
-                              <div className="w-px h-5 bg-slate-200" />
-                              <Button
-                                type="button"
-                                onClick={() => handleDownloadBillOnly(sale)}
-                                variant="violet"
-                                title="Download Bill"
-                              >
-                                <CgSoftwareDownload size={18} />
-                              </Button>
+                            <div className="flex items-center gap-2  overflow-hidden">
+                              <Tooltip content="Edit sale">
+                                <Button
+                                  type="button"
+                                  onClick={() => handleEditClick(sale)}
+                                  variant="info"
+                                  aria-label="Edit sale"
+                                  size="sm"
+                                  className="metal-btn"
+                                >
+                                  <MdEdit size={16} />
+                                </Button>
+                              </Tooltip>
+                              {/* <div className="w-px h-5 bg-slate-200" /> */}
+                              <Tooltip content="Print Bill">
+                                <Button
+                                  type="button"
+                                  onClick={() => openBillPreview(sale)}
+                                  variant="orange"
+                                  aria-label="Print Bill"
+                                  size="sm"
+                                  className="metal-btn"
+                                >
+                                  <PiInvoiceBold size={16} />
+                                </Button>
+                              </Tooltip>
+                              {/* <div className="w-px h-5 bg-slate-200" /> */}
+                              <Tooltip content="Download Bill">
+                                <Button
+                                  type="button"
+                                  onClick={() => handleDownloadBillOnly(sale)}
+                                  variant="violet"
+                                  aria-label="Download Bill"
+                                  size="sm"
+                                  className="metal-btn"
+                                >
+                                  <CgSoftwareDownload size={18} />
+                                </Button>
+                              </Tooltip>
                             </div>
                           </div>
                         </td>

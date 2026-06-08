@@ -683,16 +683,18 @@ function Supplierpage({ readOnly = false }) {
                     <th className="px-5 py-4 font-medium">Total Owed</th>
                     <th className="px-5 py-4 font-medium">Paid</th>
                     <th className="px-5 py-4 font-medium">Remaining</th>
-                    {/* <th className="px-5 py-4 font-medium">Terms</th> */}
-                    <DateSortHeader
-                      label="Date"
-                      direction={createdAtSort}
-                      onToggle={() =>
-                        setCreatedAtSort((prev) =>
-                          prev === "asc" ? "desc" : "asc",
-                        )
-                      }
-                    />
+                    <th className="px-5 py-4 font-medium">
+                      <DateSortHeader
+                        label="Date"
+                        direction={createdAtSort}
+                        onToggle={() =>
+                          setCreatedAtSort((prev) =>
+                            prev === "asc" ? "desc" : "asc",
+                          )
+                        }
+                      />
+                    </th>
+
                     <th className="px-5 py-4 font-medium text-right">
                       Actions
                     </th>

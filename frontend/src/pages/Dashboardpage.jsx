@@ -233,7 +233,7 @@ function Dashboardpage() {
                 value: summary?.totalProfit ?? 0,
                 bg: "bg-gradient-to-br from-violet-50 to-violet-100",
                 icon: <TrendingUp className="w-5 h-5 text-violet-600" />,
-                borderColor: "border-violet-200",
+                borderColor: "border-violet-400",
               },
               {
                 label: "Total Receivable",
@@ -254,21 +254,21 @@ function Dashboardpage() {
                 value: summary?.todaysSales ?? 0,
                 bg: "bg-gradient-to-br from-blue-50 to-blue-100",
                 icon: <ShoppingCart className="w-5 h-5 text-blue-600" />,
-                borderColor: "border-blue-200",
+                borderColor: "border-blue-400",
               },
               {
                 label: "Today's Purchases",
                 value: summary?.todaysPurchases ?? 0,
                 bg: "bg-gradient-to-br from-amber-50 to-amber-100",
                 icon: <Package className="w-5 h-5 text-amber-600" />,
-                borderColor: "border-amber-200",
+                borderColor: "border-amber-400",
               },
               {
                 label: "Bank Balance",
                 value: summary?.cashBankBalance ?? 0,
                 bg: "bg-gradient-to-br from-teal-50 to-teal-100",
                 icon: <DollarSign className="w-5 h-5 text-teal-600" />,
-                borderColor: "border-teal-200",
+                borderColor: "border-teal-400",
               },
             ].map(({ label, value, bg, icon, borderColor }) => (
               <div

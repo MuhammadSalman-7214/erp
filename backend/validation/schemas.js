@@ -184,18 +184,6 @@ const stockTransactionBody = Joi.object({
 
 const stockSearchQuery = queryParam();
 
-const priceListBody = Joi.object({
-  productName: anyText.required(),
-  size: optionalText.optional(),
-  price: nonNegativeNumber.required(),
-}).unknown(true);
-
-const priceListUpdateBody = Joi.object({
-  productName: anyText.required(),
-  size: optionalText.optional(),
-  price: nonNegativeNumber.required(),
-}).unknown(true);
-
 const paymentBody = Joi.object({
   type: Joi.string().valid("paid", "received", "debit").required(),
   amount: Joi.number().positive().required(),
@@ -380,8 +368,6 @@ module.exports = {
   orderStatusBody,
   paymentBody,
   paymentParam,
-  priceListBody,
-  priceListUpdateBody,
   productBody,
   productCodeCreateBody,
   productCodeUpdateBody,

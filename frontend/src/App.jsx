@@ -1,4 +1,9 @@
-import { BrowserRouter as Router, Navigate, Route, Routes } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Navigate,
+  Route,
+  Routes,
+} from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
 import HomePage from "./pages/HomePage";
@@ -32,14 +37,14 @@ import Customerpage from "./pages/Customerpage";
 import CustomerDetailPage from "./pages/CustomerDetailPage";
 import SupplierDetailPage from "./pages/SupplierDetailPage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
-import PriceListPage from "./pages/PriceListPage";
 import { fetchCurrentUser } from "./features/authSlice";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 
 const RoleDashboardLayout = () => {
   const { user } = useSelector((state) => state.auth);
 
-  if (user?.role === "super_admin") return <Navigate to="/super-admin" replace />;
+  if (user?.role === "super_admin")
+    return <Navigate to="/super-admin" replace />;
   if (user?.role === "admin") return <AdminDashboard />;
   if (user?.role === "manager") return <ManagerDashboard />;
   if (user?.role === "staff") return <StaffDashboard />;
@@ -64,7 +69,11 @@ const CustomerByRole = () => {
 
 const NotificationsByRole = () => {
   const { user } = useSelector((state) => state.auth);
-  return user?.role === "admin" ? <Notificationpage /> : <NotificationPageRead />;
+  return user?.role === "admin" ? (
+    <Notificationpage />
+  ) : (
+    <NotificationPageRead />
+  );
 };
 
 const AuthBootstrapper = ({ children }) => {
@@ -84,114 +93,107 @@ function App() {
         <div>
           <Toaster />
           <Routes>
-          {/* Public Routes */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-          <Route path="/about" element={<ServicePage />} />
-          <Route path="/home" element={<HomePage />} />
-          <Route
-            path="/super-admin"
-            element={
-              <ProtectedRoute allowedRoles={["super_admin"]}>
-                <SuperAdminDashboard />
-              </ProtectedRoute>
-            }
-          />
+            {/* Public Routes */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/about" element={<ServicePage />} />
+            <Route path="/home" element={<HomePage />} />
+            <Route
+              path="/super-admin"
+              element={
+                <ProtectedRoute allowedRoles={["super_admin"]}>
+                  <SuperAdminDashboard />
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Protected App Routes (role-based) */}
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <RoleDashboardLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Dashboardpage />} />
-            <Route path="product" element={<ProductByRole />} />
-            <Route path="order" element={<Orderpage />} />
-            <Route path="sales" element={<Salespage />} />
+            {/* Protected App Routes (role-based) */}
             <Route
-              path="stock-transaction"
+              path="/"
               element={
-                <ProtectedRoute allowedRoles={["admin", "manager"]}>
-                  <StockTransaction />
+                <ProtectedRoute>
+                  <RoleDashboardLayout />
                 </ProtectedRoute>
               }
-            />
-            <Route
-              path="category"
-              element={
-                <ProtectedRoute allowedRoles={["admin", "manager"]}>
-                  <Categorypage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="price-list"
-              element={
-                <ProtectedRoute allowedRoles={["admin", "manager"]}>
-                  <PriceListPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="invoices"
-              element={
-                <ProtectedRoute allowedRoles={["admin", "manager"]}>
-                  <InvoicesPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="createInvoice"
-              element={
-                <ProtectedRoute allowedRoles={["admin", "manager"]}>
-                  <CreateInvoicePage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="invoice/:id"
-              element={
-                <ProtectedRoute allowedRoles={["admin", "manager"]}>
-                  <InvoiceDetailPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="editInvoice/:id"
-              element={
-                <ProtectedRoute allowedRoles={["admin", "manager"]}>
-                  <InvoiceEditPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="payments" element={<PaymentsPage />} />
-            <Route path="notifications" element={<NotificationsByRole />} />
-            <Route path="Profilepage" element={<Profilepage />} />
-            <Route path="supplier" element={<SupplierByRole />} />
-            <Route path="supplier/:id" element={<SupplierDetailPage />} />
-            <Route path="customer" element={<CustomerByRole />} />
-            <Route path="customer/:id" element={<CustomerDetailPage />} />
-            <Route
-              path="Userstatus"
-              element={
-                <ProtectedRoute allowedRoles={["admin", "manager"]}>
-                  <Userstatus />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="activity-log"
-              element={
-                <ProtectedRoute allowedRoles={["admin"]}>
-                  <Activitylogpage />
-                </ProtectedRoute>
-              }
-            />
-          </Route>
+            >
+              <Route index element={<Dashboardpage />} />
+              <Route path="product" element={<ProductByRole />} />
+              <Route path="order" element={<Orderpage />} />
+              <Route path="sales" element={<Salespage />} />
+              <Route
+                path="stock-transaction"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                    <StockTransaction />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="category"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                    <Categorypage />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="invoices"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                    <InvoicesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="createInvoice"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                    <CreateInvoicePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="invoice/:id"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                    <InvoiceDetailPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="editInvoice/:id"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                    <InvoiceEditPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="payments" element={<PaymentsPage />} />
+              <Route path="notifications" element={<NotificationsByRole />} />
+              <Route path="Profilepage" element={<Profilepage />} />
+              <Route path="supplier" element={<SupplierByRole />} />
+              <Route path="supplier/:id" element={<SupplierDetailPage />} />
+              <Route path="customer" element={<CustomerByRole />} />
+              <Route path="customer/:id" element={<CustomerDetailPage />} />
+              <Route
+                path="Userstatus"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                    <Userstatus />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="activity-log"
+                element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <Activitylogpage />
+                  </ProtectedRoute>
+                }
+              />
+            </Route>
 
             <Route path="*" element={<NotFoundPage />} />
           </Routes>

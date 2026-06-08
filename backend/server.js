@@ -22,7 +22,6 @@ const paymentRouter = require("./Routers/paymentRouter.js");
 const subscriptionPaymentsRouter = require("./Routers/paymentsRouter.js");
 const usersRouter = require("./Routers/usersRouter.js");
 const dashboardRouter = require("./Routers/dashboardRouter.js");
-const priceListRouter = require("./Routers/priceListRouter.js");
 const startSubscriptionCron = require("./cron/subscriptionCron.js");
 
 require("dotenv").config();
@@ -98,7 +97,6 @@ app.use("/api/payment", paymentRouter);
 app.use("/api/payments", subscriptionPaymentsRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/dashboard", dashboardRouter);
-app.use("/api/price-list", priceListRouter);
 
 startSubscriptionCron();
 
