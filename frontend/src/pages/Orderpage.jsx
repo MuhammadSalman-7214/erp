@@ -479,7 +479,7 @@ function Orderpage() {
                         key={`${option.codeId}`}
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
-                        className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 ${
+                        className={`w-full !justify-start px-3 py-2 text-sm !text-black !border-0 !shadow-none !rounded-none !bg-white ${
                           codeActiveIndex ===
                           codeOptions.findIndex(
                             (item) => item.codeId === option.codeId,
@@ -539,14 +539,14 @@ function Orderpage() {
                           onChange={(e) =>
                             updateCartQuantity(item.codeId, e.target.value)
                           }
-                          className="w-full h-9 px-3 border rounded min-w-[90px]"
+                          className="!max-w-[50px] !px-2 text-center"
                         />
                       </div>
                       <div className="col-span-1 text-right">
                         <Button
                           type="button"
-                          className="text-red-600 text-xs"
                           onClick={() => removeFromCart(item.codeId)}
+                          variant="danger"
                         >
                           <MdDelete size={18} />
                         </Button>
@@ -567,9 +567,9 @@ function Orderpage() {
                 onChange={(value) =>
                   setstatus(value?.target?.value ?? value ?? "")
                 }
+                placeholder="Select status"
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2"
               >
-                <option value="">Select status</option>
                 <option value="pending">Pending</option>
                 <option value="shipped">Shipped</option>
                 <option value="delivered">Delivered</option>
@@ -582,9 +582,9 @@ function Orderpage() {
                 onChange={(value) =>
                   setsupplier(value?.target?.value ?? value ?? "")
                 }
+                placeholder="No vendor, stock only"
                 className="w-full h-10 px-2 border-2 rounded-lg mt-2"
               >
-                <option value="">No vendor, stock only</option>
                 {getallSupplier?.map((supplier) => (
                   <option key={getId(supplier)} value={getId(supplier)}>
                     {supplier.name}
@@ -593,16 +593,16 @@ function Orderpage() {
               </SelectDropdown>
             </div>
 
-            <LoadingButton
+            <Button
               type="submit"
               loading={isSubmitting}
               loadingText={selectedOrder ? "Updating..." : "Creating..."}
-              className="mt-4 h-12 w-full rounded-lg bg-teal-800 text-white hover:bg-teal-700"
+              className="w-full"
             >
               {selectedOrder
                 ? "Update Purchase Order"
                 : "Create Purchase Order"}
-            </LoadingButton>
+            </Button>
           </form>
         </div>
       </DrawerPanel>
@@ -731,11 +731,7 @@ function Orderpage() {
                             onConfirm={() => handleRemove(getId(order))}
                           >
                             <Button
-                              className="
-                              h-9 w-9 !p-0 rounded-lg
-      transition-all duration-200
-      hover:shadow-sm
-    "
+                              className="h-9 w-9 !p-0 rounded-lg transition-all duration-200 hover:shadow-sm"
                               variant="danger"
                               title="Delete Order"
                             >
@@ -746,7 +742,7 @@ function Orderpage() {
                         <Button
                           onClick={() => handleEditClick(order)}
                           disabled={isLockedOrder(order)}
-                          className={`h-6 w-9 !p-0 rounded-none border-l p-2 rounded-lg transition ${
+                          className={`h-6 w-9 !p-0 rounded-none border-l transition ${
                             isLockedOrder(order)
                               ? " text-blue-300 cursor-not-allowed"
                               : ""

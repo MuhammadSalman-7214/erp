@@ -27,7 +27,7 @@ function CreateInvoicePage() {
   const [taxRate, setTaxRate] = useState(0);
   const [discount, setDiscount] = useState(0);
   const [dueDate, setDueDate] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [paymentMethod, setPaymentMethod] = useState("");
   const [notes, setNotes] = useState("");
   const [subTotal, setSubTotal] = useState(0);
   const [taxAmount, setTaxAmount] = useState(0);
@@ -184,7 +184,6 @@ function CreateInvoicePage() {
           <h1 className="text-2xl font-bold mb-6 text-gray-800">
             Create Invoice
           </h1>
-
           {/* Invoice Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
@@ -210,7 +209,6 @@ function CreateInvoicePage() {
               />
             </div>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
               <label className="block mb-2 text-gray-700 font-medium">
@@ -219,14 +217,13 @@ function CreateInvoicePage() {
               <SelectDropdown
                 value={invoiceType}
                 onChange={(e) => setInvoiceType(e.target.value)}
-                className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                placeholder="Select Type"
               >
                 <option value="sales">Sales</option>
                 <option value="purchase">Purchase</option>
               </SelectDropdown>
             </div>
           </div>
-
           {invoiceType === "sales" ? (
             <>
               <h2 className="text-lg font-semibold text-gray-800 mb-3">
@@ -271,10 +268,19 @@ function CreateInvoicePage() {
               </div>
             </>
           )}
-
           {/* Items */}
-          <h2 className="text-lg font-semibold text-gray-800 mb-3">Items</h2>
-          <div className="space-y-3 mb-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-semibold text-gray-800 mb-3">Items</h2>{" "}
+            <Button
+              type="button"
+              onClick={addItem}
+              disabled={isSubmitting}
+              variant="primary"
+            >
+              <IoMdAdd /> Add Item
+            </Button>
+          </div>
+          <div className="space-y-3 mb-6 mt-2">
             {items.map((item, idx) => (
               <div
                 key={idx}
@@ -315,23 +321,14 @@ function CreateInvoicePage() {
                 </span>
                 <Button
                   onClick={() => removeItem(idx)}
-                  className="col-span-1 flex items-center justify-center bg-red-500 text-white p-2 rounded-lg hover:bg-red-600"
+                  variant="danger"
+                  className="border border-red-500 bg-red-50 "
                 >
-                  <MdDelete />
+                  <MdDelete size={18} />
                 </Button>
               </div>
             ))}
           </div>
-
-          <Button
-            type="button"
-            onClick={addItem}
-            disabled={isSubmitting}
-            className="mb-6 inline-flex items-center gap-2 bg-teal-800 text-white px-4 py-2 rounded-lg hover:bg-teal-600 disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            <IoMdAdd /> Add Item
-          </Button>
-
           {/* Totals */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
@@ -361,15 +358,15 @@ function CreateInvoicePage() {
               />
             </div>
           </div>
-
           <div className="text-right mb-6 space-y-1">
-            <p className="text-gray-600">Subtotal: Rs {formatFixed(subTotal)}</p>
+            <p className="text-gray-600">
+              Subtotal: Rs {formatFixed(subTotal)}
+            </p>
             <p className="text-gray-600">Tax: Rs {formatFixed(taxAmount)}</p>
             <p className="text-lg font-semibold">
               Total: Rs {formatFixed(totalAmount)}
             </p>
           </div>
-
           {/* Payment & Notes */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
@@ -378,7 +375,8 @@ function CreateInvoicePage() {
               </label>
               <SelectDropdown
                 value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
+                onChange={(e) => setPaymentMethod(e?.target?.value ?? e ?? "")}
+                placeholder="Select payment method"
                 className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               >
                 <option value="cash">Cash</option>
@@ -402,21 +400,21 @@ function CreateInvoicePage() {
               />
             </div>
           </div>
-
           {/* Actions */}
           <div className="flex justify-end gap-3">
-            <LoadingButton
+            <Button
               type="button"
               onClick={handleSubmit}
               loading={isSubmitting}
               loadingText="Creating..."
-              className="px-6 py-2 bg-teal-800 text-white rounded-lg hover:bg-teal-700"
+              variant="primary"
             >
               Create Invoice
-            </LoadingButton>
+            </Button>
             <Button
               onClick={() => navigate("/invoices")}
-              className="px-6 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500"
+              variant="ghost"
+              className="border border-slate-300"
               disabled={isSubmitting}
             >
               Cancel

@@ -205,8 +205,7 @@ function InvoiceEditPage() {
     }
   };
 
-  if (loading)
-    return <FormSkeleton />;
+  if (loading) return <FormSkeleton />;
   if (!invoice)
     return <p className="p-6 text-center text-red-500">Invoice not found</p>;
 
@@ -253,9 +252,17 @@ function InvoiceEditPage() {
 
           {/* Items */}
           <div className="mb-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-3">Items</h2>
+            <div className="flex justify-between items-center">
+              {" "}
+              <h2 className="text-lg font-semibold text-gray-800 mb-3">
+                Items
+              </h2>
+              <Button onClick={addItem} variant="primary">
+                <IoMdAdd /> Add Item
+              </Button>
+            </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3 mt-5">
               {items.map((item, index) => (
                 <div
                   key={index}
@@ -295,33 +302,21 @@ function InvoiceEditPage() {
 
                   <Button
                     onClick={() => removeItem(index)}
+                    variant="danger"
                     className="
       absolute -top-3 -right-3
-      w-7 h-7
-      flex items-center justify-center
-      rounded-full
-      text-red-600
-      hover:text-red-600
-      hover:bg-red-50
-      transition-all duration-200
-      p-1
-      border-red-500 border-2
-      bg-red-100
+      !text-white
+      bg-red-500
+      w-8 h-8 !p-0
+      
     "
                     title="Remove"
                   >
-                    <MdDelete size={16} />
+                    <MdDelete size={18} />
                   </Button>
                 </div>
               ))}
             </div>
-
-            <Button
-              onClick={addItem}
-              className="mt-3 inline-flex items-center gap-2 bg-teal-800 text-white px-4 py-2 rounded-lg hover:bg-teal-600"
-            >
-              <IoMdAdd /> Add Item
-            </Button>
           </div>
 
           {/* Tax, Discount, Payment & Status */}
@@ -374,10 +369,12 @@ function InvoiceEditPage() {
               </label>
               <SelectDropdown
                 value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
+                onChange={(e) =>
+                  setPaymentMethod(e?.target?.value ?? e ?? "")
+                }
+                placeholder="Select payment method"
                 className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
               >
-                <option value="">Select</option>
                 <option value="cash">Cash</option>
                 <option value="bank_transfer">Bank Transfer</option>
                 <option value="card">Card</option>

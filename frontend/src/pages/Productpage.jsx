@@ -1040,7 +1040,7 @@ function Productpage({ readOnly = false }) {
               <SelectDropdown
                 value={Category}
                 onChange={(e) => {
-                  const value = e.target.value;
+                  const value = e?.target?.value ?? e?.value ?? e ?? "";
                   setCategory(value);
                   validateField("Category", value, (current) =>
                     validateTextInput(current, "Category", {
@@ -1057,9 +1057,9 @@ function Productpage({ readOnly = false }) {
                     }),
                   )
                 }
+                placeholder="Select Category"
                 className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               >
-                <option value="">Select category</option>
                 {getallCategory?.map((c) => (
                   <option key={getId(c)} value={getId(c)}>
                     {c.name}
@@ -1167,14 +1167,15 @@ function Productpage({ readOnly = false }) {
               )}
             </div>
 
-            <LoadingButton
+            <Button
               type="submit"
               loading={isFormSubmitting}
               loadingText={selectedProduct ? "Updating..." : "Creating..."}
-              className="mt-4 h-12 w-full rounded-xl bg-teal-700 text-white shadow-md hover:bg-teal-600"
+              className="w-full"
+              variant="primary"
             >
               {selectedProduct ? "Update Product" : "Create Product"}
-            </LoadingButton>
+            </Button>
           </form>
         </div>
       </DrawerPanel>

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
 import axiosInstance from "../lib/axios";
@@ -24,10 +24,16 @@ const splitLongText = (doc, text, width) =>
 function InvoiceDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [receivedAmount, setReceivedAmount] = useState(0);
   const [remainingAmount, setRemainingAmount] = useState(0);
+  const autoActionDone = useRef(false);
+  const autoAction = useMemo(
+    () => new URLSearchParams(location.search).get("action"),
+    [location.search],
+  );
   useEffect(() => {
     const fetchInvoice = async () => {
       try {
@@ -75,7 +81,9 @@ function InvoiceDetailPage() {
   const buildPrintOptions = (showPrices = true) => {
     if (!invoice) return null;
 
-    const party = isPurchaseInvoice ? invoice.vendor : invoice.customerId || invoice.customer;
+    const party = isPurchaseInvoice
+      ? invoice.vendor
+      : invoice.customerId || invoice.customer;
 
     return {
       documentTitle: showPrices
@@ -94,7 +102,10 @@ function InvoiceDetailPage() {
       partyLabel: showPrices ? "Invoice To" : "Gate Pass",
       partyName: party?.name || (isPurchaseInvoice ? "Vendor" : "Customer"),
       partyPhone:
-        party?.contactInfo?.phone || party?.phone || invoice.customer?.phone || "",
+        party?.contactInfo?.phone ||
+        party?.phone ||
+        invoice.customer?.phone ||
+        "",
       partyAddress:
         party?.contactInfo?.address ||
         party?.address ||
@@ -200,8 +211,23 @@ function InvoiceDetailPage() {
       };
 
       pdf.setTextColor(15, 23, 42);
-      y = addWrappedText("Imran Traders", marginX, y, contentWidth, 5, 16, "bold");
-      y = addWrappedText("Billing and stock management", marginX, y + 1, contentWidth, 4, 9);
+      y = addWrappedText(
+        "Imran Traders",
+        marginX,
+        y,
+        contentWidth,
+        5,
+        16,
+        "bold",
+      );
+      y = addWrappedText(
+        "Billing and stock management",
+        marginX,
+        y + 1,
+        contentWidth,
+        4,
+        9,
+      );
 
       const title = isPurchaseInvoice ? "Purchase Invoice" : "Sales Invoice";
       pdf.setFont("helvetica", "bold");
@@ -211,12 +237,29 @@ function InvoiceDetailPage() {
       addLine(y);
       y += 7;
 
-      const party = isPurchaseInvoice ? invoice.vendor : invoice.customerId || invoice.customer;
+      const party = isPurchaseInvoice
+        ? invoice.vendor
+        : invoice.customerId || invoice.customer;
       const partyLabel = isPurchaseInvoice ? "Vendor" : "Customer";
       const detailsLeft = [
-        [partyLabel, party?.name || (isPurchaseInvoice ? "Vendor" : "Customer")],
-        ["Phone", party?.contactInfo?.phone || party?.phone || invoice.customer?.phone || "-"],
-        ["Address", party?.contactInfo?.address || party?.address || invoice.customer?.address || "-"],
+        [
+          partyLabel,
+          party?.name || (isPurchaseInvoice ? "Vendor" : "Customer"),
+        ],
+        [
+          "Phone",
+          party?.contactInfo?.phone ||
+            party?.phone ||
+            invoice.customer?.phone ||
+            "-",
+        ],
+        [
+          "Address",
+          party?.contactInfo?.address ||
+            party?.address ||
+            invoice.customer?.address ||
+            "-",
+        ],
         ["Payment", invoice.paymentMethod || "-"],
       ];
 
@@ -251,7 +294,11 @@ function InvoiceDetailPage() {
         pdf.setFont("helvetica", "bold");
         pdf.text("Due Date:", pageWidth / 2 + 4, detailsRightY);
         pdf.setFont("helvetica", "normal");
-        const wrapped = splitLongText(pdf, formatDateLabel(invoice.dueDate), 40);
+        const wrapped = splitLongText(
+          pdf,
+          formatDateLabel(invoice.dueDate),
+          40,
+        );
         pdf.text(wrapped, pageWidth / 2 + 22, detailsRightY);
         detailsRightY += Math.max(wrapped.length * 4.2, 4.2);
       }
@@ -265,16 +312,17 @@ function InvoiceDetailPage() {
         String(item.name || "-"),
         String(Number(item.quantity || 0)),
         formatCurrency(item.unitPrice || 0, invoice.currency || "Rs"),
-        formatCurrency(item.total || item.quantity * item.unitPrice || 0, invoice.currency || "Rs"),
+        formatCurrency(
+          item.total || item.quantity * item.unitPrice || 0,
+          invoice.currency || "Rs",
+        ),
       ]);
 
       autoTable(pdf, {
         startY: y,
         margin: { left: marginX, right: marginX },
         head: [["No", "Item Description", "Qty", "Price", "Total"]],
-        body: rows.length
-          ? rows
-          : [["-", "No items", "-", "-", "-"]],
+        body: rows.length ? rows : [["-", "No items", "-", "-", "-"]],
         styles: {
           font: "helvetica",
           fontSize: 9,
@@ -305,11 +353,26 @@ function InvoiceDetailPage() {
 
       const summaryX = pageWidth - marginX - 42;
       const summary = [
-        ["Sub Total", formatCurrency(invoice.subTotal || 0, invoice.currency || "Rs")],
-        ["Carage", formatCurrency(invoice.carage || 0, invoice.currency || "Rs")],
-        ["Received", formatCurrency(receivedAmount || 0, invoice.currency || "Rs")],
-        ["Remaining", formatCurrency(remainingAmount || 0, invoice.currency || "Rs")],
-        ["Discount", formatCurrency(invoice.discount || 0, invoice.currency || "Rs")],
+        [
+          "Sub Total",
+          formatCurrency(invoice.subTotal || 0, invoice.currency || "Rs"),
+        ],
+        [
+          "Carage",
+          formatCurrency(invoice.carage || 0, invoice.currency || "Rs"),
+        ],
+        [
+          "Received",
+          formatCurrency(receivedAmount || 0, invoice.currency || "Rs"),
+        ],
+        [
+          "Remaining",
+          formatCurrency(remainingAmount || 0, invoice.currency || "Rs"),
+        ],
+        [
+          "Discount",
+          formatCurrency(invoice.discount || 0, invoice.currency || "Rs"),
+        ],
       ];
 
       pdf.setFont("helvetica", "normal");
@@ -356,6 +419,25 @@ function InvoiceDetailPage() {
     }
   };
 
+  useEffect(() => {
+    if (!invoice || !autoAction || autoActionDone.current) return;
+
+    autoActionDone.current = true;
+
+    if (autoAction === "print") {
+      printInvoice();
+      return;
+    }
+
+    if (autoAction === "download") {
+      downloadInvoice().finally(() => {
+        if (window.opener) {
+          setTimeout(() => window.close(), 500);
+        }
+      });
+    }
+  }, [invoice, autoAction]);
+
   if (loading) return <PreviewSkeleton />;
   if (!invoice) return <p className="p-6">Invoice not found</p>;
 
@@ -365,7 +447,8 @@ function InvoiceDetailPage() {
       <div className="flex justify-between items-center mb-4 print:hidden">
         <Button
           onClick={() => navigate("/invoices")}
-          className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+          variant="ghost"
+          className="border border-slate-300 bg-white"
         >
           ← Back
         </Button>
@@ -401,7 +484,10 @@ function InvoiceDetailPage() {
             <div className="rounded-lg border bg-slate-50 p-3">
               <div className="text-xs text-slate-500">Subtotal</div>
               <div className="font-semibold text-slate-800">
-                {formatCurrency(invoice.subTotal || 0, invoice.currency || "Rs")}
+                {formatCurrency(
+                  invoice.subTotal || 0,
+                  invoice.currency || "Rs",
+                )}
               </div>
             </div>
             <div className="rounded-lg border bg-slate-50 p-3">
@@ -425,13 +511,20 @@ function InvoiceDetailPage() {
             <div className="rounded-lg border bg-teal-50 p-3">
               <div className="text-xs text-teal-700">Total Bill</div>
               <div className="font-semibold text-teal-800">
-                {formatCurrency(invoice.totalAmount || 0, invoice.currency || "Rs")}
+                {formatCurrency(
+                  invoice.totalAmount || 0,
+                  invoice.currency || "Rs",
+                )}
               </div>
             </div>
           </div>
           <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
-              <iframe
-              title={showGatePass ? "Invoice and Gate Pass Preview" : "Invoice Preview"}
+            <iframe
+              title={
+                showGatePass
+                  ? "Invoice and Gate Pass Preview"
+                  : "Invoice Preview"
+              }
               srcDoc={combinedPrintHtml}
               className="h-[297mm] w-full border-0"
             />

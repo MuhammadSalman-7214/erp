@@ -11,7 +11,6 @@ import {
   CreateSales,
   gettingallSales,
   EditSales,
-  DeleteSales,
 } from "../features/salesSlice";
 import toast from "react-hot-toast";
 import { gettingallproducts } from "../features/productSlice";
@@ -34,7 +33,7 @@ import {
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
 import { validateNumberInput, validateTextInput } from "../lib/formValidation";
-import { Button, ConfirmDialog, Inputfield, SelectDropdown } from "../UI";
+import { Button, Inputfield, SelectDropdown } from "../UI";
 import { AiOutlineDownload } from "react-icons/ai";
 
 const sanitizeFileName = (value) =>
@@ -1575,12 +1574,12 @@ function Salespage() {
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => handleSelectCustomer(customer)}
-                        className={`w-full text-left px-3 py-2 hover:bg-slate-100 ${
+                        className={`w-full !justify-start px-3 py-2 text-sm !text-black !border-0 !shadow-none !rounded-none !bg-white ${
                           customerActiveIndex ===
                           filteredCustomers.findIndex(
                             (item) => getId(item) === getId(customer),
                           )
-                            ? "bg-slate-100"
+                            ? "!bg-slate-200"
                             : ""
                         }`}
                       >
@@ -1674,12 +1673,12 @@ function Salespage() {
                       key={`${option.codeId}`}
                       type="button"
                       onMouseDown={(e) => e.preventDefault()}
-                      className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 ${
+                      className={`w-full !justify-start !text-left px-3 py-2 text-sm !text-black !border-0 !shadow-none !rounded-none !bg-white ${
                         codeActiveIndex ===
                         codeOptions.findIndex(
                           (item) => item.codeId === option.codeId,
                         )
-                          ? "bg-slate-50"
+                          ? "!bg-slate-200"
                           : ""
                       }`}
                       onClick={() => addToCart(option)}
@@ -1697,11 +1696,12 @@ function Salespage() {
 
                           <div className="text-xs text-slate-500">
                             Available: {option.availableQty}
+                            <span className="text-xs font-semibold text-slate-600 whitespace-nowrap">
+                              {" - "}
+                              {formatCurrency(option.unitPrice)}
+                            </span>
                           </div>
                         </div>
-                        <span className="text-xs font-semibold text-slate-600 whitespace-nowrap">
-                          {formatCurrency(option.unitPrice)}
-                        </span>
                       </div>
                     </Button>
                   ))}
@@ -1716,7 +1716,7 @@ function Salespage() {
               <span className="flex-1">Product</span>
               <span className="w-16 text-center">Qty</span>
               <span className="w-20 text-center">Price</span>
-              <span className="w-6"></span>
+              <span className="w-6 text-right">x</span>
             </div>
             {cartItems.map((item) => {
               const available =
@@ -1766,8 +1766,8 @@ function Salespage() {
                     onChange={(e) =>
                       updateCartQuantity(item.codeId, e.target.value)
                     }
-                    className={`w-16 h-9 text-center border rounded-lg ${
-                      isExceeded ? "border-red-500 focus:ring-red-500" : ""
+                    className={`!max-w-[50px] !px-2 text-center ${
+                      isExceeded ? "!border-red-500 !focus:ring-none" : ""
                     }`}
                   />
 
@@ -1780,14 +1780,14 @@ function Salespage() {
                     }
                     min="0"
                     step="0.01"
-                    className="w-20 h-9 text-center border rounded-lg"
+                    className="!max-w-[50px] !px-2 text-center"
                   />
 
                   {/* DELETE */}
                   <Button
                     type="button"
                     onClick={() => removeFromCart(item.codeId)}
-                    className="text-red-500 hover:text-red-700 transition"
+                    variant="danger"
                   >
                     <MdDelete size={18} />
                   </Button>
@@ -1859,6 +1859,7 @@ function Salespage() {
               onChange={(value) =>
                 setPayment(value?.target?.value ?? value ?? "")
               }
+              placeholder="Select payment method"
               className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
               required={Number(receivedAmount || 0) > 0}
               disabled={Number(receivedAmount || 0) <= 0}
@@ -1867,7 +1868,6 @@ function Salespage() {
                 <option value="credit">Credit</option>
               ) : (
                 <>
-                  <option value="">Select Payment</option>
                   <option value="cash">Cash</option>
                   <option value="banktransfer">Bank Transfer</option>
                 </>
@@ -1889,17 +1889,17 @@ function Salespage() {
               onChange={(value) =>
                 setStatus(value?.target?.value ?? value ?? "")
               }
+              placeholder="Select status"
               className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
               required
             >
-              <option value="">Select Status</option>
               <option value="pending">Pending</option>
               <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
             </SelectDropdown>
           </div>
 
-          <LoadingButton
+          <Button
             type="submit"
             loading={isCreatingCustomer || isSubmittingSale}
             loadingText={
@@ -1910,14 +1910,11 @@ function Salespage() {
                   : "Creating..."
             }
             disabled={hasStockIssue}
-            className={`w-full py-3 rounded-xl ${
-              hasStockIssue
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-teal-700 hover:bg-teal-600 text-white"
-            }`}
+            className="w-full"
+            variant="primary"
           >
             {selectedSales ? "Update Sale" : "Create Sale"}
-          </LoadingButton>
+          </Button>
         </form>
       </DrawerPanel>
 
@@ -2174,7 +2171,7 @@ function Salespage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <div className="max-w-[1390px] overflow-x-auto relative">
+            <div className="max-w-[1230px] overflow-x-auto relative">
               <div className="flex gap-2 w-max">
                 <table className="w-full text-sm border-collapse">
                   {/* HEADER */}

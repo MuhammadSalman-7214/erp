@@ -26,7 +26,7 @@ function DrawerPanel({
         <Button
           type="button"
           onClick={onToggleMinimized}
-          className="fixed right-0 top-1/2 z-[80] -translate-y-1/2 rounded-l-2xl bg-teal-700 px-3 py-4 text-white shadow-2xl transition hover:bg-teal-600 "
+          className="fixed right-0 top-1/2 z-[80] -translate-y-1/2 !rounded-none !rounded-l-lg !p-0 !px-2 !py-3"
           title="Maximize drawer"
           aria-label="Maximize drawer"
         >
@@ -49,18 +49,20 @@ function DrawerPanel({
               <Button
                 type="button"
                 onClick={onToggleMinimized}
-                className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+                className="border border-slate-300"
                 title="Minimize drawer"
                 aria-label="Minimize drawer"
+                variant="ghost"
               >
                 <FiMinimize2 size={18} />
               </Button>
               <Button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg p-2 text-slate-500 transition hover:bg-red-50 hover:text-red-600"
+                className="border border-slate-300"
                 title="Close drawer"
                 aria-label="Close drawer"
+                variant="ghost"
               >
                 <MdClose size={20} />
               </Button>
