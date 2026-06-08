@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { IoMdAdd, IoMdTrash } from "react-icons/io";
+import { IoMdAdd, IoMdSearch, IoMdTrash } from "react-icons/io";
 import { MdDelete, MdEdit, MdOutlineCategory } from "react-icons/md";
 import { AiOutlineDownload } from "react-icons/ai";
 import { useDispatch, useSelector } from "react-redux";
@@ -28,7 +28,13 @@ import LoadingButton from "../Components/LoadingButton";
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
 import { validateNumberInput, validateTextInput } from "../lib/formValidation";
-import { Button, ConfirmDialog, Inputfield, SelectDropdown } from "../UI";
+import {
+  Button,
+  ConfirmDialog,
+  Inputfield,
+  SelectDropdown,
+  Tooltip,
+} from "../UI";
 
 const emptyCode = {
   code: "",
@@ -40,7 +46,8 @@ const normalizePdfText = (value) =>
   String(value || "-")
     .replace(/\s+/g, " ")
     .trim();
-
+const getRowQuantity = (row) =>
+  Number(row?.code?.quantity ?? row?.product?.totalQuantity ?? 0);
 function Productpage({ readOnly = false }) {
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
 
@@ -661,76 +668,83 @@ function Productpage({ readOnly = false }) {
 
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
-      {/* KPI CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 lg:grid-cols-3">
-        <div className="rounded-xl p-5 border-2 border-[#40de90] bg-gradient-to-br from-emerald-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-sm font-medium text-gray-600">
-              Total Products
+      <div className="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
+          <div className="flex flex-col gap-3.5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-start gap-3">
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700 ring-1 ring-teal-100">
+                <IoMdSearch className="text-lg" />
+              </span>
+              <div>
+                <h2 className="text-sm font-semibold text-slate-800">
+                  Product Filters
+                </h2>
+                <p className="mt-0.5 text-sm text-slate-500">
+                  Search products by name, code, company, or category.
+                </p>
+              </div>
             </div>
-            <AiOutlineProduct className="w-5 h-5 text-emerald-600" />
-          </div>
-          <div className="text-2xl font-bold text-emerald-700 transition-all duration-300">
-            {getallproduct?.length || 0}
+
+            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
+              <span className="wave-dot">
+                <span className="wave ripple-1"></span>
+                <span className="wave ripple-2"></span>
+              </span>{" "}
+              {sortedRows.length} records shown
+            </div>
           </div>
         </div>
 
-        <div className="rounded-xl p-5 border-2 border-[#b884f2] bg-gradient-to-br from-purple-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-sm font-medium text-gray-600">
-              Total Store Value
-            </div>
-            <FaMoneyBill1Wave className="w-5 h-5 text-purple-600" />
+        <div className="grid gap-3 p-4 lg:grid-cols-[minmax(0,1.6fr)_auto_auto_auto]">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-slate-600">Search</label>
+            <Inputfield
+              type="text"
+              value={productCodeQuery}
+              onChange={(e) => setProductCodeQuery(e.target.value)}
+              maxLength={120}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-700 shadow-sm transition focus:border-teal-400 focus:ring-4 focus:ring-teal-100 focus:outline-none"
+              placeholder="Search by name, code, company, or category..."
+            />
           </div>
-          <div className="text-2xl font-bold text-purple-700 transition-all duration-300">
-            Rs {totalStoreValue || 0}
-          </div>
-        </div>
 
-        <div className="rounded-xl p-5 border-2 border-[#ee8383] bg-gradient-to-br from-red-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-sm font-medium text-gray-600">
-              Total Categories
+          <div className="flex items-end">
+            <Button
+              type="button"
+              onClick={handleDownloadStock}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-slate-100 hover:text-slate-800"
+              variant="secondary"
+            >
+              <AiOutlineDownload size={18} />
+              Download Stock
+            </Button>
+          </div>
+
+          {canWrite && (
+            <div className="flex items-end">
+              <Button
+                onClick={() => openForm()}
+                className="h-11 w-full rounded-xl bg-slate-900 px-5 text-white shadow-sm transition hover:bg-slate-800"
+                variant="primary"
+              >
+                <IoMdAdd className="mr-2 text-xl" />
+                Create Product
+              </Button>
             </div>
-            <MdOutlineCategory className="w-5 h-5 text-red-600" />
-          </div>
-          <div className="text-2xl font-bold text-red-700 transition-all duration-300">
-            {getallCategory?.length || 0}
-          </div>
+          )}
+
+          {isReadOnlyMode && (
+            <div className="flex items-end">
+              <div className="inline-flex h-11 items-center rounded-xl border border-amber-200 bg-amber-50 px-4 text-sm font-medium text-amber-700 shadow-sm">
+                Read-Only Mode
+              </div>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* SEARCH + ADD */}
-      <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">
-        <Inputfield
-          type="text"
-          value={productCodeQuery}
-          onChange={(e) => setProductCodeQuery(e.target.value)}
-          maxLength={120}
-          className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
-          placeholder="Search by name, code, company, or category..."
-        />
-
-        <Button type="button" onClick={handleDownloadStock} variant="secondary">
-          <AiOutlineDownload size={18} />
-          Download Stock
-        </Button>
-
-        {canWrite && (
-          <Button onClick={() => openForm()} variant="primary">
-            <IoMdAdd className="text-xl mr-2" /> Create Product
-          </Button>
-        )}
-        {isReadOnlyMode && (
-          <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-2 rounded">
-            Read-Only Mode
-          </div>
-        )}
-      </div>
-
       {/* TABLE */}
       <div className="mt-4">
-        <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           {/* Loading State */}
           {isallproductget ? (
             <TableSkeleton rows={6} showFilters={false} />
@@ -744,182 +758,223 @@ function Productpage({ readOnly = false }) {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 border-b">
-                  <tr className="text-left text-slate-500">
-                    <th className="px-5 py-4 font-medium">#</th>
-                    <th className="px-5 py-4 font-medium">Product</th>
-                    <th className="px-5 py-4 font-medium">Product Code</th>
-                    <th className="px-5 py-4 font-medium">Description</th>
-                    <th className="px-5 py-4 font-medium">Purchase Price</th>
-                    <th className="px-5 py-4 font-medium">Trade Price</th>
-                    <th className="px-5 py-4 font-medium">Sale Price</th>
-                    <th className="px-5 py-4 font-medium">Category</th>
-                    <th className="px-5 py-4 font-medium">Quantity</th>
-                    <th className="px-5 py-4 font-medium">
-                      <DateSortHeader
-                        label="Date"
-                        direction={createdAtSort}
-                        onToggle={() =>
-                          setCreatedAtSort((prev) =>
-                            prev === "asc" ? "desc" : "asc",
-                          )
-                        }
-                      />
-                    </th>
+              <div className="max-w-[1230px] overflow-x-auto relative">
+                <div className="flex gap-2 w-max">
+                  <table className="w-full text-sm border-collapse">
+                    <thead>
+                      <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
+                        <th className="px-5 py-4 font-semibold">#</th>
+                        <th className="px-5 py-4 font-semibold">Product</th>
+                        <th className="px-5 py-4 font-semibold">
+                          Product Code
+                        </th>
+                        <th className="px-5 py-4 font-semibold">Description</th>
+                        <th className="px-5 py-4 font-semibold">Quantity</th>
 
-                    {!isReadOnlyMode && (
-                      <th className="px-5 py-4 font-medium text-right">
-                        Actions
-                      </th>
-                    )}
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {sortedRows.map((row, index) => {
-                    const product = row.product;
-                    const code = row.code;
-                    const codeCount = Array.isArray(product.productCodes)
-                      ? product.productCodes.length
-                      : 0;
-                    const isCodeDelete = Boolean(code && codeCount > 1);
-                    return (
-                      <tr
-                        key={`${getId(product)}-${getId(code) || "no-code"}-${index}`}
-                        className="border-b last:border-b-0 hover:bg-slate-50 transition"
-                      >
-                        <td className="px-5 py-4 text-slate-500">
-                          {index + 1}
-                        </td>
-
-                        <td className="px-5 py-4">
-                          <div className="font-medium text-slate-800">
-                            {product.name}
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            {product.company || product.brand || "-"}
-                          </div>
-                        </td>
-
-                        <td className="px-5 py-4 text-slate-700">
-                          {code ? (
-                            <div className="text-xs">
-                              <span className="inline-flex items-center px-3 py-1 text-xs font-extrabold text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full shadow-md">
-                                {code.code}
-                              </span>{" "}
-                              {code.variantName ? ` • ${code.variantName}` : ""}
-                            </div>
-                          ) : (
-                            "-"
-                          )}
-                        </td>
-                        <td className="px-5 py-4 text-slate-700">
-                          {product.description ?? "-"}
-                        </td>
-                        <td className="px-5 py-4 text-slate-700">
-                          Rs {product.purchasePrice ?? 0}
-                        </td>
-                        <td className="px-5 py-4 text-slate-700">
-                          Rs {product.tradePrice ?? 0}
-                        </td>
-                        <td className="px-5 py-4 text-slate-700">
-                          Rs {product.salePrice ?? 0}
-                        </td>
-
-                        <td className="px-5 py-4 text-slate-700">
-                          {product.Category?.name || "-"}
-                        </td>
-                        <td className="px-5 py-4 text-slate-700">
-                          {code ? (code.quantity ?? 0) : 0}
-                        </td>
-
-                        <td className="px-5 py-4 text-slate-600">
-                          <FormattedTime timestamp={product?.createdAt} />
-                        </td>
+                        <th className="px-5 py-4 font-semibold">
+                          Purchase Price
+                        </th>
+                        <th className="px-5 py-4 font-semibold">Trade Price</th>
+                        <th className="px-5 py-4 font-semibold">Sale Price</th>
+                        <th className="px-5 py-4 font-semibold">Category</th>
+                        <th className="px-5 py-4 font-semibold">
+                          <DateSortHeader
+                            label="Date"
+                            direction={createdAtSort}
+                            onToggle={() =>
+                              setCreatedAtSort((prev) =>
+                                prev === "asc" ? "desc" : "asc",
+                              )
+                            }
+                          />
+                        </th>
 
                         {!isReadOnlyMode && (
-                          <td className="px-5 py-4">
-                            <div className="flex justify-end">
-                              <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 p-1">
-                                {canDelete && (
-                                  <ConfirmDialog
-                                    title={
-                                      <div className="flex flex-col gap-1 max-w-xs">
-                                        <span className="font-semibold text-red-600 text-sm">
-                                          {isCodeDelete
-                                            ? "Confirm Code Deletion"
-                                            : "Confirm Product Deletion"}
-                                        </span>
-                                        <span className="text-xs text-gray-600 leading-snug">
-                                          {isCodeDelete
-                                            ? "This action will permanently remove this code from inventory. This operation cannot be undone."
-                                            : "This action will permanently remove this product from inventory. This operation cannot be undone."}
-                                        </span>
-                                      </div>
-                                    }
-                                    okText="Delete"
-                                    cancelText="Cancel"
-                                    okButtonProps={{
-                                      danger: true,
-                                      className:
-                                        "font-semibold bg-red-50 hover:bg-red-100 border border-red-100",
-                                    }}
-                                    cancelButtonProps={{
-                                      className: "font-medium",
-                                    }}
-                                    placement="topRight"
-                                    onConfirm={() =>
-                                      handleRowDelete({
-                                        productId: getId(product),
-                                        codeId: getId(code),
-                                        codeCount,
-                                      })
-                                    }
-                                  >
-                                    <Button
-                                      type="button"
-                                      className="h-9 w-9 !p-0 rounded-lg"
-                                      title="Delete Product"
-                                      variant="danger"
-                                    >
-                                      <MdDelete size={18} />
-                                    </Button>
-                                  </ConfirmDialog>
-                                )}
-                                {canWrite && (
-                                  <Button
-                                    type="button"
-                                    onClick={() => handleEditClick(product)}
-                                    className="h-6 w-9 !p-0 rounded-none border-r border-l"
-                                    title="Edit"
-                                    variant="info"
-                                  >
-                                    <MdEdit size={18} />
-                                  </Button>
-                                )}
-                                {canWrite && (
-                                  <Button
-                                    type="button"
-                                    onClick={() =>
-                                      openCodeModal(getId(product))
-                                    }
-                                    className="h-9 w-9 !p-0 rounded-lg"
-                                    variant="orange"
-                                    title="Manage Codes"
-                                  >
-                                    <FaPalette size={16} />
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          </td>
+                          <th
+                            className="px-5 py-4 font-semibold text-center sticky right-0 bg-slate-50 z-20"
+                            style={{
+                              boxShadow:
+                                "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
+                            }}
+                          >
+                            Actions
+                          </th>
                         )}
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                    </thead>
+                    <tbody>
+                      {sortedRows.map((row, index) => {
+                        const product = row.product;
+                        const code = row.code;
+                        const codeCount = Array.isArray(product.productCodes)
+                          ? product.productCodes.length
+                          : 0;
+                        const isCodeDelete = Boolean(code && codeCount > 1);
+                        return (
+                          <tr
+                            key={`${getId(product)}-${getId(code) || "no-code"}-${index}`}
+                            className="group border-b border-slate-100 bg-white transition-colors duration-150 hover:bg-blue-50/30"
+                          >
+                            <td className="px-5 py-4 text-xs font-medium text-slate-400">
+                              {index + 1}
+                            </td>
+
+                            <td className="px-5 py-4">
+                              <div className="font-medium text-slate-800">
+                                {product.name}
+                              </div>
+                              <div className="text-xs text-slate-500">
+                                {product.company || product.brand || "-"}
+                              </div>
+                            </td>
+
+                            <td className="px-5 py-4 text-slate-700">
+                              {code ? (
+                                <div className="text-xs">
+                                  <span className="inline-flex items-center rounded-md border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700">
+                                    {code.code}
+                                  </span>{" "}
+                                  {code.variantName
+                                    ? ` • ${code.variantName}`
+                                    : ""}
+                                </div>
+                              ) : (
+                                "-"
+                              )}
+                            </td>
+                            <td className="px-5 py-4 text-slate-700">
+                              {product.description ?? "-"}
+                            </td>
+                            <td className="px-5 py-4 text-slate-700">
+                              {(() => {
+                                const quantity = getRowQuantity(row);
+                                return quantity > 0 ? (
+                                  <span className="inline-flex w-full justify-center items-center rounded-full border border-teal-100 bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-700">
+                                    {quantity}
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center rounded-full border border-amber-100 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                                    Out of stock
+                                  </span>
+                                );
+                              })()}
+                            </td>
+                            <td className="px-5 py-4 text-slate-700">
+                              Rs {product.purchasePrice ?? 0}
+                            </td>
+                            <td className="px-5 py-4 text-slate-700">
+                              Rs {product.tradePrice ?? 0}
+                            </td>
+                            <td className="px-5 py-4 text-slate-700">
+                              Rs {product.salePrice ?? 0}
+                            </td>
+
+                            <td className="px-5 py-4 text-slate-700">
+                              {product.Category?.name || "-"}
+                            </td>
+
+                            <td className="px-5 py-4 text-slate-600">
+                              <FormattedTime timestamp={product?.createdAt} />
+                            </td>
+
+                            {!isReadOnlyMode && (
+                              <td
+                                className="px-4 py-4 sticky right-0 z-10 bg-gray-50/80 transition-colors duration-150"
+                                style={{
+                                  boxShadow:
+                                    "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
+                                }}
+                              >
+                                <div className="flex justify-end">
+                                  <div className="flex items-center gap-2  overflow-hidden">
+                                    {canDelete && (
+                                      <ConfirmDialog
+                                        title={
+                                          <div className="flex flex-col gap-1 max-w-xs">
+                                            <span className="font-semibold text-red-600 text-sm">
+                                              {isCodeDelete
+                                                ? "Confirm Code Deletion"
+                                                : "Confirm Product Deletion"}
+                                            </span>
+                                            <span className="text-xs text-gray-600 leading-snug">
+                                              {isCodeDelete
+                                                ? "This action will permanently remove this code from inventory. This operation cannot be undone."
+                                                : "This action will permanently remove this product from inventory. This operation cannot be undone."}
+                                            </span>
+                                          </div>
+                                        }
+                                        okText="Delete"
+                                        cancelText="Cancel"
+                                        okButtonProps={{
+                                          danger: true,
+                                          className:
+                                            "font-semibold bg-red-50 hover:bg-red-100 border border-red-100",
+                                        }}
+                                        cancelButtonProps={{
+                                          className: "font-medium",
+                                        }}
+                                        placement="topRight"
+                                        onConfirm={() =>
+                                          handleRowDelete({
+                                            productId: getId(product),
+                                            codeId: getId(code),
+                                            codeCount,
+                                          })
+                                        }
+                                      >
+                                        <Tooltip content="Delete Product">
+                                          <Button
+                                            type="button"
+                                            variant="danger"
+                                            size="sm"
+                                            className="metal-btn"
+                                          >
+                                            <MdDelete size={18} />
+                                          </Button>
+                                        </Tooltip>
+                                      </ConfirmDialog>
+                                    )}
+                                    {canWrite && (
+                                      <Tooltip content="Edit Product">
+                                        <Button
+                                          type="button"
+                                          onClick={() =>
+                                            handleEditClick(product)
+                                          }
+                                          size="sm"
+                                          className="metal-btn"
+                                          variant="info"
+                                        >
+                                          <MdEdit size={18} />
+                                        </Button>
+                                      </Tooltip>
+                                    )}
+                                    {canWrite && (
+                                      <Tooltip content="Manage Code">
+                                        <Button
+                                          type="button"
+                                          onClick={() =>
+                                            openCodeModal(getId(product))
+                                          }
+                                          size="sm"
+                                          className="metal-btn"
+                                          variant="orange"
+                                        >
+                                          <FaPalette size={16} />
+                                        </Button>
+                                      </Tooltip>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+                            )}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           )}
         </div>
