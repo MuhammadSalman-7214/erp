@@ -49,20 +49,18 @@ function DrawerPanel({
               <Button
                 type="button"
                 onClick={onToggleMinimized}
-                className="border border-slate-300"
                 title="Minimize drawer"
                 aria-label="Minimize drawer"
-                variant="ghost"
+                variant="outline"
               >
                 <FiMinimize2 size={18} />
               </Button>
               <Button
                 type="button"
                 onClick={onClose}
-                className="border border-slate-300"
                 title="Close drawer"
                 aria-label="Close drawer"
-                variant="ghost"
+                variant="outline"
               >
                 <MdClose size={20} />
               </Button>

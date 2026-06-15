@@ -26,7 +26,8 @@ import {
   combineInvoicePagesHtml,
 } from "../lib/invoicePrintTemplate";
 import { validateNumberInput, validateTextInput } from "../lib/formValidation";
-import { Button, ConfirmDialog, Inputfield, Textarea } from "../UI";
+import { Button, ConfirmDialog, Inputfield, Textarea, Tooltip } from "../UI";
+import { CgSoftwareDownload } from "react-icons/cg";
 
 const sanitizeFileName = (value) =>
   String(value || "customer_ledger")
@@ -416,37 +417,72 @@ function CustomerDetailPage() {
       setTimeout(() => printWindow.close(), 200);
     };
   };
+  const splitLongText = (doc, text, width) =>
+    doc.splitTextToSize(String(text || "-"), width);
 
-  const buildBillPdfData = () => {
-    if (!billSale) return null;
+  const formatCurrency = (value) => `Rs ${Number(value || 0).toLocaleString()}`;
 
-    const items = Array.isArray(billSale.products) ? billSale.products : [];
+  const loadLogoDataUrl = async (url) => {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) return "";
+
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+
+      try {
+        const image = await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = objectUrl;
+        });
+
+        const canvas = document.createElement("canvas");
+        canvas.width = image.naturalWidth || image.width || 120;
+        canvas.height = image.naturalHeight || image.height || 120;
+        const context = canvas.getContext("2d");
+        if (!context) return "";
+        context.drawImage(image, 0, 0);
+        return canvas.toDataURL("image/png");
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+      }
+    } catch (error) {
+      console.error("Failed to load logo", error);
+      return "";
+    }
+  };
+  const buildBillPdfData = (sale = billSale) => {
+    if (!sale) return null;
+
+    const items = Array.isArray(sale.products) ? sale.products : [];
     const {
       totalAmount,
       carageAmount,
       subTotal,
       receivedAmountValue,
       remainingAmountValue,
-    } = getSaleTotals(billSale);
+    } = getSaleTotals(sale);
 
     return {
-      invoiceNumber: billSale.invoiceNumber || billSale.id || "-",
-      issueDate: billSale.createdAt || new Date().toISOString(),
-      customerName: billSale.customerName || customer?.name || "Customer",
+      invoiceNumber: sale.invoiceNumber || sale.id || "-",
+      issueDate: sale.createdAt || new Date().toISOString(),
+      customerName: sale.customerName || customer?.name || "Customer",
       customerPhone:
-        billSale.customer?.contactInfo?.phone ||
-        billSale.customer?.phone ||
+        sale.customer?.contactInfo?.phone ||
+        sale.customer?.phone ||
         customer?.contactInfo?.phone ||
         customer?.phone ||
         "-",
       customerAddress:
-        billSale.customer?.contactInfo?.address ||
-        billSale.customer?.address ||
+        sale.customer?.contactInfo?.address ||
+        sale.customer?.address ||
         customer?.contactInfo?.address ||
         customer?.address ||
         "-",
-      paymentMethod: billSale.paymentMethod || "-",
-      status: billSale.status || "-",
+      paymentMethod: sale.paymentMethod || "-",
+      status: sale.status || "-",
       items: items.map((item) => {
         const qty = Number(item.quantity || 0);
         const unitPrice = Number(item.price || 0);
@@ -463,12 +499,12 @@ function CustomerDetailPage() {
       totalAmount,
       receivedAmountValue,
       remainingAmountValue,
-      notes: String(billSale.notes || "").trim(),
+      notes: String(sale.notes || "").trim(),
     };
   };
 
-  const downloadBillPdf = async () => {
-    const data = buildBillPdfData();
+  const downloadBillPdf = async (sale = billSale) => {
+    const data = buildBillPdfData(sale);
     if (!data) return;
 
     const fileName = `${sanitizeFileName(data.invoiceNumber || "invoice")}.pdf`;
@@ -487,6 +523,9 @@ function CustomerDetailPage() {
       const pageHeight = pdf.internal.pageSize.getHeight();
       const contentWidth = pageWidth - marginX * 2;
       let y = 12;
+      const logoDataUrl = await loadLogoDataUrl(
+        `${window.location.origin}/ITLOGO.svg`,
+      );
 
       const addWrappedText = (
         text,
@@ -499,7 +538,7 @@ function CustomerDetailPage() {
       ) => {
         pdf.setFont("helvetica", style);
         pdf.setFontSize(fontSize);
-        const lines = pdf.splitTextToSize(String(text || "-"), width);
+        const lines = splitLongText(pdf, text, width);
         pdf.text(lines, x, currentY);
         return currentY + lines.length * lineHeight;
       };
@@ -509,13 +548,18 @@ function CustomerDetailPage() {
         pdf.line(marginX, currentY, pageWidth - marginX, currentY);
       };
 
-      const headerTextX = marginX;
+      const headerTop = 11;
+      if (logoDataUrl) {
+        pdf.addImage(logoDataUrl, "PNG", marginX, headerTop, 16, 16);
+      }
+
+      const headerTextX = logoDataUrl ? marginX + 20 : marginX;
       pdf.setTextColor(15, 23, 42);
       y = addWrappedText(
         "Imran Traders",
         headerTextX,
-        15,
-        contentWidth,
+        headerTop + 4,
+        contentWidth - (logoDataUrl ? 20 : 0),
         5,
         16,
         "bold",
@@ -524,7 +568,7 @@ function CustomerDetailPage() {
         "Billing and stock management",
         headerTextX,
         y + 1,
-        contentWidth,
+        contentWidth - (logoDataUrl ? 20 : 0),
         4,
         9,
       );
@@ -549,7 +593,7 @@ function CustomerDetailPage() {
         pdf.setFont("helvetica", "bold");
         pdf.text(`${label}:`, marginX, detailsY);
         pdf.setFont("helvetica", "normal");
-        const wrapped = pdf.splitTextToSize(String(value || "-"), 65);
+        const wrapped = splitLongText(pdf, value, 65);
         pdf.text(wrapped, marginX + 18, detailsY);
         detailsY += Math.max(wrapped.length * 4.2, 4.2);
       });
@@ -564,7 +608,7 @@ function CustomerDetailPage() {
         pdf.setFont("helvetica", "bold");
         pdf.text(`${label}:`, pageWidth / 2 + 4, detailsRightY);
         pdf.setFont("helvetica", "normal");
-        const wrapped = pdf.splitTextToSize(String(value || "-"), 40);
+        const wrapped = splitLongText(pdf, value, 40);
         pdf.text(wrapped, pageWidth / 2 + 22, detailsRightY);
         detailsRightY += Math.max(wrapped.length * 4.2, 4.2);
       });
@@ -584,8 +628,8 @@ function CustomerDetailPage() {
                 ? `${item.code} - ${item.name}`
                 : item.name,
               String(item.quantity),
-              currency(item.unitPrice),
-              currency(item.total),
+              formatCurrency(item.unitPrice),
+              formatCurrency(item.total),
             ])
           : [["-", "No items", "-", "-", "-"]],
         styles: {
@@ -618,10 +662,10 @@ function CustomerDetailPage() {
 
       const summaryX = pageWidth - marginX - 42;
       const summary = [
-        ["Sub Total", currency(data.subTotal)],
-        ["Carage", currency(data.carageAmount)],
-        ["Received", currency(data.receivedAmountValue)],
-        ["Remaining", currency(data.remainingAmountValue)],
+        ["Sub Total", formatCurrency(data.subTotal)],
+        ["Carage", formatCurrency(data.carageAmount)],
+        ["Received", formatCurrency(data.receivedAmountValue)],
+        ["Remaining", formatCurrency(data.remainingAmountValue)],
       ];
 
       pdf.setFont("helvetica", "normal");
@@ -638,7 +682,7 @@ function CustomerDetailPage() {
       pdf.setFont("helvetica", "bold");
       pdf.text("Total Bill", summaryX, summaryY + 2.6);
       pdf.text(
-        currency(data.totalAmount),
+        formatCurrency(data.totalAmount),
         pageWidth - marginX,
         summaryY + 2.6,
         {
@@ -658,8 +702,26 @@ function CustomerDetailPage() {
         pdf.setFont("helvetica", "bold");
         pdf.text("Notes:", marginX, y);
         pdf.setFont("helvetica", "normal");
-        pdf.text(pdf.splitTextToSize(data.notes, contentWidth), marginX, y + 4);
+        pdf.text(splitLongText(pdf, data.notes, contentWidth), marginX, y + 4);
       }
+
+      const footerPhone = "03113208249 / 03005246494";
+      const footerAddress = "Defence Road Opposite DHA RAHBAR";
+      let footerY = pageHeight - 12;
+      if (y > footerY - 8) {
+        pdf.addPage();
+        footerY = pageHeight - 12;
+      }
+
+      pdf.setDrawColor(203, 213, 225);
+      pdf.line(marginX, footerY - 5, pageWidth - marginX, footerY - 5);
+      pdf.setTextColor(71, 85, 105);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(7.5);
+      pdf.text(`Phone: ${footerPhone}`, marginX, footerY, { align: "left" });
+      pdf.text(`Address: ${footerAddress}`, pageWidth - marginX, footerY, {
+        align: "right",
+      });
 
       pdf.save(fileName);
     } catch (error) {
@@ -668,60 +730,8 @@ function CustomerDetailPage() {
     }
   };
 
-  const handlePrintBillOnly = () => {
-    if (!billSale) return;
-    const invoiceHtml = buildInvoicePrintHtml({
-      documentTitle: "Sales Invoice",
-      companyName: "Imran Traders",
-      slogan: "",
-      logoUrl: `${window.location.origin}/ITLOGO.svg`,
-      invoiceLabel: "Invoice #",
-      invoiceNumber: billSale.invoiceNumber || billSale.id || "-",
-      issueLabel: "Date",
-      issueDate: billSale.createdAt || new Date().toISOString(),
-      partyLabel: "Invoice To",
-      partyName: billSale.customerName || customer?.name || "Customer",
-      partyPhone:
-        billSale.customer?.contactInfo?.phone ||
-        billSale.customer?.phone ||
-        customer?.contactInfo?.phone ||
-        customer?.phone ||
-        "",
-      partyAddress:
-        billSale.customer?.contactInfo?.address ||
-        billSale.customer?.address ||
-        customer?.contactInfo?.address ||
-        customer?.address ||
-        "",
-      paymentMethod: billSale.paymentMethod || "-",
-      status: billSale.status || "-",
-      items: (billSale.products || []).map((item) => {
-        const qty = Number(item.quantity || 0);
-        const unitPrice = Number(item.price || 0);
-        return {
-          name: item.product?.name || "Product",
-          description: "",
-          company: "",
-          code: item.productCode?.code || "",
-          quantity: qty,
-          unitPrice,
-          total: qty * unitPrice,
-        };
-      }),
-      currency: "Rs",
-      subTotal: getSaleTotals(billSale).subTotal,
-      carage: getSaleTotals(billSale).carageAmount,
-      totalAmount: getSaleTotals(billSale).totalAmount,
-      receivedAmount: getSaleTotals(billSale).receivedAmountValue,
-      remainingAmount: getSaleTotals(billSale).remainingAmountValue,
-      notes: billSale.notes || "",
-    });
-
-    openPrintWindow(invoiceHtml);
-  };
-
-  const handleDownloadBillOnly = async () => {
-    await downloadBillPdf();
+  const handleDownloadBillOnly = async (sale) => {
+    await downloadBillPdf(sale);
   };
 
   const handlePrintGatePassOnly = () => {
@@ -877,7 +887,7 @@ function CustomerDetailPage() {
   };
 
   return (
-    <div className="min-h-[92vh] bg-gray-100 p-4">
+    <div className="min-h-[92vh] bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.14),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#f1f5f9_100%)] p-4">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
         <div>
           <h1 className="text-2xl font-semibold text-slate-800">
@@ -893,7 +903,7 @@ function CustomerDetailPage() {
         <DetailSkeleton />
       ) : (
         <>
-          <div className="bg-white rounded-2xl border p-5 shadow-sm mb-4">
+          <div className="bg-white rounded-lg border p-5 shadow-sm mb-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
               <div>
                 <div className="text-sm text-slate-500">Customer</div>
@@ -915,33 +925,33 @@ function CustomerDetailPage() {
                 value: currency(summary.total),
                 bg: "bg-gradient-to-br from-emerald-50 to-emerald-100",
                 icon: <TrendingUp className="w-5 h-5 text-emerald-600" />,
-                borderColor: "border-[#40de90]",
+                borderColor: "border-emerald-300",
               },
               {
                 label: "Collected",
                 value: currency(summary.paid),
                 bg: "bg-gradient-to-br from-teal-50 to-teal-100",
                 icon: <CreditCard className="w-5 h-5 text-teal-600" />,
-                borderColor: "border-teal-200",
+                borderColor: "border-teal-300",
               },
               {
                 label: "Remaining",
                 value: currency(summary.remaining),
                 bg: "bg-gradient-to-br from-rose-50 to-rose-100",
                 icon: <AlertCircle className="w-5 h-5 text-rose-600" />,
-                borderColor: "border-[#f7929e]",
+                borderColor: "border-rose-300",
               },
               {
                 label: "Total Orders",
                 value: summary.count || 0,
                 bg: "bg-gradient-to-br from-blue-50 to-blue-100",
                 icon: <Clipboard className="w-5 h-5 text-blue-600" />,
-                borderColor: "border-blue-200",
+                borderColor: "border-blue-300",
               },
             ].map(({ label, value, bg, icon, borderColor }) => (
               <div
                 key={label}
-                className={`rounded-xl p-5 border-2 ${borderColor} ${bg} shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1`}
+                className={`rounded-lg p-5 border-2 ${borderColor} ${bg} shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1`}
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-sm font-medium text-gray-600">
@@ -954,7 +964,7 @@ function CustomerDetailPage() {
             ))}
           </div>
 
-          <div className="bg-white rounded-2xl border shadow-sm overflow-hidden mb-4">
+          <div className="bg-white rounded-lg border shadow-sm overflow-hidden mb-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-5 border-b">
               <div>
                 <div className="text-lg font-semibold text-slate-800">
@@ -1006,65 +1016,71 @@ function CustomerDetailPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 border-b text-left text-slate-500">
-                    <tr>
-                      <DateSortHeader
-                        label="Date"
-                        direction={ledgerDateSort}
-                        onToggle={() =>
-                          setLedgerDateSort((prev) =>
-                            prev === "asc" ? "desc" : "asc",
-                          )
-                        }
-                      />
-                      <th className="px-5 py-4 font-medium">Source</th>
-                      <th className="px-5 py-4 font-medium">Reference</th>
-                      <th className="px-5 py-4 font-medium">Credit</th>
-                      <th className="px-5 py-4 font-medium">Debit</th>
-                      <th className="px-5 py-4 font-medium">Balance</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedLedger.map((entry) => (
-                      <tr
-                        key={entry.id}
-                        className="border-b last:border-b-0 hover:bg-slate-50 transition"
-                      >
-                        <td className="px-5 py-4 text-slate-600">
-                          <FormattedTime timestamp={entry.date} />
-                        </td>
-                        <td className="px-5 py-4 text-slate-700 capitalize">
-                          {entry.source?.replace(/_/g, " ") || "-"}
-                        </td>
-                        <td className="px-5 py-4 text-slate-600">
-                          {entry.source === "manual"
-                            ? entry.notes || "-"
-                            : entry.reference || "-"}
-                        </td>
-                        <td className="px-5 py-4 text-rose-700 font-medium">
-                          {entry.type === "debit"
-                            ? currency(entry.amount)
-                            : "-"}
-                        </td>
-                        <td className="px-5 py-4 text-emerald-700 font-medium">
-                          {entry.type === "credit"
-                            ? currency(entry.amount)
-                            : "-"}
-                        </td>
-                        <td className="px-5 py-4 text-slate-700 font-semibold">
-                          {currency(entry.balance)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div className="max-w-[1230px] overflow-x-auto relative">
+                  <div className="flex gap-2">
+                    <table className="w-full text-sm border-collapse">
+                      <thead className="bg-slate-50 border-b text-left text-slate-500">
+                        <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                          <th className="px-5 py-4 font-semibold">
+                            <DateSortHeader
+                              label="Date"
+                              direction={ledgerDateSort}
+                              onToggle={() =>
+                                setLedgerDateSort((prev) =>
+                                  prev === "asc" ? "desc" : "asc",
+                                )
+                              }
+                            />
+                          </th>
+                          <th className="px-5 py-4 font-semibold">Source</th>
+                          <th className="px-5 py-4 font-semibold">Reference</th>
+                          <th className="px-5 py-4 font-semibold">Credit</th>
+                          <th className="px-5 py-4 font-semibold">Debit</th>
+                          <th className="px-5 py-4 font-semibold">Balance</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sortedLedger.map((entry) => (
+                          <tr
+                            key={entry.id}
+                            className="group border-b border-slate-100 bg-white transition-colors duration-150 hover:bg-blue-50/30"
+                          >
+                            <td className="px-5 py-4 text-slate-600">
+                              <FormattedTime timestamp={entry.date} />
+                            </td>
+                            <td className="px-5 py-4 text-slate-700 capitalize">
+                              {entry.source?.replace(/_/g, " ") || "-"}
+                            </td>
+                            <td className="px-5 py-4 text-slate-600">
+                              {entry.source === "manual"
+                                ? entry.notes || "-"
+                                : entry.reference || "-"}
+                            </td>
+                            <td className="px-5 py-4 text-rose-700 font-medium">
+                              {entry.type === "debit"
+                                ? currency(entry.amount)
+                                : "-"}
+                            </td>
+                            <td className="px-5 py-4 text-emerald-700 font-medium">
+                              {entry.type === "credit"
+                                ? currency(entry.amount)
+                                : "-"}
+                            </td>
+                            <td className="px-5 py-4 text-slate-700 font-semibold">
+                              {currency(entry.balance)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             )}
           </div>
 
-          <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
-            <div className="flex flex-col gap-4 p-5 border-b">
+          <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
+            <div className="flex justify-between items-center p-5 border-b">
               <div>
                 <div className="text-lg font-semibold text-slate-800">
                   Sales Record
@@ -1102,8 +1118,7 @@ function CustomerDetailPage() {
                     setSalesDateFrom("");
                     setSalesDateTo("");
                   }}
-                  className="bg-white border border-slate-300 shadow-sm"
-                  variant="ghost"
+                  variant="outline"
                 >
                   <IoMdRefresh className="text-xl" />{" "}
                 </Button>
@@ -1122,95 +1137,135 @@ function CustomerDetailPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 border-b text-left text-slate-500">
-                    <tr>
-                      <DateSortHeader
-                        label="Date"
-                        direction={salesDateSort}
-                        onToggle={() =>
-                          setSalesDateSort((prev) =>
-                            prev === "asc" ? "desc" : "asc",
-                          )
-                        }
-                      />
-                      <th className="px-5 py-4 font-medium">Items</th>
-                      <th className="px-5 py-4 font-medium">Qty</th>
-                      <th className="px-5 py-4 font-medium">Carage</th>
-                      <th className="px-5 py-4 font-medium">Total</th>
-                      <th className="px-5 py-4 font-medium">Payment</th>
-                      <th className="px-5 py-4 font-medium">Sale Status</th>
-                      <th className="px-5 py-4 font-medium text-right">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedSales.map((sale) => {
-                      const totalQty = (sale.products || []).reduce(
-                        (acc, item) => acc + Number(item.quantity || 0),
-                        0,
-                      );
-                      const itemsLabel = (sale.products || [])
-                        .map((item) => {
-                          const name = item.product?.name || "Product";
-                          const company =
-                            item.product?.company || item.product?.brand || "";
-                          return company ? `${name} • ${company}` : name;
-                        })
-                        .join(", ");
-                      return (
-                        <tr
-                          key={sale.id}
-                          className="border-b last:border-b-0 hover:bg-slate-50 transition"
-                        >
-                          <td className="px-5 py-4 text-slate-600">
-                            <FormattedTime timestamp={sale.createdAt} />
-                          </td>
-                          <td className="px-5 py-4 text-slate-800 max-w-xs truncate">
-                            {itemsLabel || "-"}
-                          </td>
-                          <td className="px-5 py-4 text-slate-600">
-                            {totalQty}
-                          </td>
-                          <td className="px-5 py-4 font-semibold text-slate-700">
-                            {currency(sale.carage || 0)}
-                          </td>
-                          <td className="px-5 py-4 font-semibold text-slate-800">
-                            {currency(sale.totalAmount)}
-                          </td>
-                          <td className="px-5 py-4 text-slate-700">
-                            <span
-                              className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold capitalize ${getPaymentStatusBadge(sale.paymentStatus)}`}
-                            >
-                              {sale.paymentStatus || "unpaid"}
-                            </span>
-                          </td>
-                          <td className="px-5 py-4 text-slate-700">
-                            {sale.status || "-"}
-                          </td>
-                          <td className="px-5 py-4">
-                            <div className="flex justify-end">
-                              <Button
-                                type="button"
-                                onClick={() => openBillPreview(sale)}
-                                className="inline-flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100"
-                                title="Generate / View Bill"
-                              >
-                                <PiInvoiceBold size={18} />
-                                Bill
-                              </Button>
-                            </div>
-                          </td>
+                <div className="max-w-[1230px] overflow-x-auto relative">
+                  <div className="flex gap-2">
+                    <table className="w-full text-sm border-collapse">
+                      <thead className="bg-slate-50 border-b text-left text-slate-500">
+                        <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                          <th className="px-5 py-4 font-semibold">
+                            <DateSortHeader
+                              label="Date"
+                              direction={salesDateSort}
+                              onToggle={() =>
+                                setSalesDateSort((prev) =>
+                                  prev === "asc" ? "desc" : "asc",
+                                )
+                              }
+                            />
+                          </th>
+                          <th className="px-5 py-4 font-medium">Items</th>
+                          <th className="px-5 py-4 font-medium">Qty</th>
+                          <th className="px-5 py-4 font-medium">Carage</th>
+                          <th className="px-5 py-4 font-medium">Total</th>
+                          <th className="px-5 py-4 font-medium">Payment</th>
+                          <th className="px-5 py-4 font-medium">Sale Status</th>
+                          <th
+                            className="px-5 py-4 font-semibold text-center sticky right-0 bg-slate-50 z-20"
+                            style={{
+                              boxShadow:
+                                "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
+                            }}
+                          >
+                            Actions
+                          </th>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                      </thead>
+                      <tbody>
+                        {sortedSales.map((sale) => {
+                          const totalQty = (sale.products || []).reduce(
+                            (acc, item) => acc + Number(item.quantity || 0),
+                            0,
+                          );
+                          const itemsLabel = (sale.products || [])
+                            .map((item) => {
+                              const name = item.product?.name || "Product";
+                              const company =
+                                item.product?.company ||
+                                item.product?.brand ||
+                                "";
+                              return company ? `${name} • ${company}` : name;
+                            })
+                            .join(", ");
+                          return (
+                            <tr
+                              key={sale.id}
+                              className="group border-b border-slate-100 bg-white transition-colors duration-150 hover:bg-blue-50/30"
+                            >
+                              <td className="px-5 py-4 text-slate-600">
+                                <FormattedTime timestamp={sale.createdAt} />
+                              </td>
+                              <td className="px-5 py-4 text-slate-800 max-w-xs truncate">
+                                {itemsLabel || "-"}
+                              </td>
+                              <td className="px-5 py-4 text-slate-600">
+                                {totalQty}
+                              </td>
+                              <td className="px-5 py-4 font-semibold text-slate-700">
+                                {currency(sale.carage || 0)}
+                              </td>
+                              <td className="px-5 py-4 font-semibold text-slate-800">
+                                {currency(sale.totalAmount)}
+                              </td>
+                              <td className="px-5 py-4 text-slate-700">
+                                <span
+                                  className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold capitalize ${getPaymentStatusBadge(sale.paymentStatus)}`}
+                                >
+                                  {sale.paymentStatus || "unpaid"}
+                                </span>
+                              </td>
+                              <td className="px-5 py-4 text-slate-700">
+                                {sale.status || "-"}
+                              </td>
+                              <td
+                                className="px-4 py-4 sticky right-0 z-10 bg-gray-50/80 transition-colors duration-150"
+                                style={{
+                                  boxShadow:
+                                    "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
+                                }}
+                              >
+                                <div className="flex justify-end">
+                                  <div className="flex items-center gap-2  overflow-hidden">
+                                    <Tooltip content="Print Bill">
+                                      <Button
+                                        type="button"
+                                        onClick={() => openBillPreview(sale)}
+                                        variant="orange"
+                                        aria-label="Print Bill"
+                                        size="sm"
+                                        className="metal-btn"
+                                      >
+                                        <PiInvoiceBold size={16} />
+                                      </Button>
+                                    </Tooltip>
+                                    <Tooltip content="Download Bill">
+                                      <Button
+                                        type="button"
+                                        onClick={() =>
+                                          handleDownloadBillOnly(sale)
+                                        }
+                                        variant="violet"
+                                        aria-label="Download Bill"
+                                        size="sm"
+                                        className="metal-btn"
+                                      >
+                                        <CgSoftwareDownload size={18} />
+                                      </Button>
+                                    </Tooltip>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             )}
           </div>
-          <div className="bg-white rounded-2xl border shadow-sm overflow-hidden mt-4">
+
+          <div className="bg-white rounded-lg border shadow-sm overflow-hidden mt-4">
             <div className="flex items-start justify-between gap-3 p-5 border-b">
               <div>
                 <div className="text-lg font-semibold text-slate-800">
@@ -1220,102 +1275,122 @@ function CustomerDetailPage() {
                   Imported legacy balance saved on the customer record.
                 </div>
               </div>
-              <Button
-                type="button"
-                onClick={openManualEntry}
-                className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-teal-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-teal-600"
-              >
+              <Button type="button" onClick={openManualEntry} variant="primary">
                 <IoMdAdd className="text-lg" />
                 Add Legacy Amount
               </Button>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 border-b text-left text-slate-500">
-                  <tr>
-                    <DateSortHeader
-                      label="Date"
-                      direction={legacyDateSort}
-                      onToggle={() =>
-                        setLegacyDateSort((prev) =>
-                          prev === "asc" ? "desc" : "asc",
-                        )
-                      }
-                    />
-                    <th className="px-5 py-4 font-medium">Type</th>
-                    <th className="px-5 py-4 font-medium">Description</th>
-                    <th className="px-5 py-4 font-medium">Amount</th>
-                    <th className="px-5 py-4 font-medium text-right">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedLegacyEntries.map((entry) => (
-                    <tr
-                      key={entry.id}
-                      className="border-b last:border-b-0 hover:bg-slate-50 transition"
-                    >
-                      <td className="px-5 py-4 text-slate-600">
-                        <FormattedTime timestamp={entry.date} />
-                      </td>
-                      <td className="px-5 py-4 text-slate-700 capitalize">
-                        {entry.type}
-                      </td>
-                      <td className="px-5 py-4 text-slate-600">
-                        {entry.description}
-                      </td>
-                      <td className="px-5 py-4 font-semibold text-slate-800">
-                        {currency(entry.amount)}
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="flex justify-end">
-                          {Number(entry.amount || 0) !== 0 ? (
-                            <ConfirmDialog
-                              title={
-                                <div className="flex flex-col gap-1 max-w-xs">
-                                  <span className="font-semibold text-red-600 text-sm">
-                                    Confirm Legacy Entry Deletion
+              <div className="max-w-[1230px] overflow-x-auto relative">
+                <div className="flex gap-2">
+                  <table className="w-full text-sm border-collapse">
+                    <thead>
+                      <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                        <th className="px-5 py-4 font-semibold">
+                          <DateSortHeader
+                            label="Date"
+                            direction={legacyDateSort}
+                            onToggle={() =>
+                              setLegacyDateSort((prev) =>
+                                prev === "asc" ? "desc" : "asc",
+                              )
+                            }
+                          />
+                        </th>
+                        <th className="px-5 py-4 font-medium">Type</th>
+                        <th className="px-5 py-4 font-medium">Description</th>
+                        <th className="px-5 py-4 font-medium">Amount</th>
+                        <th
+                          className="px-5 py-4 font-semibold text-center sticky right-0 bg-slate-50 z-20"
+                          style={{
+                            boxShadow: "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
+                          }}
+                        >
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedLegacyEntries.map((entry) => (
+                        <tr
+                          key={entry.id}
+                          className="group border-b border-slate-100 bg-white transition-colors duration-150 hover:bg-blue-50/30"
+                        >
+                          <td className="px-5 py-4 text-slate-600">
+                            <FormattedTime timestamp={entry.date} />
+                          </td>
+                          <td className="px-5 py-4 text-slate-700 capitalize">
+                            {entry.type}
+                          </td>
+                          <td className="px-5 py-4 text-slate-600">
+                            {entry.description}
+                          </td>
+                          <td className="px-5 py-4 font-semibold text-slate-800">
+                            {currency(entry.amount)}
+                          </td>
+                          <td
+                            className="px-4 py-4 sticky right-0 z-10 bg-gray-50/80 transition-colors duration-150"
+                            style={{
+                              boxShadow:
+                                "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
+                            }}
+                          >
+                            <div className="flex justify-end">
+                              <div className="flex items-center gap-2  overflow-hidden">
+                                {Number(entry.amount || 0) !== 0 ? (
+                                  <ConfirmDialog
+                                    title={
+                                      <div className="flex flex-col gap-1 max-w-xs">
+                                        <span className="font-semibold text-red-600 text-sm">
+                                          Confirm Legacy Entry Deletion
+                                        </span>
+                                        <span className="text-xs text-gray-600 leading-snug">
+                                          This will permanently clear the
+                                          imported customer balance from the
+                                          record.
+                                        </span>
+                                      </div>
+                                    }
+                                    okText="Yes, Delete"
+                                    cancelText="Cancel"
+                                    okButtonProps={{
+                                      danger: true,
+                                      className:
+                                        "font-semibold bg-red-50 hover:bg-red-100 border border-red-100",
+                                    }}
+                                    cancelButtonProps={{
+                                      className: "font-medium",
+                                    }}
+                                    placement="topRight"
+                                    onConfirm={deleteLegacyAmount}
+                                  >
+                                    <Tooltip>
+                                      <Button
+                                        type="button"
+                                        title="Delete legacy amount"
+                                        aria-label="Delete legacy amount"
+                                        variant="danger"
+                                        size="sm"
+                                        className="metal-btn"
+                                      >
+                                        <MdDelete size={18} />
+                                      </Button>
+                                    </Tooltip>
+                                  </ConfirmDialog>
+                                ) : (
+                                  <span className="text-xs text-slate-400">
+                                    No legacy amount
                                   </span>
-                                  <span className="text-xs text-gray-600 leading-snug">
-                                    This will permanently clear the imported
-                                    customer balance from the record.
-                                  </span>
-                                </div>
-                              }
-                              okText="Yes, Delete"
-                              cancelText="Cancel"
-                              okButtonProps={{
-                                danger: true,
-                                className: "font-semibold",
-                              }}
-                              cancelButtonProps={{
-                                className: "font-medium",
-                              }}
-                              placement="topRight"
-                              onConfirm={deleteLegacyAmount}
-                            >
-                              <Button
-                                type="button"
-                                className="inline-flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
-                                title="Delete legacy amount"
-                                aria-label="Delete legacy amount"
-                              >
-                                <MdDelete size={18} />
-                                Delete
-                              </Button>
-                            </ConfirmDialog>
-                          ) : (
-                            <span className="text-xs text-slate-400">
-                              No legacy amount
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
         </>
@@ -1328,7 +1403,7 @@ function CustomerDetailPage() {
             onClick={closeBillPreview}
           />
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-            <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl border overflow-hidden">
+            <div className="relative w-full max-w-4xl bg-white rounded-lg shadow-lg border overflow-hidden">
               <div className="flex items-center justify-between px-6 py-4 border-b bg-slate-50">
                 <div>
                   <h3 className="text-lg font-semibold text-slate-800">
@@ -1338,16 +1413,13 @@ function CustomerDetailPage() {
                     Review the invoice before printing
                   </p>
                 </div>
-                <Button
-                  onClick={closeBillPreview}
-                  className="text-sm text-slate-500 hover:text-slate-700"
-                >
+                <Button onClick={closeBillPreview} variant="outline">
                   Close
                 </Button>
               </div>
 
-              <div className="absolute inset-x-0 top-[57px] bottom-[72px] z-20 bg-slate-100 p-4">
-                <div className="mx-auto h-full w-full max-w-[900px] overflow-hidden rounded-xl border bg-white shadow-sm">
+              <div className="absolute inset-x-0 top-[57px] bottom-[72px] z-20 bg-slate-100 p-4 mt-2">
+                <div className="mx-auto h-full w-full max-w-[900px] overflow-hidden rounded-lg border bg-white shadow-sm">
                   <iframe
                     title="Sales Bill Preview"
                     srcDoc={billPreviewHtml}
@@ -1447,7 +1519,7 @@ function CustomerDetailPage() {
                     </div>
                   </div>
 
-                  <div className="overflow-hidden rounded-xl border">
+                  <div className="overflow-hidden rounded-lg border">
                     <table className="w-full text-[15px]">
                       <thead className="bg-teal-700 text-white">
                         <tr>
@@ -1532,24 +1604,10 @@ function CustomerDetailPage() {
               <div className="flex flex-col sm:flex-row justify-end gap-3 px-6 py-4 border-t bg-slate-50">
                 <Button
                   type="button"
-                  onClick={closeBillPreview}
-                  className="px-5 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-white"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handlePrintBillOnly}
+                  onClick={handlePrintBoth}
                   className="px-5 py-2 rounded-lg bg-teal-700 text-white hover:bg-teal-600"
                 >
                   Print Bill
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleDownloadBillOnly}
-                  className="px-5 py-2 rounded-lg bg-emerald-700 text-white hover:bg-emerald-600"
-                >
-                  Download Bill
                 </Button>
                 <Button
                   type="button"
@@ -1557,14 +1615,7 @@ function CustomerDetailPage() {
                   className="px-5 py-2 rounded-lg bg-slate-800 text-white hover:bg-slate-700"
                 >
                   Print Gate Pass
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handlePrintBoth}
-                  className="px-5 py-2 rounded-lg bg-indigo-700 text-white hover:bg-indigo-600"
-                >
-                  Print Both
-                </Button>
+                </Button>{" "}
               </div>
             </div>
           </div>
@@ -1608,7 +1659,6 @@ function CustomerDetailPage() {
                     }),
                   )
                 }
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-teal-500"
                 placeholder="Enter amount"
                 required
                 inputMode="decimal"
@@ -1649,7 +1699,6 @@ function CustomerDetailPage() {
                       }),
                   )
                 }
-                className="mt-1 min-h-[120px] w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-teal-500"
                 placeholder="Add a note for this manual entry"
                 required
                 maxLength={240}
@@ -1661,23 +1710,13 @@ function CustomerDetailPage() {
               )}
             </div>
 
-            <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
+            <div className="rounded-lg bg-slate-100 p-3 text-xs text-slate-600">
               This amount is stored on the customer record as legacy balance and
               will increase the customer&apos;s remaining balance.
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-2">
-              <Button
-                type="button"
-                onClick={closeManualEntry}
-                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                className="rounded-xl bg-teal-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-teal-600"
-              >
+              <Button type="submit" variant="primary" className="w-full">
                 Save Entry
               </Button>
             </div>

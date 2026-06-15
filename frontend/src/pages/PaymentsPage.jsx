@@ -13,7 +13,7 @@ import {
 } from "../lib/formValidation";
 import { Button, Inputfield, SelectDropdown } from "../UI";
 import DrawerPanel from "../Components/DrawerPanel";
-import { IoMdAdd } from "react-icons/io";
+import { IoMdAdd, IoMdSearch } from "react-icons/io";
 
 const getLocalDateInputValue = (date = new Date()) => {
   const offsetMinutes = date.getTimezoneOffset();
@@ -326,25 +326,59 @@ function PaymentsPage() {
     resetForm();
   };
   return (
-    <div className="min-h-[92vh] bg-gray-100 p-4">
-      <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">
-        <Inputfield
-          type="text"
-          value={query}
-          onChange={(e) => setquery(e.target.value)}
-          placeholder="Search the category"
-          maxLength={120}
-          className="w-full md:w-96"
-        />
-        <Button
-          onClick={() => {
-            openForm();
-          }}
-          variant="primary"
-        >
-          <IoMdAdd size={18} />
-          Add Payment
-        </Button>
+    <div className="min-h-[92vh] bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.14),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#f1f5f9_100%)] p-4">
+      <div className="mb-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
+          <div className="flex flex-col gap-3.5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-start gap-3">
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700 ring-1 ring-teal-100">
+                <IoMdSearch className="text-lg" />
+              </span>
+              <div>
+                <h2 className="text-sm font-semibold text-slate-800">
+                  Payment Filters
+                </h2>
+                <p className="mt-0.5 text-sm text-slate-500">
+                  Search products by name, code, company, or category.
+                </p>
+              </div>
+            </div>
+
+            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
+              <span className="wave-dot">
+                <span className="wave ripple-1"></span>
+                <span className="wave ripple-2"></span>
+              </span>{" "}
+              {sortedPayments.length} records shown
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-3 p-4 lg:grid-cols-[minmax(0,1.6fr)_auto_auto_auto]">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-slate-600">Search</label>
+            <Inputfield
+              type="text"
+              value={query}
+              onChange={(e) => setquery(e.target.value)}
+              placeholder="Search by category, amount or party..."
+              maxLength={120}
+              className="w-full"
+            />
+          </div>
+
+          <div className="flex items-end">
+            <Button
+              onClick={() => {
+                openForm();
+              }}
+              variant="primary"
+            >
+              <IoMdAdd size={18} />
+              Add Payment
+            </Button>
+          </div>
+        </div>
       </div>
 
       <DrawerPanel
@@ -356,10 +390,7 @@ function PaymentsPage() {
         widthClass="w-full sm:w-[420px]"
       >
         <div className="p-6">
-          <form
-            onSubmit={handleSubmit}
-            className="grid grid-cols-1 md:grid-cols-2 gap-3"
-          >
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="text-sm font-medium">Type</label>
               <SelectDropdown
@@ -375,7 +406,6 @@ function PaymentsPage() {
                   );
                 }}
                 placeholder="Select Payment Type"
-                className="w-full h-10 px-3 border rounded-xl mt-1"
               >
                 <option value="received">Receive</option>
                 <option value="paid">Pay</option>
@@ -400,7 +430,6 @@ function PaymentsPage() {
                   );
                 }}
                 placeholder="Select Method"
-                className="w-full h-10 px-3 border rounded-xl mt-1"
               >
                 <option value="cash">Cash</option>
                 <option value="bank_transfer">Bank Transfer</option>
@@ -431,7 +460,6 @@ function PaymentsPage() {
                     validateDateInput(current, "Payment date"),
                   )
                 }
-                className="w-full h-10 px-3 border rounded-xl mt-1"
               />
               {errors.paidAt && (
                 <p className="mt-1 text-sm text-red-500">{errors.paidAt}</p>
@@ -461,7 +489,6 @@ function PaymentsPage() {
                     }),
                   )
                 }
-                className="w-full h-10 px-3 border rounded-xl mt-1"
                 required
                 min="0"
                 step="0.01"
@@ -496,7 +523,6 @@ function PaymentsPage() {
                     }),
                   )
                 }
-                className="w-full h-10 px-3 border rounded-xl mt-1"
                 placeholder="Enter payment description"
                 maxLength={200}
               />
@@ -549,7 +575,6 @@ function PaymentsPage() {
                       setCustomerActiveIndex(0);
                     }}
                     onKeyDownCapture={onCustomerKeyDown}
-                    className="w-full h-10 px-3 border rounded-xl mt-1"
                     placeholder="Search customer..."
                   />
                   {errors.customerQuery && (
@@ -623,7 +648,6 @@ function PaymentsPage() {
                     setVendorActiveIndex(0);
                   }}
                   onKeyDownCapture={onVendorKeyDown}
-                  className="w-full h-10 px-3 border rounded-xl mt-1"
                   placeholder="Search vendor..."
                 />
                 {errors.vendorQuery && (
@@ -673,65 +697,77 @@ function PaymentsPage() {
         </div>
       </DrawerPanel>
 
-      <div className="mt-4 bg-white rounded-2xl shadow-sm border p-4">
-        {payments.length === 0 ? (
-          <NoData
-            title="No Payments"
-            description="Record a payment to see it listed here."
-          />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-b">
-                <tr className="text-left text-slate-500">
-                  <DateSortHeader
-                    label="Date"
-                    direction={paymentDateSort}
-                    onToggle={() =>
-                      setPaymentDateSort((prev) =>
-                        prev === "asc" ? "desc" : "asc",
-                      )
-                    }
-                  />
-                  <th className="px-4 py-3 font-medium">Type</th>
-                  <th className="px-4 py-3 font-medium">Amount</th>
-                  <th className="px-4 py-3 font-medium">Description</th>
-                  <th className="px-4 py-3 font-medium">Party</th>
-                  <th className="px-4 py-3 font-medium">Method</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedPayments.map((payment) => (
-                  <tr
-                    key={getId(payment)}
-                    className={`border-b last:border-b-0 transition ${getRowStyle(
-                      payment.type,
-                    )}`}
-                  >
-                    <td className="px-4 py-3">
-                      {formatDateLabel(payment.paidAt || payment.createdAt)}
-                    </td>
-                    <td className="px-4 py-3 capitalize">{payment.type}</td>
-                    <td className="px-4 py-3">
-                      Rs{Number(payment.amount).toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {payment.description || payment.notes || "-"}
-                    </td>
-                    <td className="px-4 py-3">
-                      {payment.partyType === "vendor"
-                        ? payment.vendor?.name || "Vendor"
-                        : payment.customerId?.name ||
-                          payment.customer?.name ||
-                          "Customer"}
-                    </td>
-                    <td className="px-4 py-3 capitalize">{payment.method}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <div className="mt-4">
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+          {payments.length === 0 ? (
+            <NoData
+              title="No Payments"
+              description="Record a payment to see it listed here."
+            />
+          ) : (
+            <div className="overflow-x-auto">
+              <div className="max-w-[1230px] overflow-x-auto relative">
+                <div className="flex gap-2">
+                  <table className="w-full text-sm border-collapse">
+                    <thead className="bg-slate-50 border-b">
+                      <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                        <th className="px-5 py-4 font-semibold">
+                          <DateSortHeader
+                            label="Date"
+                            direction={paymentDateSort}
+                            onToggle={() =>
+                              setPaymentDateSort((prev) =>
+                                prev === "asc" ? "desc" : "asc",
+                              )
+                            }
+                          />
+                        </th>
+                        <th className="px-5 py-4 font-semibold">Type</th>
+                        <th className="px-5 py-4 font-semibold">Amount</th>
+                        <th className="px-5 py-4 font-semibold">Description</th>
+                        <th className="px-5 py-4 font-semibold">Party</th>
+                        <th className="px-5 py-4 font-semibold">Method</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedPayments.map((payment) => (
+                        <tr
+                          key={getId(payment)}
+                          className={` ${getRowStyle(payment.type)}`}
+                        >
+                          <td className="px-5 py-4">
+                            {formatDateLabel(
+                              payment.paidAt || payment.createdAt,
+                            )}
+                          </td>
+                          <td className="px-5 py-4 capitalize">
+                            {payment.type}
+                          </td>
+                          <td className="px-5 py-4">
+                            Rs{Number(payment.amount).toLocaleString()}
+                          </td>
+                          <td className="px-5 py-4 text-slate-600">
+                            {payment.description || payment.notes || "-"}
+                          </td>
+                          <td className="px-5 py-4">
+                            {payment.partyType === "vendor"
+                              ? payment.vendor?.name || "Vendor"
+                              : payment.customerId?.name ||
+                                payment.customer?.name ||
+                                "Customer"}
+                          </td>
+                          <td className="px-5 py-4 capitalize">
+                            {payment.method}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

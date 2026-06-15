@@ -29,10 +29,8 @@ function ConfirmDialog({
   const [isProcessing, setIsProcessing] = useState(false);
   const dialogId = useId();
   const { className: okButtonClassName, ...restOkButtonProps } = okButtonProps;
-  const {
-    className: cancelButtonClassName,
-    ...restCancelButtonProps
-  } = cancelButtonProps;
+  const { className: cancelButtonClassName, ...restCancelButtonProps } =
+    cancelButtonProps;
 
   useEffect(() => {
     if (!open) return undefined;
@@ -91,12 +89,14 @@ function ConfirmDialog({
             aria-labelledby={dialogId}
             role="presentation"
           >
-            <div className="w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200">
+            <div className="w-full max-w-lg overflow-hidden rounded-lg bg-white shadow-2xl ring-1 ring-slate-200">
               <div className="flex items-start gap-4 border-b border-slate-100 px-6 py-5">
                 <div
                   className={joinClasses(
-                    "mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
-                    danger ? "bg-red-50 text-red-600" : "bg-teal-50 text-teal-600",
+                    "mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg",
+                    danger
+                      ? "bg-red-50 text-red-600"
+                      : "bg-teal-50 text-teal-600",
                   )}
                 >
                   <FiAlertTriangle size={20} />
@@ -121,10 +121,7 @@ function ConfirmDialog({
                   type="button"
                   variant="outline"
                   onClick={() => setOpen(false)}
-                  className={joinClasses(
-                    "rounded-xl border-slate-200 px-4 py-2.5 text-slate-700 hover:bg-slate-50",
-                    cancelButtonClassName,
-                  )}
+                  className={joinClasses(cancelButtonClassName)}
                   {...restCancelButtonProps}
                 >
                   {cancelText}
@@ -135,7 +132,6 @@ function ConfirmDialog({
                   loading={isProcessing}
                   onClick={handleConfirm}
                   className={joinClasses(
-                    "rounded-xl px-4 py-2.5",
                     !danger ? "bg-teal-700 hover:bg-teal-600" : "",
                     okButtonClassName,
                   )}

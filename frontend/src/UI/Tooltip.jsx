@@ -22,6 +22,7 @@ function Tooltip({
   offset = 6,
   disabled = false,
   className = "",
+  ...triggerProps
 }) {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState(null);
@@ -154,26 +155,32 @@ function Tooltip({
   }
 
   const wrappedTrigger = cloneElement(trigger, {
+    ...triggerProps,
     ref: triggerRef,
     "aria-describedby": open ? tooltipId : trigger.props["aria-describedby"],
     onMouseEnter: (event) => {
       trigger.props.onMouseEnter?.(event);
+      triggerProps.onMouseEnter?.(event);
       handleShow();
     },
     onMouseLeave: (event) => {
       trigger.props.onMouseLeave?.(event);
+      triggerProps.onMouseLeave?.(event);
       closeTooltip();
     },
     onFocus: (event) => {
       trigger.props.onFocus?.(event);
+      triggerProps.onFocus?.(event);
       handleShow();
     },
     onBlur: (event) => {
       trigger.props.onBlur?.(event);
+      triggerProps.onBlur?.(event);
       closeTooltip();
     },
     onClick: (event) => {
       trigger.props.onClick?.(event);
+      triggerProps.onClick?.(event);
       closeTooltip();
     },
   });

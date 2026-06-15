@@ -1499,11 +1499,11 @@ function Salespage() {
     <div className="min-h-[92vh] bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.14),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#f1f5f9_100%)] p-4">
       {/* <SalesChart /> */}
 
-      <div className="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="mb-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
           <div className="flex flex-col gap-3.5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-start gap-3">
-              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700 ring-1 ring-teal-100">
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700 ring-1 ring-teal-100">
                 <IoMdSearch className="text-lg" />
               </span>
               <div>
@@ -1535,7 +1535,6 @@ function Salespage() {
               onChange={(e) => setquery(e.target.value)}
               type="text"
               maxLength={120}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-700 shadow-sm transition focus:border-teal-400 focus:ring-4 focus:ring-teal-100 focus:outline-none"
               placeholder="Search invoice, customer, phone..."
             />
           </div>
@@ -1546,7 +1545,6 @@ function Salespage() {
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm transition focus:border-teal-400 focus:ring-4 focus:ring-teal-100 focus:outline-none"
               placeholder="Date from"
             />
           </div>
@@ -1557,7 +1555,6 @@ function Salespage() {
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm transition focus:border-teal-400 focus:ring-4 focus:ring-teal-100 focus:outline-none"
               placeholder="Date to"
             />
           </div>
@@ -1570,7 +1567,7 @@ function Salespage() {
                 setDateFrom("");
                 setDateTo("");
               }}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-slate-100 hover:text-slate-800"
+              className="border border-slate-200 bg-slate-50 text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-slate-100 hover:text-slate-800"
               variant="ghost"
             >
               <IoMdRefresh className="mr-2 text-lg" />
@@ -1627,11 +1624,10 @@ function Salespage() {
               }}
               placeholder="Search or create customer (name or phone)"
               maxLength={120}
-              className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
               required
             />
             {showCustomerOptions && customerSearch.trim() !== "" && (
-              <div className="absolute z-50 top-[72px] w-full bg-white border rounded-xl shadow-lg max-h-56 overflow-y-auto">
+              <div className="absolute z-50 top-[72px] w-full bg-white border rounded-lg shadow-lg max-h-56 overflow-y-auto">
                 {filteredCustomers.length > 0
                   ? filteredCustomers.map((customer) => (
                       <Button
@@ -1662,7 +1658,7 @@ function Salespage() {
             )}
           </div>
           {customerId && selectedCustomer && (
-            <div className="rounded-xl border bg-slate-50 p-3 text-sm text-slate-700">
+            <div className="rounded-lg border bg-slate-50 p-3 text-sm text-slate-700">
               <div className="font-medium text-slate-800 mb-2">
                 Customer Details
               </div>
@@ -1675,7 +1671,7 @@ function Salespage() {
             </div>
           )}
           {!customerId && customerSearch.trim() !== "" && !hasExactMatch && (
-            <div className="rounded-xl border bg-white p-3">
+            <div className="rounded-lg border bg-white p-3">
               <div className="font-medium text-slate-800 mb-2">
                 New Customer Details
               </div>
@@ -1692,7 +1688,6 @@ function Salespage() {
                   placeholder="Phone"
                   maxLength={20}
                   inputMode="tel"
-                  className="w-full h-10 px-3 border rounded-xl"
                   required
                 />
                 <Inputfield
@@ -1706,7 +1701,6 @@ function Salespage() {
                   }
                   placeholder="Address"
                   maxLength={200}
-                  className="w-full h-10 px-3 border rounded-xl"
                   required
                 />
               </div>
@@ -1891,7 +1885,7 @@ function Salespage() {
                 step="0.01"
                 value={carage}
                 onChange={(e) => setCarage(e.target.value)}
-                className="w-28 h-9 px-2 text-right border rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                className="text-right"
                 placeholder="0"
               />
             </div>
@@ -1911,7 +1905,6 @@ function Salespage() {
               step="0.01"
               value={receivedAmount}
               onChange={(e) => setReceivedAmount(e.target.value)}
-              className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
               placeholder="Enter amount received"
             />
             <div className="text-xs text-slate-500">
@@ -1927,7 +1920,6 @@ function Salespage() {
                 setPayment(value?.target?.value ?? value ?? "")
               }
               placeholder="Select payment method"
-              className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
               required={Number(receivedAmount || 0) > 0}
               disabled={Number(receivedAmount || 0) <= 0}
             >
@@ -1957,7 +1949,6 @@ function Salespage() {
                 setStatus(value?.target?.value ?? value ?? "")
               }
               placeholder="Select status"
-              className="w-full h-11 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
               required
             >
               <option value="pending">Pending</option>
@@ -1993,7 +1984,7 @@ function Salespage() {
             onClick={closeBillPreview}
           />
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-            <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl border overflow-hidden">
+            <div className="relative w-full max-w-4xl bg-white rounded-lg shadow-2xl border overflow-hidden">
               <div className="flex items-center justify-between px-6 py-2 border-b bg-slate-50">
                 <div>
                   <h3 className="text-lg font-semibold text-slate-800">
@@ -2015,7 +2006,7 @@ function Salespage() {
               </div>
 
               <div className="absolute inset-x-0 top-[57px] bottom-[72px] z-20 bg-slate-100 p-4">
-                <div className="mx-auto h-full w-full max-w-[900px] overflow-hidden rounded-xl border bg-white shadow-sm">
+                <div className="mx-auto h-full w-full max-w-[900px] overflow-hidden rounded-lg border bg-white shadow-sm">
                   <iframe
                     title="Sales Bill Preview"
                     srcDoc={billPreviewHtml}
@@ -2025,7 +2016,7 @@ function Salespage() {
               </div>
 
               <div className="p-6 max-h-[70vh] overflow-y-auto">
-                <div className="rounded-2xl border border-slate-200 p-6 bg-white shadow-sm">
+                <div className="rounded-lg border border-slate-200 p-6 bg-white shadow-sm">
                   <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 border-b pb-4 mb-4">
                     <div>
                       <h2 className="text-2xl font-semibold text-teal-700">
@@ -2050,7 +2041,7 @@ function Salespage() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div className="rounded-xl border bg-slate-50 p-4">
+                    <div className="rounded-lg border bg-slate-50 p-4">
                       <h4 className="text-xs font-semibold text-teal-700 uppercase tracking-wide mb-2">
                         Customer
                       </h4>
@@ -2070,7 +2061,7 @@ function Salespage() {
                           "-"}
                       </p>
                     </div>
-                    <div className="rounded-xl border bg-slate-50 p-4">
+                    <div className="rounded-lg border bg-slate-50 p-4">
                       <h4 className="text-xs font-semibold text-teal-700 uppercase tracking-wide mb-2">
                         Sale Info
                       </h4>
@@ -2115,7 +2106,7 @@ function Salespage() {
                     </div>
                   </div>
 
-                  <div className="overflow-hidden rounded-xl border">
+                  <div className="overflow-hidden rounded-lg border">
                     <table className="w-full text-[15px]">
                       <thead className="bg-teal-700 text-white">
                         <tr>
@@ -2228,7 +2219,7 @@ function Salespage() {
       )}
 
       {/* TABLE */}
-      <div className="mt-4 bg-white rounded-2xl shadow-sm border overflow-hidden">
+      <div className="mt-4 bg-white rounded-lg shadow-sm border overflow-hidden">
         {!sortedSales || sortedSales.length === 0 ? (
           <div className="p-10 text-center">
             <NoData
@@ -2314,7 +2305,7 @@ function Salespage() {
                             {(sale.products || []).map((item) => (
                               <div
                                 key={getId(item.productCode) || getId(item)}
-                                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100"
+                                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100"
                                 style={{
                                   boxShadow: `
     0 0 0 1px rgba(232, 229, 229, 0.9),
@@ -2484,13 +2475,13 @@ function Salespage() {
 
                         {/* STICKY ACTIONS */}
                         <td
-                          className="px-4 py-4 sticky right-0 z-10 bg-gray-50/80 transition-colors duration-150"
+                          className="px-4 py-4 sticky right-0 z-10 bg-gray-50/80 text-center transition-colors duration-150"
                           style={{
                             boxShadow: "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
                           }}
                         >
-                          <div className="flex justify-end">
-                            <div className="flex items-center gap-2  overflow-hidden">
+                          <div className="flex justify-center">
+                            <div className="flex items-center justify-center gap-2 overflow-hidden">
                               <Tooltip content="Edit sale">
                                 <Button
                                   type="button"

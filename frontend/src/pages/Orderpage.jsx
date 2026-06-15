@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useDispatch, useSelector } from "react-redux";
-import { IoMdAdd } from "react-icons/io";
+import { IoMdAdd, IoMdSearch } from "react-icons/io";
 import { MdEdit, MdDelete } from "react-icons/md";
 import FormattedTime from "../lib/FormattedTime";
 import {
@@ -21,7 +21,13 @@ import LoadingButton from "../Components/LoadingButton";
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
 import { validateNumberInput, validateTextInput } from "../lib/formValidation";
-import { Button, ConfirmDialog, Inputfield, SelectDropdown } from "../UI";
+import {
+  Button,
+  ConfirmDialog,
+  Inputfield,
+  SelectDropdown,
+  Tooltip,
+} from "../UI";
 
 function Orderpage() {
   const getId = (value) => value?.id ?? value?.id ?? value;
@@ -421,24 +427,52 @@ function Orderpage() {
   const isTableLoading = isgetorder || (query.trim() !== "" && issearchdata);
 
   return (
-    <div className="min-h-[92vh] bg-gray-100 p-4">
-      {/* <OrderStatusChart /> */}
+    <div className="min-h-[92vh] bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.14),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#f1f5f9_100%)] p-4">
+      <div className="mb-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
+          <div className="flex flex-col gap-3.5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-start gap-3">
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700 ring-1 ring-teal-100">
+                <IoMdSearch className="text-lg" />
+              </span>
+              <div>
+                <h2 className="text-sm font-semibold text-slate-800">
+                  Order Filters
+                </h2>
+                <p className="mt-0.5 text-sm text-slate-500">
+                  Search orders by name, code or status.
+                </p>
+              </div>
+            </div>
 
-      {/* Search + Add */}
-      <div className="flex flex-col md:flex-row md:items-center gap-2">
-        <Inputfield
-          type="text"
-          value={query}
-          onChange={(e) => setquery(e.target.value)}
-          maxLength={120}
-          className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
-          placeholder="Search order..."
-        />
+            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
+              <span className="wave-dot">
+                <span className="wave ripple-1"></span>
+                <span className="wave ripple-2"></span>
+              </span>{" "}
+              {sortedOrder.length} records shown
+            </div>
+          </div>
+        </div>
 
-        <Button onClick={openForm} variant="primary">
-          <IoMdAdd className="text-xl mr-2" />
-          Purchase Order
-        </Button>
+        <div className="grid gap-3 p-4 lg:grid-cols-[minmax(0,1.6fr)_auto_auto_auto]">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-slate-600">Search</label>
+            <Inputfield
+              type="text"
+              value={query}
+              onChange={(e) => setquery(e.target.value)}
+              maxLength={120}
+              placeholder="Search by name, code, status..."
+            />
+          </div>
+          <div className="flex items-end">
+            <Button onClick={openForm} variant="primary">
+              <IoMdAdd className="text-xl mr-2" />
+              Purchase Order
+            </Button>
+          </div>
+        </div>
       </div>
 
       <DrawerPanel
@@ -469,7 +503,6 @@ function Orderpage() {
                   }}
                   onKeyDownCapture={onCodeKeyDown}
                   maxLength={120}
-                  className="w-full h-10 px-2 border-2 rounded-lg mt-2"
                   placeholder="Type product code"
                 />
                 {showCodeOptions && codeOptions.length > 0 && (
@@ -569,7 +602,6 @@ function Orderpage() {
                   setstatus(value?.target?.value ?? value ?? "")
                 }
                 placeholder="Select status"
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2"
               >
                 <option value="pending">Pending</option>
                 <option value="shipped">Shipped</option>
@@ -584,7 +616,6 @@ function Orderpage() {
                   setsupplier(value?.target?.value ?? value ?? "")
                 }
                 placeholder="No vendor, stock only"
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2"
               >
                 {getallSupplier?.map((supplier) => (
                   <option key={getId(supplier)} value={getId(supplier)}>
@@ -613,155 +644,225 @@ function Orderpage() {
         {isTableLoading ? (
           <TableSkeleton rows={6} showFilters={false} />
         ) : Array.isArray(displayOrder) && displayOrder.length > 0 ? (
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b">
-              <tr className="text-left text-slate-500">
-                <th className="px-5 py-4 font-medium">#</th>
-                <th className="px-5 py-4 font-medium">Products</th>
-                <th className="px-5 py-4 font-medium">Total Amount</th>
-                <th className="px-5 py-4 font-medium">Status</th>
-                <DateSortHeader
-                  label="Date"
-                  direction={timestampSort}
-                  onToggle={() =>
-                    setTimestampSort((prev) =>
-                      prev === "asc" ? "desc" : "asc",
-                    )
-                  }
-                />
-                <th className="px-5 py-4 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {sortedOrder.map((order, index) => (
-                <tr
-                  key={getId(order) || index}
-                  className="border-b last:border-b-0 hover:bg-slate-50 transition"
-                >
-                  <td className="px-5 py-4">{index + 1}</td>
-                  <td className="px-5 py-4">
-                    {(order.products?.length
-                      ? order.products
-                      : order.Product
-                        ? [order.Product]
-                        : []
-                    ).map((item) => (
-                      <div
-                        key={getId(item.productCode) || item.productCode}
-                        className="flex items-center gap-2 px-3 py-2 mb-1 last:mb-0 rounded-md bg-slate-50 border border-slate-300"
+          <div className="overflow-x-auto">
+            <div className="max-w-[1230px] overflow-x-auto relative">
+              <div className="flex gap-2">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                      <th className="px-5 py-4 font-semibold">#</th>
+                      <th className="px-5 py-4 font-semibold">Products</th>
+                      <th className="px-5 py-4 font-semibold">Total Amount</th>
+                      <th className="px-5 py-4 font-semibold">Status</th>
+                      <th className="px-5 py-4 font-semibold">
+                        <DateSortHeader
+                          label="Date"
+                          direction={timestampSort}
+                          onToggle={() =>
+                            setTimestampSort((prev) =>
+                              prev === "asc" ? "desc" : "asc",
+                            )
+                          }
+                        />
+                      </th>
+                      <th
+                        className="px-5 py-4 font-semibold text-center sticky right-0 bg-slate-50 z-20"
+                        style={{
+                          boxShadow: "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
+                        }}
                       >
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm text-slate-800 flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold truncate">
-                              {item.product?.name || "N/A"}
-                            </span>
-                            {item.product?.description && (
-                              <span
-                                className="text-xs text-slate-500 truncate max-w-[200px]"
-                                title={item.product.description}
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {sortedOrder.map((order, index) => (
+                      <tr
+                        key={getId(order) || index}
+                        className="group border-b border-slate-100 bg-white transition-colors duration-150 hover:bg-blue-50/30"
+                      >
+                        <td className="px-4 py-4 text-slate-400 text-xs font-medium">
+                          {index + 1}
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="flex flex-col gap-1.5">
+                            {(order.products || []).map((item) => (
+                              <div
+                                key={getId(item.productCode) || getId(item)}
+                                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100"
+                                style={{
+                                  boxShadow: `
+    0 0 0 1px rgba(232, 229, 229, 0.9),
+    0 0 10px rgba(15,23,42,0.06),
+    0 0 20px rgba(15,23,42,0.08)
+  `,
+                                }}
                               >
-                                — {item.product.description}
-                              </span>
-                            )}
-                          </div>
-                          {(item.product?.company || item.product?.brand) && (
-                            <div className="text-xs text-slate-500 truncate mt-0.5">
-                              {item.product?.company || item.product?.brand}
-                            </div>
-                          )}
-                        </div>
-                        <span className="text-xs font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full whitespace-nowrap">
-                          {item.productCode?.code || "-"}
-                        </span>
-                        <span className="text-xs font-semibold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full whitespace-nowrap">
-                          × {item.quantity}
-                        </span>
-                      </div>
-                    ))}
-                  </td>
-                  <td className="px-5 py-4">Rs {order?.totalAmount}</td>
-                  <td className="px-5 py-4">
-                    <span
-                      className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full capitalize ${getStatusBadge(order.status)}`}
-                    >
-                      {order.status}
-                    </span>
-                  </td>{" "}
-                  {/* <td className="px-5 py-4">{order.vendor?.name || "N/A"}</td> */}
-                  <td className="px-5 py-4">
-                    <FormattedTime timestamp={order.createdAt} />
-                  </td>
-                  <td className="px-5 py-4 ">
-                    <div className="flex justify-end">
-                      <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 p-1">
-                        {isLockedOrder(order) ? (
-                          <Button
-                            type="button"
-                            className=" cursor-not-allowed h-9 w-9 !p-0 rounded-lg"
-                            title="Locked after shipped or delivered"
-                            variant="danger"
-                            disabled
-                          >
-                            <MdDelete size={18} />
-                          </Button>
-                        ) : (
-                          <ConfirmDialog
-                            title={
-                              <div className="flex flex-col gap-1 max-w-xs">
-                                <span className="font-semibold text-red-600 text-sm">
-                                  Confirm Permanent Deletion
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-sm font-semibold text-slate-800 truncate">
+                                      {item.product?.name || "N/A"}
+                                    </span>
+                                    {item.product?.description && (
+                                      <span
+                                        className="text-xs text-slate-500 truncate max-w-[180px]"
+                                        title={item.product.description}
+                                      >
+                                        {item.product.description}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {(item.product?.company ||
+                                    item.product?.brand) && (
+                                    <div className="text-xs text-slate-500 mt-0.5">
+                                      {item.product?.company ||
+                                        item.product?.brand}
+                                    </div>
+                                  )}
+                                </div>
+                                <span className="text-xs font-semibold text-violet-700 bg-violet-50 border border-violet-200 px-2 py-0.5 rounded-md whitespace-nowrap">
+                                  {item.productCode?.code || "—"}
                                 </span>
-                                <span className="text-xs text-gray-600 leading-snug">
-                                  This action will permanently delete this order
-                                  and all related transaction records. This
-                                  operation cannot be undone.
+                                <span className="text-xs font-bold text-teal-700 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-md whitespace-nowrap">
+                                  ×{item.quantity}
                                 </span>
                               </div>
-                            }
-                            okText="Yes, Delete"
-                            cancelText="Cancel"
-                            okButtonProps={{
-                              danger: true,
-                              className: "font-semibold",
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <span className="text-slate-600 font-medium">
+                            Rs {order?.totalAmount}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          {(() => {
+                            const map = {
+                              delivered:
+                                "bg-teal-50 text-teal-700 border-teal-200",
+                              pending:
+                                "bg-amber-50 text-amber-700 border-amber-200",
+                              completed:
+                                "bg-blue-50 text-blue-700 border-blue-200",
+                              cancelled:
+                                "bg-rose-50 text-rose-600 border-rose-200",
+                            };
+                            const dot = {
+                              delivered: "bg-teal-400",
+                              pending: "bg-amber-400",
+                              completed: "bg-blue-500",
+                              cancelled: "bg-rose-400",
+                            };
+                            return (
+                              <span
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border capitalize ${map[order.status] || "bg-slate-100 text-slate-600 border-slate-200"}`}
+                              >
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full ${dot[order.status] || "bg-slate-400"}`}
+                                />
+                                {order.status}
+                              </span>
+                            );
+                          })()}
+                        </td>
+                        {/* <td className="px-5 py-4">{order.vendor?.name || "N/A"}</td> */}
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="flex flex-col">
+                            <span className="text-slate-700 text-xs font-medium">
+                              <FormattedTime timestamp={order.createdAt} />
+                            </span>
+                          </div>
+                        </td>
+                          <td
+                            className="px-4 py-4 sticky right-0 z-10 bg-gray-50/80 text-center transition-colors duration-150"
+                            style={{
+                              boxShadow: "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
                             }}
-                            cancelButtonProps={{
-                              className: "font-medium",
-                            }}
-                            placement="topRight"
-                            onConfirm={() => handleRemove(getId(order))}
                           >
-                            <Button
-                              className="h-9 w-9 !p-0 rounded-lg transition-all duration-200 hover:shadow-sm"
-                              variant="danger"
-                              title="Delete Order"
-                            >
-                              <MdDelete size={18} />
-                            </Button>
-                          </ConfirmDialog>
-                        )}
-                        <Button
-                          onClick={() => handleEditClick(order)}
-                          disabled={isLockedOrder(order)}
-                          className={`h-6 w-9 !p-0 rounded-none border-l transition ${
-                            isLockedOrder(order)
-                              ? " text-blue-300 cursor-not-allowed"
-                              : ""
-                          }`}
-                          variant="info"
-                          title="Edit"
-                        >
-                          <MdEdit size={18} />
-                        </Button>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                            <div className="flex justify-center">
+                              <div className="flex items-center justify-center gap-2 overflow-hidden">
+                              <Tooltip content="Edit Order">
+                                <Button
+                                  type="button"
+                                  onClick={() => handleEditClick(order)}
+                                  disabled={isLockedOrder(order)}
+                                  variant="info"
+                                  aria-label="Edit Order"
+                                  size="sm"
+                                  className={`metal-btn ${
+                                    isLockedOrder(order)
+                                      ? " text-blue-300 cursor-not-allowed"
+                                      : ""
+                                  }`}
+                                >
+                                  <MdEdit size={16} />
+                                </Button>
+                              </Tooltip>
+                              {isLockedOrder(order) ? (
+                                <Tooltip content="Delete Order">
+                                  <Button
+                                    type="button"
+                                    variant="danger"
+                                    aria-label="Locked after shipped or delivered"
+                                    size="sm"
+                                    className="metal-btn cursor-not-allowed"
+                                    disabled
+                                  >
+                                    <MdDelete size={18} />
+                                  </Button>
+                                </Tooltip>
+                              ) : (
+                                <ConfirmDialog
+                                  title={
+                                    <div className="flex flex-col gap-1 max-w-xs">
+                                      <span className="font-semibold text-red-600 text-sm">
+                                        Confirm Permanent Deletion
+                                      </span>
+                                      <span className="text-xs text-gray-600 leading-snug">
+                                        This action will permanently delete this
+                                        order and all related transaction
+                                        records. This operation cannot be
+                                        undone.
+                                      </span>
+                                    </div>
+                                  }
+                                  okText="Yes, Delete"
+                                  cancelText="Cancel"
+                                  okButtonProps={{
+                                    danger: true,
+                                    className:
+                                      "font-semibold bg-red-50 hover:bg-red-100 border border-red-100",
+                                  }}
+                                  cancelButtonProps={{
+                                    className: "font-medium",
+                                  }}
+                                  placement="topRight"
+                                  onConfirm={() => handleRemove(getId(order))}
+                                >
+                                  <Tooltip content="Delete Order">
+                                    <Button
+                                      type="button"
+                                      className="metal-btn"
+                                      variant="danger"
+                                    >
+                                      <MdDelete size={18} />
+                                    </Button>
+                                  </Tooltip>
+                                </ConfirmDialog>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         ) : (
-          <div className="p-10">
+          <div className="p-10 text-center">
             <NoData
               title="No Orders Found"
               description="Try adjusting filters or add a new order to get started."

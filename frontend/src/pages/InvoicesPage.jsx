@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { IoMdAdd } from "react-icons/io";
+import { IoMdAdd, IoMdSearch } from "react-icons/io";
 import { MdEdit } from "react-icons/md";
 import axiosInstance from "../lib/axios";
 import { toast } from "react-hot-toast";
@@ -17,7 +17,7 @@ import {
   buildInvoicePrintHtml,
   combineInvoicePagesHtml,
 } from "../lib/invoicePrintTemplate";
-import { Button, Inputfield, SelectDropdown } from "../UI";
+import { Button, Inputfield, SelectDropdown, Tooltip } from "../UI";
 import { CgSoftwareDownload } from "react-icons/cg";
 import { PiInvoiceBold } from "react-icons/pi";
 
@@ -293,13 +293,6 @@ function InvoicesPage() {
     );
   };
 
-  const statusStyles = {
-    draft: "bg-gray-100 text-gray-700",
-    sent: "bg-blue-100 text-blue-700",
-    paid: "bg-green-100 text-green-700",
-    overdue: "bg-red-100 text-red-700",
-    cancelled: "bg-yellow-100 text-yellow-700",
-  };
   // ✅ Filter invoices client-side
   const displayInvoices = invoices.filter((inv) => {
     if (typeFilter !== "all") {
@@ -323,113 +316,191 @@ function InvoicesPage() {
     [displayInvoices, dueDateSort],
   );
   return (
-    <div className="min-h-[92vh] bg-gray-100 p-4">
-      <div className="flex flex-col md:flex-row md:items-center gap-2">
-        <Inputfield
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="w-full md:w-96"
-          placeholder="Search invoice..."
-        />
-        <SelectDropdown
-          value={typeFilter}
-          onChange={(value) => setTypeFilter(value)}
-          className="w-full md:w-56"
-          options={[
-            { value: "all", label: "All Types" },
-            { value: "sales", label: "Sales" },
-            { value: "purchase", label: "Purchase" },
-          ]}
-        />
+    <div className="min-h-[92vh] bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.14),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#f1f5f9_100%)] p-4">
+      <div className="mb-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
+          <div className="flex flex-col gap-3.5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-start gap-3">
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700 ring-1 ring-teal-100">
+                <IoMdSearch className="text-lg" />
+              </span>
+              <div>
+                <h2 className="text-sm font-semibold text-slate-800">
+                  Invoice Filters
+                </h2>
+                <p className="mt-0.5 text-sm text-slate-500">
+                  Search invoice by invoice, type, party, or status.
+                </p>
+              </div>
+            </div>
 
-        <Button onClick={() => navigate("/createInvoice")} variant="primary">
-          <IoMdAdd size={18} />
-          Create Invoice
-        </Button>
-      </div>
-      {/* Table */}
-      <div className="mt-4 bg-white rounded-2xl shadow-sm border overflow-hidden">
-        {loading ? (
-          <TableSkeleton rows={5} showFilters={false} />
-        ) : invoices.length === 0 ? (
-          <div className="p-10 text-center">
-            <NoData
-              title="No Invoice Found"
-              description="Try adjusting filters or add a new invoice to get started."
+            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
+              <span className="wave-dot">
+                <span className="wave ripple-1"></span>
+                <span className="wave ripple-2"></span>
+              </span>{" "}
+              {sortedInvoices.length} records shown
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-3 p-4 lg:grid-cols-[minmax(0,1.6fr)_auto_auto_auto]">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-slate-600">Search</label>
+
+            <Inputfield
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by invoice, type, party or status..."
             />
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-b">
-                <tr className="text-left text-slate-500">
-                  <th className="px-5 py-4 font-medium">#</th>
-                  <th className="px-5 py-4 font-medium">Invoice</th>
-                  <th className="px-5 py-4 font-medium">Type</th>
-                  <th className="px-5 py-4 font-medium">Party</th>
-                  <th className="px-5 py-4 font-medium">Amount</th>
-                  <th className="px-5 py-4 font-medium">Status</th>
-                  <DateSortHeader
-                    label="Due Date"
-                    direction={dueDateSort}
-                    onToggle={() =>
-                      setDueDateSort((prev) =>
-                        prev === "asc" ? "desc" : "asc",
-                      )
-                    }
-                  />
-                  <th className="px-5 py-4 font-medium text-right">Actions</th>
-                </tr>
-              </thead>
 
-              <tbody>
-                {sortedInvoices.map((inv, index) => (
-                  <tr
-                    key={inv.id}
-                    className="border-b last:border-b-0 hover:bg-slate-50 transition"
-                  >
-                    <td className="px-5 py-4 text-slate-500">{index + 1}</td>
+          <div className="flex items-end">
+            <SelectDropdown
+              value={typeFilter}
+              onChange={(value) => setTypeFilter(value)}
+              className="w-full md:w-56"
+              options={[
+                { value: "all", label: "All Types" },
+                { value: "sales", label: "Sales" },
+                { value: "purchase", label: "Purchase" },
+              ]}
+            />
+          </div>
 
-                    <td className="px-5 py-4">
-                      <div className="font-medium text-slate-800">
-                        {inv.invoiceNumber}
-                      </div>
-                    </td>
+          <div className="flex items-end">
+            <Button
+              onClick={() => navigate("/createInvoice")}
+              variant="primary"
+            >
+              <IoMdAdd size={18} />
+              Create Invoice
+            </Button>
+          </div>
+        </div>
+      </div>
 
-                    <td className="px-5 py-4 text-slate-700 capitalize">
-                      {inv.invoiceType || "-"}
-                    </td>
+      {/* Table */}
+      <div className="mt-4">
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+          {loading ? (
+            <TableSkeleton rows={5} showFilters={false} />
+          ) : invoices.length === 0 ? (
+            <div className="p-10 text-center">
+              <NoData
+                title="No Invoice Found"
+                description="Try adjusting filters or add a new invoice to get started."
+              />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <div className="max-w-[1230px] overflow-x-auto relative">
+                <div className="flex gap-2">
+                  <table className="w-full text-sm border-collapse">
+                    <thead>
+                      <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                        <th className="px-5 py-4 font-semibold">#</th>
+                        <th className="px-5 py-4 font-semibold">Invoice</th>
+                        <th className="px-5 py-4 font-semibold">Type</th>
+                        <th className="px-5 py-4 font-semibold">Party</th>
+                        <th className="px-5 py-4 font-semibold">Amount</th>
+                        <th className="px-5 py-4 font-semibold">Status</th>
+                        <th className="px-5 py-4 font-semibold">
+                          <DateSortHeader
+                            label="Due Date"
+                            direction={dueDateSort}
+                            onToggle={() =>
+                              setDueDateSort((prev) =>
+                                prev === "asc" ? "desc" : "asc",
+                              )
+                            }
+                          />
+                        </th>
+                        <th className="px-5 py-4 font-semibold text-center sticky right-0 bg-slate-50 z-20">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
 
-                    <td className="px-5 py-4 text-slate-700">
-                      {inv.invoiceType === "purchase"
-                        ? inv.vendor?.name || "-"
-                        : inv.customerId?.name || inv.customer?.name || "-"}
-                    </td>
+                    <tbody>
+                      {sortedInvoices.map((inv, index) => (
+                        <tr
+                          key={inv.id}
+                          className="border-b last:border-b-0 hover:bg-slate-50 transition"
+                        >
+                          <td className="px-5 py-4 text-slate-500">
+                            {index + 1}
+                          </td>
 
-                    <td className="px-5 py-4 font-semibold text-slate-800">
-                      Rs {inv.totalAmount.toLocaleString()}
-                    </td>
+                          <td className="px-5 py-4">
+                            <div className="font-medium text-slate-800">
+                              {inv.invoiceNumber}
+                            </div>
+                          </td>
 
-                    <td className="px-5 py-4">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          statusStyles[inv.status] ||
-                          "bg-gray-100 text-gray-700"
-                        }`}
-                      >
-                        {inv.status.toUpperCase()}
-                      </span>
-                    </td>
+                          <td className="px-5 py-4 text-slate-700 capitalize">
+                            {inv.invoiceType || "-"}
+                          </td>
 
-                    <td className="px-5 py-4 text-slate-600">
-                      {formatDateLabel(inv.dueDate)}
-                    </td>
+                          <td className="px-5 py-4 text-slate-700">
+                            {inv.invoiceType === "purchase"
+                              ? inv.vendor?.name || "-"
+                              : inv.customerId?.name ||
+                                inv.customer?.name ||
+                                "-"}
+                          </td>
 
-                    <td className="px-5 py-4">
-                      <div className="flex justify-end">
-                        <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 p-1">
-                          {/* <ConfirmDialog
+                          <td className="px-5 py-4 font-semibold text-slate-800">
+                            Rs {inv.totalAmount.toLocaleString()}
+                          </td>
+
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            {(() => {
+                              const map = {
+                                draft:
+                                  "bg-gray-50 text-gray-700 border-gray-200",
+                                sent: "bg-blue-50 text-blue-700 border-blue-200",
+                                paid: "bg-green-50 text-green-700 border-green-200",
+                                overdue:
+                                  "bg-red-50 text-red-700 border-red-200",
+                                cancelled:
+                                  "bg-yellow-50 text-yellow-700 border-yellow-200",
+                              };
+                              const dot = {
+                                draft: "bg-gray-400",
+                                sent: "bg-blue-500",
+                                paid: "bg-green-400",
+                                overdue: "bg-red-400",
+                                cancelled: "bg-yellow-500",
+                              };
+                              return (
+                                <span
+                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border capitalize ${map[inv.status] || "bg-slate-100 text-slate-600 border-slate-200"}`}
+                                >
+                                  <span
+                                    className={`w-1.5 h-1.5 rounded-full ${dot[inv.status] || "bg-slate-400"}`}
+                                  />
+                                  {inv.status}
+                                </span>
+                              );
+                            })()}
+                          </td>
+
+                          <td className="px-5 py-4 text-slate-600">
+                            {formatDateLabel(inv.dueDate)}
+                          </td>
+
+                            <td
+                              className="px-4 py-4 sticky right-0 z-10 bg-gray-50/80 text-center transition-colors duration-150"
+                              style={{
+                                boxShadow:
+                                  "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
+                              }}
+                            >
+                              <div className="flex justify-center">
+                                <div className="flex items-center justify-center gap-2 overflow-hidden">
+                                {/* <ConfirmDialog
                             title={
                               <div className="flex flex-col gap-1 max-w-xs">
                                 <span className="font-semibold text-red-600 text-sm">
@@ -462,43 +533,53 @@ function InvoicesPage() {
                               <MdDelete size={18} />
                             </Button>
                           </ConfirmDialog> */}
-                          <Button
-                            type="button"
-                            onClick={() => navigate(`/editInvoice/${inv.id}`)}
-                            variant="info"
-                            title="Edit sale"
-                          >
-                            <MdEdit size={16} />
-                          </Button>
-                          <div className="w-px h-5 bg-slate-200" />
-
-                          <Button
-                            type="button"
-                            onClick={() => openInvoicePreview(inv)}
-                            variant="orange"
-                            title="Bill Preview"
-                          >
-                            <PiInvoiceBold size={16} />
-                          </Button>
-                          <div className="w-px h-5 bg-slate-200" />
-
-                          <Button
-                            type="button"
-                            onClick={() => downloadInvoice(inv)}
-                            variant="violet"
-                            title="Download Bill"
-                          >
-                            <CgSoftwareDownload size={18} />
-                          </Button>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                                <Tooltip content="Edit Sale">
+                                  <Button
+                                    type="button"
+                                    onClick={() =>
+                                      navigate(`/editInvoice/${inv.id}`)
+                                    }
+                                    variant="info"
+                                    size="sm"
+                                    className="metal-btn"
+                                  >
+                                    <MdEdit size={16} />
+                                  </Button>
+                                </Tooltip>
+                                <Tooltip content="Print Invoice">
+                                  <Button
+                                    type="button"
+                                    onClick={() => openInvoicePreview(inv)}
+                                    variant="orange"
+                                    size="sm"
+                                    className="metal-btn"
+                                  >
+                                    <PiInvoiceBold size={16} />
+                                  </Button>
+                                </Tooltip>
+                                <Tooltip content="Download Invoice">
+                                  <Button
+                                    type="button"
+                                    onClick={() => downloadInvoice(inv)}
+                                    variant="violet"
+                                    size="sm"
+                                    className="metal-btn"
+                                  >
+                                    <CgSoftwareDownload size={18} />
+                                  </Button>
+                                </Tooltip>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {showBillModal && billInvoice && (

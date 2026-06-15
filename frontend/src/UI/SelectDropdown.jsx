@@ -32,7 +32,7 @@ const SelectDropdown = forwardRef(function SelectDropdown(
     ? Array.isArray(value)
       ? value.map((item) => String(item))
       : []
-    : value ?? "";
+    : (value ?? "");
 
   const handleChange = (event) => {
     if (multiple) {
@@ -49,7 +49,10 @@ const SelectDropdown = forwardRef(function SelectDropdown(
     const resolvedOption = selectOptions.find(
       (option) => String(option.value) === event.target.value,
     );
-    onChange?.(resolvedOption ? resolvedOption.value : event.target.value, event);
+    onChange?.(
+      resolvedOption ? resolvedOption.value : event.target.value,
+      event,
+    );
   };
 
   return (
@@ -73,7 +76,7 @@ const SelectDropdown = forwardRef(function SelectDropdown(
           onChange={handleChange}
           multiple={multiple}
           className={joinClasses(
-            "w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 py-2.5 pr-10 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500",
+            "w-full appearance-none rounded-lg border border-slate-200 bg-white px-4 py-2.5 pr-10 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500",
             uppercase ? "uppercase" : "normal-case",
             className,
             selectClassName,

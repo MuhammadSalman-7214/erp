@@ -32,9 +32,7 @@ const Inputfield = forwardRef(function Inputfield(
 ) {
   const inputId = useId();
   const shouldUppercase =
-    typeof uppercase === "boolean"
-      ? uppercase
-      : !uppercaseExceptions.has(type);
+    typeof uppercase === "boolean" ? uppercase : !uppercaseExceptions.has(type);
 
   return (
     <div className={wrapperClassName}>
@@ -54,7 +52,7 @@ const Inputfield = forwardRef(function Inputfield(
         id={inputId}
         type={type}
         className={joinClasses(
-          "w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500",
+          "w-full rounded-lg border border-slate-200 bg-white px-4 py-[9px] text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500",
           shouldUppercase && type !== "file" ? "uppercase" : "normal-case",
           type === "number" ? "appearance-none" : "",
           className,

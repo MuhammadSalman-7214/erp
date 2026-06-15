@@ -312,7 +312,7 @@ function SupplierDetailPage() {
   const currency = (value) => `Rs ${Number(value || 0).toLocaleString()}`;
 
   return (
-    <div className="min-h-[92vh] bg-gray-100 p-4">
+    <div className="min-h-[92vh] bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.14),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#f1f5f9_100%)] p-4">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
         <div>
           <h1 className="text-2xl font-semibold text-slate-800">
@@ -328,7 +328,7 @@ function SupplierDetailPage() {
         <DetailSkeleton />
       ) : (
         <>
-          <div className="bg-white rounded-2xl border p-5 shadow-sm mb-4">
+          <div className="bg-white rounded-lg border p-5 shadow-sm mb-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <div className="text-sm text-slate-500">Vendor</div>
@@ -342,6 +342,7 @@ function SupplierDetailPage() {
               </div>
             </div>
           </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
             {[
               {
@@ -349,33 +350,33 @@ function SupplierDetailPage() {
                 value: currency(summary.total),
                 bg: "bg-gradient-to-br from-emerald-50 to-emerald-100",
                 icon: <TrendingUp className="w-5 h-5 text-emerald-600" />,
-                borderColor: "border-[#40de90]",
+                borderColor: "border-emerald-300",
               },
               {
                 label: "Paid",
                 value: currency(summary.paid),
                 bg: "bg-gradient-to-br from-teal-50 to-teal-100",
                 icon: <CreditCard className="w-5 h-5 text-teal-600" />,
-                borderColor: "border-teal-200",
+                borderColor: "border-teal-300",
               },
               {
                 label: "Remaining",
                 value: currency(summary.remaining),
                 bg: "bg-gradient-to-br from-rose-50 to-rose-100",
                 icon: <AlertCircle className="w-5 h-5 text-rose-600" />,
-                borderColor: "border-[#f7929e]",
+                borderColor: "border-red-300",
               },
               {
                 label: "Total Orders",
                 value: summary.count || 0,
                 bg: "bg-gradient-to-br from-blue-50 to-blue-100",
                 icon: <Clipboard className="w-5 h-5 text-blue-600" />,
-                borderColor: "border-blue-200",
+                borderColor: "border-blue-300",
               },
             ].map(({ label, value, bg, icon, borderColor }) => (
               <div
                 key={label}
-                className={`rounded-xl p-5 border-2 ${borderColor} ${bg} shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1`}
+                className={`rounded-lg p-5 border-2 ${borderColor} ${bg} shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1`}
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-sm font-medium text-gray-600">
@@ -387,7 +388,8 @@ function SupplierDetailPage() {
               </div>
             ))}
           </div>
-          <div className="bg-white rounded-2xl border shadow-sm overflow-hidden mb-4">
+
+          <div className="bg-white rounded-lg border shadow-sm overflow-hidden mb-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-5 border-b">
               <div>
                 <div className="text-lg font-semibold text-slate-800">
@@ -403,7 +405,6 @@ function SupplierDetailPage() {
                     type="button"
                     onClick={downloadLedgerPdf}
                     variant="secondary"
-                    className="inline-flex items-center gap-2 rounded-xl bg-slate-800 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-700"
                   >
                     <Download size={18} />
                     Download PDF
@@ -413,7 +414,7 @@ function SupplierDetailPage() {
                     onClick={openManualEntry}
                     variant="primary"
                   >
-                    <IoMdAdd className="text-lg" />
+                    <IoMdAdd size={18} />
                     Add Manual Entry
                   </Button>
                 </div>
@@ -452,63 +453,69 @@ function SupplierDetailPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 border-b text-left text-slate-500">
-                    <tr>
-                      <DateSortHeader
-                        label="Date"
-                        direction={ledgerDateSort}
-                        onToggle={() =>
-                          setLedgerDateSort((prev) =>
-                            prev === "asc" ? "desc" : "asc",
-                          )
-                        }
-                      />
-                      <th className="px-5 py-4 font-medium">Source</th>
-                      <th className="px-5 py-4 font-medium">Reference</th>
-                      <th className="px-5 py-4 font-medium">Debit</th>
-                      <th className="px-5 py-4 font-medium">Credit</th>
-                      <th className="px-5 py-4 font-medium">Balance</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedLedger.map((entry) => (
-                      <tr
-                        key={entry.id}
-                        className="border-b last:border-b-0 hover:bg-slate-50 transition"
-                      >
-                        <td className="px-5 py-4 text-slate-600">
-                          <FormattedTime timestamp={entry.date} />
-                        </td>
-                        <td className="px-5 py-4 text-slate-700 capitalize">
-                          {entry.source?.replace(/_/g, " ") || "-"}
-                        </td>
-                        <td className="px-5 py-4 text-slate-600">
-                          {entry.source === "manual"
-                            ? entry.notes || "-"
-                            : entry.reference || "-"}
-                        </td>
-                        <td className="px-5 py-4 text-rose-700 font-medium">
-                          {entry.type === "debit"
-                            ? currency(entry.amount)
-                            : "-"}
-                        </td>
-                        <td className="px-5 py-4 text-emerald-700 font-medium">
-                          {entry.type === "credit"
-                            ? currency(entry.amount)
-                            : "-"}
-                        </td>
-                        <td className="px-5 py-4 text-slate-700 font-semibold">
-                          {currency(entry.balance)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div className="max-w-[1230px] overflow-x-auto relative">
+                  <div className="flex gap-2">
+                    <table className="w-full text-sm border-collapse">
+                      <thead className="bg-slate-50 border-b text-left text-slate-500">
+                        <tr>
+                          <th className="px-5 py-4 font-semibold">
+                            <DateSortHeader
+                              label="Date"
+                              direction={ledgerDateSort}
+                              onToggle={() =>
+                                setLedgerDateSort((prev) =>
+                                  prev === "asc" ? "desc" : "asc",
+                                )
+                              }
+                            />
+                          </th>
+                          <th className="px-5 py-4 font-medium">Source</th>
+                          <th className="px-5 py-4 font-medium">Reference</th>
+                          <th className="px-5 py-4 font-medium">Debit</th>
+                          <th className="px-5 py-4 font-medium">Credit</th>
+                          <th className="px-5 py-4 font-medium">Balance</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sortedLedger.map((entry) => (
+                          <tr
+                            key={entry.id}
+                            className="group border-b border-slate-100 bg-white transition-colors duration-150 hover:bg-blue-50/30"
+                          >
+                            <td className="px-5 py-4 text-slate-600">
+                              <FormattedTime timestamp={entry.date} />
+                            </td>
+                            <td className="px-5 py-4 text-slate-700 capitalize">
+                              {entry.source?.replace(/_/g, " ") || "-"}
+                            </td>
+                            <td className="px-5 py-4 text-slate-600">
+                              {entry.source === "manual"
+                                ? entry.notes || "-"
+                                : entry.reference || "-"}
+                            </td>
+                            <td className="px-5 py-4 text-rose-700 font-medium">
+                              {entry.type === "debit"
+                                ? currency(entry.amount)
+                                : "-"}
+                            </td>
+                            <td className="px-5 py-4 text-emerald-700 font-medium">
+                              {entry.type === "credit"
+                                ? currency(entry.amount)
+                                : "-"}
+                            </td>
+                            <td className="px-5 py-4 text-slate-700 font-semibold">
+                              {currency(entry.balance)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             )}
           </div>
-          <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+          <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
             {orders.length === 0 ? (
               <div className="p-10">
                 <NoData
@@ -525,69 +532,92 @@ function SupplierDetailPage() {
                   Order shows what you owe the vendor.
                 </div>
 
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 border-b text-left text-slate-500">
-                    <tr>
-                      <DateSortHeader
-                        label="Date"
-                        direction={ordersDateSort}
-                        onToggle={() =>
-                          setOrdersDateSort((prev) =>
-                            prev === "asc" ? "desc" : "asc",
-                          )
-                        }
-                      />
-                      <th className="px-5 py-4 font-medium">Items</th>
-                      <th className="px-5 py-4 font-medium">Qty</th>
-                      <th className="px-5 py-4 font-medium">Total</th>
-                      <th className="px-5 py-4 font-medium">Status</th>
-                    </tr>
-                  </thead>
+                <div className="overflow-x-auto">
+                  <div className="max-w-[1230px] overflow-x-auto relative">
+                    <div className="flex gap-2">
+                      <table className="w-full text-sm border-collapse">
+                        <thead className="bg-slate-50 border-b text-left text-slate-500">
+                          <tr>
+                            <th className="px-5 py-4 font-semibold">
+                              <DateSortHeader
+                                label="Date"
+                                direction={ordersDateSort}
+                                onToggle={() =>
+                                  setOrdersDateSort((prev) =>
+                                    prev === "asc" ? "desc" : "asc",
+                                  )
+                                }
+                              />
+                            </th>
+                            <th className="px-5 py-4 font-medium">Items</th>
+                            <th className="px-5 py-4 font-medium">Qty</th>
+                            <th className="px-5 py-4 font-medium">Total</th>
+                            <th className="px-5 py-4 font-medium">Status</th>
+                          </tr>
+                        </thead>
 
-                  <tbody>
-                    {sortedOrders.map((order) => {
-                      const products = order.products?.length
-                        ? order.products.map((p) => p.name).join(", ")
-                        : "No items";
+                        <tbody>
+                          {sortedOrders.map((order) => {
+                            const products = order.products?.length
+                              ? order.products.map((p) => p.name).join(", ")
+                              : "No items";
 
-                      const totalQty = order.products?.reduce(
-                        (acc, item) => acc + item.quantity,
-                        0,
-                      );
+                            const totalQty = order.products?.reduce(
+                              (acc, item) => acc + item.quantity,
+                              0,
+                            );
 
-                      return (
-                        <tr
-                          key={order.id}
-                          className="border-b hover:bg-slate-50"
-                        >
-                          <td className="px-5 py-4">
-                            {formatDateLabel(order.createdAt)}
-                          </td>
+                            return (
+                              <tr
+                                key={order.id}
+                                className="group border-b border-slate-100 bg-white transition-colors duration-150 hover:bg-blue-50/30"
+                              >
+                                <td className="px-5 py-4">
+                                  {formatDateLabel(order.createdAt)}
+                                </td>
 
-                          <td className="px-5 py-4">{products}</td>
+                                <td className="px-5 py-4">{products}</td>
 
-                          <td className="px-5 py-4">{totalQty || 0}</td>
+                                <td className="px-5 py-4">{totalQty || 0}</td>
 
-                          <td className="px-5 py-4">Rs {order.totalAmount}</td>
-
-                          <td className="px-5 py-4">
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                order.status === "completed"
-                                  ? "bg-green-100 text-green-700"
-                                  : order.status === "pending"
-                                    ? "bg-yellow-100 text-yellow-700"
-                                    : "bg-red-100 text-red-700"
-                              }`}
-                            >
-                              {order.status}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                                <td className="px-5 py-4">
+                                  Rs {order.totalAmount}
+                                </td>
+                                <td className="px-4 py-4 whitespace-nowrap">
+                                  {(() => {
+                                    const map = {
+                                      pending:
+                                        "bg-yellow-50 text-yellow-700 border-yellow-200",
+                                      completed:
+                                        "bg-green-50 text-green-700 border-green-200",
+                                      delivered:
+                                        "bg-red-50 text-red-600 border-red-200",
+                                    };
+                                    const dot = {
+                                      pending: "bg-yellow-400",
+                                      completed: "bg-green-500",
+                                      delivered: "bg-red-400",
+                                    };
+                                    return (
+                                      <span
+                                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border capitalize ${map[order.status] || "bg-slate-100 text-slate-600 border-slate-200"}`}
+                                      >
+                                        <span
+                                          className={`w-1.5 h-1.5 rounded-full ${dot[order.status] || "bg-slate-400"}`}
+                                        />
+                                        {order.status}
+                                      </span>
+                                    );
+                                  })()}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -631,7 +661,6 @@ function SupplierDetailPage() {
                     }),
                   )
                 }
-                className="mt-2 w-full h-11 rounded-xl border px-3 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500"
                 placeholder="Enter amount"
                 required
                 inputMode="decimal"
@@ -672,7 +701,6 @@ function SupplierDetailPage() {
                       }),
                   )
                 }
-                className="mt-2 w-full rounded-xl border px-3 py-2 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500"
                 rows={4}
                 placeholder="Enter description"
                 required
@@ -685,10 +713,7 @@ function SupplierDetailPage() {
               )}
             </div>
 
-            <Button
-              type="submit"
-              className="h-12 w-full rounded-xl bg-teal-700 font-medium text-white transition hover:bg-teal-600"
-            >
+            <Button type="submit" variant="primary" className="w-full">
               Save Manual Debit
             </Button>
           </form>

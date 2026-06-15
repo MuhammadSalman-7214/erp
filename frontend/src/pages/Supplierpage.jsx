@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { IoMdAdd, IoMdEye } from "react-icons/io";
+import { IoMdAdd, IoMdEye, IoMdSearch } from "react-icons/io";
 import { MdDelete, MdEdit } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
 import FormattedTime from "../lib/FormattedTime";
@@ -28,7 +28,13 @@ import {
   validatePhoneInput,
   validateTextInput,
 } from "../lib/formValidation";
-import { Button, ConfirmDialog, Inputfield, SelectDropdown } from "../UI";
+import {
+  Button,
+  ConfirmDialog,
+  Inputfield,
+  SelectDropdown,
+  Tooltip,
+} from "../UI";
 
 function Supplierpage({ readOnly = false }) {
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
@@ -414,7 +420,7 @@ function Supplierpage({ readOnly = false }) {
     : { total: 0, paid: 0, remaining: 0 };
 
   return (
-    <div className="min-h-[92vh] bg-gray-100 p-4">
+    <div className="min-h-[92vh] bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.14),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#f1f5f9_100%)] p-4">
       {/* KPI CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 lg:grid-cols-3">
         <div className="rounded-xl p-5 border-2 border-[#40de90] bg-gradient-to-br from-emerald-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
@@ -460,36 +466,65 @@ function Supplierpage({ readOnly = false }) {
             {getallproduct?.length || 0}
           </div>
         </div>
-
-        {/* <div className="bg-white border rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition">
-          <h2 className="text-2xl sm:text-3xl font-bold">Active</h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Supplier Status
-          </p>
-        </div> */}
       </div>
+      <div className="mb-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
+          <div className="flex flex-col gap-3.5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-start gap-3">
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700 ring-1 ring-teal-100">
+                <IoMdSearch className="text-lg" />
+              </span>
+              <div>
+                <h2 className="text-sm font-semibold text-slate-800">
+                  Vendor Filters
+                </h2>
+                <p className="mt-0.5 text-sm text-slate-500">
+                  Search products by name, code, company, or category.
+                </p>
+              </div>
+            </div>
 
-      <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">
-        <Inputfield
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          maxLength={120}
-          className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
-          placeholder="Search vendor..."
-        />
-
-        {canWrite && (
-          <Button onClick={() => openForm()} variant="primary">
-            <IoMdAdd size={18} />
-            Create Vendor
-          </Button>
-        )}
-        {isReadOnlyMode && (
-          <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-2 rounded">
-            Read-Only Mode
+            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
+              <span className="wave-dot">
+                <span className="wave ripple-1"></span>
+                <span className="wave ripple-2"></span>
+              </span>{" "}
+              {sortedSuppliers.length} records shown
+            </div>
           </div>
-        )}
+        </div>
+
+        <div className="grid gap-3 p-4 lg:grid-cols-[minmax(0,1.6fr)_auto_auto_auto]">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-slate-600">Search</label>
+
+            <Inputfield
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e?.target?.value ?? e ?? "")}
+              maxLength={120}
+              className="w-full"
+              placeholder="Search vendor..."
+            />
+          </div>
+
+          {canWrite && (
+            <div className="flex items-end">
+              <Button onClick={() => openForm()} variant="primary">
+                <IoMdAdd size={18} />
+                Create Vendor
+              </Button>
+            </div>
+          )}
+
+          {isReadOnlyMode && (
+            <div className="flex items-end">
+              <div className="inline-flex h-11 items-center rounded-xl border border-amber-200 bg-amber-50 px-4 text-sm font-medium text-amber-700 shadow-sm">
+                Read-Only Mode
+              </div>
+            </div>
+          )}
+        </div>
       </div>
       <DrawerPanel
         open={isFormVisible && canWrite}
@@ -501,17 +536,6 @@ function Supplierpage({ readOnly = false }) {
       >
         <div className="p-6">
           <form onSubmit={selectedSupplier ? handleEditSubmit : submitSupplier}>
-            {/* <div className="mb-4">
-              <label>Vendor Code</label>
-              <Inputfield
-                value={vendorCode}
-                placeholder="VND-0001"
-                onChange={(e) => setVendorCode(e.target.value)}
-                type="text"
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
-              />
-            </div> */}
-
             <div className="mb-4">
               <label>Name</label>
               <Inputfield
@@ -539,7 +563,6 @@ function Supplierpage({ readOnly = false }) {
                 }
                 type="text"
                 maxLength={120}
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
               />
               {errors.name && (
                 <p className="text-red-500 text-sm mt-1">{errors.name}</p>
@@ -567,7 +590,6 @@ function Supplierpage({ readOnly = false }) {
                 // type="text"
                 inputMode="tel"
                 maxLength={20}
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
               />
               {errors.phone && (
                 <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
@@ -601,41 +623,17 @@ function Supplierpage({ readOnly = false }) {
                   )
                 }
                 maxLength={200}
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
               />
               {errors.address && (
                 <p className="text-red-500 text-sm mt-1">{errors.address}</p>
               )}
             </div>
 
-            {/* <div className="mb-4">
-              <label>Opening Balance</label>
-              <Inputfield
-                type="number"
-                placeholder="0"
-                value={openingBalance}
-                onChange={(e) => setOpeningBalance(e.target.value)}
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
-              />
-            </div> */}
-
-            {/* <div className="mb-4">
-              <label>Payment Terms</label>
-              <Inputfield
-                type="text"
-                placeholder="Net 30"
-                value={paymentTerms}
-                onChange={(e) => setPaymentTerms(e.target.value)}
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
-              />
-            </div> */}
-
             <div className="mb-4">
               <label>Product</label>
               <SelectDropdown
                 value={product}
                 onChange={(e) => setProduct(e?.target?.value ?? e ?? "")}
-                className="w-full h-10 px-2 border-2 rounded-lg mt-2 bg-base-100"
                 placeholder="Select a product"
               >
                 {getallproduct?.map((product) => (
@@ -663,7 +661,7 @@ function Supplierpage({ readOnly = false }) {
       </DrawerPanel>
 
       <div className="mt-4">
-        <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
           {!Array.isArray(displaySuppliers) || displaySuppliers.length === 0 ? (
             <div className="p-10 text-center">
               <NoData
@@ -673,150 +671,165 @@ function Supplierpage({ readOnly = false }) {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 border-b">
-                  <tr className="text-left text-slate-500">
-                    <th className="px-5 py-4 font-medium">#</th>
-                    <th className="px-5 py-4 font-medium">Name</th>
-                    <th className="px-5 py-4 font-medium">Phone</th>
-                    <th className="px-5 py-4 font-medium">Address</th>
-                    {/* <th className="px-5 py-4 font-medium">Opening</th> */}
-                    <th className="px-5 py-4 font-medium">Total Owed</th>
-                    <th className="px-5 py-4 font-medium">Paid</th>
-                    <th className="px-5 py-4 font-medium">Remaining</th>
-                    <th className="px-5 py-4 font-medium">
-                      <DateSortHeader
-                        label="Date"
-                        direction={createdAtSort}
-                        onToggle={() =>
-                          setCreatedAtSort((prev) =>
-                            prev === "asc" ? "desc" : "asc",
-                          )
-                        }
-                      />
-                    </th>
+              <div className="max-w-[1230px] overflow-x-auto relative">
+                <div className="flex gap-2">
+                  <table className="w-full text-sm border-collapse">
+                    <thead className="bg-slate-50 border-b">
+                      <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                        <th className="px-5 py-4 font-semibold">#</th>
+                        <th className="px-5 py-4 font-semibold">Name</th>
+                        <th className="px-5 py-4 font-semibold">Phone</th>
+                        <th className="px-5 py-4 font-semibold">Address</th>
+                        <th className="px-5 py-4 font-semibold">Total Owed</th>
+                        <th className="px-5 py-4 font-semibold">Paid</th>
+                        <th className="px-5 py-4 font-semibold">Remaining</th>
+                        <th className="px-5 py-4 font-semibold">
+                          <DateSortHeader
+                            label="Date"
+                            direction={createdAtSort}
+                            onToggle={() =>
+                              setCreatedAtSort((prev) =>
+                                prev === "asc" ? "desc" : "asc",
+                              )
+                            }
+                          />
+                        </th>
 
-                    <th className="px-5 py-4 font-medium text-right">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {sortedSuppliers.map((supplier, index) => {
-                    const vendorSummary =
-                      vendorBalances[String(getId(supplier))] || {};
-                    return (
-                      <tr
-                        key={getId(supplier)}
-                        className="border-b last:border-b-0 hover:bg-slate-50 transition"
-                      >
-                        <td className="px-5 py-4 text-slate-500">
-                          {index + 1}
-                        </td>
-                        <td className="px-5 py-4 font-medium text-slate-800">
-                          {supplier.name}
-                        </td>
-
-                        <td className="px-5 py-4 text-slate-700">
-                          {supplier.contactInfo?.phone || "-"}
-                        </td>
-
-                        <td className="px-5 py-4 text-slate-600 max-w-xs truncate">
-                          {supplier.contactInfo?.address || "-"}
-                        </td>
-
-                        {/* <td className="px-5 py-4 text-slate-600">
-                          {supplier.openingBalance ?? 0}
-                        </td> */}
-                        <td className="px-5 py-4 text-slate-600 font-medium">
-                          {currency(vendorSummary.totalAmount)}
-                        </td>
-                        <td className="px-5 py-4 text-emerald-700 font-medium">
-                          {currency(vendorSummary.paidAmount)}
-                        </td>
-                        <td className="px-5 py-4 text-red-700 font-medium">
-                          {currency(vendorSummary.remainingAmount)}
-                        </td>
-
-                        {/* <td className="px-5 py-4 text-slate-600">
-                          {supplier.paymentTerms || "-"}
-                        </td> */}
-
-                        <td className="px-5 py-4 text-slate-600">
-                          <FormattedTime timestamp={supplier.createdAt} />
-                        </td>
-
-                        <td className="px-5 py-4">
-                          <div className="flex justify-end">
-                            <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 p-1">
-                              {!isReadOnlyMode && canDelete && (
-                                <ConfirmDialog
-                                  title={
-                                    <div className="flex flex-col gap-1 max-w-xs">
-                                      <span className="font-semibold text-red-600 text-sm">
-                                        Confirm Supplier Deletion
-                                      </span>
-                                      <span className="text-xs text-gray-600 leading-snug">
-                                        This action will permanently remove this
-                                        supplier and may affect linked purchase
-                                        records. This operation cannot be
-                                        undone.
-                                      </span>
-                                    </div>
-                                  }
-                                  okText="Delete"
-                                  cancelText="Cancel"
-                                  okButtonProps={{
-                                    danger: true,
-                                    className:
-                                      "font-semibold bg-red-50 hover:bg-red-100 border border-red-100",
-                                  }}
-                                  cancelButtonProps={{
-                                    className: "font-medium",
-                                  }}
-                                  placement="topRight"
-                                  onConfirm={() =>
-                                    handleRemove(getId(supplier))
-                                  }
-                                >
-                                  <Button
-                                    className=" h-9 w-9 !p-0 rounded-lg"
-                                    title="Delete Supplier"
-                                    variant="danger"
-                                  >
-                                    <MdDelete size={18} />
-                                  </Button>
-                                </ConfirmDialog>
-                              )}
-                              {!isReadOnlyMode && canWrite && (
-                                <Button
-                                  onClick={() => handleEditClick(supplier)}
-                                  className="h-6 w-9 !p-0 rounded-none border-r border-l"
-                                  title="Edit"
-                                  variant="info"
-                                >
-                                  <MdEdit size={18} />
-                                </Button>
-                              )}
-                              <Button
-                                onClick={() =>
-                                  handleViewSupplier(getId(supplier))
-                                }
-                                className="h-9 w-9 !p-0 rounded-lg"
-                                title="View Details"
-                                variant="emerald"
-                              >
-                                <IoMdEye size={18} />
-                              </Button>
-                            </div>
-                          </div>
-                        </td>
+                        <th
+                          className="px-5 py-4 font-semibold text-center sticky right-0 bg-slate-50 z-20"
+                          style={{
+                            boxShadow: "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
+                          }}
+                        >
+                          Actions
+                        </th>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                    </thead>
+
+                    <tbody>
+                      {sortedSuppliers.map((supplier, index) => {
+                        const vendorSummary =
+                          vendorBalances[String(getId(supplier))] || {};
+                        return (
+                          <tr
+                            key={getId(supplier)}
+                            className="group border-b border-slate-100 bg-white transition-colors duration-150 hover:bg-blue-50/30"
+                          >
+                            <td className="px-5 py-4 text-slate-500">
+                              {index + 1}
+                            </td>
+                            <td className="px-5 py-4 font-medium text-slate-800">
+                              {supplier.name}
+                            </td>
+
+                            <td className="px-5 py-4 text-slate-700">
+                              {supplier.contactInfo?.phone || "-"}
+                            </td>
+
+                            <td className="px-5 py-4 text-slate-600 max-w-xs truncate">
+                              {supplier.contactInfo?.address || "-"}
+                            </td>
+
+                            <td className="px-5 py-4 text-slate-600 font-medium">
+                              {currency(vendorSummary.totalAmount)}
+                            </td>
+                            <td className="px-5 py-4 text-emerald-700 font-medium">
+                              {currency(vendorSummary.paidAmount)}
+                            </td>
+                            <td className="px-5 py-4 text-red-700 font-medium">
+                              {currency(vendorSummary.remainingAmount)}
+                            </td>
+
+                            <td className="px-5 py-4 text-slate-600">
+                              <FormattedTime timestamp={supplier.createdAt} />
+                            </td>
+
+                            <td
+                              className="px-4 py-4 sticky right-0 z-10 bg-gray-50/80 text-center transition-colors duration-150"
+                              style={{
+                                boxShadow:
+                                  "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
+                              }}
+                            >
+                              <div className="flex justify-center">
+                                <div className="flex items-center justify-center gap-2 overflow-hidden">
+                                  {!isReadOnlyMode && canWrite && (
+                                    <Tooltip content="Edit Product">
+                                      <Button
+                                        onClick={() =>
+                                          handleEditClick(supplier)
+                                        }
+                                        className="metal-btn"
+                                        title="Edit"
+                                        variant="info"
+                                      >
+                                        <MdEdit size={18} />
+                                      </Button>
+                                    </Tooltip>
+                                  )}
+                                  {!isReadOnlyMode && canDelete && (
+                                    <ConfirmDialog
+                                      title={
+                                        <div className="flex flex-col gap-1 max-w-xs">
+                                          <span className="font-semibold text-red-600 text-sm">
+                                            Confirm Supplier Deletion
+                                          </span>
+                                          <span className="text-xs text-gray-600 leading-snug">
+                                            This action will permanently remove
+                                            this supplier and may affect linked
+                                            purchase records. This operation
+                                            cannot be undone.
+                                          </span>
+                                        </div>
+                                      }
+                                      okText="Delete"
+                                      cancelText="Cancel"
+                                      okButtonProps={{
+                                        danger: true,
+                                        className:
+                                          "font-semibold bg-red-50 hover:bg-red-100 border border-red-100",
+                                      }}
+                                      cancelButtonProps={{
+                                        className: "font-medium",
+                                      }}
+                                      placement="topRight"
+                                      onConfirm={() =>
+                                        handleRemove(getId(supplier))
+                                      }
+                                    >
+                                      <Tooltip content="Delete Vendor">
+                                        <Button
+                                          className="metal-btn"
+                                          title="Delete Supplier"
+                                          variant="danger"
+                                        >
+                                          <MdDelete size={18} />
+                                        </Button>
+                                      </Tooltip>
+                                    </ConfirmDialog>
+                                  )}
+                                  <Tooltip content="Vendor Details">
+                                    <Button
+                                      onClick={() =>
+                                        handleViewSupplier(getId(supplier))
+                                      }
+                                      className="metal-btn"
+                                      title="View Details"
+                                      variant="emerald"
+                                    >
+                                      <IoMdEye size={18} />
+                                    </Button>
+                                  </Tooltip>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           )}
         </div>

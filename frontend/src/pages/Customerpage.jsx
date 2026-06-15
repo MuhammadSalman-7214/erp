@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { IoMdAdd, IoMdEye } from "react-icons/io";
+import { IoMdAdd, IoMdEye, IoMdSearch } from "react-icons/io";
 import { MdDelete, MdEdit } from "react-icons/md";
 import { PiUsersBold } from "react-icons/pi";
 import { useDispatch, useSelector } from "react-redux";
@@ -11,7 +11,13 @@ import LoadingButton from "../Components/LoadingButton";
 import axiosInstance from "../lib/axios";
 import { FaMoneyBill1Wave } from "react-icons/fa6";
 import { validatePhoneInput, validateTextInput } from "../lib/formValidation";
-import { Button, ConfirmDialog, Inputfield, SelectDropdown } from "../UI";
+import {
+  Button,
+  ConfirmDialog,
+  Inputfield,
+  SelectDropdown,
+  Tooltip,
+} from "../UI";
 import { useRolePermissions } from "../hooks/useRolePermissions";
 import {
   createCustomer,
@@ -304,7 +310,7 @@ function Customerpage({ readOnly = false }) {
     : { total: 0, paid: 0, remaining: 0 };
 
   return (
-    <div className="min-h-[92vh] bg-gray-100 p-4">
+    <div className="min-h-[92vh] bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.14),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#f1f5f9_100%)] p-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <div className="rounded-xl p-5 border-2 border-[#40de90] bg-gradient-to-br from-emerald-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
           <div className="flex items-center justify-between mb-2">
@@ -339,43 +345,79 @@ function Customerpage({ readOnly = false }) {
           </div>
         </div>
       </div>
+      <div className="mb-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
+          <div className="flex flex-col gap-3.5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-start gap-3">
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700 ring-1 ring-teal-100">
+                <IoMdSearch className="text-lg" />
+              </span>
+              <div>
+                <h2 className="text-sm font-semibold text-slate-800">
+                  Product Filters
+                </h2>
+                <p className="mt-0.5 text-sm text-slate-500">
+                  Search products by name, code, company, or category.
+                </p>
+              </div>
+            </div>
 
-      <div className="mt-4 flex flex-col md:flex-row md:items-center gap-2">
-        <Inputfield
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          maxLength={120}
-          className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
-          placeholder="Search customer..."
-        />
-        <SelectDropdown
-          value={amountFilter}
-          onChange={(e) => setAmountFilter(e.target.value)}
-          className="w-full md:w-64 h-10 px-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
-        >
-          <option value="all">All Customers</option>
-          <option value="total">Total Amount</option>
-          <option value="collected">Collected Amount</option>
-          <option value="remaining">Remaining Amount</option>
-        </SelectDropdown>
-
-        {canWrite && (
-          <Button
-            onClick={() => {
-              openForm();
-            }}
-            variant="primary"
-          >
-            <IoMdAdd size={18} />
-            Create Customer
-          </Button>
-        )}
-        {isReadOnlyMode && (
-          <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-2 rounded">
-            Read-Only Mode
+            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
+              <span className="wave-dot">
+                <span className="wave ripple-1"></span>
+                <span className="wave ripple-2"></span>
+              </span>{" "}
+              {filteredCustomers.length} records shown
+            </div>
           </div>
-        )}
+        </div>
+
+        <div className="grid gap-3 p-4 lg:grid-cols-[minmax(0,1.6fr)_auto_auto_auto]">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-slate-600">Search</label>
+
+            <Inputfield
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              maxLength={120}
+              placeholder="Search customer..."
+            />
+          </div>
+          <div className="flex items-end">
+            {" "}
+            <SelectDropdown
+              value={amountFilter}
+              onChange={(e) => setAmountFilter(e?.target?.value ?? e ?? "")}
+            >
+              <option value="all">All Customers</option>
+              <option value="total">Total Amount</option>
+              <option value="collected">Collected Amount</option>
+              <option value="remaining">Remaining Amount</option>
+            </SelectDropdown>
+          </div>
+          {canWrite && (
+            <div className="flex items-end">
+              <Button
+                onClick={() => {
+                  openForm();
+                }}
+                variant="primary"
+              >
+                <IoMdAdd size={18} />
+                Create Customer
+              </Button>
+            </div>
+          )}
+
+          {isReadOnlyMode && (
+            <div className="flex items-end">
+              <div className="inline-flex h-11 items-center rounded-xl border border-amber-200 bg-amber-50 px-4 text-sm font-medium text-amber-700 shadow-sm">
+                Read-Only Mode
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <DrawerPanel
@@ -391,90 +433,96 @@ function Customerpage({ readOnly = false }) {
             onSubmit={selectedCustomer ? handleEditSubmit : submitCustomer}
             className="space-y-4"
           >
-            <Inputfield
-              type="text"
-              value={name}
-              onChange={(e) => {
-                const value = e.target.value;
-                setName(value);
-                validateField("name", value, (current) =>
-                  validateTextInput(current, "Customer name", {
-                    required: true,
-                    minLength: 2,
-                    maxLength: 120,
-                  }),
-                );
-              }}
-              onBlur={(e) =>
-                validateField("name", e.target.value, (current) =>
-                  validateTextInput(current, "Customer name", {
-                    required: true,
-                    minLength: 2,
-                    maxLength: 120,
-                  }),
-                )
-              }
-              placeholder="Customer name"
-              maxLength={120}
-              className="w-full h-10 rounded-xl border px-3"
-              required
-            />
-            {errors.name && (
-              <p className="text-red-500 text-sm">{errors.name}</p>
-            )}
-            <Inputfield
-              type="text"
-              value={phone}
-              onChange={(e) => {
-                const value = e.target.value;
-                setPhone(value);
-                validateField("phone", value, (current) =>
-                  validatePhoneInput(current, { required: false }),
-                );
-              }}
-              onBlur={(e) =>
-                validateField("phone", e.target.value, (current) =>
-                  validatePhoneInput(current, { required: false }),
-                )
-              }
-              placeholder="Phone"
-              inputMode="tel"
-              maxLength={20}
-              className="w-full h-10 rounded-xl border px-3"
-            />
-            {errors.phone && (
-              <p className="text-red-500 text-sm">{errors.phone}</p>
-            )}
-            <Inputfield
-              type="text"
-              value={address}
-              onChange={(e) => {
-                const value = e.target.value;
-                setAddress(value);
-                validateField("address", value, (current) =>
-                  validateTextInput(current, "Address", {
-                    required: false,
-                    maxLength: 200,
-                    allowEmpty: true,
-                  }),
-                );
-              }}
-              onBlur={(e) =>
-                validateField("address", e.target.value, (current) =>
-                  validateTextInput(current, "Address", {
-                    required: false,
-                    maxLength: 200,
-                    allowEmpty: true,
-                  }),
-                )
-              }
-              placeholder="Address"
-              maxLength={200}
-              className="w-full h-10 rounded-xl border px-3"
-            />
-            {errors.address && (
-              <p className="text-red-500 text-sm">{errors.address}</p>
-            )}
+            <diV>
+              <label className="text-sm font-medium">Name</label>
+              <Inputfield
+                type="text"
+                value={name}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setName(value);
+                  validateField("name", value, (current) =>
+                    validateTextInput(current, "Customer name", {
+                      required: true,
+                      minLength: 2,
+                      maxLength: 120,
+                    }),
+                  );
+                }}
+                onBlur={(e) =>
+                  validateField("name", e.target.value, (current) =>
+                    validateTextInput(current, "Customer name", {
+                      required: true,
+                      minLength: 2,
+                      maxLength: 120,
+                    }),
+                  )
+                }
+                placeholder="Name"
+                maxLength={120}
+                required
+              />
+              {errors.name && (
+                <p className="text-red-500 text-sm">{errors.name}</p>
+              )}
+            </diV>
+            <div>
+              <label className="text-sm font-medium">Phone</label>
+              <Inputfield
+                type="text"
+                value={phone}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setPhone(value);
+                  validateField("phone", value, (current) =>
+                    validatePhoneInput(current, { required: false }),
+                  );
+                }}
+                onBlur={(e) =>
+                  validateField("phone", e.target.value, (current) =>
+                    validatePhoneInput(current, { required: false }),
+                  )
+                }
+                placeholder="Phone"
+                inputMode="tel"
+                maxLength={20}
+              />
+              {errors.phone && (
+                <p className="text-red-500 text-sm">{errors.phone}</p>
+              )}
+            </div>
+            <div>
+              <label className="text-sm font-medium">Address</label>
+              <Inputfield
+                type="text"
+                value={address}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setAddress(value);
+                  validateField("address", value, (current) =>
+                    validateTextInput(current, "Address", {
+                      required: false,
+                      maxLength: 200,
+                      allowEmpty: true,
+                    }),
+                  );
+                }}
+                onBlur={(e) =>
+                  validateField("address", e.target.value, (current) =>
+                    validateTextInput(current, "Address", {
+                      required: false,
+                      maxLength: 200,
+                      allowEmpty: true,
+                    }),
+                  )
+                }
+                placeholder="Address"
+                maxLength={200}
+              />
+              {errors.address && (
+                <p className="text-red-500 text-sm">{errors.address}</p>
+              )}
+            </div>
             <Button
               type="submit"
               loading={isSubmitting}
@@ -488,106 +536,134 @@ function Customerpage({ readOnly = false }) {
         </div>
       </DrawerPanel>
 
-      <div className="mt-4 bg-white rounded-2xl shadow-sm border overflow-hidden">
-        {!filteredCustomers || filteredCustomers.length === 0 ? (
-          <div className="p-10 text-center">
-            <NoData
-              title="No Customer Found"
-              description="Try adjusting filters or add a new customer to get started."
-            />
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-b">
-                <tr className="text-left text-slate-500">
-                  <th className="px-5 py-4 font-medium">Customer</th>
-                  <th className="px-5 py-4 font-medium">Phone</th>
-                  <th className="px-5 py-4 font-medium">Total</th>
-                  <th className="px-5 py-4 font-medium">Collected</th>
-                  <th className="px-5 py-4 font-medium">Remaining</th>
-                  <th className="px-5 py-4 font-medium text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredCustomers.map((customer) => {
-                  const customerSummary =
-                    customerBalances[String(getId(customer))] || {};
-                  return (
-                    <tr
-                      key={getId(customer)}
-                      className="border-b last:border-b-0 hover:bg-slate-50 transition-all duration-200"
-                    >
-                      <td className="px-5 py-4">{customer.name}</td>
-                      <td className="px-5 py-4">
-                        {customer.contactInfo?.phone || "-"}
-                      </td>
-                      <td className="px-5 py-4 font-medium">
-                        {currency(customerSummary.totalAmount)}
-                      </td>
-                      <td className="px-5 py-4 text-emerald-700 font-medium">
-                        {currency(customerSummary.paidAmount)}
-                      </td>
-                      <td className="px-5 py-4 text-red-700 font-medium">
-                        {currency(customerSummary.remainingAmount)}
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="flex justify-end">
-                          <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 p-1">
-                            {canDelete && (
-                              <ConfirmDialog
-                                title="Delete Customer"
-                                description="Are you sure to delete this customer?"
-                                okButtonProps={{
-                                  danger: true,
-                                  className:
-                                    "font-semibold bg-red-50 hover:bg-red-100 border border-red-100",
+      <div className="mt-4">
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+          {!filteredCustomers || filteredCustomers.length === 0 ? (
+            <div className="p-10 text-center">
+              <NoData
+                title="No Customer Found"
+                description="Try adjusting filters or add a new customer to get started."
+              />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <div className="max-w-[1230px] overflow-x-auto relative">
+                <div className="flex gap-2">
+                  <table className="w-full text-sm border-collapse">
+                    <thead className="bg-slate-50 border-b">
+                      <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                        <th className="px-5 py-4 font-semibold">Customer</th>
+                        <th className="px-5 py-4 font-semibold">Phone</th>
+                        <th className="px-5 py-4 font-semibold">Total</th>
+                        <th className="px-5 py-4 font-semibold">Collected</th>
+                        <th className="px-5 py-4 font-semibold">Remaining</th>
+                        <th
+                          className="px-5 py-4 max-w-[20px] font-semibold text-center sticky right-0 bg-slate-50 z-20"
+                          style={{
+                            boxShadow: "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
+                          }}
+                        >
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredCustomers.map((customer) => {
+                        const customerSummary =
+                          customerBalances[String(getId(customer))] || {};
+                        return (
+                          <tr
+                            key={getId(customer)}
+                            className="group border-b border-slate-100 bg-white transition-colors duration-150 hover:bg-blue-50/30"
+                          >
+                            <td className="px-5 py-4">{customer.name}</td>
+                            <td className="px-5 py-4">
+                              {customer.contactInfo?.phone || "-"}
+                            </td>
+                            <td className="px-5 py-4 font-medium">
+                              {currency(customerSummary.totalAmount)}
+                            </td>
+                            <td className="px-5 py-4 text-emerald-700 font-medium">
+                              {currency(customerSummary.paidAmount)}
+                            </td>
+                            <td className="px-5 py-4 text-red-700 font-medium">
+                              {currency(customerSummary.remainingAmount)}
+                            </td>
+                              <td
+                                className="px-4 py-4 sticky right-0 z-10 bg-gray-50/80 text-center transition-colors duration-150"
+                                style={{
+                                  boxShadow:
+                                    "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
                                 }}
-                                cancelButtonProps={{
-                                  className: "font-medium",
-                                }}
-                                onConfirm={() => handleRemove(getId(customer))}
                               >
-                                <Button
-                                  type="button"
-                                  className="h-9 w-9 !p-0 rounded-lg"
-                                  variant="danger"
-                                >
-                                  <MdDelete size={18} />
-                                </Button>
-                              </ConfirmDialog>
-                            )}
-
-                            {canWrite && (
-                              <Button
-                                type="button"
-                                onClick={() => handleEditClick(customer)}
-                                className="h-6 w-9 !p-0 rounded-none border-r border-l"
-                                variant="info"
-                              >
-                                <MdEdit size={18} />
-                              </Button>
-                            )}
-                            <Button
-                              type="button"
-                              onClick={() =>
-                                handleViewCustomer(getId(customer))
-                              }
-                              className="h-9 w-9 !p-0 rounded-lg"
-                              variant="emerald"
-                            >
-                              <IoMdEye size={18} />
-                            </Button>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                                <div className="flex justify-center">
+                                  <div className="flex items-center justify-center gap-2 overflow-hidden">
+                                  {canWrite && (
+                                    <Tooltip content="Edit Customer">
+                                      <Button
+                                        type="button"
+                                        onClick={() =>
+                                          handleEditClick(customer)
+                                        }
+                                        variant="info"
+                                        className="metal-btn"
+                                      >
+                                        <MdEdit size={18} />
+                                      </Button>
+                                    </Tooltip>
+                                  )}
+                                  {canDelete && (
+                                    <ConfirmDialog
+                                      title="Delete Customer"
+                                      description="Are you sure to delete this customer?"
+                                      okButtonProps={{
+                                        danger: true,
+                                        className:
+                                          "font-semibold bg-red-50 hover:bg-red-100 border border-red-100",
+                                      }}
+                                      cancelButtonProps={{
+                                        className: "font-medium",
+                                      }}
+                                      onConfirm={() =>
+                                        handleRemove(getId(customer))
+                                      }
+                                    >
+                                      <Tooltip content="Delete Customer">
+                                        <Button
+                                          type="button"
+                                          variant="danger"
+                                          className="metal-btn"
+                                        >
+                                          <MdDelete size={18} />
+                                        </Button>
+                                      </Tooltip>
+                                    </ConfirmDialog>
+                                  )}
+                                  <Tooltip content="Customer Details">
+                                    <Button
+                                      type="button"
+                                      onClick={() =>
+                                        handleViewCustomer(getId(customer))
+                                      }
+                                      variant="emerald"
+                                      className="metal-btn"
+                                    >
+                                      <IoMdEye size={18} />
+                                    </Button>
+                                  </Tooltip>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

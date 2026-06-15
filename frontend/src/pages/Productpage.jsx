@@ -35,6 +35,7 @@ import {
   SelectDropdown,
   Tooltip,
 } from "../UI";
+import CodeBadge from "../Components/CodeBadge";
 
 const emptyCode = {
   code: "",
@@ -667,12 +668,12 @@ function Productpage({ readOnly = false }) {
   }, [getallproduct]);
 
   return (
-    <div className="min-h-[92vh] bg-gray-100 p-4">
-      <div className="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div className="min-h-[92vh] bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.14),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#f1f5f9_100%)] p-4">
+      <div className="mb-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
           <div className="flex flex-col gap-3.5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-start gap-3">
-              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700 ring-1 ring-teal-100">
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700 ring-1 ring-teal-100">
                 <IoMdSearch className="text-lg" />
               </span>
               <div>
@@ -703,7 +704,6 @@ function Productpage({ readOnly = false }) {
               value={productCodeQuery}
               onChange={(e) => setProductCodeQuery(e.target.value)}
               maxLength={120}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-700 shadow-sm transition focus:border-teal-400 focus:ring-4 focus:ring-teal-100 focus:outline-none"
               placeholder="Search by name, code, company, or category..."
             />
           </div>
@@ -712,7 +712,6 @@ function Productpage({ readOnly = false }) {
             <Button
               type="button"
               onClick={handleDownloadStock}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-slate-100 hover:text-slate-800"
               variant="secondary"
             >
               <AiOutlineDownload size={18} />
@@ -722,12 +721,8 @@ function Productpage({ readOnly = false }) {
 
           {canWrite && (
             <div className="flex items-end">
-              <Button
-                onClick={() => openForm()}
-                className="h-11 w-full rounded-xl bg-slate-900 px-5 text-white shadow-sm transition hover:bg-slate-800"
-                variant="primary"
-              >
-                <IoMdAdd className="mr-2 text-xl" />
+              <Button onClick={() => openForm()} variant="primary">
+                <IoMdAdd size={18} />
                 Create Product
               </Button>
             </div>
@@ -744,7 +739,7 @@ function Productpage({ readOnly = false }) {
       </div>
       {/* TABLE */}
       <div className="mt-4">
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
           {/* Loading State */}
           {isallproductget ? (
             <TableSkeleton rows={6} showFilters={false} />
@@ -762,7 +757,7 @@ function Productpage({ readOnly = false }) {
                 <div className="flex gap-2 w-max">
                   <table className="w-full text-sm border-collapse">
                     <thead>
-                      <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
+                      <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
                         <th className="px-5 py-4 font-semibold">#</th>
                         <th className="px-5 py-4 font-semibold">Product</th>
                         <th className="px-5 py-4 font-semibold">
@@ -831,9 +826,7 @@ function Productpage({ readOnly = false }) {
                             <td className="px-5 py-4 text-slate-700">
                               {code ? (
                                 <div className="text-xs">
-                                  <span className="inline-flex items-center rounded-md border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700">
-                                    {code.code}
-                                  </span>{" "}
+                                  <CodeBadge>{code.code}</CodeBadge>{" "}
                                   {code.variantName
                                     ? ` • ${code.variantName}`
                                     : ""}
@@ -877,16 +870,31 @@ function Productpage({ readOnly = false }) {
                               <FormattedTime timestamp={product?.createdAt} />
                             </td>
 
-                            {!isReadOnlyMode && (
-                              <td
-                                className="px-4 py-4 sticky right-0 z-10 bg-gray-50/80 transition-colors duration-150"
-                                style={{
-                                  boxShadow:
-                                    "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
-                                }}
-                              >
-                                <div className="flex justify-end">
-                                  <div className="flex items-center gap-2  overflow-hidden">
+                              {!isReadOnlyMode && (
+                                <td
+                                className="px-4 py-4 sticky right-0 z-10 bg-gray-50/80 text-center transition-colors duration-150"
+                                  style={{
+                                    boxShadow:
+                                      "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
+                                  }}
+                                >
+                                <div className="flex justify-center">
+                                    <div className="flex items-center justify-center gap-2 overflow-hidden">
+                                    {canWrite && (
+                                      <Tooltip content="Edit Product">
+                                        <Button
+                                          type="button"
+                                          onClick={() =>
+                                            handleEditClick(product)
+                                          }
+                                          size="sm"
+                                          className="metal-btn"
+                                          variant="info"
+                                        >
+                                          <MdEdit size={18} />
+                                        </Button>
+                                      </Tooltip>
+                                    )}
                                     {canDelete && (
                                       <ConfirmDialog
                                         title={
@@ -934,21 +942,7 @@ function Productpage({ readOnly = false }) {
                                         </Tooltip>
                                       </ConfirmDialog>
                                     )}
-                                    {canWrite && (
-                                      <Tooltip content="Edit Product">
-                                        <Button
-                                          type="button"
-                                          onClick={() =>
-                                            handleEditClick(product)
-                                          }
-                                          size="sm"
-                                          className="metal-btn"
-                                          variant="info"
-                                        >
-                                          <MdEdit size={18} />
-                                        </Button>
-                                      </Tooltip>
-                                    )}
+
                                     {canWrite && (
                                       <Tooltip content="Manage Code">
                                         <Button
@@ -1019,7 +1013,6 @@ function Productpage({ readOnly = false }) {
                   )
                 }
                 maxLength={150}
-                className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 required
               />
               {errors.name && (
@@ -1052,7 +1045,6 @@ function Productpage({ readOnly = false }) {
                   )
                 }
                 maxLength={500}
-                className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
               {errors.description && (
                 <p className="mt-1 text-sm text-red-500">
@@ -1086,7 +1078,6 @@ function Productpage({ readOnly = false }) {
                   )
                 }
                 maxLength={120}
-                className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 required
               />
               {errors.company && (
@@ -1116,7 +1107,6 @@ function Productpage({ readOnly = false }) {
                   )
                 }
                 placeholder="Select Category"
-                className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               >
                 {getallCategory?.map((c) => (
                   <option key={getId(c)} value={getId(c)}>
@@ -1154,7 +1144,6 @@ function Productpage({ readOnly = false }) {
                 }
                 min="0"
                 step="0.01"
-                className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
               {errors.purchasePrice && (
                 <p className="mt-1 text-sm text-red-500">
@@ -1187,7 +1176,6 @@ function Productpage({ readOnly = false }) {
                 }
                 min="0"
                 step="0.01"
-                className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
               {errors.tradePrice && (
                 <p className="mt-1 text-sm text-red-500">{errors.tradePrice}</p>
@@ -1218,7 +1206,6 @@ function Productpage({ readOnly = false }) {
                 }
                 min="0"
                 step="0.01"
-                className="w-full h-11 px-3 border border-gray-300 rounded-xl mt-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
               {errors.salePrice && (
                 <p className="mt-1 text-sm text-red-500">{errors.salePrice}</p>
@@ -1248,7 +1235,7 @@ function Productpage({ readOnly = false }) {
       {isCodeModalOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
           <div
-            className="w-full max-w-4xl max-h-[90vh] bg-white rounded-2xl shadow-xl border flex flex-col overflow-hidden"
+            className="w-full max-w-4xl max-h-[90vh] bg-white rounded-lg shadow-xl border flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-5 py-4 border-b">
@@ -1261,16 +1248,13 @@ function Productpage({ readOnly = false }) {
                     : ""}
                 </p>
               </div>
-              <Button
-                onClick={closeCodeModal}
-                className="text-sm text-slate-500 hover:text-slate-700"
-              >
+              <Button onClick={closeCodeModal} variant="outline">
                 Close
               </Button>
             </div>
 
             <div className="p-5 space-y-4 flex-1 min-h-0 overflow-y-auto">
-              <div className="border rounded-xl p-4 bg-slate-50">
+              <div className="border rounded-lg p-4 bg-slate-50">
                 <h4 className="text-sm font-semibold mb-3">Add New Code</h4>
                 <div>
                   <label className="text-xs font-medium">Shade Code</label>
@@ -1301,23 +1285,23 @@ function Productpage({ readOnly = false }) {
                       )
                     }
                     maxLength={60}
-                    className="w-full h-9 px-2 border rounded-lg mt-1"
                   />
                   {errors.code && (
                     <p className="mt-1 text-xs text-red-500">{errors.code}</p>
                   )}
                 </div>
-                <LoadingButton
+                <Button
                   type="button"
                   onClick={handleAddCode}
                   loading={isCodeSubmitting}
                   loadingText="Adding..."
-                  className="mt-3 w-full h-10 bg-teal-700 hover:bg-teal-600 text-white rounded-xl"
+                  variant="primary"
+                  className="w-full mt-2"
                 >
                   Add Code
-                </LoadingButton>
+                </Button>
               </div>
-              <div className="border rounded-2xl bg-slate-50 p-4 flex flex-col min-h-0">
+              <div className="border rounded-lg bg-slate-50 p-4 flex flex-col min-h-0">
                 <div className="text-xs font-semibold text-slate-500 mb-3">
                   Shade Codes
                 </div>
@@ -1327,7 +1311,7 @@ function Productpage({ readOnly = false }) {
                     {codeProduct.productCodes.map((code) => (
                       <div
                         key={getId(code)}
-                        className="group relative rounded-xl bg-gradient-to-br from-white to-slate-100 
+                        className="group relative rounded-lg bg-gradient-to-br from-white to-slate-100 
           p-4 shadow-sm hover:shadow-xl transition-all duration-300 
           hover:-translate-y-1 border border-slate-200 
           flex flex-col justify-between"
@@ -1338,18 +1322,17 @@ function Productpage({ readOnly = false }) {
                             Shade Code
                           </div>
 
-                          <span className="inline-flex items-center justify-center px-3 py-1 text-xs font-extrabold text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full shadow-md">
-                            {code.code}
-                          </span>
+                          <CodeBadge>{code.code}</CodeBadge>
                         </div>
 
                         {/* Bottom Actions */}
                         <div className="pt-4 mt-4 border-t flex justify-center">
                           <Button
                             onClick={() => handleDeleteCode(getId(code))}
-                            className="flex w-full items-center justify-center gap-1 px-3 py-2 rounded-lg 
+                            variant="danger"
+                            className="flex w-full items-center justify-center gap-1  
               bg-red-200 text-red-600 hover:bg-red-300 
-              text-xs font-semibold transition"
+              text-xs font-semibold"
                           >
                             <IoMdTrash size={16} /> Delete
                           </Button>

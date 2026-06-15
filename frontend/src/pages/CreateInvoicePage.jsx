@@ -180,7 +180,7 @@ function CreateInvoicePage() {
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
       <div className="p-6 max-w-6xl mx-auto">
-        <div className="bg-white rounded-2xl shadow p-6">
+        <div className="bg-white rounded-lg shadow p-6">
           <h1 className="text-2xl font-bold mb-6 text-gray-800">
             Create Invoice
           </h1>
@@ -190,11 +190,7 @@ function CreateInvoicePage() {
               <label className="block mb-2 text-gray-700 font-medium">
                 Invoice Number
               </label>
-              <Inputfield
-                value="Auto-generated"
-                disabled
-                className="w-full border border-gray-300 p-3 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
+              <Inputfield value="Auto-generated" disabled />
             </div>
 
             <div>
@@ -205,7 +201,6 @@ function CreateInvoicePage() {
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
             </div>
           </div>
@@ -216,7 +211,7 @@ function CreateInvoicePage() {
               </label>
               <SelectDropdown
                 value={invoiceType}
-                onChange={(e) => setInvoiceType(e.target.value)}
+                onChange={(e) => setInvoiceType(e?.target?.value ?? e ?? "")}
                 placeholder="Select Type"
               >
                 <option value="sales">Sales</option>
@@ -232,10 +227,9 @@ function CreateInvoicePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <SelectDropdown
                   value={customerId}
-                  onChange={(e) => setCustomerId(e.target.value)}
-                  className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 md:col-span-2"
+                  onChange={(e) => setCustomerId(e?.target?.value ?? e ?? "")}
+                  placeholder="Select Customer"
                 >
-                  <option value="">Select Customer</option>
                   {customers.map((customer) => (
                     <option key={customer.id} value={customer.id}>
                       {customer.name}
@@ -255,10 +249,9 @@ function CreateInvoicePage() {
               <div className="mb-6">
                 <SelectDropdown
                   value={vendorId}
-                  onChange={(e) => setVendorId(e.target.value)}
-                  className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  onChange={(e) => setVendorId(e?.target?.value ?? e ?? "")}
+                  placeholder="Select Vendor"
                 >
-                  <option value="">Select Vendor</option>
                   {vendors.map((vendor) => (
                     <option key={vendor.id} value={vendor.id}>
                       {vendor.name}
@@ -280,11 +273,11 @@ function CreateInvoicePage() {
               <IoMdAdd /> Add Item
             </Button>
           </div>
-          <div className="space-y-3 mb-6 mt-2">
+          <div className="space-y-3 mb-6 mt-5">
             {items.map((item, idx) => (
               <div
                 key={idx}
-                className="grid grid-cols-12 gap-2 items-center bg-gray-50 p-3 rounded-lg"
+                className="relative flex gap-2 items-center bg-gray-50 p-3 rounded-lg"
               >
                 <Inputfield
                   type="text"
@@ -294,7 +287,6 @@ function CreateInvoicePage() {
                     handleItemChange(idx, "name", e.target.value)
                   }
                   maxLength={120}
-                  className="col-span-3 border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
                 <Inputfield
                   type="number"
@@ -304,7 +296,6 @@ function CreateInvoicePage() {
                   }
                   min="1"
                   step="1"
-                  className="col-span-1 border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
                 <Inputfield
                   type="number"
@@ -314,7 +305,6 @@ function CreateInvoicePage() {
                   }
                   min="0"
                   step="0.01"
-                  className="col-span-2 border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
                 <span className="col-span-1 text-gray-700 font-semibold">
                   Rs {item.total.toLocaleString()}
@@ -322,7 +312,13 @@ function CreateInvoicePage() {
                 <Button
                   onClick={() => removeItem(idx)}
                   variant="danger"
-                  className="border border-red-500 bg-red-50 "
+                  className="
+      absolute -top-3 -right-3
+      !text-white
+      bg-red-500
+      w-8 h-8 !p-0
+      
+    "
                 >
                   <MdDelete size={18} />
                 </Button>
@@ -341,7 +337,6 @@ function CreateInvoicePage() {
                 onChange={(e) => setTaxRate(Number(e.target.value))}
                 min="0"
                 step="0.01"
-                className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
             </div>
             <div>
@@ -354,7 +349,6 @@ function CreateInvoicePage() {
                 onChange={(e) => setDiscount(Number(e.target.value))}
                 min="0"
                 step="0.01"
-                className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
             </div>
           </div>
@@ -413,8 +407,7 @@ function CreateInvoicePage() {
             </Button>
             <Button
               onClick={() => navigate("/invoices")}
-              variant="ghost"
-              className="border border-slate-300"
+              variant="outline"
               disabled={isSubmitting}
             >
               Cancel

@@ -212,7 +212,7 @@ function InvoiceEditPage() {
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
       <div className="p-6 max-w-5xl mx-auto">
-        <div className="bg-white rounded-2xl shadow p-6">
+        <div className="bg-white rounded-lg shadow p-6">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">
             Edit Invoice
           </h1>
@@ -228,18 +228,13 @@ function InvoiceEditPage() {
               {invoiceType === "purchase" ? "Vendor Name" : "Customer Name"}
             </label>
             {invoiceType === "purchase" ? (
-              <Inputfield
-                value={vendorName}
-                readOnly
-                className="w-full border border-gray-300 p-3 rounded-lg bg-gray-100"
-              />
+              <Inputfield value={vendorName} readOnly />
             ) : (
               <SelectDropdown
                 value={customerId}
-                onChange={(e) => setCustomerId(e.target.value)}
-                className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                onChange={(e) => setCustomerId(e?.target?.value ?? e ?? "")}
+                placeholder="Select Customer"
               >
-                <option value="">Select Customer</option>
                 {customers.map((customer) => (
                   <option key={customer.id} value={customer.id}>
                     {customer.name}
@@ -266,7 +261,7 @@ function InvoiceEditPage() {
               {items.map((item, index) => (
                 <div
                   key={index}
-                  className="relative grid grid-cols-12 gap-2 items-center bg-gray-50 p-3 rounded-lg"
+                  className="relative flex gap-2 items-center bg-gray-50 p-3 rounded-lg"
                 >
                   <Inputfield
                     type="text"
@@ -274,7 +269,6 @@ function InvoiceEditPage() {
                     onChange={(e) => updateItem(index, "name", e.target.value)}
                     placeholder="Item Name"
                     maxLength={120}
-                    className="col-span-3 border border-gray-300 p-2 rounded"
                   />
                   <Inputfield
                     type="number"
@@ -284,7 +278,6 @@ function InvoiceEditPage() {
                     }
                     min="1"
                     step="1"
-                    className="col-span-1 border border-gray-300 p-2 rounded"
                   />
                   <Inputfield
                     type="number"
@@ -294,7 +287,6 @@ function InvoiceEditPage() {
                     }
                     min="0"
                     step="0.01"
-                    className="col-span-2 border border-gray-300 p-2 rounded"
                   />
                   <span className="col-span-1 text-gray-700 font-semibold">
                     Rs {item.total.toLocaleString()}
@@ -331,7 +323,6 @@ function InvoiceEditPage() {
                 onChange={(e) => setTaxRate(Number(e.target.value))}
                 min="0"
                 step="0.01"
-                className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
             </div>
 
@@ -345,7 +336,6 @@ function InvoiceEditPage() {
                 onChange={(e) => setDiscount(Number(e.target.value))}
                 min="0"
                 step="0.01"
-                className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
             </div>
 
@@ -359,7 +349,6 @@ function InvoiceEditPage() {
                 onChange={(e) => setCarage(Number(e.target.value))}
                 min="0"
                 step="0.01"
-                className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
             </div>
 
@@ -371,7 +360,6 @@ function InvoiceEditPage() {
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e?.target?.value ?? e ?? "")}
                 placeholder="Select payment method"
-                className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
               >
                 <option value="cash">Cash</option>
                 <option value="bank_transfer">Bank Transfer</option>
@@ -409,21 +397,17 @@ function InvoiceEditPage() {
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
           </div>
 
           {/* Actions */}
           <div className="flex justify-end gap-3">
-            <Button
-              onClick={handleUpdate}
-              className="px-6 py-2 bg-teal-800 text-white rounded-lg hover:bg-teal-700 transition"
-            >
+            <Button onClick={handleUpdate} variant="primary">
               Save Changes
             </Button>
             <Button
               onClick={() => navigate(`/invoice/${id}`)}
-              className="px-6 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 transition"
+              variant="outline"
             >
               Cancel
             </Button>
