@@ -42,6 +42,11 @@ const getDashboardSummary = async (req, res) => {
       return Number.isNaN(time) ? null : time;
     };
 
+    const toMoney = (value) => {
+      const numeric = Number(value);
+      return Number.isFinite(numeric) ? numeric : 0;
+    };
+
     let salesInvoices;
     let completedSalesProfitRows;
     let purchaseInvoices;
@@ -86,18 +91,18 @@ const getDashboardSummary = async (req, res) => {
     const paymentByInvoice = payments.reduce((acc, payment) => {
       if (!payment.invoice) return acc;
       const key = String(payment.invoice);
-      acc[key] = (acc[key] || 0) + payment.amount;
+      acc[key] = (acc[key] || 0) + toMoney(payment.amount);
       return acc;
     }, {});
 
     const totalReceivable = salesInvoices.reduce((sum, inv) => {
       const paid = paymentByInvoice[String(inv.id)] || 0;
-      return sum + Math.max(inv.totalAmount - paid, 0);
+      return sum + Math.max(toMoney(inv.totalAmount) - paid, 0);
     }, 0);
 
     const totalPayable = purchaseInvoices.reduce((sum, inv) => {
       const paid = paymentByInvoice[String(inv.id)] || 0;
-      return sum + Math.max(inv.totalAmount - paid, 0);
+      return sum + Math.max(toMoney(inv.totalAmount) - paid, 0);
     }, 0);
 
     const totalProfit = Number(completedSalesProfitRows?.[0]?.totalProfit || 0);
@@ -107,14 +112,14 @@ const getDashboardSummary = async (req, res) => {
         const createdAt = toTime(inv.createdAt) ?? toTime(inv.issueDate);
         return createdAt !== null && createdAt >= startMs && createdAt <= endMs;
       })
-      .reduce((sum, inv) => sum + inv.totalAmount, 0);
+      .reduce((sum, inv) => sum + toMoney(inv.totalAmount), 0);
 
     const todaysPurchases = purchaseInvoices
       .filter((inv) => {
         const createdAt = toTime(inv.createdAt) ?? toTime(inv.issueDate);
         return createdAt !== null && createdAt >= startMs && createdAt <= endMs;
       })
-      .reduce((sum, inv) => sum + inv.totalAmount, 0);
+      .reduce((sum, inv) => sum + toMoney(inv.totalAmount), 0);
 
     const todaysReceivedPayments = payments
       .filter((payment) => {
@@ -126,7 +131,7 @@ const getDashboardSummary = async (req, res) => {
           paidAt <= endMs
         );
       })
-      .reduce((sum, payment) => sum + payment.amount, 0);
+      .reduce((sum, payment) => sum + toMoney(payment.amount), 0);
 
     const todaysPaidPayments = payments
       .filter((payment) => {
@@ -138,7 +143,7 @@ const getDashboardSummary = async (req, res) => {
           paidAt <= endMs
         );
       })
-      .reduce((sum, payment) => sum + payment.amount, 0);
+      .reduce((sum, payment) => sum + toMoney(payment.amount), 0);
 
     let overdueInvoices;
     let recentInvoices;

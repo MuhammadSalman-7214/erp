@@ -2,6 +2,15 @@ import React, { useEffect, useMemo, useState } from "react";
 import axiosInstance from "../lib/axios";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Tooltip,
+  Legend,
+} from "chart.js";
 import {
   ShoppingCart,
   Clipboard,
@@ -10,6 +19,7 @@ import {
   Package,
   TrendingUp,
   TrendingDown,
+  Activity,
   Eye,
   EyeOff,
   AlertCircle,
@@ -17,6 +27,8 @@ import {
 } from "lucide-react";
 import { formatDateLabel } from "../lib/dateFormat";
 import { Button } from "../UI";
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 function Dashboardpage() {
   const navigate = useNavigate();
@@ -73,7 +85,7 @@ function Dashboardpage() {
     },
   };
 
-  const dashboardCards = [
+  const quickActions = [
     {
       label: "New Sale",
       path: "/sales",
@@ -85,12 +97,6 @@ function Dashboardpage() {
       path: "/order",
       icon: Clipboard,
       accent: "blue",
-    },
-    {
-      label: "Receive Payment",
-      path: "/payments",
-      icon: CreditCard,
-      accent: "teal",
     },
     {
       label: "Make Payment",
@@ -166,6 +172,89 @@ function Dashboardpage() {
     const numeric = Number(value);
     return Number.isFinite(numeric) ? numeric : 0;
   };
+  const currency = (value) => `Rs ${safeNumber(value).toLocaleString()}`;
+
+  const todayChartData = {
+    labels: ["Sales", "Purchases", "Received", "Paid"],
+    datasets: [
+      {
+        label: "Today",
+        data: [
+          safeNumber(summary?.todaysSales),
+          safeNumber(summary?.todaysPurchases),
+          safeNumber(summary?.todaysReceivedPayments),
+          safeNumber(summary?.todaysPaidPayments),
+        ],
+        backgroundColor: [
+          "rgba(20, 184, 166, 0.88)",
+          "rgba(59, 130, 246, 0.88)",
+          "rgba(16, 185, 129, 0.88)",
+          "rgba(244, 63, 94, 0.88)",
+        ],
+        borderRadius: {
+          topLeft: 16,
+          topRight: 16,
+          bottomLeft: 0,
+          bottomRight: 0,
+        },
+        borderSkipped: "bottom",
+      },
+    ],
+  };
+
+  const toneStyles = {
+    teal: {
+      bg: "from-teal-50 to-teal-100",
+      text: "text-teal-700",
+      border: "border-teal-200",
+    },
+    blue: {
+      bg: "from-blue-50 to-blue-100",
+      text: "text-blue-700",
+      border: "border-blue-200",
+    },
+    emerald: {
+      bg: "from-emerald-50 to-emerald-100",
+      text: "text-emerald-700",
+      border: "border-emerald-200",
+    },
+    rose: {
+      bg: "from-rose-50 to-rose-100",
+      text: "text-rose-700",
+      border: "border-rose-200",
+    },
+  };
+
+  const todayBreakdown = [
+    {
+      label: "Sales",
+      value: summary?.todaysSales ?? 0,
+      color: "bg-teal-500",
+      tone: "teal",
+      note: "Sales done today",
+    },
+    {
+      label: "Purchases",
+      value: summary?.todaysPurchases ?? 0,
+      color: "bg-blue-500",
+      tone: "blue",
+      note: "Purchase done today",
+    },
+    {
+      label: "Received",
+      value: summary?.todaysReceivedPayments ?? 0,
+      color: "bg-emerald-500",
+      tone: "emerald",
+      note: "Money collected today",
+    },
+    {
+      label: "Paid",
+      value: summary?.todaysPaidPayments ?? 0,
+      color: "bg-rose-500",
+      tone: "rose",
+      note: "Money paid out today",
+    },
+  ];
 
   return (
     <div className="min-h-[92vh] bg-gradient-to-br from-gray-50 to-gray-100 p-4">
@@ -184,19 +273,24 @@ function Dashboardpage() {
           </div>
         </div>
       ) : null}
+      {/* Header Section */}
 
-      {/* Welcome Section */}
-      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        {/* <h1 className="text-3xl font-bold text-gray-800 mb-2">
-          Welcome back, {user?.name || "User"}!
-        </h1> */}
-        <p className="rounded-md border border-1 border-teal-100 bg-teal-50 px-4 py-1 text-[13px] font-medium text-teal-700 hover:text-teal-800">
-          Here's what's happening with your business today.
-        </p>
-        <button
+      <div className="relative flex flex-col gap-5 lg:flex-row lg:justify-between items-center mb-4">
+        <div className="max-w-3xl">
+          <div className="inline-flex items-center gap-2 rounded-full border border-teal-300 bg-teal-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-teal-700">
+            <Activity className="h-3.5 w-3.5" />
+            Business dashboard
+          </div>
+
+          <p className=" max-w-2xl text-xs leading-6 text-slate-800 sm:text-base">
+            Here is a clean overview of what is happening today.
+          </p>
+        </div>
+
+        <Button
           type="button"
           onClick={() => setShowFinancialAmounts((prev) => !prev)}
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition"
+          variant="outline"
         >
           {showFinancialAmounts ? (
             <>
@@ -209,16 +303,15 @@ function Dashboardpage() {
               Show Amounts
             </>
           )}
-        </button>
+        </Button>
       </div>
-
       {/* Financial Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         {loading
           ? Array.from({ length: 6 }).map((_, index) => (
               <div
                 key={index}
-                className="rounded-xl p-5 border-2 border-slate-100 bg-white shadow-sm animate-pulse"
+                className="rounded-lg p-5 border-2 border-slate-100 bg-white shadow-sm animate-pulse"
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="h-4 w-24 rounded-full bg-slate-200" />
@@ -231,58 +324,51 @@ function Dashboardpage() {
               {
                 label: "Profit",
                 value: summary?.totalProfit ?? 0,
-                bg: "bg-gradient-to-br from-violet-50 to-violet-100",
-                icon: <TrendingUp className="w-5 h-5 text-violet-600" />,
-                borderColor: "border-violet-400",
+                bg: "bg-gradient-to-tr from-violet-200 via-violet-50 to-white",
+                icon: <TrendingUp className="w-5 h-5 text-violet-900" />,
+                decoration: "bg-violet-50",
+                text: "text-violet-900",
               },
               {
                 label: "Total Receivable",
                 value: summary?.totalReceivable ?? 0,
-                bg: "bg-gradient-to-br from-emerald-50 to-emerald-100",
-                icon: <TrendingUp className="w-5 h-5 text-emerald-600" />,
-                borderColor: "border-[#40de90]",
+                bg: "bg-gradient-to-tr from-blue-200 via-blue-50 to-white",
+                icon: <TrendingUp className="w-5 h-5 text-blue-900" />,
+                decoration: "bg-blue-50",
+                text: "text-blue-900",
               },
               {
                 label: "Total Payable",
                 value: summary?.totalPayable ?? 0,
-                bg: "bg-gradient-to-br from-rose-50 to-rose-100",
-                icon: <TrendingDown className="w-5 h-5 text-rose-600" />,
-                borderColor: "border-[#f7929e]",
-              },
-              {
-                label: "Today's Sales",
-                value: summary?.todaysSales ?? 0,
-                bg: "bg-gradient-to-br from-blue-50 to-blue-100",
-                icon: <ShoppingCart className="w-5 h-5 text-blue-600" />,
-                borderColor: "border-blue-400",
-              },
-              {
-                label: "Today's Purchases",
-                value: summary?.todaysPurchases ?? 0,
-                bg: "bg-gradient-to-br from-amber-50 to-amber-100",
-                icon: <Package className="w-5 h-5 text-amber-600" />,
-                borderColor: "border-amber-400",
+                bg: "bg-gradient-to-tr from-rose-200 via-rose-50 to-white",
+                icon: <TrendingDown className="w-5 h-5 text-rose-900" />,
+                decoration: "bg-rose-50",
+                text: "text-rose-900",
               },
               {
                 label: "Bank Balance",
                 value: summary?.cashBankBalance ?? 0,
-                bg: "bg-gradient-to-br from-teal-50 to-teal-100",
-                icon: <DollarSign className="w-5 h-5 text-teal-600" />,
-                borderColor: "border-teal-400",
+                bg: "bg-gradient-to-tr from-amber-200 via-amber-50 to-white",
+                icon: <DollarSign className="w-5 h-5 text-amber-900" />,
+                decoration: "bg-amber-50",
+                text: "text-amber-900",
               },
-            ].map(({ label, value, bg, icon, borderColor }) => (
+            ].map(({ label, value, bg, icon, decoration, text }) => (
               <div
                 key={label}
-                className={`rounded-xl p-5 border-2 ${borderColor} ${bg} shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1`}
+                className={`relative overflow-hidden rounded-lg p-5 ${bg} shadow-[0_0_6px_rgba(15,23,42,0.2)] hover:shadow-[0_0_10px_rgba(15,23,42,0.2)] transition-all duration-300 transform hover:-translate-y-1`}
               >
+                <div
+                  className={`absolute -top-8 -right-8 backdrop-blur rounded-full h-[90px] w-[90px] ${decoration}`}
+                ></div>
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-sm font-medium text-gray-600">
                     {label}
                   </div>
-                  {icon}
+                  <span className="absolute top-3 right-3 z-10">{icon}</span>
                 </div>
                 <div
-                  className={`text-2xl font-bold text-gray-900 transition-all duration-300 ${
+                  className={`text-2xl font-bold ${text} transition-all duration-300 ${
                     showFinancialAmounts ? "" : "blur-sm select-none"
                   }`}
                 >
@@ -291,127 +377,154 @@ function Dashboardpage() {
               </div>
             ))}
       </div>
+      <div className="mb-4 flex w-full flex-col gap-4 xl:flex-row">
+        <div className="w-full xl:w-[32%]">
+          <section className="rounded-lg bg-white p-3 pt-2 shadow-[0_0_6px_rgba(15,23,42,0.2)] backdrop-blur">
+            <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h2 className="text-sm font-bold uppercase tracking-[0.22em] text-teal-600">
+                  Quick Actions
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Fast access to the most common operational tasks.
+                </p>
+              </div>
+            </div>
 
-      <div className="mb-10">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">
-          Quick Actions
-        </h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {dashboardCards.map(({ label, path, icon: Icon, accent }) => {
-            const styles = accentStyles[accent];
-
-            return (
-              <button
-                key={label}
-                onClick={() => navigate(path)}
-                className="
-        group relative
-        rounded-2xl
-        bg-white
-        border border-gray-200
-        p-5
-        text-left
-        shadow-sm
-        hover:shadow-lg
-        hover:-translate-y-1
-        transition-all duration-300
-      "
-              >
-                {/* Accent bar */}
-                <div
-                  className={`absolute left-0 top-0 h-full w-1 rounded-l-2xl ${styles.bar}`}
-                />
-
-                <div className="flex items-center gap-4">
-                  {/* Icon */}
-                  <div
-                    className={`
-            flex h-14 w-14 items-center justify-center
-            rounded-xl
-            ${styles.bg}
-            ${styles.text}
-            ring-1 ${styles.ring}
-            group-hover:scale-105
-            transition-transform
-          `}
+            <div className="mt-2 grid grid-cols-1 gap-2">
+              {quickActions.map(({ label, path, icon: Icon, accent }) => {
+                const styles = accentStyles[accent];
+                return (
+                  <button
+                    key={label}
+                    onClick={() => navigate(path)}
+                    className="group relative overflow-hidden rounded-lg border border-slate-200 bg-white p-4 pl-6 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
                   >
-                    <Icon className="h-7 w-7 stroke-[1.75]" />
-                  </div>
-
-                  {/* Text */}
-                  <div>
-                    <div className="text-sm font-semibold text-gray-900">
-                      {label}
+                    <div
+                      className={`absolute left-0 top-0 h-full w-1.5 rounded-l-lg ${styles.bar}`}
+                    />
+                    <div className="flex items-center gap-4">
+                      <div
+                        className={`flex h-12 w-12 items-center justify-center rounded-xl ${styles.bg} ${styles.text} ring-1 ${styles.ring} transition-transform group-hover:scale-105`}
+                      >
+                        <Icon className="h-6 w-6 stroke-[1.75]" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-slate-900">
+                          {label}
+                        </div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          Perform Action
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-500">Perform action</div>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
         </div>
-      </div>
+        <div className="w-full xl:flex-1">
+          <section className="flex h-full flex-col rounded-lg bg-white p-3 shadow-[0_0_6px_rgba(15,23,42,0.2)] backdrop-blur">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-sm font-bold uppercase tracking-[0.22em] text-teal-600">
+                  Today&apos;s chart
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Sales, purchases, and payments
+                </p>
+              </div>
+              <div className="rounded-2xl bg-teal-50 px-3 py-2 text-xs font-semibold text-teal-700">
+                Live day summary
+              </div>
+            </div>
 
-      {/* Payment Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-        {loading ? (
-          Array.from({ length: 2 }).map((_, index) => (
-            <div
-              key={index}
-              className="rounded-xl p-5 border-2 border-slate-100 bg-white shadow-sm animate-pulse"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="h-4 w-40 rounded-full bg-slate-200" />
-                <div className="h-5 w-5 rounded-md bg-slate-200" />
+            <div className="mt-4 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+              <div className="h-[335px] rounded-lg border border-slate-100 bg-slate-50/70 p-2">
+                {loading ? (
+                  <div className="flex h-full items-center justify-center rounded-2xl bg-white/70 text-sm text-slate-500">
+                    Loading chart...
+                  </div>
+                ) : (
+                  <Bar
+                    data={todayChartData}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                          backgroundColor: "rgba(15, 23, 42, 0.95)",
+                          padding: 12,
+                          titleColor: "#fff",
+                          bodyColor: "#fff",
+                        },
+                      },
+                      scales: {
+                        x: {
+                          grid: { display: false },
+                          ticks: { color: "#64748b" },
+                        },
+                        y: {
+                          beginAtZero: true,
+                          grid: { color: "rgba(148, 163, 184, 0.15)" },
+                          ticks: { color: "#64748b" },
+                        },
+                      },
+                    }}
+                  />
+                )}
               </div>
-              <div className="h-8 w-36 rounded-full bg-slate-200" />
+
+              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                {todayBreakdown.map((item) => {
+                  const palette =
+                    toneStyles[
+                      item.label === "Sales"
+                        ? "teal"
+                        : item.label === "Purchases"
+                          ? "blue"
+                          : item.label === "Received"
+                            ? "emerald"
+                            : "rose"
+                    ];
+
+                  return (
+                    <div
+                      key={item.label}
+                      className={`rounded-lg border  bg-gradient-to-br  p-3`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                            {item.label}
+                          </div>
+                        </div>
+                        <div
+                          className={`h-3.5 w-3.5 rounded-full ${item.color}`}
+                        />
+                      </div>
+                      <div
+                        className={`mt-1.5 text-base font-bold ${palette.text} ${
+                          showFinancialAmounts ? "" : "blur-sm select-none"
+                        }`}
+                      >
+                        {currency(item.value)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          ))
-        ) : (
-          <>
-            <div className="rounded-xl p-5 border-2 border-[#40de90] bg-gradient-to-br from-emerald-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-sm font-medium text-gray-600">
-                  Today's Received Payments
-                </div>
-                <CreditCard className="w-5 h-5 text-emerald-600" />
-              </div>
-              <div
-                className={`text-2xl font-bold text-emerald-700 transition-all duration-300 ${
-                  showFinancialAmounts ? "" : "blur-sm select-none"
-                }`}
-              >
-                Rs{" "}
-                {safeNumber(
-                  summary?.todaysReceivedPayments ?? 0,
-                ).toLocaleString()}
-              </div>
-            </div>
-            <div className="rounded-xl p-5 border-2 border-[#f7929e] bg-gradient-to-br from-rose-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-sm font-medium text-gray-600">
-                  Today's Paid Payments
-                </div>
-                <DollarSign className="w-5 h-5 text-rose-600" />
-              </div>
-              <div
-                className={`text-2xl font-bold text-rose-700 transition-all duration-300 ${
-                  showFinancialAmounts ? "" : "blur-sm select-none"
-                }`}
-              >
-                Rs{" "}
-                {safeNumber(summary?.todaysPaidPayments ?? 0).toLocaleString()}
-              </div>
-            </div>
-          </>
-        )}
+          </section>
+        </div>
       </div>
 
       {/* Information Cards Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Recent Invoices */}
-        <div className="bg-white rounded-xl shadow-md border-2 border-gray-100 p-5 hover:shadow-lg transition-shadow duration-300">
+        <div className="bg-white rounded-lg shadow-[0_0_6px_rgba(15,23,42,0.2)] hover:shadow-[0_0_10px_rgba(15,23,42,0.2)] p-5  transition-shadow duration-300">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-gray-800">Recent Invoices</h3>
             <Clock className="w-5 h-5 text-teal-600" />
@@ -453,7 +566,7 @@ function Dashboardpage() {
         </div>
 
         {/* Overdue Payments */}
-        <div className="bg-white rounded-xl shadow-md border-2 border-gray-100 p-5 hover:shadow-lg transition-shadow duration-300">
+        <div className="bg-white rounded-lg shadow-[0_0_6px_rgba(15,23,42,0.2)] hover:shadow-[0_0_10px_rgba(15,23,42,0.2)] p-5 transition-shadow duration-300">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-lg font-bold text-gray-800">
@@ -502,7 +615,7 @@ function Dashboardpage() {
         </div>
 
         {/* Low Stock Products */}
-        <div className="bg-white rounded-xl shadow-md border-2 border-gray-100 p-5 hover:shadow-lg transition-shadow duration-300">
+        <div className="bg-white rounded-lg shadow-[0_0_6px_rgba(15,23,42,0.2)] hover:shadow-[0_0_10px_rgba(15,23,42,0.2)] p-5 transition-shadow duration-300">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-lg font-bold text-gray-800">
