@@ -2,12 +2,14 @@ import React, { useEffect, useMemo, useState } from "react";
 import axiosInstance from "../lib/axios";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { Bar } from "react-chartjs-2";
+import { Bar, Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   BarElement,
+  LineElement,
+  PointElement,
   Tooltip,
   Legend,
 } from "chart.js";
@@ -28,12 +30,21 @@ import {
 import { formatDateLabel } from "../lib/dateFormat";
 import { Button } from "../UI";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  Tooltip,
+  Legend,
+);
 
 function Dashboardpage() {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const [summary, setSummary] = useState(null);
+  const [weeklySummary, setWeeklySummary] = useState(null);
   const [recentInvoices, setRecentInvoices] = useState([]);
   const [overdueInvoices, setOverdueInvoices] = useState([]);
   const [lowStockProducts, setLowStockProducts] = useState([]);
@@ -117,6 +128,7 @@ function Dashboardpage() {
       try {
         const res = await axiosInstance.get("/dashboard/summary");
         setSummary(res.data.summary || null);
+        setWeeklySummary(res.data.summary?.weeklySummary || null);
         setRecentInvoices(res.data.recentInvoices || []);
         setOverdueInvoices(res.data.overdueInvoices || []);
         setLowStockProducts(res.data.lowStockProducts || []);
@@ -172,7 +184,25 @@ function Dashboardpage() {
     const numeric = Number(value);
     return Number.isFinite(numeric) ? numeric : 0;
   };
-  const currency = (value) => `Rs ${safeNumber(value).toLocaleString()}`;
+
+  const chartBarPalette = [
+    {
+      border: "rgba(20, 184, 166, 1)",
+      fill: "rgba(20, 184, 166, 0.16)",
+    },
+    {
+      border: "rgba(59, 130, 246, 1)",
+      fill: "rgba(59, 130, 246, 0.16)",
+    },
+    {
+      border: "rgba(245, 158, 11, 1)",
+      fill: "rgba(245, 158, 11, 0.16)",
+    },
+    {
+      border: "rgba(244, 63, 94, 1)",
+      fill: "rgba(244, 63, 94, 0.16)",
+    },
+  ];
 
   const todayChartData = {
     labels: ["Sales", "Purchases", "Received", "Paid"],
@@ -185,76 +215,74 @@ function Dashboardpage() {
           safeNumber(summary?.todaysReceivedPayments),
           safeNumber(summary?.todaysPaidPayments),
         ],
-        backgroundColor: [
-          "rgba(20, 184, 166, 0.88)",
-          "rgba(59, 130, 246, 0.88)",
-          "rgba(16, 185, 129, 0.88)",
-          "rgba(244, 63, 94, 0.88)",
-        ],
+        backgroundColor: chartBarPalette.map((item) => item.fill),
+        borderColor: chartBarPalette.map((item) => item.border),
+        borderWidth: 2,
         borderRadius: {
           topLeft: 16,
           topRight: 16,
           bottomLeft: 0,
           bottomRight: 0,
         },
-        borderSkipped: "bottom",
+        borderSkipped: false,
+        hoverBackgroundColor: chartBarPalette.map((item) => item.fill),
       },
     ],
   };
 
-  const toneStyles = {
-    teal: {
-      bg: "from-teal-50 to-teal-100",
-      text: "text-teal-700",
-      border: "border-teal-200",
-    },
-    blue: {
-      bg: "from-blue-50 to-blue-100",
-      text: "text-blue-700",
-      border: "border-blue-200",
-    },
-    emerald: {
-      bg: "from-emerald-50 to-emerald-100",
-      text: "text-emerald-700",
-      border: "border-emerald-200",
-    },
-    rose: {
-      bg: "from-rose-50 to-rose-100",
-      text: "text-rose-700",
-      border: "border-rose-200",
-    },
+  const weeklyChartData = {
+    labels: weeklySummary?.labels || [],
+    datasets: [
+      {
+        label: "Sales",
+        data: weeklySummary?.sales || [],
+        borderColor: "rgba(20, 184, 166, 1)",
+        backgroundColor: "rgba(20, 184, 166, 0.12)",
+        pointBackgroundColor: "rgba(20, 184, 166, 1)",
+        pointBorderColor: "#fff",
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        tension: 0.38,
+        fill: false,
+      },
+      {
+        label: "Purchases",
+        data: weeklySummary?.purchases || [],
+        borderColor: "rgba(59, 130, 246, 1)",
+        backgroundColor: "rgba(59, 130, 246, 0.12)",
+        pointBackgroundColor: "rgba(59, 130, 246, 1)",
+        pointBorderColor: "#fff",
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        tension: 0.38,
+        fill: false,
+      },
+      {
+        label: "Received",
+        data: weeklySummary?.receivedPayments || [],
+        borderColor: "rgba(245, 158, 11, 1)",
+        backgroundColor: "rgba(245, 158, 11, 0.12)",
+        pointBackgroundColor: "rgba(245, 158, 11, 1)",
+        pointBorderColor: "#fff",
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        tension: 0.38,
+        fill: false,
+      },
+      {
+        label: "Paid",
+        data: weeklySummary?.paidPayments || [],
+        borderColor: "rgba(244, 63, 94, 1)",
+        backgroundColor: "rgba(244, 63, 94, 0.12)",
+        pointBackgroundColor: "rgba(244, 63, 94, 1)",
+        pointBorderColor: "#fff",
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        tension: 0.38,
+        fill: false,
+      },
+    ],
   };
-
-  const todayBreakdown = [
-    {
-      label: "Sales",
-      value: summary?.todaysSales ?? 0,
-      color: "bg-teal-500",
-      tone: "teal",
-      note: "Sales done today",
-    },
-    {
-      label: "Purchases",
-      value: summary?.todaysPurchases ?? 0,
-      color: "bg-blue-500",
-      tone: "blue",
-      note: "Purchase done today",
-    },
-    {
-      label: "Received",
-      value: summary?.todaysReceivedPayments ?? 0,
-      color: "bg-emerald-500",
-      tone: "emerald",
-      note: "Money collected today",
-    },
-    {
-      label: "Paid",
-      value: summary?.todaysPaidPayments ?? 0,
-      color: "bg-rose-500",
-      tone: "rose",
-      note: "Money paid out today",
-    },
-  ];
 
   return (
     <div className="min-h-[92vh] bg-gradient-to-br from-gray-50 to-gray-100 p-4">
@@ -282,7 +310,7 @@ function Dashboardpage() {
             Business dashboard
           </div>
 
-          <p className=" max-w-2xl text-xs leading-6 text-slate-800 sm:text-base">
+          <p className="mt-1 max-w-2xl text-xs leading-6 text-slate-800 sm:text-sm">
             Here is a clean overview of what is happening today.
           </p>
         </div>
@@ -306,7 +334,7 @@ function Dashboardpage() {
         </Button>
       </div>
       {/* Financial Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         {loading
           ? Array.from({ length: 6 }).map((_, index) => (
               <div
@@ -359,8 +387,9 @@ function Dashboardpage() {
                 className={`relative overflow-hidden rounded-lg p-5 ${bg} shadow-[0_0_6px_rgba(15,23,42,0.2)] hover:shadow-[0_0_10px_rgba(15,23,42,0.2)] transition-all duration-300 transform hover:-translate-y-1`}
               >
                 <div
-                  className={`absolute -top-8 -right-8 backdrop-blur rounded-full h-[90px] w-[90px] ${decoration}`}
+                  className={`absolute -top-8 -right-8 rounded-full h-[90px] w-[90px] ${decoration}`}
                 ></div>
+
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-sm font-medium text-gray-600">
                     {label}
@@ -378,7 +407,7 @@ function Dashboardpage() {
             ))}
       </div>
       <div className="mb-4 flex w-full flex-col gap-4 xl:flex-row">
-        <div className="w-full xl:w-[32%]">
+        <div className="w-full xl:w-[22%]">
           <section className="rounded-lg bg-white p-3 pt-2 shadow-[0_0_6px_rgba(15,23,42,0.2)] backdrop-blur">
             <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
               <div>
@@ -386,7 +415,7 @@ function Dashboardpage() {
                   Quick Actions
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Fast access to the most common operational tasks.
+                  Fast access to the common operational tasks.
                 </p>
               </div>
             </div>
@@ -425,106 +454,146 @@ function Dashboardpage() {
           </section>
         </div>
         <div className="w-full xl:flex-1">
-          <section className="flex h-full flex-col rounded-lg bg-white p-3 shadow-[0_0_6px_rgba(15,23,42,0.2)] backdrop-blur">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-sm font-bold uppercase tracking-[0.22em] text-teal-600">
-                  Today&apos;s chart
-                </h2>
-                <p className="text-xs text-slate-500">
-                  Sales, purchases, and payments
-                </p>
+          <div className="grid gap-4 xl:grid-cols-2">
+            <section className="flex h-full flex-col rounded-lg bg-white p-3 shadow-[0_0_6px_rgba(15,23,42,0.2)] backdrop-blur">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-sm font-bold uppercase tracking-[0.22em] text-teal-600">
+                    Today&apos;s chart
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Sales, purchases, and payments
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-teal-50 px-3 py-2 text-xs font-semibold text-teal-700">
+                  Live day summary
+                </div>
               </div>
-              <div className="rounded-2xl bg-teal-50 px-3 py-2 text-xs font-semibold text-teal-700">
-                Live day summary
-              </div>
-            </div>
 
-            <div className="mt-4 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-              <div className="h-[335px] rounded-lg border border-slate-100 bg-slate-50/70 p-2">
+              <div className="relative mt-4 h-[340px] overflow-hidden rounded-lg border border-slate-100 bg-gradient-to-br from-slate-50/80 to-white/80 p-3 backdrop-blur-md">
                 {loading ? (
-                  <div className="flex h-full items-center justify-center rounded-2xl bg-white/70 text-sm text-slate-500">
+                  <div className="flex h-full items-center justify-center rounded-lg bg-white/70 text-sm text-slate-500">
                     Loading chart...
                   </div>
                 ) : (
-                  <Bar
-                    data={todayChartData}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                          backgroundColor: "rgba(15, 23, 42, 0.95)",
-                          padding: 12,
-                          titleColor: "#fff",
-                          bodyColor: "#fff",
-                        },
-                      },
-                      scales: {
-                        x: {
-                          grid: { display: false },
-                          ticks: { color: "#64748b" },
-                        },
-                        y: {
-                          beginAtZero: true,
-                          grid: { color: "rgba(148, 163, 184, 0.15)" },
-                          ticks: { color: "#64748b" },
-                        },
-                      },
-                    }}
-                  />
+                  <>
+                    <div
+                      className={`h-full transition-all duration-300 ${
+                        showFinancialAmounts
+                          ? ""
+                          : "scale-[0.99] blur-md opacity-70"
+                      }`}
+                    >
+                      <Bar
+                        data={todayChartData}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                              enabled: showFinancialAmounts,
+                              backgroundColor: "rgba(15, 23, 42, 0.95)",
+                              padding: 12,
+                              titleColor: "#fff",
+                              bodyColor: "#fff",
+                            },
+                          },
+                          scales: {
+                            x: {
+                              grid: { display: false },
+                              ticks: { color: "#64748b" },
+                            },
+                            y: {
+                              beginAtZero: true,
+                              grid: { color: "rgba(148, 163, 184, 0.15)" },
+                              ticks: { color: "#64748b" },
+                            },
+                          },
+                        }}
+                      />
+                    </div>
+                  </>
                 )}
               </div>
+            </section>
 
-              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
-                {todayBreakdown.map((item) => {
-                  const palette =
-                    toneStyles[
-                      item.label === "Sales"
-                        ? "teal"
-                        : item.label === "Purchases"
-                          ? "blue"
-                          : item.label === "Received"
-                            ? "emerald"
-                            : "rose"
-                    ];
-
-                  return (
-                    <div
-                      key={item.label}
-                      className={`rounded-lg border  bg-gradient-to-br  p-3`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                            {item.label}
-                          </div>
-                        </div>
-                        <div
-                          className={`h-3.5 w-3.5 rounded-full ${item.color}`}
-                        />
-                      </div>
-                      <div
-                        className={`mt-1.5 text-base font-bold ${palette.text} ${
-                          showFinancialAmounts ? "" : "blur-sm select-none"
-                        }`}
-                      >
-                        {currency(item.value)}
-                      </div>
-                    </div>
-                  );
-                })}
+            <section className="flex h-full flex-col rounded-lg bg-white p-3 shadow-[0_0_6px_rgba(15,23,42,0.2)] backdrop-blur">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-sm font-bold uppercase tracking-[0.22em] text-teal-600">
+                    Weekly chart
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Seven day sales and payment trend
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-teal-50 px-3 py-2 text-xs font-semibold text-teal-700">
+                  7 day overview
+                </div>
               </div>
-            </div>
-          </section>
+
+              <div className="relative mt-4 h-[340px] overflow-hidden rounded-lg border border-slate-100 bg-gradient-to-br from-slate-50/80 to-white/80 p-3 backdrop-blur-md">
+                {loading ? (
+                  <div className="flex h-full items-center justify-center rounded-lg bg-white/70 text-sm text-slate-500">
+                    Loading weekly chart...
+                  </div>
+                ) : (
+                  <>
+                    <div
+                      className={`h-full transition-all duration-300 ${
+                        showFinancialAmounts
+                          ? ""
+                          : "scale-[0.99] blur-md opacity-70"
+                      }`}
+                    >
+                      <Line
+                        data={weeklyChartData}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                            legend: {
+                              position: "top",
+                              labels: {
+                                usePointStyle: true,
+                                boxWidth: 10,
+                              },
+                            },
+                            tooltip: {
+                              enabled: showFinancialAmounts,
+                              backgroundColor: "rgba(15, 23, 42, 0.95)",
+                              padding: 12,
+                              titleColor: "#fff",
+                              bodyColor: "#fff",
+                            },
+                          },
+                          scales: {
+                            x: {
+                              grid: { display: false },
+                              ticks: { color: "#64748b" },
+                            },
+                            y: {
+                              beginAtZero: true,
+                              grid: { color: "rgba(148, 163, 184, 0.15)" },
+                              ticks: { color: "#64748b" },
+                            },
+                          },
+                        }}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            </section>
+          </div>
         </div>
       </div>
 
       {/* Information Cards Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Recent Invoices */}
-        <div className="bg-white rounded-lg shadow-[0_0_6px_rgba(15,23,42,0.2)] hover:shadow-[0_0_10px_rgba(15,23,42,0.2)] p-5  transition-shadow duration-300">
+        <div className="bg-white rounded-lg shadow-[0_0_6px_rgba(15,23,42,0.2)] hover:shadow-[0_0_10px_rgba(15,23,42,0.2)] p-4  transition-shadow duration-300">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-gray-800">Recent Invoices</h3>
             <Clock className="w-5 h-5 text-teal-600" />
@@ -566,7 +635,7 @@ function Dashboardpage() {
         </div>
 
         {/* Overdue Payments */}
-        <div className="bg-white rounded-lg shadow-[0_0_6px_rgba(15,23,42,0.2)] hover:shadow-[0_0_10px_rgba(15,23,42,0.2)] p-5 transition-shadow duration-300">
+        <div className="bg-white rounded-lg shadow-[0_0_6px_rgba(15,23,42,0.2)] hover:shadow-[0_0_10px_rgba(15,23,42,0.2)] p-4 transition-shadow duration-300">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-lg font-bold text-gray-800">
@@ -615,7 +684,7 @@ function Dashboardpage() {
         </div>
 
         {/* Low Stock Products */}
-        <div className="bg-white rounded-lg shadow-[0_0_6px_rgba(15,23,42,0.2)] hover:shadow-[0_0_10px_rgba(15,23,42,0.2)] p-5 transition-shadow duration-300">
+        <div className="bg-white rounded-lg shadow-[0_0_6px_rgba(15,23,42,0.2)] hover:shadow-[0_0_10px_rgba(15,23,42,0.2)] p-4 transition-shadow duration-300">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-lg font-bold text-gray-800">

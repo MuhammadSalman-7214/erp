@@ -1,5 +1,131 @@
 const query = require("../libs/dbQuery.js");
 
+const buildWeeklySummary = async (userId) => {
+  const now = new Date();
+  const weekStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() - 6,
+    0,
+    0,
+    0,
+    0,
+  );
+  const weekEnd = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    23,
+    59,
+    59,
+    999,
+  );
+  const startMs = weekStart.getTime();
+  const endMs = weekEnd.getTime();
+
+  const toTime = (value) => {
+    if (!value) return null;
+    const date = value instanceof Date ? value : new Date(value);
+    const time = date.getTime();
+    return Number.isNaN(time) ? null : time;
+  };
+
+  const toMoney = (value) => {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : 0;
+  };
+
+  const toDateKey = (date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+      date.getDate(),
+    ).padStart(2, "0")}`;
+
+  const weekDays = Array.from({ length: 7 }, (_, index) => {
+    const day = new Date(weekStart);
+    day.setDate(weekStart.getDate() + index);
+      return {
+        key: toDateKey(day),
+        label: day.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        }),
+      };
+  });
+
+  const [salesInvoices, purchaseInvoices, payments] = await Promise.all([
+    query(
+      "SELECT id, totalAmount, createdAt, issueDate FROM invoices WHERE invoiceType = ? AND user_id = ?",
+      ["sales", userId],
+    ),
+    query(
+      "SELECT id, totalAmount, createdAt, issueDate FROM invoices WHERE invoiceType = ? AND user_id = ?",
+      ["purchase", userId],
+    ),
+    query(
+      "SELECT amount, type, paidAt, createdAt FROM payments WHERE user_id = ?",
+      [userId],
+    ),
+  ]);
+
+  const buckets = weekDays.map((day) => ({
+    label: day.label,
+    sales: 0,
+    purchases: 0,
+    receivedPayments: 0,
+    paidPayments: 0,
+  }));
+
+  const bucketIndexByKey = weekDays.reduce((acc, day, index) => {
+    acc[day.key] = index;
+    return acc;
+  }, {});
+
+  const addToBucket = (value, dateValue, field) => {
+    const time = toTime(dateValue);
+    if (time === null || time < startMs || time > endMs) return;
+
+    const date = new Date(time);
+    const bucketIndex = bucketIndexByKey[toDateKey(date)];
+    if (bucketIndex === undefined) return;
+
+    buckets[bucketIndex][field] += toMoney(value);
+  };
+
+  salesInvoices.forEach((invoice) => {
+    addToBucket(
+      invoice.totalAmount,
+      invoice.createdAt ?? invoice.issueDate,
+      "sales",
+    );
+  });
+
+  purchaseInvoices.forEach((invoice) => {
+    addToBucket(
+      invoice.totalAmount,
+      invoice.createdAt ?? invoice.issueDate,
+      "purchases",
+    );
+  });
+
+  payments.forEach((payment) => {
+    const paymentDate = payment.paidAt ?? payment.createdAt;
+    if (payment.type === "received") {
+      addToBucket(payment.amount, paymentDate, "receivedPayments");
+    }
+    if (payment.type === "paid") {
+      addToBucket(payment.amount, paymentDate, "paidPayments");
+    }
+  });
+
+  return {
+    labels: buckets.map((bucket) => bucket.label),
+    sales: buckets.map((bucket) => bucket.sales),
+    purchases: buckets.map((bucket) => bucket.purchases),
+    receivedPayments: buckets.map((bucket) => bucket.receivedPayments),
+    paidPayments: buckets.map((bucket) => bucket.paidPayments),
+  };
+};
+
 const getDashboardSummary = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -51,6 +177,7 @@ const getDashboardSummary = async (req, res) => {
     let completedSalesProfitRows;
     let purchaseInvoices;
     let payments;
+    let weeklySummary;
     try {
       [salesInvoices, completedSalesProfitRows, purchaseInvoices, payments] =
         await Promise.all([
@@ -80,6 +207,11 @@ const getDashboardSummary = async (req, res) => {
             [userId],
           ),
         ]);
+      try {
+        weeklySummary = await buildWeeklySummary(userId);
+      } catch (weeklyError) {
+        weeklySummary = null;
+      }
     } catch (err) {
       return res.status(500).json({
         success: false,
@@ -189,6 +321,7 @@ const getDashboardSummary = async (req, res) => {
         cashBankBalance,
         todaysReceivedPayments,
         todaysPaidPayments,
+        weeklySummary,
       },
       overdueInvoices,
       recentInvoices,
