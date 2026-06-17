@@ -299,6 +299,38 @@ function PaymentsPage() {
       paymentDateSort,
     );
   }, [payments, paymentDateSort]);
+
+  const filteredPayments = useMemo(() => {
+    const normalizedQuery = normalizeString(query);
+    if (!normalizedQuery) return sortedPayments;
+
+    return sortedPayments.filter((payment) => {
+      const amountValue = normalizeString(payment.amount);
+      const typeValue = normalizeString(payment.type);
+      const partyValue = normalizeString(
+        payment.partyType === "vendor"
+          ? payment.vendor?.name || payment.vendor?.vendorCode
+          : payment.customerId?.name ||
+              payment.customer?.name ||
+              payment.customerId?.customerCode ||
+              payment.customer?.customerCode,
+      );
+      const descriptionValue = normalizeString(
+        payment.description || payment.notes,
+      );
+      const methodValue = normalizeString(payment.method);
+      const dateValue = normalizeString(payment.paidAt || payment.createdAt);
+
+      return (
+        amountValue.includes(normalizedQuery) ||
+        typeValue.includes(normalizedQuery) ||
+        partyValue.includes(normalizedQuery) ||
+        descriptionValue.includes(normalizedQuery) ||
+        methodValue.includes(normalizedQuery) ||
+        dateValue.includes(normalizedQuery)
+      );
+    });
+  }, [query, sortedPayments]);
   const resetForm = () => {
     setType("received");
     setPartyType("customer");
@@ -349,7 +381,7 @@ function PaymentsPage() {
                 <span className="wave ripple-1"></span>
                 <span className="wave ripple-2"></span>
               </span>{" "}
-              {sortedPayments.length} records shown
+              {filteredPayments.length} records shown
             </div>
           </div>
         </div>
@@ -704,6 +736,11 @@ function PaymentsPage() {
               title="No Payments"
               description="Record a payment to see it listed here."
             />
+          ) : filteredPayments.length === 0 ? (
+            <NoData
+              title="No Matching Payments"
+              description="Try searching by amount, party, type, method, or date."
+            />
           ) : (
             <div className="overflow-x-auto">
               <div className="max-w-[1230px] overflow-x-auto relative">
@@ -730,7 +767,7 @@ function PaymentsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {sortedPayments.map((payment) => (
+                      {filteredPayments.map((payment) => (
                         <tr
                           key={getId(payment)}
                           className={` ${getRowStyle(payment.type)}`}

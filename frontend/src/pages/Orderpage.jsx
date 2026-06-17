@@ -9,7 +9,6 @@ import {
   Removedorder,
   updatestatusOrder,
   gettingallOrder,
-  SearchOrder,
 } from "../features/orderSlice";
 import { gettingallproducts } from "../features/productSlice";
 import NoData from "../Components/NoData";
@@ -31,8 +30,9 @@ import {
 
 function Orderpage() {
   const getId = (value) => value?.id ?? value?.id ?? value;
-  const { getorder, isgetorder, editorder, searchdata, issearchdata } =
-    useSelector((state) => state.order);
+  const { getorder, isgetorder, editorder } = useSelector(
+    (state) => state.order,
+  );
   const { getallproduct } = useSelector((state) => state.product);
   const { getallSupplier } = useSelector((state) => state.supplier);
   const [supplier, setsupplier] = useState("");
@@ -66,6 +66,35 @@ function Orderpage() {
     return status === "shipped" || status === "delivered";
   };
 
+  const matchesOrderSearch = (order, searchText) => {
+    if (!searchText) return true;
+
+    const normalized = searchText.toLowerCase();
+    const haystacks = [
+      order?.status,
+      order?.id,
+      order?.vendor?.name,
+      order?.user?.name,
+      order?.supplier,
+      ...(Array.isArray(order?.products)
+        ? order.products.flatMap((item) => [
+            item?.product?.name,
+            item?.product?.description,
+            item?.product?.company,
+            item?.product?.brand,
+            item?.productCode?.code,
+            item?.productCode?.variantName,
+          ])
+        : []),
+    ];
+
+    return haystacks.some((value) =>
+      String(value || "")
+        .toLowerCase()
+        .includes(normalized),
+    );
+  };
+
   useEffect(() => {
     dispatch(gettingallOrder());
     dispatch(gettingallproducts());
@@ -75,15 +104,6 @@ function Orderpage() {
   useEffect(() => {
     dispatch(gettingallOrder());
   }, [dispatch, editorder]);
-
-  useEffect(() => {
-    if (query.trim() !== "") {
-      const timeout = setTimeout(() => {
-        dispatch(SearchOrder(query));
-      }, 300);
-      return () => clearTimeout(timeout);
-    }
-  }, [query, dispatch]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -414,7 +434,12 @@ function Orderpage() {
       });
   };
 
-  const displayOrder = query.trim() !== "" ? searchdata : getorder;
+  const normalizedQuery = query.trim().toLowerCase();
+  const displayOrder = useMemo(() => {
+    const source = Array.isArray(getorder) ? getorder : [];
+    if (!normalizedQuery) return source;
+    return source.filter((order) => matchesOrderSearch(order, normalizedQuery));
+  }, [getorder, normalizedQuery]);
   const sortedOrder = useMemo(
     () =>
       sortByDateValue(
@@ -424,7 +449,7 @@ function Orderpage() {
       ),
     [displayOrder, timestampSort],
   );
-  const isTableLoading = isgetorder || (query.trim() !== "" && issearchdata);
+  const isTableLoading = isgetorder;
 
   return (
     <div className="min-h-[92vh] bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.14),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#f1f5f9_100%)] p-4">

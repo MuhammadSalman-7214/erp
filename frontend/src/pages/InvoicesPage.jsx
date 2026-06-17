@@ -293,10 +293,25 @@ function InvoicesPage() {
     );
   };
 
+  const normalizeInvoiceType = (invoice) => {
+    const rawType = String(invoice?.invoiceType || "")
+      .trim()
+      .toLowerCase();
+    if (!rawType && invoice?.vendor) return "purchase";
+    if (!rawType && (invoice?.customerId || invoice?.customer)) return "sale";
+    if (rawType.includes("purchase")) return "purchase";
+    if (rawType.includes("sale")) return "sale";
+    if (rawType === "buy") return "purchase";
+    if (rawType === "sell") return "sale";
+    if (invoice?.vendor) return "purchase";
+    if (invoice?.customerId || invoice?.customer) return "sale";
+    return rawType;
+  };
+
   // ✅ Filter invoices client-side
   const displayInvoices = invoices.filter((inv) => {
-    if (typeFilter !== "all") {
-      if ((inv.invoiceType || "").toLowerCase() !== typeFilter) return false;
+    if (typeFilter !== "all" && normalizeInvoiceType(inv) !== typeFilter) {
+      return false;
     }
     if (!query.trim()) return true;
     const lower = query.toLowerCase();
@@ -352,7 +367,7 @@ function InvoicesPage() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by invoice, type, party or status..."
+              placeholder="Search by invoice, party or status..."
             />
           </div>
 
@@ -363,7 +378,7 @@ function InvoicesPage() {
               className="w-full md:w-56"
               options={[
                 { value: "all", label: "All Types" },
-                { value: "sales", label: "Sales" },
+                { value: "sale", label: "Sale" },
                 { value: "purchase", label: "Purchase" },
               ]}
             />
@@ -386,7 +401,7 @@ function InvoicesPage() {
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
           {loading ? (
             <TableSkeleton rows={5} showFilters={false} />
-          ) : invoices.length === 0 ? (
+          ) : sortedInvoices.length === 0 ? (
             <div className="p-10 text-center">
               <NoData
                 title="No Invoice Found"
@@ -440,11 +455,13 @@ function InvoicesPage() {
                           </td>
 
                           <td className="px-5 py-4 text-slate-700 capitalize">
-                            {inv.invoiceType || "-"}
+                            {normalizeInvoiceType(inv) ||
+                              inv.invoiceType ||
+                              "-"}
                           </td>
 
                           <td className="px-5 py-4 text-slate-700">
-                            {inv.invoiceType === "purchase"
+                            {normalizeInvoiceType(inv) === "purchase"
                               ? inv.vendor?.name || "-"
                               : inv.customerId?.name ||
                                 inv.customer?.name ||
@@ -491,15 +508,15 @@ function InvoicesPage() {
                             {formatDateLabel(inv.dueDate)}
                           </td>
 
-                            <td
-                              className="px-4 py-4 sticky right-0 z-10 bg-gray-50/80 text-center transition-colors duration-150"
-                              style={{
-                                boxShadow:
-                                  "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
-                              }}
-                            >
-                              <div className="flex justify-center">
-                                <div className="flex items-center justify-center gap-2 overflow-hidden">
+                          <td
+                            className="px-4 py-4 sticky right-0 z-10 bg-gray-50/80 text-center transition-colors duration-150"
+                            style={{
+                              boxShadow:
+                                "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
+                            }}
+                          >
+                            <div className="flex justify-center">
+                              <div className="flex items-center justify-center gap-2 overflow-hidden">
                                 {/* <ConfirmDialog
                             title={
                               <div className="flex flex-col gap-1 max-w-xs">

@@ -497,17 +497,30 @@ function Productpage({ readOnly = false }) {
     const normalizedQuery = productCodeQuery.trim().toLowerCase();
     if (!normalizedQuery) return displayRows;
 
-    const codeRows = displayRows.filter(({ code }) => {
-      if (!code) return false;
-      const codeValue = String(code.code || "").toLowerCase();
-      const variantValue = String(code.variantName || "").toLowerCase();
+    const matchesSearch = ({ product, code }) => {
+      const productName = String(product?.name || "").toLowerCase();
+      const company = String(product?.company || product?.brand || "").toLowerCase();
+      const category = String(product?.Category?.name || "").toLowerCase();
+      const productDescription = String(product?.description || "").toLowerCase();
+      const codeValue = String(code?.code || "").toLowerCase();
+      const variantValue = String(code?.variantName || "").toLowerCase();
+
       return (
+        productName.includes(normalizedQuery) ||
+        company.includes(normalizedQuery) ||
+        category.includes(normalizedQuery) ||
+        productDescription.includes(normalizedQuery) ||
         codeValue.includes(normalizedQuery) ||
         variantValue.includes(normalizedQuery)
       );
+    };
+
+    const codeRows = displayRows.filter((row) => {
+      if (!row?.product) return false;
+      return matchesSearch(row);
     });
 
-    return codeRows.length ? codeRows : displayRows;
+    return codeRows;
   }, [displayRows, productCodeQuery]);
 
   const sortedRows = useMemo(

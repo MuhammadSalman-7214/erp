@@ -212,17 +212,19 @@ module.exports.updateCategory = async (req, res) => {
 
 module.exports.Searchcategory = async (req, res) => {
   try {
-    const { query } = req.query;
+    const { query: searchQueryRaw } = req.query;
     const userId = req.user.userId;
-    if (!query) {
+    const searchQuery = String(searchQueryRaw || "").trim();
+
+    if (!searchQuery) {
       return res.status(400).json({ message: "Query parameter is required" });
     }
 
-    let category;
+    let categoryRows;
     try {
-      category = await query(
+      categoryRows = await query(
         "SELECT * FROM categories WHERE user_id = ? AND name LIKE ?",
-        [userId, `%${query}%`],
+        [userId, `%${searchQuery}%`],
       );
     } catch (err) {
       return res.status(500).json({
@@ -232,7 +234,7 @@ module.exports.Searchcategory = async (req, res) => {
       });
     }
 
-    res.json(category);
+    res.json(categoryRows);
   } catch (error) {
     res
       .status(500)

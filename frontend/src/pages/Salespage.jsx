@@ -1535,7 +1535,7 @@ function Salespage() {
               onChange={(e) => setquery(e.target.value)}
               type="text"
               maxLength={120}
-              placeholder="Search invoice, customer, phone..."
+              placeholder="Search by invoice, customer, phone..."
             />
           </div>
 

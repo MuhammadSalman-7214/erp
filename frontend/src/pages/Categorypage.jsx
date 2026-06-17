@@ -13,7 +13,6 @@ import {
 import toast from "react-hot-toast";
 import NoData from "../Components/NoData";
 import DrawerPanel from "../Components/DrawerPanel";
-import LoadingButton from "../Components/LoadingButton";
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
 import { validateTextInput } from "../lib/formValidation";
@@ -170,7 +169,7 @@ function Categorypage() {
                   Product Filters
                 </h2>
                 <p className="mt-0.5 text-sm text-slate-500">
-                  Search products by name, code, company, or category.
+                  Search category by name.
                 </p>
               </div>
             </div>
@@ -193,7 +192,7 @@ function Categorypage() {
               value={query}
               onChange={(e) => setquery(e.target.value)}
               maxLength={120}
-              placeholder="Search category..."
+              placeholder="Search by name..."
             />
           </div>
 

@@ -7,7 +7,6 @@ import { useDispatch, useSelector } from "react-redux";
 import toast from "react-hot-toast";
 import NoData from "../Components/NoData";
 import DrawerPanel from "../Components/DrawerPanel";
-import LoadingButton from "../Components/LoadingButton";
 import axiosInstance from "../lib/axios";
 import { FaMoneyBill1Wave } from "react-icons/fa6";
 import { validatePhoneInput, validateTextInput } from "../lib/formValidation";
@@ -357,7 +356,7 @@ function Customerpage({ readOnly = false }) {
                   Product Filters
                 </h2>
                 <p className="mt-0.5 text-sm text-slate-500">
-                  Search products by name, code, company, or category.
+                  Search customers by name or phone.
                 </p>
               </div>
             </div>
@@ -589,15 +588,15 @@ function Customerpage({ readOnly = false }) {
                             <td className="px-5 py-4 text-red-700 font-medium">
                               {currency(customerSummary.remainingAmount)}
                             </td>
-                              <td
-                                className="px-4 py-4 sticky right-0 z-10 bg-gray-50/80 text-center transition-colors duration-150"
-                                style={{
-                                  boxShadow:
-                                    "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
-                                }}
-                              >
-                                <div className="flex justify-center">
-                                  <div className="flex items-center justify-center gap-2 overflow-hidden">
+                            <td
+                              className="px-4 py-4 sticky right-0 z-10 bg-gray-50/80 text-center transition-colors duration-150"
+                              style={{
+                                boxShadow:
+                                  "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
+                              }}
+                            >
+                              <div className="flex justify-center">
+                                <div className="flex items-center justify-center gap-2 overflow-hidden">
                                   {canWrite && (
                                     <Tooltip content="Edit Customer">
                                       <Button

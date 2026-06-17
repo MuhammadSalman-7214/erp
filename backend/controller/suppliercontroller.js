@@ -465,11 +465,11 @@ module.exports.deleteSupplier = async (req, res) => {
 
 module.exports.searchSupplier = async (req, res) => {
   try {
-    const { query } = req.query;
+    const { query: searchQueryRaw } = req.query;
     const userId = req.user.userId;
-    console.log("Received query:", query);
+    const searchQuery = String(searchQueryRaw || "").trim();
 
-    if (!query || query.trim() === "") {
+    if (!searchQuery) {
       return res
         .status(400)
         .json({ success: false, message: "Query parameter is required" });
@@ -478,8 +478,8 @@ module.exports.searchSupplier = async (req, res) => {
     let suppliers;
     try {
       suppliers = await query(
-        "SELECT * FROM vendors WHERE user_id = ? AND name LIKE ?",
-        [userId, `%${query}%`],
+        "SELECT * FROM vendors WHERE user_id = ? AND (name LIKE ? OR contact_phone LIKE ? OR contact_address LIKE ?)",
+        [userId, `%${searchQuery}%`, `%${searchQuery}%`, `%${searchQuery}%`],
       );
     } catch (err) {
       return res.status(500).json({
@@ -489,7 +489,15 @@ module.exports.searchSupplier = async (req, res) => {
       });
     }
 
-    return res.json({ success: true, suppliers });
+    const normalizedSuppliers = suppliers.map((supplier) => ({
+      ...supplier,
+      contactInfo: {
+        phone: supplier.contact_phone || "",
+        address: supplier.contact_address || "",
+      },
+    }));
+
+    return res.json({ success: true, suppliers: normalizedSuppliers });
   } catch (error) {
     console.error("Search Error:", error);
     return res.status(500).json({

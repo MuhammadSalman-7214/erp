@@ -365,9 +365,14 @@ module.exports.searchStocks = async (req, res) => {
     let transactions;
     try {
       transactions = await query(
-        "SELECT st.*, p.id AS product_id, p.name AS product_name, p.description AS product_description, p.company AS product_company, p.brand AS product_brand, pc.id AS productCode_id, pc.code AS productCode_code, pc.variantName AS productCode_variantName, v.id AS vendor_id, v.name AS vendor_name, s.id AS supplier_id, s.name AS supplier_name FROM stock_transactions st LEFT JOIN products p ON p.id = st.product LEFT JOIN product_codes pc ON pc.id = st.productCode LEFT JOIN vendors v ON v.id = st.vendor LEFT JOIN vendors s ON s.id = st.supplier WHERE st.user_id = ? AND (st.type LIKE ? OR p.name LIKE ? OR pc.code LIKE ? OR s.name LIKE ? OR v.name LIKE ?)",
+        "SELECT st.*, p.id AS product_id, p.name AS product_name, p.description AS product_description, p.company AS product_company, p.brand AS product_brand, c.id AS category_id, c.name AS category_name, pc.id AS productCode_id, pc.code AS productCode_code, pc.variantName AS productCode_variantName, v.id AS vendor_id, v.name AS vendor_name, s.id AS supplier_id, s.name AS supplier_name FROM stock_transactions st LEFT JOIN products p ON p.id = st.product LEFT JOIN categories c ON c.id = p.Category LEFT JOIN product_codes pc ON pc.id = st.productCode LEFT JOIN vendors v ON v.id = st.vendor LEFT JOIN vendors s ON s.id = st.supplier WHERE st.user_id = ? AND (st.type LIKE ? OR p.name LIKE ? OR p.company LIKE ? OR p.brand LIKE ? OR p.description LIKE ? OR c.name LIKE ? OR pc.code LIKE ? OR pc.variantName LIKE ? OR s.name LIKE ? OR v.name LIKE ?)",
         [
           userId,
+          `%${searchQuery}%`,
+          `%${searchQuery}%`,
+          `%${searchQuery}%`,
+          `%${searchQuery}%`,
+          `%${searchQuery}%`,
           `%${searchQuery}%`,
           `%${searchQuery}%`,
           `%${searchQuery}%`,

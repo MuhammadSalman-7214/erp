@@ -580,8 +580,31 @@ const searchOrder = async (req, res) => {
     let orders;
     try {
       orders = await query(
-        "SELECT o.* FROM orders o LEFT JOIN users u ON u.id = o.user WHERE o.user_id = ? AND (o.status LIKE ? OR u.name LIKE ?) ORDER BY o.createdAt ASC",
-        [userId, `%${searchQuery}%`, `%${searchQuery}%`],
+        `SELECT DISTINCT o.*
+         FROM orders o
+         LEFT JOIN users u ON u.id = o.user
+         LEFT JOIN order_items oi ON oi.order_id = o.id AND oi.user_id = o.user_id
+         LEFT JOIN products p ON p.id = oi.product
+         LEFT JOIN product_codes pc ON pc.id = oi.productCode
+         WHERE o.user_id = ?
+           AND (
+             o.status LIKE ?
+             OR u.name LIKE ?
+             OR CAST(o.id AS CHAR) LIKE ?
+             OR p.name LIKE ?
+             OR pc.code LIKE ?
+             OR pc.variantName LIKE ?
+           )
+         ORDER BY o.createdAt ASC`,
+        [
+          userId,
+          `%${searchQuery}%`,
+          `%${searchQuery}%`,
+          `%${searchQuery}%`,
+          `%${searchQuery}%`,
+          `%${searchQuery}%`,
+          `%${searchQuery}%`,
+        ],
       );
     } catch (err) {
       return res.status(500).json({
