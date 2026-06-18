@@ -313,78 +313,114 @@ function SupplierDetailPage() {
 
   return (
     <div className="min-h-[92vh] bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.14),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#f1f5f9_100%)] p-4">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-800">
-            Vendor Details
-          </h1>
-          <p className="text-sm text-slate-500">
-            Purchase history and balances for this vendor
-          </p>
-        </div>
-      </div>
-
       {loading ? (
         <DetailSkeleton />
       ) : (
         <>
-          <div className="bg-white rounded-lg border p-5 shadow-sm mb-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="mb-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.08)] transition-all duration-300 hover:shadow-[0_12px_40px_rgba(15,23,42,0.12)]">
+            {/* Top Accent */}
+            <div className="h-1 bg-gradient-to-r from-teal-500 via-cyan-500 to-sky-500" />
+
+            <div className="grid gap-4 p-4 lg:grid-cols-[1.6fr_1fr] lg:items-center">
+              {/* Left Section */}
               <div>
-                <div className="text-sm text-slate-500">Vendor</div>
-                <div className="text-xl font-semibold text-slate-800">
-                  {vendor?.name || "Unknown"}
+                <div className="inline-flex items-center gap-2 rounded-full bg-teal-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-teal-700 ring-1 ring-teal-100">
+                  <div className="h-2 w-2 rounded-full bg-teal-500" />
+                  Supplier Details
                 </div>
+
+                <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-800">
+                  {vendor?.name || "Unknown Supplier"}
+                </h2>
+
+                <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">
+                  View supplier information, purchase history, outstanding
+                  balances, and transaction details from a centralized
+                  dashboard.
+                </p>
               </div>
-              <div className="space-y-1 text-sm text-slate-600">
-                <div>Phone: {vendor?.contactInfo?.phone || "-"}</div>
-                <div>Address: {vendor?.contactInfo?.address || "-"}</div>
+
+              {/* Right Section */}
+              <div className="grid gap-4">
+                {/* Phone */}
+                <div className="rounded-lg border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-2 transition hover:border-teal-200 hover:shadow-sm">
+                  <div className="mb-1 text-xs font-semibold uppercase tracking-widest text-slate-400">
+                    Contact Number
+                  </div>
+
+                  <div className="text-base font-semibold text-slate-800">
+                    {vendor?.contactInfo?.phone || "-"}
+                  </div>
+                </div>
+
+                {/* Address */}
+                <div className="rounded-lg border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-2 transition hover:border-teal-200 hover:shadow-sm">
+                  <div className="mb-1 text-xs font-semibold uppercase tracking-widest text-slate-400">
+                    Business Address
+                  </div>
+
+                  <div className="text-sm leading-6 text-slate-700">
+                    {vendor?.contactInfo?.address || "-"}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             {[
               {
                 label: "Total Purchases",
                 value: currency(summary.total),
-                bg: "bg-gradient-to-br from-emerald-50 to-emerald-100",
-                icon: <TrendingUp className="w-5 h-5 text-emerald-600" />,
-                borderColor: "border-emerald-300",
+                bg: "bg-gradient-to-tr from-violet-200 via-violet-50 to-white",
+                icon: <TrendingUp className="w-5 h-5 text-violet-900" />,
+                decoration: "bg-violet-50",
+                text: "text-violet-900",
               },
               {
                 label: "Paid",
                 value: currency(summary.paid),
-                bg: "bg-gradient-to-br from-teal-50 to-teal-100",
-                icon: <CreditCard className="w-5 h-5 text-teal-600" />,
-                borderColor: "border-teal-300",
+                bg: "bg-gradient-to-tr from-teal-200 via-teal-50 t0-white",
+                icon: <CreditCard className="w-5 h-5 text-teal-900" />,
+                decoration: "bg-teal-50",
+                text: "text-teal-900",
               },
               {
                 label: "Remaining",
                 value: currency(summary.remaining),
-                bg: "bg-gradient-to-br from-rose-50 to-rose-100",
-                icon: <AlertCircle className="w-5 h-5 text-rose-600" />,
-                borderColor: "border-red-300",
+                bg: "bg-gradient-to-tr from-rose-200 via-rose-50 to-white",
+                icon: <AlertCircle className="w-5 h-5 text-rose-900" />,
+                decoration: "bg-rose-50",
+                text: "text-red-900",
               },
               {
                 label: "Total Orders",
                 value: summary.count || 0,
-                bg: "bg-gradient-to-br from-blue-50 to-blue-100",
-                icon: <Clipboard className="w-5 h-5 text-blue-600" />,
-                borderColor: "border-blue-300",
+                bg: "bg-gradient-to-tr from-blue-200 via-blue-50 to-white",
+                icon: <Clipboard className="w-5 h-5 text-blue-900" />,
+                decoration: "bg-blue-50",
+                text: "text-blue-900",
               },
-            ].map(({ label, value, bg, icon, borderColor }) => (
+            ].map(({ label, value, bg, icon, decoration, text }) => (
               <div
                 key={label}
-                className={`rounded-lg p-5 border-2 ${borderColor} ${bg} shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1`}
+                className={`relative overflow-hidden rounded-lg p-5 ${bg} shadow-[0_0_6px_rgba(15,23,42,0.2)] hover:shadow-[0_0_10px_rgba(15,23,42,0.2)] transition-all duration-300 transform hover:-translate-y-1`}
               >
+                <div
+                  className={`absolute -top-8 -right-8 rounded-full h-[90px] w-[90px] ${decoration}`}
+                ></div>
+
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-sm font-medium text-gray-600">
                     {label}
                   </div>
-                  {icon}
+                  <span className="absolute top-3 right-3 z-10">{icon}</span>
                 </div>
-                <div className="text-2xl font-bold text-gray-900">{value}</div>
+                <div
+                  className={`text-2xl font-bold ${text} transition-all duration-300`}
+                >
+                  {value}
+                </div>
               </div>
             ))}
           </div>
