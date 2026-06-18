@@ -36,10 +36,10 @@ const chunkArray = (items, size) => {
 
 export const buildInvoicePrintHtml = ({
   documentTitle = "Invoice",
-  companyName = "InventorySouq",
+  companyName = "",
   slogan = "",
-  brandLine = "DEAL IN ALL KIND OF PLYWOOD AND HARDWARE",
-  logoUrl = "/ITLOGO.svg",
+  brandLine = "",
+  logoUrl = "",
   invoiceLabel = "Invoice #",
   invoiceNumber = "",
   issueLabel = "Date",
@@ -71,6 +71,7 @@ export const buildInvoicePrintHtml = ({
   const remainingValue = Number(remainingAmount || 0);
   const carageValue = Number(carage || 0);
   const safeNotes = escapeHtml(notes).replaceAll("\n", "<br />");
+  const resolvedBrandLine = brandLine || slogan || "";
   const partyBlockCode = partyCode
     ? `<div class="details-code">${escapeHtml(partyCode)}</div>`
     : "";
@@ -179,7 +180,11 @@ export const buildInvoicePrintHtml = ({
             }
             <div class="brand-copy">
               <h1 class="brand-title">${escapeHtml(companyName)}</h1>
-              <div class="brand-line">${escapeHtml(brandLine)}</div>
+              ${
+                resolvedBrandLine
+                  ? `<div class="brand-line">${escapeHtml(resolvedBrandLine)}</div>`
+                  : ""
+              }
             </div>
           </div>
         </div>

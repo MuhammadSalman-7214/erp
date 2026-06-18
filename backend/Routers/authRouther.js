@@ -7,6 +7,7 @@ const {
   authForgotPasswordBody,
   authOtpBody,
   authResetPasswordBody,
+  companyInfoBody,
   profileBody,
   idParam,
 } = require("../validation/schemas");
@@ -17,6 +18,7 @@ const {
   resetPassword,
   verifyLoginOtp,
   updateProfile,
+  updateCompanyInfo,
   logout,
   staffuser,
   manageruser,
@@ -77,6 +79,12 @@ router.put(
   authmiddleware,
   validateRequest({ body: profileBody }),
   updateProfile,
+);
+router.put(
+  "/company-info",
+  authmiddleware,
+  validateRequest({ body: companyInfoBody }),
+  updateCompanyInfo,
 );
 
 module.exports = router;

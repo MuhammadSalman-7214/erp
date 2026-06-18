@@ -20,8 +20,10 @@ import {
 import { Button, Inputfield, SelectDropdown, Tooltip } from "../UI";
 import { CgSoftwareDownload } from "react-icons/cg";
 import { PiInvoiceBold } from "react-icons/pi";
+import { useCompanyBranding } from "../hooks/useCompanyBranding";
 
 function InvoicesPage() {
+  const companyBranding = useCompanyBranding();
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -124,8 +126,9 @@ function InvoicesPage() {
 
     const invoiceHtml = buildInvoicePrintHtml({
       documentTitle: isPurchaseInvoice ? "Purchase Invoice" : "Sales Invoice",
-      companyName: "Imran Traders",
-      slogan: "",
+      companyName: companyBranding.companyName,
+      slogan: companyBranding.companyDescription,
+      logoUrl: companyBranding.companyLogo,
       invoiceLabel: "Invoice #",
       invoiceNumber: billInvoice.invoiceNumber || billInvoice.id || "-",
       issueLabel: "Date",
@@ -173,8 +176,9 @@ function InvoicesPage() {
 
     const gatePassHtml = buildInvoicePrintHtml({
       documentTitle: "Gate Pass",
-      companyName: "Imran Traders",
-      slogan: "",
+      companyName: companyBranding.companyName,
+      slogan: companyBranding.companyDescription,
+      logoUrl: companyBranding.companyLogo,
       invoiceLabel: "Gate Pass #",
       invoiceNumber: billInvoice.invoiceNumber || billInvoice.id || "-",
       issueLabel: "Date",
@@ -220,6 +224,9 @@ function InvoicesPage() {
     remainingAmount,
     isPurchaseInvoice,
     showGatePass,
+    companyBranding.companyName,
+    companyBranding.companyDescription,
+    companyBranding.companyLogo,
   ]);
 
   const gatePassPreviewHtml = useMemo(() => {
@@ -235,8 +242,9 @@ function InvoicesPage() {
 
     return buildInvoicePrintHtml({
       documentTitle: "Gate Pass",
-      companyName: "Imran Traders",
-      slogan: "",
+      companyName: companyBranding.companyName,
+      slogan: companyBranding.companyDescription,
+      logoUrl: companyBranding.companyLogo,
       invoiceLabel: "Gate Pass #",
       invoiceNumber: billInvoice.invoiceNumber || billInvoice.id || "-",
       issueLabel: "Date",
@@ -272,7 +280,15 @@ function InvoicesPage() {
       remainingAmount,
       notes: billInvoice.notes || "",
     });
-  }, [billInvoice, receivedAmount, remainingAmount, isPurchaseInvoice]);
+  }, [
+    billInvoice,
+    receivedAmount,
+    remainingAmount,
+    isPurchaseInvoice,
+    companyBranding.companyName,
+    companyBranding.companyDescription,
+    companyBranding.companyLogo,
+  ]);
 
   const handlePrintBillOnly = () => {
     if (!billPreviewHtml) return;
@@ -648,7 +664,9 @@ function InvoicesPage() {
                           ? "Purchase Invoice"
                           : "Sales Invoice"}
                       </h2>
-                      <p className="text-sm text-slate-500">Imran Traders</p>
+                      <p className="text-sm text-slate-500">
+                        {companyBranding.companyName}
+                      </p>
                     </div>
                     <div className="space-y-1 text-sm text-slate-600">
                       <div>

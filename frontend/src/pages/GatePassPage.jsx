@@ -5,8 +5,10 @@ import { toast } from "react-hot-toast";
 import { buildInvoicePrintHtml } from "../lib/invoicePrintTemplate";
 import { PreviewSkeleton } from "../Components/LoadingSkeletons";
 import { Button } from "../UI";
+import { useCompanyBranding } from "../hooks/useCompanyBranding";
 
 function GatePassPage() {
+  const companyBranding = useCompanyBranding();
   const { id } = useParams();
   const navigate = useNavigate();
   const [sale, setSale] = useState(null);
@@ -35,8 +37,9 @@ function GatePassPage() {
 
     return buildInvoicePrintHtml({
       documentTitle: "Gate Pass",
-      companyName: "Imran Traders",
-      slogan: "Gate Pass",
+      companyName: companyBranding.companyName,
+      slogan: companyBranding.companyDescription || "Gate Pass",
+      logoUrl: companyBranding.companyLogo,
       invoiceLabel: "Gate Pass #",
       invoiceNumber: sale.invoiceNumber || sale.invoice || sale.id || "-",
       issueLabel: "Date",
@@ -57,7 +60,12 @@ function GatePassPage() {
       showSummaryBox: false,
       notes: sale.notes || "",
     });
-  }, [sale]);
+  }, [
+    sale,
+    companyBranding.companyName,
+    companyBranding.companyDescription,
+    companyBranding.companyLogo,
+  ]);
 
   const printGatePass = () => {
     if (!gatePassHtml) return;

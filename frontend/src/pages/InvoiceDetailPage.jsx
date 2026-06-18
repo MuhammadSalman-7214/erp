@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
@@ -12,6 +12,7 @@ import {
 } from "../lib/invoicePrintTemplate";
 import { Button } from "../UI";
 import { PreviewSkeleton } from "../Components/LoadingSkeletons";
+import { useCompanyBranding } from "../hooks/useCompanyBranding";
 
 const sanitizeFileName = (value) =>
   String(value || "invoice")
@@ -22,6 +23,7 @@ const splitLongText = (doc, text, width) =>
   doc.splitTextToSize(String(text || "-"), width);
 
 function InvoiceDetailPage() {
+  const companyBranding = useCompanyBranding();
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -78,69 +80,81 @@ function InvoiceDetailPage() {
   const isPurchaseInvoice = invoice?.invoiceType === "purchase";
   const showGatePass = !isPurchaseInvoice;
 
-  const buildPrintOptions = (showPrices = true) => {
-    if (!invoice) return null;
+  const buildPrintOptions = useCallback(
+    (showPrices = true) => {
+      if (!invoice) return null;
 
-    const party = isPurchaseInvoice
-      ? invoice.vendor
-      : invoice.customerId || invoice.customer;
+      const party = isPurchaseInvoice
+        ? invoice.vendor
+        : invoice.customerId || invoice.customer;
 
-    return {
-      documentTitle: showPrices
-        ? isPurchaseInvoice
-          ? "Purchase Invoice"
-          : "Sales Invoice"
-        : "Gate Pass",
-      companyName: "Imran Traders",
-      slogan: "Billing and stock management",
-      invoiceLabel: "Invoice #",
-      invoiceNumber: invoice.invoiceNumber || "-",
-      issueLabel: "Date",
-      issueDate: invoice.issueDate,
-      dueLabel: "Due Date",
-      dueDate: invoice.dueDate,
-      partyLabel: showPrices ? "Invoice To" : "Gate Pass",
-      partyName: party?.name || (isPurchaseInvoice ? "Vendor" : "Customer"),
-      partyPhone:
-        party?.contactInfo?.phone ||
-        party?.phone ||
-        invoice.customer?.phone ||
-        "",
-      partyAddress:
-        party?.contactInfo?.address ||
-        party?.address ||
-        invoice.customer?.address ||
-        "",
-      paymentMethod: invoice.paymentMethod || "-",
-      status: invoice.status || "-",
-      carage: invoice.carage || 0,
-      items: (invoice.items || []).map((item) => ({
-        name: item.name,
-        quantity: Number(item.quantity || 0),
-        unitPrice: Number(item.unitPrice || 0),
-        total: Number(item.total || item.quantity * item.unitPrice || 0),
-      })),
-      showPrices,
-      currency: invoice.currency || "Rs",
-      subTotal: invoice.subTotal,
-      discount: invoice.discount,
-      totalAmount: invoice.totalAmount,
+      return {
+        documentTitle: showPrices
+          ? isPurchaseInvoice
+            ? "Purchase Invoice"
+            : "Sales Invoice"
+          : "Gate Pass",
+        companyName: companyBranding.companyName,
+        slogan: companyBranding.companyDescription,
+        logoUrl: companyBranding.companyLogo,
+        invoiceLabel: "Invoice #",
+        invoiceNumber: invoice.invoiceNumber || "-",
+        issueLabel: "Date",
+        issueDate: invoice.issueDate,
+        dueLabel: "Due Date",
+        dueDate: invoice.dueDate,
+        partyLabel: showPrices ? "Invoice To" : "Gate Pass",
+        partyName: party?.name || (isPurchaseInvoice ? "Vendor" : "Customer"),
+        partyPhone:
+          party?.contactInfo?.phone ||
+          party?.phone ||
+          invoice.customer?.phone ||
+          "",
+        partyAddress:
+          party?.contactInfo?.address ||
+          party?.address ||
+          invoice.customer?.address ||
+          "",
+        paymentMethod: invoice.paymentMethod || "-",
+        status: invoice.status || "-",
+        carage: invoice.carage || 0,
+        items: (invoice.items || []).map((item) => ({
+          name: item.name,
+          quantity: Number(item.quantity || 0),
+          unitPrice: Number(item.unitPrice || 0),
+          total: Number(item.total || item.quantity * item.unitPrice || 0),
+        })),
+        showPrices,
+        currency: invoice.currency || "Rs",
+        subTotal: invoice.subTotal,
+        discount: invoice.discount,
+        totalAmount: invoice.totalAmount,
+        receivedAmount,
+        remainingAmount,
+        notes: invoice.notes || "",
+      };
+    },
+    [
+      invoice,
+      isPurchaseInvoice,
       receivedAmount,
       remainingAmount,
-      notes: invoice.notes || "",
-    };
-  };
+      companyBranding.companyName,
+      companyBranding.companyDescription,
+      companyBranding.companyLogo,
+    ],
+  );
 
   const invoicePreviewHtml = useMemo(() => {
     const options = buildPrintOptions(true);
     return options ? buildInvoicePrintHtml(options) : "";
-  }, [invoice, receivedAmount, remainingAmount]);
+  }, [buildPrintOptions]);
 
   const gatePassPreviewHtml = useMemo(() => {
     if (!showGatePass) return "";
     const options = buildPrintOptions(false);
     return options ? buildInvoicePrintHtml(options) : "";
-  }, [invoice, receivedAmount, remainingAmount, showGatePass]);
+  }, [buildPrintOptions, showGatePass]);
 
   const combinedPrintHtml = useMemo(() => {
     if (!invoicePreviewHtml || !gatePassPreviewHtml) return invoicePreviewHtml;
@@ -212,7 +226,7 @@ function InvoiceDetailPage() {
 
       pdf.setTextColor(15, 23, 42);
       y = addWrappedText(
-        "Imran Traders",
+        companyBranding.companyName,
         marginX,
         y,
         contentWidth,
@@ -220,14 +234,16 @@ function InvoiceDetailPage() {
         16,
         "bold",
       );
-      y = addWrappedText(
-        "Billing and stock management",
-        marginX,
-        y + 1,
-        contentWidth,
-        4,
-        9,
-      );
+      if (companyBranding.companyDescription) {
+        y = addWrappedText(
+          companyBranding.companyDescription,
+          marginX,
+          y + 1,
+          contentWidth,
+          4,
+          9,
+        );
+      }
 
       const title = isPurchaseInvoice ? "Purchase Invoice" : "Sales Invoice";
       pdf.setFont("helvetica", "bold");

@@ -345,6 +345,14 @@ const profileBody = Joi.object({
   ProfilePic: anyText.required(),
 }).unknown(true);
 
+const companyInfoBody = Joi.object({
+  companyName: optionalText.optional(),
+  companyDescription: optionalText.optional(),
+  companyLogo: optionalText.optional(),
+})
+  .min(1)
+  .unknown(true);
+
 const paymentParam = idParam("id");
 
 module.exports = {
@@ -356,6 +364,7 @@ module.exports = {
   authResetPasswordBody,
   categoryBody,
   categoryUpdateBody,
+  companyInfoBody,
   customerBody,
   customerOpeningBalanceBody,
   customerUpdateBody,

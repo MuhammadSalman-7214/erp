@@ -347,6 +347,17 @@ const initDb = async () => {
       UNIQUE KEY uniq_vendor_product (user_id, vendor_id, product_id),
       INDEX idx_vendor_products_user (user_id)
     )`,
+    `CREATE TABLE IF NOT EXISTS company_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      companyName VARCHAR(255) DEFAULT '',
+      companyDescription TEXT,
+      companyLogo TEXT,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_company_settings_user (user_id),
+      INDEX idx_company_settings_user (user_id)
+    )`,
   ];
 
   for (const sql of statements) {
@@ -357,6 +368,18 @@ const initDb = async () => {
         logTableEngineWarning(sql, error);
       }
 
+      throw error;
+    }
+  }
+
+  try {
+    await query(
+      `INSERT IGNORE INTO company_settings (user_id, companyName, companyDescription, companyLogo)
+       SELECT id, COALESCE(companyName, ''), COALESCE(companyDescription, ''), COALESCE(companyLogo, '')
+       FROM users`,
+    );
+  } catch (error) {
+    if (error?.errno !== 1054) {
       throw error;
     }
   }

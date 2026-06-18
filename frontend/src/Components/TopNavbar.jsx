@@ -38,7 +38,7 @@ function TopNavbar() {
 
         {/* RIGHT */}
         <div className="flex shrink-0 items-center justify-end">
-          <Link to="/Profilepage">
+          <Link to="/settings">
             <Settings2 className="text-slate-700 hover:text-teal-600" />
           </Link>
         </div>

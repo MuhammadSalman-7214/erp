@@ -41,6 +41,7 @@ const initialState = {
   pendingOtpSession: readStoredOtpSession(),
   pendingPasswordResetSession: readStoredResetSession(),
   isupdateProfile: false,
+  isupdateCompanyInfo: false,
   isAuthenticated: !!readStoredUser(),
   isAuthChecked: false,
   isLoginLoading: false,
@@ -280,6 +281,47 @@ export const updateProfile = createAsyncThunk(
   },
 );
 
+export const updateCompanyInfo = createAsyncThunk(
+  "auth/updateCompanyInfo",
+  async (payload, { rejectWithValue, getState }) => {
+    try {
+      const storedUser = getState()?.auth?.user;
+
+      if (!storedUser) {
+        return rejectWithValue("User not authenticated. Please log in again.");
+      }
+
+      const response = await axiosInstance.put(
+        "auth/company-info",
+        payload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          withCredentials: true,
+        },
+      );
+
+      const updatedData = response.data;
+
+      if (updatedData?.updatedUser) {
+        localStorage.setItem(
+          "user",
+          JSON.stringify(sanitizeUser(updatedData.updatedUser)),
+        );
+        return updatedData.updatedUser;
+      }
+
+      throw new Error("Unexpected response structure");
+    } catch (error) {
+      console.error("Update company info error:", error);
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to update company info",
+      );
+    }
+  },
+);
+
 export const staffUser = createAsyncThunk(
   "auth/staffuser",
   async (_, { rejectWithValue }) => {
@@ -493,6 +535,19 @@ const authSlice = createSlice({
       .addCase(updateProfile.fulfilled, (state, action) => {
         state.isupdateProfile = false;
         state.user = { ...state.user, ...action.payload };
+      })
+      .addCase(updateProfile.rejected, (state) => {
+        state.isupdateProfile = false;
+      })
+      .addCase(updateCompanyInfo.pending, (state) => {
+        state.isupdateCompanyInfo = true;
+      })
+      .addCase(updateCompanyInfo.fulfilled, (state, action) => {
+        state.isupdateCompanyInfo = false;
+        state.user = { ...state.user, ...action.payload };
+      })
+      .addCase(updateCompanyInfo.rejected, (state) => {
+        state.isupdateCompanyInfo = false;
       })
 
       .addCase(staffUser.fulfilled, (state, action) => {

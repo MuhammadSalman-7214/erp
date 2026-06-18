@@ -42,6 +42,7 @@ import {
   Tooltip,
 } from "../UI";
 import { AiOutlineDownload } from "react-icons/ai";
+import { useCompanyBranding } from "../hooks/useCompanyBranding";
 
 const sanitizeFileName = (value) =>
   String(value || "invoice")
@@ -90,6 +91,7 @@ const loadLogoDataUrl = async (url) => {
 };
 
 function Salespage() {
+  const companyBranding = useCompanyBranding();
   const getId = (value) => value?.id ?? value?.id ?? value;
   const { getallsales } = useSelector((state) => state.sales);
 
@@ -980,8 +982,9 @@ function Salespage() {
 
     const invoiceHtml = buildInvoicePrintHtml({
       documentTitle: "Sales Invoice",
-      companyName: "Imran Traders",
-      slogan: "",
+      companyName: companyBranding.companyName,
+      slogan: companyBranding.companyDescription,
+      logoUrl: companyBranding.companyLogo,
       invoiceLabel: "Invoice #",
       invoiceNumber: billSale.invoiceNumber || billSale.id || "-",
       issueLabel: "Date",
@@ -1019,8 +1022,9 @@ function Salespage() {
     });
     const gatePassHtml = buildInvoicePrintHtml({
       documentTitle: "Gate Pass",
-      companyName: "Imran Traders",
-      slogan: "",
+      companyName: companyBranding.companyName,
+      slogan: companyBranding.companyDescription,
+      logoUrl: companyBranding.companyLogo,
       invoiceLabel: "Gate Pass #",
       invoiceNumber: billSale.invoiceNumber || billSale.id || "-",
       issueLabel: "Date",
@@ -1051,7 +1055,12 @@ function Salespage() {
     });
 
     return combineInvoicePagesHtml(invoiceHtml, gatePassHtml);
-  }, [billSale]);
+  }, [
+    billSale,
+    companyBranding.companyName,
+    companyBranding.companyDescription,
+    companyBranding.companyLogo,
+  ]);
 
   const currentBillTotals = billSale ? getSaleTotals(billSale) : null;
 
@@ -1134,7 +1143,7 @@ function Salespage() {
       const contentWidth = pageWidth - marginX * 2;
       let y = 12;
       const logoDataUrl = await loadLogoDataUrl(
-        `${window.location.origin}/ITLOGO.svg`,
+      companyBranding.companyLogo,
       );
 
       const addWrappedText = (
@@ -1166,7 +1175,7 @@ function Salespage() {
       const headerTextX = logoDataUrl ? marginX + 20 : marginX;
       pdf.setTextColor(15, 23, 42);
       y = addWrappedText(
-        "Imran Traders",
+        companyBranding.companyName,
         headerTextX,
         headerTop + 4,
         contentWidth - (logoDataUrl ? 20 : 0),
@@ -1175,7 +1184,7 @@ function Salespage() {
         "bold",
       );
       y = addWrappedText(
-        "Billing and stock management",
+        companyBranding.companyDescription,
         headerTextX,
         y + 1,
         contentWidth - (logoDataUrl ? 20 : 0),
@@ -1408,9 +1417,9 @@ function Salespage() {
 
     return buildInvoicePrintHtml({
       documentTitle: "Gate Pass",
-      companyName: "Imran Traders",
-      slogan: "",
-      logoUrl: `${window.location.origin}/ITLOGO.svg`,
+      companyName: companyBranding.companyName,
+      slogan: companyBranding.companyDescription,
+      logoUrl: companyBranding.companyLogo,
       invoiceLabel: "Gate Pass #",
       invoiceNumber: billSale.invoiceNumber || billSale.id || "-",
       issueLabel: "Date",

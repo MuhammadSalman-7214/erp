@@ -10,6 +10,51 @@ const OTP_EXPIRY_MINUTES = 1;
 const OTP_ATTEMPT_LIMIT = 5;
 const PASSWORD_RESET_EXPIRY_MINUTES = 5;
 const OTP_BYPASS_EMAIL = process.env.TEST_USER;
+const userSelectFields = `
+  id, name, email, role, ProfilePic, isActive, billingDay, createdAt, updatedAt
+`;
+const defaultCompanyInfo = {
+  companyName: "",
+  companyDescription: "",
+  companyLogo: "",
+};
+
+const mapUserResponse = (user, companyInfo = defaultCompanyInfo) => ({
+  id: user.id || user.userId,
+  name: user.name,
+  email: user.email,
+  role: user.role,
+  ProfilePic: user.ProfilePic,
+  companyName: companyInfo.companyName || "",
+  companyDescription: companyInfo.companyDescription || "",
+  companyLogo: companyInfo.companyLogo || "",
+  isActive: user.isActive,
+  billingDay: user.billingDay,
+  createdAt: user.createdAt,
+  updatedAt: user.updatedAt,
+});
+
+const normalizeCompanyInfo = (companyInfo) => ({
+  companyName: companyInfo?.companyName || "",
+  companyDescription: companyInfo?.companyDescription || "",
+  companyLogo: companyInfo?.companyLogo || "",
+});
+
+const getCompanyInfoByUserId = async (userId) => {
+  if (!userId) {
+    return { ...defaultCompanyInfo };
+  }
+
+  const rows = await query(
+    `SELECT companyName, companyDescription, companyLogo
+     FROM company_settings
+     WHERE user_id = ?
+     LIMIT 1`,
+    [userId],
+  );
+
+  return normalizeCompanyInfo(rows[0]);
+};
 
 const generateOtpCode = () =>
   String(Math.floor(100000 + Math.random() * 900000));
@@ -129,8 +174,20 @@ module.exports.signup = async (req, res) => {
         error: err,
       });
     }
+    try {
+      await query(
+        "INSERT IGNORE INTO company_settings (user_id, companyName, companyDescription, companyLogo) VALUES (?, '', '', '')",
+        [insertResult.insertId],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
     const savedUserRows = await query(
-      "SELECT id, name, email, role, ProfilePic, isActive, billingDay, createdAt, updatedAt FROM users WHERE id = ? LIMIT 1",
+      `SELECT ${userSelectFields} FROM users WHERE id = ? LIMIT 1`,
       [insertResult.insertId],
     );
     const savedUser = savedUserRows[0] || {
@@ -144,20 +201,13 @@ module.exports.signup = async (req, res) => {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+    const companyInfo = await getCompanyInfoByUserId(savedUser.id);
     const token = await generateToken(savedUser, res);
 
     res.status(201).json({
       message: "Signup successful",
       savedUser: {
-        id: savedUser.id,
-        name: savedUser.name,
-        email: savedUser.email,
-        role: savedUser.role,
-        ProfilePic: savedUser.ProfilePic,
-        isActive: savedUser.isActive,
-        billingDay: savedUser.billingDay,
-        createdAt: savedUser.createdAt,
-        updatedAt: savedUser.updatedAt,
+        ...mapUserResponse(savedUser, companyInfo),
         token,
       },
     });
@@ -260,18 +310,12 @@ module.exports.login = async (req, res) => {
         console.error("Login activity log failed:", logError.message);
       }
 
+      const companyInfo = await getCompanyInfoByUserId(duplicatedUser.id);
+
       return res.status(200).json({
         message: "Login successful",
         user: {
-          id: duplicatedUser.id,
-          name: duplicatedUser.name,
-          email: duplicatedUser.email,
-          role: duplicatedUser.role,
-          ProfilePic: duplicatedUser.ProfilePic,
-          isActive: duplicatedUser.isActive,
-          billingDay: duplicatedUser.billingDay,
-          createdAt: duplicatedUser.createdAt,
-          updatedAt: duplicatedUser.updatedAt,
+          ...mapUserResponse(duplicatedUser, companyInfo),
           token,
         },
       });
@@ -577,18 +621,12 @@ module.exports.verifyLoginOtp = async (req, res) => {
       console.error("Login activity log failed:", logError.message);
     }
 
+    const companyInfo = await getCompanyInfoByUserId(challenge.userId);
+
     return res.status(200).json({
       message: "Login successful",
       user: {
-        id: challenge.userId,
-        name: challenge.name,
-        email: challenge.email,
-        role: challenge.role,
-        ProfilePic: challenge.ProfilePic,
-        isActive: challenge.isActive,
-        billingDay: challenge.billingDay,
-        createdAt: challenge.createdAt,
-        updatedAt: challenge.updatedAt,
+        ...mapUserResponse(challenge, companyInfo),
         token,
       },
     });
@@ -657,7 +695,7 @@ module.exports.updateProfile = async (req, res) => {
         let updatedUser;
         try {
           const rows = await query(
-            "SELECT id, name, email, role, ProfilePic, isActive, billingDay, createdAt, updatedAt FROM users WHERE id = ?",
+            `SELECT ${userSelectFields} FROM users WHERE id = ?`,
             [userId],
           );
           updatedUser = rows[0];
@@ -669,9 +707,11 @@ module.exports.updateProfile = async (req, res) => {
           });
         }
 
+        const companyInfo = await getCompanyInfoByUserId(userId);
+
         return res.status(200).json({
           message: "Profile updated successfully",
-          updatedUser,
+          updatedUser: mapUserResponse(updatedUser, companyInfo),
         });
       } catch (cloudinaryError) {
         console.error("Cloudinary upload failed:", cloudinaryError);
@@ -686,6 +726,80 @@ module.exports.updateProfile = async (req, res) => {
   } catch (error) {
     console.error("Error in update profile Controller", error.message);
     res.status(500).json({ message: "Internal Server Error", error });
+  }
+};
+
+module.exports.updateCompanyInfo = async (req, res) => {
+  try {
+    const userId = req.user?.userId;
+    const { companyName, companyDescription, companyLogo } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+
+    const rows = await query(
+      `SELECT id, name, email, role, ProfilePic, isActive, billingDay, createdAt, updatedAt
+       FROM users WHERE id = ? LIMIT 1`,
+      [userId],
+    );
+    const currentUser = rows[0];
+
+    if (!currentUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const currentCompanyInfo = await getCompanyInfoByUserId(userId);
+    const resolvedName =
+      typeof companyName === "string"
+        ? companyName.trim()
+        : currentCompanyInfo.companyName || "";
+    const resolvedDescription =
+      typeof companyDescription === "string"
+        ? companyDescription.trim()
+        : currentCompanyInfo.companyDescription || "";
+
+    let resolvedLogo = currentCompanyInfo.companyLogo || "";
+    const trimmedLogo = String(companyLogo ?? "").trim();
+
+    if (trimmedLogo) {
+      if (trimmedLogo.startsWith("data:")) {
+        const uploadResponse = await Cloundinary.uploader.upload(trimmedLogo, {
+          folder: "company_logos",
+          upload_preset: "upload",
+        });
+
+        resolvedLogo = uploadResponse.secure_url;
+      } else {
+        resolvedLogo = trimmedLogo;
+      }
+    } else if (companyLogo === "") {
+      resolvedLogo = "";
+    }
+
+    await query(
+      `INSERT INTO company_settings (user_id, companyName, companyDescription, companyLogo)
+       VALUES (?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         companyName = VALUES(companyName),
+         companyDescription = VALUES(companyDescription),
+         companyLogo = VALUES(companyLogo),
+         updatedAt = CURRENT_TIMESTAMP`,
+      [userId, resolvedName, resolvedDescription, resolvedLogo],
+    );
+
+    const updatedCompanyInfo = await getCompanyInfoByUserId(userId);
+
+    return res.status(200).json({
+      message: "Company info updated successfully",
+      updatedUser: mapUserResponse(currentUser, updatedCompanyInfo),
+    });
+  } catch (error) {
+    console.error("Error in update company info controller:", error.message);
+    return res.status(500).json({
+      message: "Failed to update company info",
+      error: error.message,
+    });
   }
 };
 
@@ -865,7 +979,8 @@ module.exports.getCurrentUser = async (req, res) => {
     }
 
     const rows = await query(
-      "SELECT id, name, email, role, ProfilePic, isActive, billingDay, createdAt, updatedAt FROM users WHERE id = ? LIMIT 1",
+      `SELECT id, name, email, role, ProfilePic, isActive, billingDay, createdAt, updatedAt
+       FROM users WHERE id = ? LIMIT 1`,
       [userId],
     );
 
@@ -874,7 +989,9 @@ module.exports.getCurrentUser = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    return res.status(200).json({ user });
+    const companyInfo = await getCompanyInfoByUserId(userId);
+
+    return res.status(200).json({ user: mapUserResponse(user, companyInfo) });
   } catch (error) {
     console.error("Error fetching current user:", error.message);
     return res.status(500).json({ message: "Internal Server Error", error });
