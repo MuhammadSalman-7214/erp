@@ -13,9 +13,9 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const runDailySweep = async () => {
   try {
     const result = await deactivateOverdueUsers();
-    console.log("[subscriptionCron] Daily sweep completed:", result);
+    console.log("[subscriptionCron] Subscription sweep completed:", result);
   } catch (error) {
-    console.error("[subscriptionCron] Daily sweep failed:", error);
+    console.error("[subscriptionCron] Subscription sweep failed:", error);
   }
 };
 

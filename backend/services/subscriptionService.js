@@ -1,15 +1,17 @@
 const userModel = require("../models/userModel");
 const paymentModel = require("../models/subscriptionPaymentModel");
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const SUBSCRIPTION_DUE_DAY = 8;
+const SUBSCRIPTION_BANNER_END_DAY = 9;
+const SUBSCRIPTION_DEACTIVATION_DAY = 10;
 
 const getBannerMessage = (diffDays) => {
   if (diffDays === 2) {
-    return "2 days left. Please pay before subscription end or your account will be deactivated";
+    return "Subscription payment for this month is due. Please pay before the 10th to keep your account active.";
   }
 
   if (diffDays === 1) {
-    return "1 day left. Please pay before subscription end or your account will be deactivated";
+    return "Payment is due today. Please pay now to avoid deactivation on the 10th.";
   }
 
   return null;
@@ -27,67 +29,28 @@ const getMonthKey = (date = new Date()) => {
   return `${year}-${month}`;
 };
 
-const getLastDayOfMonth = (year, monthIndex) =>
-  new Date(year, monthIndex + 1, 0).getDate();
+const getBillingCycleMonthKeyForUser = (referenceDate = new Date()) =>
+  getMonthKey(referenceDate);
 
-const createBillingDate = (year, monthIndex, billingDay) => {
-  const lastDay = getLastDayOfMonth(year, monthIndex);
-  const safeDay = Math.min(Math.max(Math.floor(billingDay) || 1, 1), lastDay);
-  return new Date(year, monthIndex, safeDay, 0, 0, 0, 0);
-};
+const getSubscriptionDay = (referenceDate = new Date()) =>
+  normalizeDate(referenceDate).getDate();
 
-const getBillingDay = (user) => {
-  const createdAt = user?.createdAt ? new Date(user.createdAt) : null;
-  const fallbackDay =
-    createdAt && !Number.isNaN(createdAt.getTime()) ? createdAt.getDate() : 1;
-  const billingDay = Number(user?.billingDay || fallbackDay || 1);
-
-  if (!Number.isFinite(billingDay) || billingDay < 1) {
-    return 1;
-  }
-
-  return Math.floor(billingDay);
-};
-
-const getDueDate = (user, referenceDate = new Date()) => {
-  const createdAt = user?.createdAt ? new Date(user.createdAt) : null;
-
-  if (!createdAt || Number.isNaN(createdAt.getTime())) {
-    return null;
-  }
-
-  const reference = normalizeDate(referenceDate);
-  const billingDay = getBillingDay(user);
-
-  let dueDate = createBillingDate(
-    createdAt.getFullYear(),
-    createdAt.getMonth() + 1,
-    billingDay,
+const getSubscriptionDueDate = (referenceDate = new Date()) => {
+  const normalized = normalizeDate(referenceDate);
+  return new Date(
+    normalized.getFullYear(),
+    normalized.getMonth(),
+    SUBSCRIPTION_DUE_DAY,
+    0,
+    0,
+    0,
+    0,
   );
-
-  while (true) {
-    const nextDueDate = createBillingDate(
-      dueDate.getFullYear(),
-      dueDate.getMonth() + 1,
-      billingDay,
-    );
-
-    if (reference.getTime() < nextDueDate.getTime()) {
-      return dueDate;
-    }
-
-    dueDate = nextDueDate;
-  }
 };
 
-const getBillingCycleMonthKeyForUser = (user, referenceDate = new Date()) => {
-  const dueDate = getDueDate(user, referenceDate);
-
-  if (!dueDate) {
-    return null;
-  }
-
-  return getMonthKey(dueDate);
+const isWithinBannerWindow = (referenceDate = new Date()) => {
+  const day = getSubscriptionDay(referenceDate);
+  return day >= SUBSCRIPTION_DUE_DAY && day <= SUBSCRIPTION_BANNER_END_DAY;
 };
 
 const isPaid = async (userId, date = new Date()) => {
@@ -97,7 +60,7 @@ const isPaid = async (userId, date = new Date()) => {
     return false;
   }
 
-  const month = getBillingCycleMonthKeyForUser(user, date);
+  const month = getBillingCycleMonthKeyForUser(date);
 
   if (!month) {
     return false;
@@ -122,7 +85,7 @@ const createMonthlyPayment = async ({ userId, amount, addedBy, paidAt }) => {
     throw error;
   }
 
-  const month = getBillingCycleMonthKeyForUser(user, paidAt || new Date());
+  const month = getBillingCycleMonthKeyForUser(paidAt || new Date());
 
   if (!month) {
     const error = new Error("Unable to resolve billing month for user");
@@ -187,33 +150,19 @@ const buildBannerForUser = async (userId, referenceDate = new Date()) => {
     return null;
   }
 
-  const dueDate = getDueDate(user, referenceDate);
-
-  if (!dueDate) {
+  if (!isWithinBannerWindow(referenceDate)) {
     return null;
   }
 
-  const today = normalizeDate(referenceDate);
-  if (today.getTime() < dueDate.getTime()) {
-    return null;
-  }
-
-  const month = getMonthKey(dueDate);
+  const month = getMonthKey(referenceDate);
   const paid = await paymentModel.findSubscriptionPayment(userId, month);
 
   if (paid) {
     return null;
   }
 
-  const daysSinceDue = Math.floor(
-    (today.getTime() - dueDate.getTime()) / MS_PER_DAY,
-  );
-
-  if (daysSinceDue < 1 || daysSinceDue > 2) {
-    return null;
-  }
-
-  const daysLeftUntilInactive = 3 - daysSinceDue;
+  const today = getSubscriptionDay(referenceDate);
+  const daysLeftUntilInactive = SUBSCRIPTION_DEACTIVATION_DAY - today;
   return getBannerMessage(daysLeftUntilInactive);
 };
 
@@ -226,22 +175,19 @@ const getRevenueByUser = async (userId) => {
 };
 
 const getUnpaidUsersForMonth = async (referenceDate = new Date()) => {
-  const users = await userModel.selectBillingUsers("admin");
   const today = normalizeDate(referenceDate);
+  const currentDay = today.getDate();
+
+  if (currentDay < SUBSCRIPTION_DUE_DAY) {
+    return [];
+  }
+
+  const users = await userModel.selectBillingUsers("admin");
+  const month = getMonthKey(referenceDate);
+  const dueDate = getSubscriptionDueDate(referenceDate);
   const rows = [];
 
   for (const user of users) {
-    const dueDate = getDueDate(user, referenceDate);
-
-    if (!dueDate) {
-      continue;
-    }
-
-    if (today.getTime() <= dueDate.getTime()) {
-      continue;
-    }
-
-    const month = getMonthKey(dueDate);
     const paid = await paymentModel.findSubscriptionPayment(user.id, month);
 
     if (!paid) {
@@ -250,17 +196,11 @@ const getUnpaidUsersForMonth = async (referenceDate = new Date()) => {
   }
 
   return rows.map((user) => {
-    const dueDate = getDueDate(user, referenceDate);
-    const today = normalizeDate(referenceDate);
-    const daysSinceDue = Math.floor(
-      (today.getTime() - dueDate.getTime()) / MS_PER_DAY,
-    );
-
     return {
       ...user,
-      month: getMonthKey(dueDate),
+      month,
       dueDate,
-      daysSinceDue,
+      daysSinceDue: Math.max(currentDay - SUBSCRIPTION_DUE_DAY, 0),
     };
   });
 };
@@ -268,6 +208,8 @@ const getUnpaidUsersForMonth = async (referenceDate = new Date()) => {
 const deactivateOverdueUsers = async (referenceDate = new Date()) => {
   const users = await userModel.selectBillingUsers("admin");
   const today = normalizeDate(referenceDate);
+  const currentDay = today.getDate();
+  const month = getMonthKey(referenceDate);
 
   const results = {
     checked: users.length,
@@ -276,30 +218,16 @@ const deactivateOverdueUsers = async (referenceDate = new Date()) => {
     skippedPaid: 0,
   };
 
+  if (currentDay < SUBSCRIPTION_DEACTIVATION_DAY) {
+    return results;
+  }
+
   for (const user of users) {
-    const dueDate = getDueDate(user, referenceDate);
-
-    if (!dueDate) {
-      continue;
-    }
-
-    if (today.getTime() < dueDate.getTime()) {
-      continue;
-    }
-
-    const month = getMonthKey(dueDate);
     const payment = await paymentModel.findSubscriptionPayment(user.id, month);
     const hasPaid = Boolean(payment);
 
     if (hasPaid) {
       results.skippedPaid += 1;
-      continue;
-    }
-
-    const graceEndDate = new Date(dueDate);
-    graceEndDate.setDate(graceEndDate.getDate() + 2);
-
-    if (today.getTime() <= graceEndDate.getTime()) {
       continue;
     }
 
@@ -318,7 +246,6 @@ const deactivateOverdueUsers = async (referenceDate = new Date()) => {
 module.exports = {
   getBannerMessage,
   getMonthKey,
-  getDueDate,
   isPaid,
   createMonthlyPayment,
   buildBannerForUser,
