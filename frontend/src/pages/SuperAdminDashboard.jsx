@@ -14,64 +14,30 @@ import {
 import { TableSkeleton } from "../Components/LoadingSkeletons";
 import { validateNumberInput } from "../lib/formValidation";
 
-const getDaysInMonth = (year, monthIndex) =>
-  new Date(year, monthIndex + 1, 0).getDate();
-
-const createBillingDate = (year, monthIndex, billingDay) => {
-  const day = Math.min(
-    Math.max(Number(billingDay) || 1, 1),
-    getDaysInMonth(year, monthIndex),
-  );
-  return new Date(year, monthIndex, day);
-};
+const SUBSCRIPTION_DUE_DAY = 8;
 
 const getCurrentMonthKey = () => {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 };
 
-const getSafeBillingDay = (admin) => {
-  const createdAt = admin?.createdAt ? new Date(admin.createdAt) : null;
-  const fallbackDay =
-    createdAt && !Number.isNaN(createdAt.getTime()) ? createdAt.getDate() : 1;
-  const billingDay = Number(admin?.billingDay || fallbackDay || 1);
-  return Number.isFinite(billingDay) && billingDay > 0 ? billingDay : 1;
-};
-
-const getDueDateForAdmin = (admin) => {
-  const createdAt = admin?.createdAt ? new Date(admin.createdAt) : null;
-  if (!createdAt || Number.isNaN(createdAt.getTime())) {
-    return new Date();
-  }
-
-  const billingDay = getSafeBillingDay(admin);
-  let dueDate = createBillingDate(
-    createdAt.getFullYear(),
-    createdAt.getMonth() + 1,
-    billingDay,
-  );
+const getSubscriptionDueDate = () => {
   const now = new Date();
-
-  while (true) {
-    const nextDueDate = createBillingDate(
-      dueDate.getFullYear(),
-      dueDate.getMonth() + 1,
-      billingDay,
-    );
-
-    if (now.getTime() < nextDueDate.getTime()) {
-      return dueDate;
-    }
-
-    dueDate = nextDueDate;
-  }
+  return new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    SUBSCRIPTION_DUE_DAY,
+    0,
+    0,
+    0,
+    0,
+  );
 };
 
 function SuperAdminDashboard() {
   const dispatch = useDispatch();
   const [admins, setAdmins] = useState([]);
   const [unpaidAdmins, setUnpaidAdmins] = useState([]);
-  const [bannerByAdminId, setBannerByAdminId] = useState({});
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
   const [paymentModal, setPaymentModal] = useState({
@@ -103,26 +69,10 @@ function SuperAdminDashboard() {
 
     const adminList = Array.isArray(adminsRes.data) ? adminsRes.data : [];
 
-    const bannerEntries = await Promise.allSettled(
-      adminList.map(async (admin) => {
-        const response = await axiosInstance.get(`/users/${admin.id}/banner`);
-        return [admin.id, response.data?.banner || null];
-      }),
-    );
-
-    const bannerMap = bannerEntries.reduce((acc, entry) => {
-      if (entry.status === "fulfilled") {
-        const [adminId, banner] = entry.value;
-        acc[adminId] = banner;
-      }
-      return acc;
-    }, {});
-
     setAdmins(adminList);
     setUnpaidAdmins(
       Array.isArray(unpaidRes.data?.users) ? unpaidRes.data.users : [],
     );
-    setBannerByAdminId(bannerMap);
   }, []);
 
   const refreshDashboard = useCallback(async () => {
@@ -411,7 +361,7 @@ function SuperAdminDashboard() {
                   <tr className="text-left text-slate-500">
                     <th className="px-5 py-4 font-medium">#</th>
                     <th className="px-5 py-4 font-medium">Admin</th>
-                    <th className="px-5 py-4 font-medium">Billing Day</th>
+                    <th className="px-5 py-4 font-medium">Due Day</th>
                     <th className="px-5 py-4 font-medium">Payment</th>
                     <th className="px-5 py-4 font-medium">Status</th>
                     <th className="px-5 py-4 font-medium text-right">
@@ -423,7 +373,7 @@ function SuperAdminDashboard() {
                   {filteredAdmins.map((admin, index) => {
                     const isActive = Number(admin.isActive) === 1;
                     const isPaid = !unpaidSet.has(Number(admin.id));
-                    const dueDate = getDueDateForAdmin(admin);
+                    const dueDate = getSubscriptionDueDate(admin);
                     const dueDateLabel = dueDate.toLocaleDateString();
                     return (
                       <tr
@@ -442,7 +392,7 @@ function SuperAdminDashboard() {
                           </div>
                         </td>
                         <td className="px-5 py-4 text-slate-700">
-                          {getSafeBillingDay(admin)}
+                          {SUBSCRIPTION_DUE_DAY}th
                           <div className="text-xs text-slate-500">
                             Due {dueDateLabel}
                           </div>
