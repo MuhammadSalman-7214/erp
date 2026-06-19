@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axiosInstance from "../lib/axios";
 import { useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { Bar, Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -29,6 +29,10 @@ import {
 } from "lucide-react";
 import { formatDateLabel } from "../lib/dateFormat";
 import { Button } from "../UI";
+import {
+  dashboardShowFinancialAmountsStorageKey,
+  setShowFinancialAmounts,
+} from "../features/dashboardSlice";
 
 ChartJS.register(
   CategoryScale,
@@ -42,14 +46,17 @@ ChartJS.register(
 
 function Dashboardpage() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
+  const showFinancialAmounts = useSelector(
+    (state) => state.dashboard.showFinancialAmounts,
+  );
   const [summary, setSummary] = useState(null);
   const [weeklySummary, setWeeklySummary] = useState(null);
   const [recentInvoices, setRecentInvoices] = useState([]);
   const [overdueInvoices, setOverdueInvoices] = useState([]);
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showFinancialAmounts, setShowFinancialAmounts] = useState(false);
   const [banner, setBanner] = useState(null);
   const [bannerLoading, setBannerLoading] = useState(false);
   const [resolvedUser, setResolvedUser] = useState(user);
@@ -179,6 +186,17 @@ function Dashboardpage() {
 
     fetchBanner();
   }, [resolvedUser?.id, resolvedUser?.role]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        dashboardShowFinancialAmountsStorageKey,
+        JSON.stringify(showFinancialAmounts),
+      );
+    } catch {
+      // Ignore storage failures and keep the in-memory preference working.
+    }
+  }, [showFinancialAmounts]);
 
   const safeNumber = (value) => {
     const numeric = Number(value);
@@ -317,7 +335,7 @@ function Dashboardpage() {
 
         <Button
           type="button"
-          onClick={() => setShowFinancialAmounts((prev) => !prev)}
+          onClick={() => dispatch(setShowFinancialAmounts(!showFinancialAmounts))}
           variant="outline"
         >
           {showFinancialAmounts ? (

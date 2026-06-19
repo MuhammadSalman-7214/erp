@@ -9,6 +9,7 @@ import notificationReducer from "../features/notificationSlice";
 import stocktransactionReducer from "../features/stocktransactionSlice";
 import salesReducer from "../features/salesSlice";
 import customerReducer from "../features/customerSlice";
+import dashboardReducer from "../features/dashboardSlice";
 
 const store = configureStore({
   reducer: {
@@ -22,6 +23,7 @@ const store = configureStore({
     stocktransaction: stocktransactionReducer,
     sales: salesReducer,
     customer: customerReducer,
+    dashboard: dashboardReducer,
   },
 });
 export default store;
