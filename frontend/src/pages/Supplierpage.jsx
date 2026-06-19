@@ -14,13 +14,10 @@ import {
 import toast from "react-hot-toast";
 import { useRolePermissions } from "../hooks/useRolePermissions";
 import { gettingallproducts } from "../features/productSlice";
-import { AiOutlineProduct } from "react-icons/ai";
-import { TfiSupport } from "react-icons/tfi";
 import { FaMoneyBill1Wave } from "react-icons/fa6";
 import NoData from "../Components/NoData";
 import axiosInstance from "../lib/axios";
 import DrawerPanel from "../Components/DrawerPanel";
-import LoadingButton from "../Components/LoadingButton";
 import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
 import {
@@ -421,52 +418,6 @@ function Supplierpage({ readOnly = false }) {
 
   return (
     <div className="min-h-[92vh] bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.14),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#f1f5f9_100%)] p-4">
-      {/* KPI CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 lg:grid-cols-3">
-        <div className="rounded-xl p-5 border-2 border-[#40de90] bg-gradient-to-br from-emerald-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-sm font-medium text-gray-600">
-              Vendor Total Owed
-            </div>
-            <FaMoneyBill1Wave className="w-5 h-5 text-emerald-600" />
-          </div>
-          <div className="text-xl font-bold text-emerald-700 transition-all duration-300">
-            {currency(summaryTotals.total)}
-          </div>
-          <div className="mt-2 text-xs text-slate-600">
-            <span className="text-emerald-600 font-medium">
-              Paid: {currency(summaryTotals.paid)}
-            </span>
-            <span className="mx-2 text-slate-300">|</span>
-            <span className="text-rose-600 font-medium">
-              Remaining: {currency(summaryTotals.remaining)}
-            </span>
-          </div>
-        </div>
-        <div className="rounded-xl p-5 border-2 border-[#f3a74f] bg-gradient-to-br from-orange-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-sm font-medium text-gray-600">
-              Total Vendors
-            </div>
-            <TfiSupport className="w-5 h-5 text-orange-600" />
-          </div>
-          <div className="text-xl font-bold text-orange-700 transition-all duration-300">
-            {getallSupplier?.length || 0}
-          </div>
-        </div>
-
-        <div className="rounded-xl p-5 border-2 border-[#b884f2] bg-gradient-to-br from-purple-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-sm font-medium text-gray-600">
-              Products Linked
-            </div>
-            <AiOutlineProduct className="w-5 h-5 text-purple-600" />
-          </div>
-          <div className="text-xl font-bold text-purple-700 transition-all duration-300">
-            {getallproduct?.length || 0}
-          </div>
-        </div>
-      </div>
       <div className="mb-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
           <div className="flex flex-col gap-3.5 lg:flex-row lg:items-center lg:justify-between">
@@ -827,6 +778,79 @@ function Supplierpage({ readOnly = false }) {
                         );
                       })}
                     </tbody>
+                    <tfoot className="bg-slate-50/80">
+                      <tr>
+                        <td className="px-5 py-4" colSpan={9}>
+                          <div className="rounded-lg border border-slate-200 bg-gradient-to-r from-white to-teal-50 px-4 py-4 shadow-sm">
+                            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                              <div className="flex items-center gap-3">
+                                <span className="inline-flex h-11 w-11 items-center justify-center rounded-lg bg-teal-100 text-teal-600 ring-1 ring-teal-200">
+                                  <FaMoneyBill1Wave className="h-5 w-5" />
+                                </span>
+                                <div>
+                                  <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+                                    Summary
+                                  </div>
+                                  <div className="text-sm font-semibold text-slate-800">
+                                    Vendor Overview
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 lg:min-w-[920px]">
+                                <div className="rounded-lg border border-emerald-100 bg-emerald-50/80 px-4 py-3 shadow-sm">
+                                  <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-emerald-700/70">
+                                    Total Vendors
+                                  </div>
+                                  <div className="mt-1 text-lg font-bold text-emerald-700">
+                                    {getallSupplier?.length || 0}
+                                  </div>
+                                </div>
+                                <div className="rounded-lg border border-purple-100 bg-purple-50/80 px-4 py-3 shadow-sm">
+                                  <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-purple-700/70">
+                                    Products Linked
+                                  </div>
+                                  <div className="mt-1 text-lg font-bold text-purple-700">
+                                    {getallproduct?.length || 0}
+                                  </div>
+                                </div>
+                                <div className="rounded-lg border border-slate-200 bg-white/90 px-4 py-3 shadow-sm lg:col-span-3">
+                                  <div className="flex items-center justify-between gap-3">
+                                    <div>
+                                      <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">
+                                        Vendors Total Owed
+                                      </div>
+                                      <div className="mt-1 text-lg font-bold text-emerald-700">
+                                        {currency(summaryTotals.total)}
+                                      </div>
+                                    </div>
+                                    <div className="hidden h-10 w-px bg-slate-200 sm:block" />
+                                    <div className="grid gap-2 sm:grid-cols-2">
+                                      <div className="rounded-lg bg-emerald-50 px-3 py-2">
+                                        <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-emerald-700/70">
+                                          Paid
+                                        </div>
+                                        <div className="mt-1 font-semibold text-emerald-700">
+                                          {currency(summaryTotals.paid)}
+                                        </div>
+                                      </div>
+                                      <div className="rounded-lg bg-rose-50 px-3 py-2">
+                                        <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-rose-700/70">
+                                          Remaining
+                                        </div>
+                                        <div className="mt-1 font-semibold text-rose-700">
+                                          {currency(summaryTotals.remaining)}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
               </div>

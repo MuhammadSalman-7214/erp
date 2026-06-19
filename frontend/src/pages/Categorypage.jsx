@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { IoMdAdd, IoMdSearch } from "react-icons/io";
 import FormattedTime from "../lib/FormattedTime";
-import { MdDelete, MdEdit, MdOutlineCategory } from "react-icons/md";
+import { MdDelete, MdEdit } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
 import {
   gettingallCategory,
@@ -74,7 +74,6 @@ function Categorypage() {
     const CategoryData = { name: nameCheck.value };
 
     if (selectedProduct) {
-      // Update existing category
       setIsSubmitting(true);
       dispatch(UpdateCategory({ id: selectedProduct.id, data: CategoryData }))
         .unwrap()
@@ -87,7 +86,6 @@ function Categorypage() {
         })
         .finally(() => setIsSubmitting(false));
     } else {
-      // Create new category
       setIsSubmitting(true);
       dispatch(CreateCategory(CategoryData))
         .unwrap()
@@ -144,19 +142,6 @@ function Categorypage() {
 
   return (
     <div className="min-h-[92vh] bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.14),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#f1f5f9_100%)] p-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-        <div className="rounded-xl p-5 border-2 border-[#40de90] bg-gradient-to-br from-emerald-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-sm font-medium text-gray-600">
-              Total Categories
-            </div>
-            <MdOutlineCategory className="w-5 h-5 text-emerald-600" />
-          </div>
-          <div className="text-2xl font-bold text-emerald-700 transition-all duration-300">
-            {getallCategory?.length || "0"}
-          </div>
-        </div>
-      </div>
       <div className="mb-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
           <div className="flex flex-col gap-3.5 lg:flex-row lg:items-center lg:justify-between">
@@ -166,7 +151,7 @@ function Categorypage() {
               </span>
               <div>
                 <h2 className="text-sm font-semibold text-slate-800">
-                  Product Filters
+                  Category Filters
                 </h2>
                 <p className="mt-0.5 text-sm text-slate-500">
                   Search category by name.
