@@ -176,13 +176,19 @@ const getDashboardSummary = async (req, res) => {
     let salesInvoices;
     let completedSalesProfitRows;
     let purchaseInvoices;
+    let customers;
     let payments;
     let weeklySummary;
     try {
-      [salesInvoices, completedSalesProfitRows, purchaseInvoices, payments] =
-        await Promise.all([
+      [
+        salesInvoices,
+        completedSalesProfitRows,
+        purchaseInvoices,
+        customers,
+        payments,
+      ] = await Promise.all([
           query(
-            "SELECT id, totalAmount, dueDate, status, createdAt FROM invoices WHERE invoiceType = ? AND user_id = ?",
+            "SELECT id, customerId, customer_name, customer_code, totalAmount, dueDate, status, createdAt FROM invoices WHERE invoiceType = ? AND user_id = ?",
             ["sales", userId],
           ),
           query(
@@ -203,7 +209,11 @@ const getDashboardSummary = async (req, res) => {
             ["purchase", userId],
           ),
           query(
-            "SELECT amount, type, invoice, paidAt, invoiceType FROM payments WHERE user_id = ?",
+            "SELECT id, name, customerCode, openingBalance FROM customers WHERE user_id = ?",
+            [userId],
+          ),
+          query(
+            "SELECT amount, type, invoice, paidAt, invoiceType, partyType, customerId, customer_name, customer_code FROM payments WHERE user_id = ?",
             [userId],
           ),
         ]);
@@ -220,6 +230,119 @@ const getDashboardSummary = async (req, res) => {
       });
     }
 
+    const normalizeText = (value = "") => String(value).trim().toLowerCase();
+
+    const customerLookup = new Map();
+    const customerMap = new Map();
+    const salesInvoiceIdsWithPayments = new Set();
+
+    for (const customer of customers || []) {
+      const customerId = String(customer.id);
+      customerMap.set(customerId, {
+        customerId,
+        customerCode: customer.customerCode || "",
+        customerName: customer.name || "Customer",
+        openingBalance: Number(customer.openingBalance) || 0,
+        totalAmount: Number(customer.openingBalance) || 0,
+        paidAmount: 0,
+        remainingAmount: Number(customer.openingBalance) || 0,
+      });
+
+      const codeKey = normalizeText(customer.customerCode);
+      const nameKey = normalizeText(customer.name);
+      if (codeKey) customerLookup.set(`code:${codeKey}`, customerId);
+      if (nameKey) customerLookup.set(`name:${nameKey}`, customerId);
+      if (codeKey || nameKey) {
+        customerLookup.set(`combo:${codeKey}|${nameKey}`, customerId);
+      }
+    }
+
+    const ensureLegacyCustomer = (details) => {
+      const code = normalizeText(details?.customer_code);
+      const name = normalizeText(details?.customer_name);
+      const matchedCustomerId =
+        customerLookup.get(`combo:${code}|${name}`) ||
+        customerLookup.get(`code:${code}`) ||
+        customerLookup.get(`name:${name}`);
+      if (matchedCustomerId) return matchedCustomerId;
+
+      const legacyKey = code || name ? `${code}|${name}` : "";
+      if (!legacyKey) return "";
+      if (!customerMap.has(legacyKey)) {
+        customerMap.set(legacyKey, {
+          customerId: "",
+          customerCode: details?.customer_code || "",
+          customerName: details?.customer_name || "Customer",
+          openingBalance: 0,
+          totalAmount: 0,
+          paidAmount: 0,
+          remainingAmount: 0,
+        });
+      }
+      return legacyKey;
+    };
+
+    const resolveCustomerSummaryKey = (details) => {
+      const customerId = details?.customerId ? String(details.customerId) : "";
+      if (customerId && customerMap.has(customerId)) {
+        return customerId;
+      }
+
+      const legacyKey = ensureLegacyCustomer(details);
+      if (legacyKey) {
+        return legacyKey;
+      }
+
+      if (customerId) {
+        customerMap.set(customerId, {
+          customerId,
+          customerCode: details?.customer_code || "",
+          customerName: details?.customer_name || "Customer",
+          openingBalance: 0,
+          totalAmount: 0,
+          paidAmount: 0,
+          remainingAmount: 0,
+        });
+        return customerId;
+      }
+
+      return "";
+    };
+
+    for (const payment of payments) {
+      if (String(payment.partyType || "").toLowerCase() !== "customer") {
+        continue;
+      }
+      if (String(payment.type || "").toLowerCase() !== "received") {
+        continue;
+      }
+
+      const customerKey = resolveCustomerSummaryKey(payment);
+      if (!customerKey) continue;
+
+      const current = customerMap.get(customerKey);
+      if (!current) continue;
+      current.paidAmount += toMoney(payment.amount);
+      if (payment.invoice) {
+        salesInvoiceIdsWithPayments.add(String(payment.invoice));
+      }
+    }
+
+    for (const invoice of salesInvoices) {
+      const customerKey = resolveCustomerSummaryKey(invoice);
+      if (!customerKey) continue;
+
+      const current = customerMap.get(customerKey);
+      if (!current) continue;
+      current.totalAmount += toMoney(invoice.totalAmount);
+      if (
+        String(invoice.status || "").toLowerCase() === "paid" &&
+        !salesInvoiceIdsWithPayments.has(String(invoice.id))
+      ) {
+        current.paidAmount += toMoney(invoice.totalAmount);
+      }
+    }
+
     const paymentByInvoice = payments.reduce((acc, payment) => {
       if (!payment.invoice) return acc;
       const key = String(payment.invoice);
@@ -227,10 +350,20 @@ const getDashboardSummary = async (req, res) => {
       return acc;
     }, {});
 
-    const totalReceivable = salesInvoices.reduce((sum, inv) => {
-      const paid = paymentByInvoice[String(inv.id)] || 0;
-      return sum + Math.max(toMoney(inv.totalAmount) - paid, 0);
+    const unresolvedSalesReceivable = salesInvoices.reduce((sum, invoice) => {
+      const customerKey = resolveCustomerSummaryKey(invoice);
+      if (customerKey) {
+        return sum;
+      }
+      const paid = paymentByInvoice[String(invoice.id)] || 0;
+      return sum + Math.max(toMoney(invoice.totalAmount) - paid, 0);
     }, 0);
+
+    const totalReceivable =
+      Array.from(customerMap.values()).reduce(
+        (sum, entry) => sum + Math.max(entry.totalAmount - entry.paidAmount, 0),
+        0,
+      ) + unresolvedSalesReceivable;
 
     const totalPayable = purchaseInvoices.reduce((sum, inv) => {
       const paid = paymentByInvoice[String(inv.id)] || 0;
