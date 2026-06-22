@@ -176,6 +176,7 @@ const getDashboardSummary = async (req, res) => {
     let salesInvoices;
     let completedSalesProfitRows;
     let purchaseInvoices;
+    let vendors;
     let customers;
     let payments;
     let weeklySummary;
@@ -184,8 +185,9 @@ const getDashboardSummary = async (req, res) => {
         salesInvoices,
         completedSalesProfitRows,
         purchaseInvoices,
-        customers,
+        vendors,
         payments,
+        customers,
       ] = await Promise.all([
           query(
             "SELECT id, customerId, customer_name, customer_code, totalAmount, dueDate, status, createdAt FROM invoices WHERE invoiceType = ? AND user_id = ?",
@@ -205,15 +207,19 @@ const getDashboardSummary = async (req, res) => {
             [userId, userId],
           ),
           query(
-            "SELECT id, totalAmount, dueDate, status, createdAt FROM invoices WHERE invoiceType = ? AND user_id = ?",
+            "SELECT id, vendor, totalAmount, dueDate, status, createdAt FROM invoices WHERE invoiceType = ? AND user_id = ?",
             ["purchase", userId],
           ),
           query(
-            "SELECT id, name, customerCode, openingBalance FROM customers WHERE user_id = ?",
+            "SELECT id, name, openingBalance FROM vendors WHERE user_id = ?",
             [userId],
           ),
           query(
-            "SELECT amount, type, invoice, paidAt, invoiceType, partyType, customerId, customer_name, customer_code FROM payments WHERE user_id = ?",
+            "SELECT amount, type, invoice, paidAt, invoiceType, partyType, vendor, customerId, customer_name, customer_code FROM payments WHERE user_id = ?",
+            [userId],
+          ),
+          query(
+            "SELECT id, name, customerCode, openingBalance FROM customers WHERE user_id = ?",
             [userId],
           ),
         ]);
@@ -232,9 +238,88 @@ const getDashboardSummary = async (req, res) => {
 
     const normalizeText = (value = "") => String(value).trim().toLowerCase();
 
+    const vendorLookup = new Map();
+    const vendorMap = new Map();
+    const purchaseInvoiceIdsWithPayments = new Set();
     const customerLookup = new Map();
     const customerMap = new Map();
     const salesInvoiceIdsWithPayments = new Set();
+
+    for (const vendor of vendors || []) {
+      const vendorId = String(vendor.id);
+      vendorMap.set(vendorId, {
+        vendorId,
+        name: vendor.name || "Vendor",
+        openingBalance: Number(vendor.openingBalance) || 0,
+        totalAmount: Number(vendor.openingBalance) || 0,
+        paidAmount: 0,
+        remainingAmount: Number(vendor.openingBalance) || 0,
+      });
+
+      const nameKey = normalizeText(vendor.name);
+      if (nameKey) {
+        vendorLookup.set(`name:${nameKey}`, vendorId);
+      }
+    }
+
+    const resolveVendorSummaryKey = (details) => {
+      const vendorId = details?.vendor ? String(details.vendor) : "";
+      if (vendorId && vendorMap.has(vendorId)) {
+        return vendorId;
+      }
+
+      const vendorName = normalizeText(details?.vendor_name || details?.name);
+      const matchedVendorId = vendorLookup.get(`name:${vendorName}`);
+      if (matchedVendorId) return matchedVendorId;
+
+      if (!vendorId) return "";
+
+      if (!vendorMap.has(vendorId)) {
+        vendorMap.set(vendorId, {
+          vendorId,
+          name: details?.vendor_name || details?.name || "Vendor",
+          openingBalance: 0,
+          totalAmount: 0,
+          paidAmount: 0,
+          remainingAmount: 0,
+        });
+      }
+      return vendorId;
+    };
+
+    for (const payment of payments) {
+      if (String(payment.partyType || "").toLowerCase() !== "vendor") {
+        continue;
+      }
+      if (String(payment.type || "").toLowerCase() !== "paid") {
+        continue;
+      }
+
+      const vendorKey = resolveVendorSummaryKey(payment);
+      if (!vendorKey) continue;
+
+      const current = vendorMap.get(vendorKey);
+      if (!current) continue;
+      current.paidAmount += toMoney(payment.amount);
+      if (payment.invoice) {
+        purchaseInvoiceIdsWithPayments.add(String(payment.invoice));
+      }
+    }
+
+    for (const invoice of purchaseInvoices) {
+      const vendorKey = resolveVendorSummaryKey(invoice);
+      if (!vendorKey) continue;
+
+      const current = vendorMap.get(vendorKey);
+      if (!current) continue;
+      current.totalAmount += toMoney(invoice.totalAmount);
+      if (
+        String(invoice.status || "").toLowerCase() === "paid" &&
+        !purchaseInvoiceIdsWithPayments.has(String(invoice.id))
+      ) {
+        current.paidAmount += toMoney(invoice.totalAmount);
+      }
+    }
 
     for (const customer of customers || []) {
       const customerId = String(customer.id);
@@ -350,6 +435,15 @@ const getDashboardSummary = async (req, res) => {
       return acc;
     }, {});
 
+    const unresolvedPurchasePayable = purchaseInvoices.reduce((sum, invoice) => {
+      const vendorKey = resolveVendorSummaryKey(invoice);
+      if (vendorKey) {
+        return sum;
+      }
+      const paid = paymentByInvoice[String(invoice.id)] || 0;
+      return sum + Math.max(toMoney(invoice.totalAmount) - paid, 0);
+    }, 0);
+
     const unresolvedSalesReceivable = salesInvoices.reduce((sum, invoice) => {
       const customerKey = resolveCustomerSummaryKey(invoice);
       if (customerKey) {
@@ -365,10 +459,11 @@ const getDashboardSummary = async (req, res) => {
         0,
       ) + unresolvedSalesReceivable;
 
-    const totalPayable = purchaseInvoices.reduce((sum, inv) => {
-      const paid = paymentByInvoice[String(inv.id)] || 0;
-      return sum + Math.max(toMoney(inv.totalAmount) - paid, 0);
-    }, 0);
+    const totalPayable =
+      Array.from(vendorMap.values()).reduce(
+        (sum, entry) => sum + Math.max(entry.totalAmount - entry.paidAmount, 0),
+        0,
+      ) + unresolvedPurchasePayable;
 
     const totalProfit = Number(completedSalesProfitRows?.[0]?.totalProfit || 0);
 
