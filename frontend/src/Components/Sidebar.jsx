@@ -7,7 +7,11 @@ import {
 import { FiLogOut, FiShoppingCart } from "react-icons/fi";
 import { NavLink } from "react-router-dom";
 import { PiInvoiceBold } from "react-icons/pi";
-import { MdOutlineCategory, MdOutlinePayments } from "react-icons/md";
+import {
+  MdOutlineCategory,
+  MdOutlinePayments,
+  MdOutlineSettings,
+} from "react-icons/md";
 import { CiMenuFries } from "react-icons/ci";
 import { TfiSupport } from "react-icons/tfi";
 import { IoNotificationsOutline } from "react-icons/io5";
@@ -249,6 +253,13 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
               to="/category"
               icon={<MdOutlineCategory />}
               label="Category"
+              sidebarOpen={sidebarOpen}
+            />
+
+            <NavItem
+              to="/setting"
+              icon={<MdOutlineSettings />}
+              label="Setting"
               sidebarOpen={sidebarOpen}
             />
           </>

@@ -174,7 +174,7 @@ function App() {
               <Route path="payments" element={<PaymentsPage />} />
               <Route path="notifications" element={<NotificationsByRole />} />
               <Route path="Profilepage" element={<Profilepage />} />
-              <Route path="settings" element={<Settings />} />
+              <Route path="setting" element={<Settings />} />
               <Route path="supplier" element={<SupplierByRole />} />
               <Route path="supplier/:id" element={<SupplierDetailPage />} />
               <Route path="customer" element={<CustomerByRole />} />

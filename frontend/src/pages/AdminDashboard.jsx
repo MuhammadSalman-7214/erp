@@ -26,7 +26,7 @@ function AdminDashboard() {
           />
         </div>
 
-        <main className="mt-[72px] h-full overflow-y-auto ">
+        <main className="mt-[76px] h-full overflow-y-auto">
           <Outlet />
         </main>
       </div>

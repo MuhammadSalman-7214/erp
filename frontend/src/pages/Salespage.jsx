@@ -1142,9 +1142,7 @@ function Salespage() {
       const pageHeight = pdf.internal.pageSize.getHeight();
       const contentWidth = pageWidth - marginX * 2;
       let y = 12;
-      const logoDataUrl = await loadLogoDataUrl(
-      companyBranding.companyLogo,
-      );
+      const logoDataUrl = await loadLogoDataUrl(companyBranding.companyLogo);
 
       const addWrappedText = (
         text,
@@ -2238,7 +2236,7 @@ function Salespage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <div className="w-full max-w-[95%] sm:max-w-[640px] md:max-w-[768px] lg:max-w-[1024px] xl:max-w-[1280px] 2xl:max-w-[1400px] mx-auto overflow-x-auto relative">
+            <div className="w-full max-w-[1230px] mx-auto overflow-x-auto relative">
               <div className="flex gap-2 w-max">
                 <table className="w-full text-sm border-collapse">
                   {/* HEADER */}

@@ -65,6 +65,11 @@ function TopNavbar() {
       subtitle:
         "Organize products into structured categories for efficient inventory management.",
     },
+
+    "/setting": {
+      title: "Settings",
+      subtitle: "Organize profile and system configurations.",
+    },
   };
 
   const current = pages[location.pathname] || {

@@ -621,7 +621,7 @@ function Supplierpage({ readOnly = false }) {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <div className="w-full max-w-[1390px] mx-auto overflow-x-auto relative">
+              <div className="w-full max-w-[1230px] mx-auto overflow-x-auto relative">
                 <div className="flex gap-2">
                   <table className="min-w-[1390px] w-full text-sm border-collapse">
                     <thead className="bg-slate-50 border-b">
