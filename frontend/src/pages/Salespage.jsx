@@ -1526,7 +1526,7 @@ function Salespage() {
               </div>
             </div>
 
-            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
+            <div className="inline-flex w-fit items-center gap-3.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
               <span className="wave-dot">
                 <span className="wave ripple-1"></span>
                 <span className="wave ripple-2"></span>
@@ -2238,12 +2238,12 @@ function Salespage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <div className="max-w-[1230px] overflow-x-auto relative">
+            <div className="w-full max-w-[95%] sm:max-w-[640px] md:max-w-[768px] lg:max-w-[1024px] xl:max-w-[1280px] 2xl:max-w-[1400px] mx-auto overflow-x-auto relative">
               <div className="flex gap-2 w-max">
                 <table className="w-full text-sm border-collapse">
                   {/* HEADER */}
                   <thead>
-                    <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-[.25] bg-slate-50 border-y border-slate-200">
+                    <tr className="text-left text-xs font-semibold text-slate-500 uppercase bg-slate-50 border-y border-slate-200">
                       <th className="px-4 py-4 font-semibold">#</th>
                       <th className="px-4 py-4 font-semibold">Invoice No</th>
                       <th className="px-4 py-4 font-semibold">Customer</th>

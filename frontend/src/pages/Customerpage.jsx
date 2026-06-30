@@ -7,7 +7,6 @@ import toast from "react-hot-toast";
 import NoData from "../Components/NoData";
 import DrawerPanel from "../Components/DrawerPanel";
 import axiosInstance from "../lib/axios";
-import { FaMoneyBill1Wave } from "react-icons/fa6";
 import { validatePhoneInput, validateTextInput } from "../lib/formValidation";
 import {
   Button,
@@ -511,9 +510,9 @@ function Customerpage({ readOnly = false }) {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <div className="max-w-[1230px] overflow-x-auto relative">
+              <div className="w-full max-w-[1390px] mx-auto overflow-x-auto relative">
                 <div className="flex gap-2">
-                  <table className="w-full text-sm border-collapse">
+                  <table className="min-w-[1390px] w-full text-sm border-collapse">
                     <thead className="bg-slate-50 border-b">
                       <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
                         <th className="px-5 py-4 font-semibold">Customer</th>
@@ -622,71 +621,70 @@ function Customerpage({ readOnly = false }) {
                         );
                       })}
                     </tbody>
-                    <tfoot className="bg-slate-50/80">
-                      <tr>
-                        <td className="px-5 py-4" colSpan={6}>
-                          <div className="rounded-lg border border-slate-200 bg-gradient-to-r from-white to-teal-50 px-4 py-4 shadow-sm">
-                            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                              <div className="flex items-center gap-3">
-                                <span className="inline-flex h-11 w-11 items-center justify-center rounded-lg bg-teal-100 text-teal-600 ring-1 ring-teal-200">
-                                  <FaMoneyBill1Wave className="h-5 w-5" />
-                                </span>
+                    <tfoot>
+                      <tr className="border-t-2 border-slate-200 text-sm font-semibold text-slate-700">
+                        <td
+                          className="px-5 py-4 text-md text-teal-800"
+                          colSpan={2}
+                        >
+                          <div className="flex flex-col gap-1">
+                            <span className="font-bold uppercase">
+                              Grand Total
+                            </span>
+                            <span className="text-xs font-medium uppercase tracking-[0.2em] text-teal-700/80">
+                              Customer Overview - {getAllCustomers?.length || 0}{" "}
+                              Customers
+                            </span>
+                          </div>
+                        </td>
 
-                                <div>
-                                  <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-                                    Summary
-                                  </div>
-                                  <div className="text-sm font-semibold text-slate-800">
-                                    Customer Overview
-                                  </div>
-                                </div>
-                              </div>
+                        <td className="px-5 py-4">
+                          <div className="flex flex-col gap-1">
+                            <span className="inline-flex w-fit items-center rounded-full border border-emerald-200 bg-emerald-50/90 px-3 py-1 text-base font-bold text-emerald-800 shadow-sm">
+                              {currency(summaryTotals.total)}
+                            </span>
+                            <span className="text-xs font-medium uppercase tracking-[0.2em] text-emerald-700/80">
+                              Total Sale
+                            </span>
+                          </div>
+                        </td>
 
-                              {/* KPI cards */}
-                              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:min-w-[760px]">
-                                {/* Customers */}
-                                <div className="rounded-lg border border-emerald-100 bg-emerald-50/80 px-4 py-3 shadow-sm">
-                                  <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-emerald-700/70">
-                                    Total Customers
-                                  </div>
-                                  <div className="mt-1 text-lg font-bold text-emerald-700">
-                                    {getAllCustomers?.length || 0}
-                                  </div>
-                                </div>
+                        <td className="px-5 py-4">
+                          <div className="flex flex-col gap-1">
+                            <span className="inline-flex w-fit items-center rounded-full border border-violet-200 bg-violet-50/90 px-3 py-1 text-base font-bold text-violet-800 shadow-sm">
+                              {currency(summaryTotals.paid)}
+                            </span>
+                            <span className="text-xs font-medium uppercase tracking-[0.2em] text-violet-700/80">
+                              Collected
+                            </span>
+                          </div>
+                        </td>
 
-                                <div className="rounded-lg border border-slate-200 bg-white/90 px-4 py-3 shadow-sm lg:col-span-3">
-                                  <div className="flex items-center justify-between gap-3">
-                                    <div>
-                                      <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">
-                                        Customers Total Sale
-                                      </div>
-                                      <div className="mt-1 text-lg font-bold text-emerald-700">
-                                        {currency(summaryTotals.total)}
-                                      </div>
-                                    </div>
-                                    <div className="hidden h-10 w-px bg-slate-200 sm:block" />
-                                    <div className="grid gap-2 sm:grid-cols-2">
-                                      <div className="rounded-lg bg-emerald-50 px-3 py-2">
-                                        <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-emerald-700/70">
-                                          Collected
-                                        </div>
-                                        <div className="mt-1 font-semibold text-emerald-700">
-                                          {currency(summaryTotals.paid)}
-                                        </div>
-                                      </div>
-                                      <div className="rounded-lg bg-rose-50 px-3 py-2">
-                                        <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-rose-700/70">
-                                          Remaining
-                                        </div>
-                                        <div className="mt-1 font-semibold text-rose-700">
-                                          {currency(summaryTotals.remaining)}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
+                        <td className="px-5 py-4">
+                          <div className="flex flex-col gap-1">
+                            <span className="inline-flex w-fit items-center rounded-full border border-amber-200 bg-amber-50/90 px-3 py-1 text-base font-bold text-amber-800 shadow-sm">
+                              {currency(summaryTotals.remaining)}
+                            </span>
+                            <span className="text-xs font-medium uppercase tracking-[0.2em] text-amber-700/80">
+                              Remaining
+                            </span>
+                          </div>
+                        </td>
+
+                        <td
+                          className="sticky right-0 z-20 px-4 py-4 text-center text-white"
+                          style={{
+                            boxShadow:
+                              "inset 8px 0 16px -8px rgba(166, 174, 192, 0.45)",
+                          }}
+                        >
+                          <div className="flex flex-col gap-1">
+                            <span className="text-sm font-semibold text-emerald-700/80">
+                              Summary
+                            </span>
+                            <span className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
+                              Actions
+                            </span>
                           </div>
                         </td>
                       </tr>

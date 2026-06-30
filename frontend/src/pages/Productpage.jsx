@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { IoMdAdd, IoMdSearch, IoMdTrash } from "react-icons/io";
-import { MdDelete, MdEdit, MdOutlineCategory } from "react-icons/md";
+import { IoMdAdd, IoMdTrash, IoMdSearch } from "react-icons/io";
+import { MdDelete, MdEdit } from "react-icons/md";
 import { AiOutlineDownload } from "react-icons/ai";
 import { useDispatch, useSelector } from "react-redux";
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
 import FormattedTime from "../lib/FormattedTime";
-import { FaMoneyBill1Wave, FaPalette } from "react-icons/fa6";
+import { formatCurrency } from "../lib/formatNumber";
+import { FaPalette } from "react-icons/fa6";
 
 import {
   Addproduct,
@@ -20,7 +21,6 @@ import {
 import { gettingallCategory } from "../features/categorySlice";
 import toast from "react-hot-toast";
 import { useRolePermissions } from "../hooks/useRolePermissions";
-import { AiOutlineProduct } from "react-icons/ai";
 import NoData from "../Components/NoData";
 import { TableSkeleton } from "../Components/LoadingSkeletons";
 import DrawerPanel from "../Components/DrawerPanel";
@@ -47,8 +47,10 @@ const normalizePdfText = (value) =>
   String(value || "-")
     .replace(/\s+/g, " ")
     .trim();
+
 const getRowQuantity = (row) =>
   Number(row?.code?.quantity ?? row?.product?.totalQuantity ?? 0);
+
 function Productpage({ readOnly = false }) {
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
 
@@ -499,9 +501,13 @@ function Productpage({ readOnly = false }) {
 
     const matchesSearch = ({ product, code }) => {
       const productName = String(product?.name || "").toLowerCase();
-      const company = String(product?.company || product?.brand || "").toLowerCase();
+      const company = String(
+        product?.company || product?.brand || "",
+      ).toLowerCase();
       const category = String(product?.Category?.name || "").toLowerCase();
-      const productDescription = String(product?.description || "").toLowerCase();
+      const productDescription = String(
+        product?.description || "",
+      ).toLowerCase();
       const codeValue = String(code?.code || "").toLowerCase();
       const variantValue = String(code?.variantName || "").toLowerCase();
 
@@ -533,6 +539,39 @@ function Productpage({ readOnly = false }) {
     [filteredRows, createdAtSort],
   );
 
+  const tableTotals = useMemo(() => {
+    return sortedRows.reduce(
+      (acc, row) => {
+        const product = row.product || {};
+        const quantity = getRowQuantity(row);
+        const purchasePrice = Number(product.purchasePrice ?? 0);
+        const tradePrice = Number(product.tradePrice ?? 0);
+        const salePrice = Number(product.salePrice ?? 0);
+
+        acc.rowCount += 1;
+        acc.totalQuantity += quantity;
+        acc.purchaseValue += quantity * purchasePrice;
+        acc.tradeValue += quantity * tradePrice;
+        acc.storeValue += quantity * salePrice;
+
+        const productId = getId(product);
+        if (productId !== undefined && productId !== null) {
+          acc.uniqueProductIds.add(productId);
+        }
+
+        return acc;
+      },
+      {
+        rowCount: 0,
+        totalQuantity: 0,
+        purchaseValue: 0,
+        tradeValue: 0,
+        storeValue: 0,
+        uniqueProductIds: new Set(),
+      },
+    );
+  }, [sortedRows]);
+
   const stockReportRows = useMemo(() => {
     return sortedRows.map((row, index) => {
       const product = row.product || {};
@@ -545,7 +584,7 @@ function Productpage({ readOnly = false }) {
         company: normalizePdfText(product.company || product.brand || "-"),
         category: normalizePdfText(product.Category?.name || "-"),
         description: normalizePdfText(product.description || "-"),
-        qty: Number(code?.quantity ?? product.totalQuantity ?? 0),
+        qty: getRowQuantity(row),
       };
     });
   }, [sortedRows]);
@@ -661,30 +700,11 @@ function Productpage({ readOnly = false }) {
     [getallproduct, codeProductId],
   );
 
-  const totalStoreValue = useMemo(() => {
-    if (!Array.isArray(getallproduct)) return 0;
-    return getallproduct.reduce((total, product) => {
-      const salePrice = Number(
-        product.salePrice ??
-          product.pricing?.currentSalesPrice ??
-          product.Price ??
-          0,
-      );
-      const totalQuantity =
-        product.totalQuantity ??
-        (product.productCodes || []).reduce(
-          (sum, code) => sum + Number(code.quantity || 0),
-          0,
-        );
-      return total + salePrice * Number(totalQuantity || 0);
-    }, 0);
-  }, [getallproduct]);
-
   return (
     <div className="min-h-[92vh] bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.14),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#f1f5f9_100%)] p-4">
       <div className="mb-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
-          <div className="flex flex-col gap-3.5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-start gap-3">
               <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700 ring-1 ring-teal-100">
                 <IoMdSearch className="text-lg" />
@@ -750,6 +770,7 @@ function Productpage({ readOnly = false }) {
           )}
         </div>
       </div>
+
       {/* TABLE */}
       <div className="mt-4">
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -766,9 +787,9 @@ function Productpage({ readOnly = false }) {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <div className="max-w-[1230px] overflow-x-auto relative">
+              <div className="w-full max-w-[1390px] mx-auto overflow-x-auto relative">
                 <div className="flex gap-2 w-max">
-                  <table className="w-full text-sm border-collapse">
+                  <table className="min-w-[1390px] w-full text-sm border-collapse">
                     <thead>
                       <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
                         <th className="px-5 py-4 font-semibold">#</th>
@@ -777,7 +798,7 @@ function Productpage({ readOnly = false }) {
                           Product Code
                         </th>
                         <th className="px-5 py-4 font-semibold">Description</th>
-                        <th className="px-5 py-4 font-semibold">Quantity</th>
+                        <th className="px-5 py-4 font-semibold ">Quantity</th>
 
                         <th className="px-5 py-4 font-semibold">
                           Purchase Price
@@ -810,6 +831,7 @@ function Productpage({ readOnly = false }) {
                         )}
                       </tr>
                     </thead>
+
                     <tbody>
                       {sortedRows.map((row, index) => {
                         const product = row.product;
@@ -855,7 +877,7 @@ function Productpage({ readOnly = false }) {
                               {(() => {
                                 const quantity = getRowQuantity(row);
                                 return quantity > 0 ? (
-                                  <span className="inline-flex w-full justify-center items-center rounded-full border border-teal-100 bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-700">
+                                  <span className="inline-flex w-full items-center rounded-full  px-2.5 py-1 text-sm font-semibold text-teal-700">
                                     {quantity}
                                   </span>
                                 ) : (
@@ -883,16 +905,16 @@ function Productpage({ readOnly = false }) {
                               <FormattedTime timestamp={product?.createdAt} />
                             </td>
 
-                              {!isReadOnlyMode && (
-                                <td
+                            {!isReadOnlyMode && (
+                              <td
                                 className="px-4 py-4 sticky right-0 z-10 bg-gray-50/80 text-center transition-colors duration-150"
-                                  style={{
-                                    boxShadow:
-                                      "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
-                                  }}
-                                >
+                                style={{
+                                  boxShadow:
+                                    "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
+                                }}
+                              >
                                 <div className="flex justify-center">
-                                    <div className="flex items-center justify-center gap-2 overflow-hidden">
+                                  <div className="flex items-center justify-center gap-2 overflow-hidden">
                                     {canWrite && (
                                       <Tooltip content="Edit Product">
                                         <Button
@@ -979,6 +1001,115 @@ function Productpage({ readOnly = false }) {
                         );
                       })}
                     </tbody>
+
+                    <tfoot>
+                      <tr className="border-t-2 border-slate-200 text-sm font-semibold text-slate-700">
+                        <td
+                          className="px-5 py-4 text-md text-teal-800"
+                          colSpan={4}
+                          // style={{
+                          //   background:
+                          //     "linear-gradient(135deg,rgb(203, 250, 246) 0%,rgb(182, 227, 247) 55%,rgb(201, 221, 251) 100%)",
+                          // }}
+                        >
+                          <div className="flex flex-col gap-1">
+                            <span className="font-bold uppercase">
+                              Grand Total
+                            </span>
+                            {/* <span className="text-sm text-cyan-50/95">
+                              {tableTotals.rowCount} rows,{" "}
+                              {tableTotals.uniqueProductIds.size} unique
+                              products
+                            </span> */}
+                          </div>
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <div className="flex flex-col gap-1 ">
+                            <span className="inline-flex w-fit items-center rounded-full border border-teal-200 bg-teal-50/90  px-3 py-1 text-base font-bold text-teal-800 shadow-sm">
+                              {tableTotals.totalQuantity.toLocaleString()}
+                            </span>
+                            <span className="text-xs font-medium uppercase tracking-[0.2em] text-teal-700/80">
+                              Total Quantity
+                            </span>
+                          </div>
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <div className="flex flex-col gap-1">
+                            <span className="inline-flex w-fit items-center rounded-full border border-violet-200 bg-violet-50/90 px-3 py-1 text-base font-bold text-violet-800 shadow-sm">
+                              {formatCurrency(tableTotals.purchaseValue)}
+                            </span>
+                            <span className="text-xs font-medium uppercase tracking-[0.2em] text-violet-700/80">
+                              Purchase Value
+                            </span>
+                          </div>
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <div className="flex flex-col gap-1">
+                            <span className="inline-flex w-fit items-center rounded-full border border-amber-200 bg-amber-50/90 px-3 py-1 text-base font-bold text-amber-800 shadow-sm">
+                              {formatCurrency(tableTotals.tradeValue)}
+                            </span>
+                            <span className="text-xs font-medium uppercase tracking-[0.2em] text-amber-700/80">
+                              Trade Value
+                            </span>
+                          </div>
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <div className="flex flex-col gap-1">
+                            <span className="inline-flex w-fit items-center rounded-full border border-emerald-200 bg-emerald-50/90 px-3 py-1 text-base font-bold text-emerald-800 shadow-sm">
+                              {formatCurrency(tableTotals.storeValue)}
+                            </span>
+                            <span className="text-xs font-medium uppercase tracking-[0.2em] text-emerald-700/80">
+                              Store Value
+                            </span>
+                          </div>
+                        </td>
+
+                        <td className="px-5 py-4 text-slate-600">
+                          {/* <div className="flex flex-col gap-1">
+                            <span className="text-xs font-bold uppercase tracking-[0.22em] text-slate-500">
+                              Inventory Snapshot
+                            </span>
+                            <span className="text-sm font-medium text-slate-700">
+                              Totals reflect the visible rows
+                            </span>
+                          </div> */}
+                        </td>
+
+                        <td className="px-5 py-4 text-slate-500">
+                          {/* <div className="flex flex-col gap-1">
+                            <span className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">
+                              Date
+                            </span>
+                            <span className="text-sm font-medium text-slate-600">
+                              Summary
+                            </span>
+                          </div> */}
+                        </td>
+
+                        {!isReadOnlyMode && (
+                          <td
+                            className="sticky right-0 z-20 px-4 py-4 text-center text-white"
+                            style={{
+                              boxShadow:
+                                "inset 8px 0 16px -8px rgba(166, 174, 192, 0.45)",
+                            }}
+                          >
+                            <div className="flex flex-col gap-1">
+                              {/* <span className="text-xs font-bold uppercase tracking-[0.22em] text-slate-300">
+                                Actions
+                              </span> */}
+                              <span className="text-sm font-semibold text-emerald-700/80">
+                                Summary
+                              </span>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
               </div>
@@ -1001,7 +1132,7 @@ function Productpage({ readOnly = false }) {
             className="space-y-4"
           >
             <div>
-              <label className="text-sm font-medium">Name</label>
+              <label className="text-xs font-medium text-slate-600">Name</label>
               <Inputfield
                 type="text"
                 value={name}
@@ -1033,7 +1164,9 @@ function Productpage({ readOnly = false }) {
               )}
             </div>
             <div>
-              <label className="text-sm font-medium">Description</label>
+              <label className="text-xs font-medium text-slate-600">
+                Description
+              </label>
               <Inputfield
                 type="text"
                 value={description}
@@ -1066,7 +1199,9 @@ function Productpage({ readOnly = false }) {
               )}
             </div>
             <div>
-              <label className="text-sm font-medium">Company</label>
+              <label className="text-xs font-medium text-slate-600">
+                Company
+              </label>
               <Inputfield
                 type="text"
                 value={company}
@@ -1098,11 +1233,13 @@ function Productpage({ readOnly = false }) {
               )}
             </div>
             <div>
-              <label className="text-sm font-medium">Category</label>
+              <label className="text-xs font-medium text-slate-600">
+                Category
+              </label>
               <SelectDropdown
                 value={Category}
                 onChange={(e) => {
-                  const value = e?.target?.value ?? e?.value ?? e ?? "";
+                  const value = e.target.value;
                   setCategory(value);
                   validateField("Category", value, (current) =>
                     validateTextInput(current, "Category", {
@@ -1121,6 +1258,7 @@ function Productpage({ readOnly = false }) {
                 }
                 placeholder="Select Category"
               >
+                <option value="">Select category</option>
                 {getallCategory?.map((c) => (
                   <option key={getId(c)} value={getId(c)}>
                     {c.name}
@@ -1133,7 +1271,9 @@ function Productpage({ readOnly = false }) {
             </div>
 
             <div>
-              <label className="text-sm font-medium">Purchase Price</label>
+              <label className="text-xs font-medium text-slate-600">
+                Purchase Price
+              </label>
               <Inputfield
                 type="number"
                 value={purchasePrice}
@@ -1165,7 +1305,9 @@ function Productpage({ readOnly = false }) {
               )}
             </div>
             <div>
-              <label className="text-sm font-medium">Trade Price</label>
+              <label className="text-xs font-medium text-slate-600">
+                Trade Price
+              </label>
               <Inputfield
                 type="number"
                 value={tradePrice}
@@ -1195,7 +1337,9 @@ function Productpage({ readOnly = false }) {
               )}
             </div>
             <div>
-              <label className="text-sm font-medium">Sale Price</label>
+              <label className="text-xs font-medium text-slate-600">
+                Sale Price
+              </label>
               <Inputfield
                 type="number"
                 value={salePrice}
@@ -1225,15 +1369,14 @@ function Productpage({ readOnly = false }) {
               )}
             </div>
 
-            <Button
+            <LoadingButton
               type="submit"
               loading={isFormSubmitting}
               loadingText={selectedProduct ? "Updating..." : "Creating..."}
-              className="w-full"
-              variant="primary"
+              className="mt-4 h-12 w-full rounded-xl bg-teal-700 text-white shadow-sm hover:bg-teal-600"
             >
               {selectedProduct ? "Update Product" : "Create Product"}
-            </Button>
+            </LoadingButton>
           </form>
         </div>
       </DrawerPanel>
@@ -1251,9 +1394,11 @@ function Productpage({ readOnly = false }) {
             className="w-full max-w-4xl max-h-[90vh] bg-white rounded-lg shadow-xl border flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-5 py-4 border-b">
+            <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-5 py-4">
               <div>
-                <h3 className="text-lg font-semibold">Manage Codes</h3>
+                <h3 className="text-sm font-semibold text-slate-800">
+                  Manage Codes
+                </h3>
                 <p className="text-xs text-slate-500">
                   {codeProduct?.name || "Product"}{" "}
                   {codeProduct?.company || codeProduct?.brand
@@ -1270,7 +1415,9 @@ function Productpage({ readOnly = false }) {
               <div className="border rounded-lg p-4 bg-slate-50">
                 <h4 className="text-sm font-semibold mb-3">Add New Code</h4>
                 <div>
-                  <label className="text-xs font-medium">Shade Code</label>
+                  <label className="text-xs font-medium text-slate-600">
+                    Shade Code
+                  </label>
                   <Inputfield
                     type="text"
                     value={codeForm.code}
@@ -1320,7 +1467,7 @@ function Productpage({ readOnly = false }) {
                 </div>
 
                 {codeProduct?.productCodes?.length ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pr-1">
+                  <div className="grid grid-cols-1 gap-3 pr-1 sm:grid-cols-2 lg:grid-cols-4">
                     {codeProduct.productCodes.map((code) => (
                       <div
                         key={getId(code)}
@@ -1329,17 +1476,15 @@ function Productpage({ readOnly = false }) {
           hover:-translate-y-1 border border-slate-200 
           flex flex-col justify-between"
                       >
-                        {/* Top Section */}
                         <div className="flex flex-col items-center text-center">
-                          <div className="text-xs text-slate-500 mb-2">
+                          <div className="mb-2 text-xs text-slate-500">
                             Shade Code
                           </div>
 
                           <CodeBadge>{code.code}</CodeBadge>
                         </div>
 
-                        {/* Bottom Actions */}
-                        <div className="pt-4 mt-4 border-t flex justify-center">
+                        <div className="mt-4 flex justify-center border-t border-slate-200 pt-4">
                           <Button
                             onClick={() => handleDeleteCode(getId(code))}
                             variant="danger"
