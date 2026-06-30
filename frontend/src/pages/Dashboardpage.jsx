@@ -321,7 +321,7 @@ function Dashboardpage() {
       ) : null}
       {/* Header Section */}
 
-      <div className="relative flex flex-col gap-5 lg:flex-row lg:justify-between items-center mb-4">
+      {/* <div className="relative flex flex-col gap-5 lg:flex-row lg:justify-between items-center mb-4">
         <div className="max-w-3xl">
           <div className="inline-flex items-center gap-2 rounded-full border border-teal-300 bg-teal-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-teal-700">
             <Activity className="h-3.5 w-3.5" />
@@ -350,7 +350,7 @@ function Dashboardpage() {
             </>
           )}
         </Button>
-      </div>
+      </div> */}
       {/* Financial Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         {loading

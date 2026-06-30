@@ -1,46 +1,104 @@
 import { useSelector } from "react-redux";
-import { Link } from "react-router-dom";
-import { formatDateLabel } from "../lib/dateFormat";
-import { FiCalendar } from "react-icons/fi";
-import { IoMdPulse } from "react-icons/io";
-import { Settings2 } from "lucide-react";
+import { useLocation } from "react-router-dom";
+import { Home, Users, GraduationCap, BookOpen, Settings } from "lucide-react";
 
 function TopNavbar() {
   const { user } = useSelector((state) => state.auth);
+  const location = useLocation();
+
+  const pages = {
+    "/": {
+      title: "Dashboard",
+      subtitle:
+        "Monitor business performance, inventory insights, and recent activities.",
+    },
+
+    "/product": {
+      title: "Products",
+      subtitle:
+        "Create, organize, and maintain your product catalog and inventory details.",
+    },
+
+    "/order": {
+      title: "Purchase Orders",
+      subtitle: "Track supplier purchases, incoming stock, and order status.",
+    },
+
+    "/sales": {
+      title: "Sales",
+      subtitle:
+        "Record sales transactions, monitor revenue, and manage customer orders.",
+    },
+
+    "/invoices": {
+      title: "Invoices",
+      subtitle:
+        "Generate, review, and manage customer invoices and billing records.",
+    },
+
+    "/payments": {
+      title: "Payments",
+      subtitle:
+        "Track incoming and outgoing payments to maintain accurate financial records.",
+    },
+
+    "/stock-transaction": {
+      title: "Stock Transactions",
+      subtitle:
+        "Monitor inventory movements, stock adjustments, and transfer history.",
+    },
+
+    "/supplier": {
+      title: "Vendors",
+      subtitle:
+        "Manage supplier information, purchase history, and business relationships.",
+    },
+
+    "/customer": {
+      title: "Customers",
+      subtitle:
+        "Maintain customer profiles, purchase history, and account information.",
+    },
+
+    "/category": {
+      title: "Categories",
+      subtitle:
+        "Organize products into structured categories for efficient inventory management.",
+    },
+  };
+
+  const current = pages[location.pathname] || {
+    title: "Dashboard",
+    subtitle: "Welcome back",
+  };
 
   return (
-    <nav className="flex h-[72px] w-full items-center justify-between border-b border-slate-200 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(244,247,250,0.92))] px-3 shadow-[0_10px_24px_rgba(15,23,42,0.02)] lg:px-4">
-      <div className="flex min-w-0 flex-1 items-center justify-between gap-4">
-        {/* LEFT */}
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-teal-600 via-cyan-600 to-sky-600 text-white shadow-[0_10px_24px_rgba(13,148,136,0.22)] ring-1 ring-white/70">
-            <IoMdPulse className="text-base" />
-          </div>
+    <nav className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-slate-200/70 bg-white/90 px-6 backdrop-blur-xl">
+      {/* LEFT */}
 
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="truncate text-base font-semibold text-slate-900 sm:text-lg">
-                Welcome back, {user?.name || "Guest"}
-              </h1>
-              <span className="hidden items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold text-emerald-700 sm:inline-flex">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                Active
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              <span className="inline-flex items-center gap-1.5">
-                <FiCalendar className="text-slate-400" />
-                {formatDateLabel(new Date())}
-              </span>
-            </div>
-          </div>
+      <div className="flex items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            {current.title}
+          </h1>
+
+          <p className="text-sm text-slate-500">{current.subtitle}</p>
+        </div>
+      </div>
+
+      {/* RIGHT */}
+
+      <div className="flex items-center gap-4">
+        <div className="hidden text-right md:block">
+          <p className="font-semibold text-slate-800">
+            {user?.name || "Guest"}
+          </p>
+
+          <p className="text-sm text-slate-500">{user?.email}</p>
         </div>
 
-        {/* RIGHT */}
-        <div className="flex shrink-0 items-center justify-end">
-          <Link to="/settings">
-            <Settings2 className="text-slate-700 hover:text-teal-600" />
-          </Link>
+        <div className="flex h-12 w-12 items-center justify-center rounded-full border border-emerald-300 bg-gradient-to-br from-emerald-100 to-cyan-100 text-lg text-emerald-800 font-semibold shadow-md">
+          {user?.name?.charAt(0)?.toUpperCase() || "G"}
         </div>
       </div>
     </nav>
