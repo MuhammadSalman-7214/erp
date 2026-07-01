@@ -29,6 +29,7 @@ function Categorypage() {
   const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { sidebarOpen } = useSelector((state) => state.sidebar);
 
   useEffect(() => {
     dispatch(gettingallCategory());
@@ -261,7 +262,9 @@ function Categorypage() {
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
           {Array.isArray(displayCategory) && displayCategory.length > 0 ? (
             <div className="overflow-x-auto">
-              <div className="max-w-[1230px] overflow-x-auto relative">
+              <div
+                className={`w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1230px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
+              >
                 <div className="flex gap-2">
                   <table className="w-full text-sm border-collapse">
                     <thead>

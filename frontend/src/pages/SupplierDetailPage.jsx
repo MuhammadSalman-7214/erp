@@ -21,6 +21,7 @@ import { uppercasePayload } from "../lib/uppercasePayload";
 import toast from "react-hot-toast";
 import { validateNumberInput, validateTextInput } from "../lib/formValidation";
 import { Button, Inputfield, Textarea } from "../UI";
+import { useSelector } from "react-redux";
 
 const sanitizeFileName = (value) =>
   String(value || "vendor_ledger")
@@ -53,6 +54,7 @@ function SupplierDetailPage() {
   const [ledgerLoading, setLedgerLoading] = useState(true);
   const [ledgerDateSort, setLedgerDateSort] = useState("asc");
   const [ordersDateSort, setOrdersDateSort] = useState("asc");
+  const { sidebarOpen } = useSelector((state) => state.sidebar);
 
   useEffect(() => {
     const fetchVendorOrders = async () => {
@@ -318,9 +320,6 @@ function SupplierDetailPage() {
       ) : (
         <>
           <div className="mb-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.08)] transition-all duration-300 hover:shadow-[0_12px_40px_rgba(15,23,42,0.12)]">
-            {/* Top Accent */}
-            <div className="h-1 bg-gradient-to-r from-teal-500 via-cyan-500 to-sky-500" />
-
             <div className="grid gap-4 p-4 lg:grid-cols-[1.6fr_1fr] lg:items-center">
               {/* Left Section */}
               <div>
@@ -489,7 +488,9 @@ function SupplierDetailPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <div className="max-w-[1230px] overflow-x-auto relative">
+                <div
+                  className={`w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1230px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
+                >
                   <div className="flex gap-2">
                     <table className="w-full text-sm border-collapse">
                       <thead className="bg-slate-50 border-b text-left text-slate-500">
@@ -569,7 +570,9 @@ function SupplierDetailPage() {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <div className="max-w-[1230px] overflow-x-auto relative">
+                  <div
+                    className={`w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1230px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
+                  >
                     <div className="flex gap-2">
                       <table className="w-full text-sm border-collapse">
                         <thead className="bg-slate-50 border-b text-left text-slate-500">

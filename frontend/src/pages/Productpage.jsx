@@ -53,6 +53,7 @@ const getRowQuantity = (row) =>
 
 function Productpage({ readOnly = false }) {
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
+  const { sidebarOpen } = useSelector((state) => state.sidebar);
 
   // Determine if page is in read-only mode (from props OR role)
   const isReadOnlyMode = readOnly || checkReadOnly("product");
@@ -787,9 +788,13 @@ function Productpage({ readOnly = false }) {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <div className="w-full max-w-[1230px] mx-auto overflow-x-auto relative">
-                <div className="flex gap-2 w-max">
-                  <table className="min-w-[1390px] w-full text-sm border-collapse">
+              <div
+                className={`w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1230px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
+              >
+                <div
+                  className={`flex gap-2 ${sidebarOpen ? "w-max" : "w-full"}`}
+                >
+                  <table className="w-full text-sm border-collapse">
                     <thead>
                       <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
                         <th className="px-5 py-4 font-semibold">#</th>
@@ -1092,7 +1097,7 @@ function Productpage({ readOnly = false }) {
 
                         {!isReadOnlyMode && (
                           <td
-                            className="sticky right-0 z-20 px-4 py-4 text-center text-white"
+                            className="sticky right-0 z-20 bg-gray-50/80 px-4 py-4 text-center text-white"
                             style={{
                               boxShadow:
                                 "inset 8px 0 16px -8px rgba(166, 174, 192, 0.45)",

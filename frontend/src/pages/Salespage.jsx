@@ -96,6 +96,7 @@ function Salespage() {
   const { getallsales } = useSelector((state) => state.sales);
 
   const { getallproduct } = useSelector((state) => state.product);
+  const { sidebarOpen } = useSelector((state) => state.sidebar);
 
   const dispatch = useDispatch();
   const [query, setquery] = useState("");
@@ -2236,8 +2237,10 @@ function Salespage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <div className="w-full max-w-[1230px] mx-auto overflow-x-auto relative">
-              <div className="flex gap-2 w-max">
+            <div
+              className={`w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1230px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
+            >
+              <div className={`flex gap-2 ${sidebarOpen ? "w-max" : "w-full"}`}>
                 <table className="w-full text-sm border-collapse">
                   {/* HEADER */}
                   <thead>

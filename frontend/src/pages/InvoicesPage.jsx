@@ -21,6 +21,7 @@ import { Button, Inputfield, SelectDropdown, Tooltip } from "../UI";
 import { CgSoftwareDownload } from "react-icons/cg";
 import { PiInvoiceBold } from "react-icons/pi";
 import { useCompanyBranding } from "../hooks/useCompanyBranding";
+import { useSelector } from "react-redux";
 
 function InvoicesPage() {
   const companyBranding = useCompanyBranding();
@@ -34,6 +35,7 @@ function InvoicesPage() {
   const [billInvoice, setBillInvoice] = useState(null);
   const [receivedAmount, setReceivedAmount] = useState(0);
   const [remainingAmount, setRemainingAmount] = useState(0);
+  const { sidebarOpen } = useSelector((state) => state.sidebar);
 
   const fetchInvoices = async () => {
     setLoading(true);
@@ -426,7 +428,9 @@ function InvoicesPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <div className="max-w-[1230px] overflow-x-auto relative">
+              <div
+                className={`w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1230px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
+              >
                 <div className="flex gap-2">
                   <table className="w-full text-sm border-collapse">
                     <thead>

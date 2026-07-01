@@ -18,6 +18,7 @@ import { IoNotificationsOutline } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../features/authSlice";
+import { toggleSidebar } from "../features/sidebarSlice";
 import toast from "react-hot-toast";
 import { LuUsers } from "react-icons/lu";
 import { Button } from "../UI";
@@ -53,10 +54,11 @@ const NavItem = ({ to, icon, label, sidebarOpen }) => {
   );
 };
 
-function Sidebar({ sidebarOpen, setSidebarOpen }) {
+function Sidebar() {
   const dispatch = useDispatch();
   const navigator = useNavigate();
   const { user } = useSelector((state) => state.auth);
+  const { sidebarOpen } = useSelector((state) => state.sidebar);
 
   const handleLogout = async () => {
     dispatch(logout())
@@ -79,7 +81,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
         {sidebarOpen && (
           <h1 className="text-xl font-bold text-teal-700">InventorySouq</h1>
         )}
-        <Button onClick={() => setSidebarOpen(!sidebarOpen)} variant="ghost">
+        <Button onClick={() => dispatch(toggleSidebar())} variant="ghost">
           <CiMenuFries className="text-xl" />
         </Button>
       </div>

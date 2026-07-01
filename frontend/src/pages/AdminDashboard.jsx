@@ -1,14 +1,14 @@
 import Sidebar from "../Components/Sidebar";
 import { Outlet } from "react-router-dom";
 import TopNavbar from "../Components/TopNavbar";
-import { useState } from "react";
+import { useSelector } from "react-redux";
 
 function AdminDashboard() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { sidebarOpen } = useSelector((state) => state.sidebar);
 
   return (
     <div className="flex h-screen bg-gray-100">
-      <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+      <Sidebar />
 
       <div
         className={`flex flex-col flex-1 transition-all duration-300 ${
@@ -20,10 +20,7 @@ function AdminDashboard() {
             sidebarOpen ? "left-64" : "left-14"
           } right-0`}
         >
-          <TopNavbar
-            sidebarOpen={sidebarOpen}
-            setSidebarOpen={setSidebarOpen}
-          />
+          <TopNavbar />
         </div>
 
         <main className="mt-[76px] h-full overflow-y-auto">

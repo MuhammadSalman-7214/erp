@@ -22,6 +22,7 @@ import {
   getAllCustomers,
   removeCustomer,
 } from "../features/customerSlice";
+import FormattedTime from "../lib/FormattedTime";
 
 function Customerpage({ readOnly = false }) {
   const dispatch = useDispatch();
@@ -44,6 +45,7 @@ function Customerpage({ readOnly = false }) {
   const [customerBalances, setCustomerBalances] = useState({});
   const [amountFilter, setAmountFilter] = useState("all");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { sidebarOpen } = useSelector((state) => state.sidebar);
 
   const getId = (value) => value?.id ?? value?.id ?? value;
 
@@ -510,7 +512,9 @@ function Customerpage({ readOnly = false }) {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <div className="w-full max-w-[1230px] mx-auto overflow-x-auto relative">
+              <div
+                className={`w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1230px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
+              >
                 <div className="flex gap-2">
                   <table className="min-w-[1390px] w-full text-sm border-collapse">
                     <thead className="bg-slate-50 border-b">
@@ -520,6 +524,7 @@ function Customerpage({ readOnly = false }) {
                         <th className="px-5 py-4 font-semibold">Total</th>
                         <th className="px-5 py-4 font-semibold">Collected</th>
                         <th className="px-5 py-4 font-semibold">Remaining</th>
+                        <th className="px-5 py-4 font-semibold">Date</th>
                         <th
                           className="px-5 py-4 max-w-[20px] font-semibold text-center sticky right-0 bg-slate-50 z-20"
                           style={{
@@ -551,6 +556,9 @@ function Customerpage({ readOnly = false }) {
                             </td>
                             <td className="px-5 py-4 text-red-700 font-medium">
                               {currency(customerSummary.remainingAmount)}
+                            </td>
+                            <td className="px-5 py-4 text-slate-600">
+                              <FormattedTime timestamp={customer.createdAt} />
                             </td>
                             <td
                               className="px-4 py-4 sticky right-0 z-10 bg-gray-50/80 text-center transition-colors duration-150"
@@ -660,7 +668,7 @@ function Customerpage({ readOnly = false }) {
                           </div>
                         </td>
 
-                        <td className="px-5 py-4">
+                        <td className="px-5 py-4" colSpan={2}>
                           <div className="flex flex-col gap-1">
                             <span className="inline-flex w-fit items-center rounded-full border border-amber-200 bg-amber-50/90 px-3 py-1 text-base font-bold text-amber-800 shadow-sm">
                               {currency(summaryTotals.remaining)}
@@ -672,7 +680,7 @@ function Customerpage({ readOnly = false }) {
                         </td>
 
                         <td
-                          className="sticky right-0 z-20 px-4 py-4 text-center text-white"
+                          className="sticky right-0 z-20 px-4 py-4 bg-gray-50/80 text-center text-white"
                           style={{
                             boxShadow:
                               "inset 8px 0 16px -8px rgba(166, 174, 192, 0.45)",

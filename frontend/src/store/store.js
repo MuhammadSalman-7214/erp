@@ -10,6 +10,7 @@ import stocktransactionReducer from "../features/stocktransactionSlice";
 import salesReducer from "../features/salesSlice";
 import customerReducer from "../features/customerSlice";
 import dashboardReducer from "../features/dashboardSlice";
+import sidebarReducer from "../features/sidebarSlice";
 
 const store = configureStore({
   reducer: {
@@ -24,6 +25,7 @@ const store = configureStore({
     sales: salesReducer,
     customer: customerReducer,
     dashboard: dashboardReducer,
+    sidebar: sidebarReducer,
   },
 });
 export default store;

@@ -35,6 +35,7 @@ function Orderpage() {
   );
   const { getallproduct } = useSelector((state) => state.product);
   const { getallSupplier } = useSelector((state) => state.supplier);
+  const { sidebarOpen } = useSelector((state) => state.sidebar);
   const [supplier, setsupplier] = useState("");
 
   const { user } = useSelector((state) => state.auth);
@@ -670,7 +671,9 @@ function Orderpage() {
           <TableSkeleton rows={6} showFilters={false} />
         ) : Array.isArray(displayOrder) && displayOrder.length > 0 ? (
           <div className="overflow-x-auto">
-            <div className="max-w-[1230px] overflow-x-auto relative">
+            <div
+              className={`w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1230px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
+            >
               <div className="flex gap-2">
                 <table className="w-full text-sm border-collapse">
                   <thead>
@@ -799,14 +802,14 @@ function Orderpage() {
                             </span>
                           </div>
                         </td>
-                          <td
-                            className="px-4 py-4 sticky right-0 z-10 bg-gray-50/80 text-center transition-colors duration-150"
-                            style={{
-                              boxShadow: "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
-                            }}
-                          >
-                            <div className="flex justify-center">
-                              <div className="flex items-center justify-center gap-2 overflow-hidden">
+                        <td
+                          className="px-4 py-4 sticky right-0 z-10 bg-gray-50/80 text-center transition-colors duration-150"
+                          style={{
+                            boxShadow: "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
+                          }}
+                        >
+                          <div className="flex justify-center">
+                            <div className="flex items-center justify-center gap-2 overflow-hidden">
                               <Tooltip content="Edit Order">
                                 <Button
                                   type="button"

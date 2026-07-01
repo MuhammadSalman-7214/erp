@@ -55,7 +55,12 @@ const RoleDashboardLayout = () => {
 
 const ProductByRole = () => {
   const { user } = useSelector((state) => state.auth);
-  return user?.role === "staff" ? <Productpage readOnly /> : <Productpage />;
+
+  return user?.role === "staff" ? (
+    <Productpage readOnly />
+  ) : (
+    <Productpage />
+  );
 };
 
 const SupplierByRole = () => {
