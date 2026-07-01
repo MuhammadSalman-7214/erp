@@ -9,6 +9,7 @@ import { NavLink } from "react-router-dom";
 import { PiInvoiceBold } from "react-icons/pi";
 import {
   MdOutlineCategory,
+  MdOutlinePayment,
   MdOutlinePayments,
   MdOutlineSettings,
 } from "react-icons/md";
@@ -77,7 +78,7 @@ function Sidebar() {
       transition-all duration-300
       ${sidebarOpen ? "w-64" : "w-14"}`}
     >
-      <div className="border-b flex justify-between items-center px-2 py-4 h-[8vh]">
+      <div className=" shadow-sm flex justify-between items-center px-2 py-4 h-[8vh]">
         {sidebarOpen && (
           <h1 className="text-xl font-bold text-teal-700">InventorySouq</h1>
         )}
@@ -220,7 +221,7 @@ function Sidebar() {
 
             <NavItem
               to="/payments"
-              icon={<MdOutlinePayments />}
+              icon={<MdOutlinePayment />}
               label="Payments"
               sidebarOpen={sidebarOpen}
             />

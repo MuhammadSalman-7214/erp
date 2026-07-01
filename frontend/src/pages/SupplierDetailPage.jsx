@@ -371,7 +371,7 @@ function SupplierDetailPage() {
               {
                 label: "Total Purchases",
                 value: currency(summary.total),
-                bg: "bg-gradient-to-tr from-violet-200 via-violet-50 to-white",
+                bg: "bg-gradient-to-tl from-violet-200 via-violet-50 to-white",
                 icon: <TrendingUp className="w-5 h-5 text-violet-900" />,
                 decoration: "bg-violet-50",
                 text: "text-violet-900",
@@ -379,7 +379,7 @@ function SupplierDetailPage() {
               {
                 label: "Paid",
                 value: currency(summary.paid),
-                bg: "bg-gradient-to-tr from-teal-200 via-teal-50 t0-white",
+                bg: "bg-gradient-to-tl from-teal-200 via-teal-50 t0-white",
                 icon: <CreditCard className="w-5 h-5 text-teal-900" />,
                 decoration: "bg-teal-50",
                 text: "text-teal-900",
@@ -387,7 +387,7 @@ function SupplierDetailPage() {
               {
                 label: "Remaining",
                 value: currency(summary.remaining),
-                bg: "bg-gradient-to-tr from-rose-200 via-rose-50 to-white",
+                bg: "bg-gradient-to-tl from-rose-200 via-rose-50 to-white",
                 icon: <AlertCircle className="w-5 h-5 text-rose-900" />,
                 decoration: "bg-rose-50",
                 text: "text-red-900",
@@ -395,7 +395,7 @@ function SupplierDetailPage() {
               {
                 label: "Total Orders",
                 value: summary.count || 0,
-                bg: "bg-gradient-to-tr from-blue-200 via-blue-50 to-white",
+                bg: "bg-gradient-to-tl from-blue-200 via-blue-50 to-white",
                 icon: <Clipboard className="w-5 h-5 text-blue-900" />,
                 decoration: "bg-blue-50",
                 text: "text-blue-900",

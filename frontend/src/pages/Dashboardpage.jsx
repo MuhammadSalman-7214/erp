@@ -14,25 +14,20 @@ import {
   Legend,
 } from "chart.js";
 import {
-  ShoppingCart,
   Clipboard,
   CreditCard,
   DollarSign,
   Package,
   TrendingUp,
   TrendingDown,
-  Activity,
-  Eye,
-  EyeOff,
   AlertCircle,
   Clock,
+  ShoppingCartIcon,
+  DollarSignIcon,
+  CreditCardIcon,
 } from "lucide-react";
 import { formatDateLabel } from "../lib/dateFormat";
-import { Button } from "../UI";
-import {
-  dashboardShowFinancialAmountsStorageKey,
-  setShowFinancialAmounts,
-} from "../features/dashboardSlice";
+import { dashboardShowFinancialAmountsStorageKey } from "../features/dashboardSlice";
 
 ChartJS.register(
   CategoryScale,
@@ -60,6 +55,8 @@ function Dashboardpage() {
   const [banner, setBanner] = useState(null);
   const [bannerLoading, setBannerLoading] = useState(false);
   const [resolvedUser, setResolvedUser] = useState(user);
+  const { sidebarOpen } = useSelector((state) => state.sidebar);
+
   const sortedRecentInvoices = useMemo(
     () =>
       [...recentInvoices].sort(
@@ -73,33 +70,33 @@ function Dashboardpage() {
   const accentStyles = {
     emerald: {
       bar: "bg-emerald-500",
-      bg: "bg-emerald-50",
+      bg: "bg-gradient-to-b from-emerald-100 to-white",
       text: "text-emerald-600",
       ring: "ring-emerald-100",
     },
     blue: {
       bar: "bg-blue-500",
-      bg: "bg-blue-50",
+      bg: "bg-gradient-to-b from-blue-100 to-white",
       text: "text-blue-600",
       ring: "ring-blue-100",
     },
     teal: {
       bar: "bg-teal-500",
-      bg: "bg-teal-50",
+      bg: "bg-gradient-to-b from-teal-100 to-white",
       text: "text-teal-600",
       ring: "ring-teal-100",
     },
     amber: {
       bar: "bg-amber-500",
-      bg: "bg-amber-50",
+      bg: "bg-gradient-to-b from-amber-100 to-white",
       text: "text-amber-600",
       ring: "ring-amber-100",
     },
     purple: {
-      bar: "bg-purple-500",
-      bg: "bg-purple-50",
-      text: "text-purple-600",
-      ring: "ring-purple-100",
+      bar: "bg-violet-500",
+      bg: "bg-gradient-to-b from-violet-100 to-white",
+      text: "text-violet-600",
+      ring: "ring-violet-100",
     },
   };
 
@@ -107,19 +104,19 @@ function Dashboardpage() {
     {
       label: "New Sale",
       path: "/sales",
-      icon: ShoppingCart,
+      icon: DollarSignIcon,
       accent: "emerald",
     },
     {
       label: "New Purchase",
       path: "/order",
-      icon: Clipboard,
+      icon: ShoppingCartIcon,
       accent: "blue",
     },
     {
       label: "Make Payment",
       path: "/payments",
-      icon: DollarSign,
+      icon: CreditCardIcon,
       accent: "amber",
     },
     {
@@ -303,7 +300,7 @@ function Dashboardpage() {
   };
 
   return (
-    <div className="min-h-[92vh] bg-gradient-to-br from-gray-50 to-gray-100 p-4">
+    <div className="min-h-[92vh] bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.14),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#f1f5f9_100%)] p-4">
       {bannerLoading ? null : banner ? (
         <div className="mb-6 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-3 shadow-sm">
           <div className="flex items-start gap-3">
@@ -370,7 +367,7 @@ function Dashboardpage() {
               {
                 label: "Profit",
                 value: summary?.totalProfit ?? 0,
-                bg: "bg-gradient-to-tr from-violet-200 via-violet-50 to-white",
+                bg: "bg-gradient-to-tl from-violet-200 via-violet-50 to-white",
                 icon: <TrendingUp className="w-5 h-5 text-violet-900" />,
                 decoration: "bg-violet-50",
                 text: "text-violet-900",
@@ -378,7 +375,7 @@ function Dashboardpage() {
               {
                 label: "Total Receivable",
                 value: summary?.totalReceivable ?? 0,
-                bg: "bg-gradient-to-tr from-blue-200 via-blue-50 to-white",
+                bg: "bg-gradient-to-tl from-blue-200 via-blue-50 to-white",
                 icon: <TrendingUp className="w-5 h-5 text-blue-900" />,
                 decoration: "bg-blue-50",
                 text: "text-blue-900",
@@ -386,7 +383,7 @@ function Dashboardpage() {
               {
                 label: "Total Payable",
                 value: summary?.totalPayable ?? 0,
-                bg: "bg-gradient-to-tr from-rose-200 via-rose-50 to-white",
+                bg: "bg-gradient-to-tl from-rose-200 via-rose-50 to-white",
                 icon: <TrendingDown className="w-5 h-5 text-rose-900" />,
                 decoration: "bg-rose-50",
                 text: "text-rose-900",
@@ -394,7 +391,7 @@ function Dashboardpage() {
               {
                 label: "Bank Balance",
                 value: summary?.cashBankBalance ?? 0,
-                bg: "bg-gradient-to-tr from-amber-200 via-amber-50 to-white",
+                bg: "bg-gradient-to-tl from-amber-200 via-amber-50 to-white",
                 icon: <DollarSign className="w-5 h-5 text-amber-900" />,
                 decoration: "bg-amber-50",
                 text: "text-amber-900",
@@ -425,7 +422,7 @@ function Dashboardpage() {
             ))}
       </div>
       <div className="mb-4 flex w-full flex-col gap-4 xl:flex-row">
-        <div className="w-full xl:w-[22%]">
+        <div className="w-full xl:w-[24.8%]">
           <section className="rounded-lg bg-white p-3 pt-2 shadow-[0_0_6px_rgba(15,23,42,0.2)] backdrop-blur">
             <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
               <div>
@@ -438,32 +435,34 @@ function Dashboardpage() {
               </div>
             </div>
 
-            <div className="mt-2 grid grid-cols-1 gap-2">
+            <div className="mt-3 grid grid-cols-2 gap-3">
               {quickActions.map(({ label, path, icon: Icon, accent }) => {
                 const styles = accentStyles[accent];
+
                 return (
                   <button
                     key={label}
                     onClick={() => navigate(path)}
-                    className="group relative overflow-hidden rounded-lg border border-slate-200 bg-white p-4 pl-6 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+                    className={`group relative aspect-square overflow-hidden rounded-xl  ${styles.bg} border border-slate-200 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg`}
                   >
-                    <div
-                      className={`absolute left-0 top-0 h-full w-1.5 rounded-l-lg ${styles.bar}`}
-                    />
-                    <div className="flex items-center gap-4">
+                    {/* Left Accent Bar */}
+                    {/* <div className={`h-2 w-full rounded-l-xl ${styles.bar}`} /> */}
+
+                    {/* Card Content */}
+                    <div className="flex h-full flex-col items-center justify-center px-3 text-center">
                       <div
-                        className={`flex h-12 w-12 items-center justify-center rounded-xl ${styles.bg} ${styles.text} ring-1 ${styles.ring} transition-transform group-hover:scale-105`}
+                        className={`mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-[0_0_6px_rgba(15,23,42,0.2)] ${styles.text} ring-1 ${styles.ring} transition-transform duration-300 group-hover:scale-110`}
                       >
-                        <Icon className="h-6 w-6 stroke-[1.75]" />
+                        <Icon className="h-7 w-7 stroke-[1.75]" />
                       </div>
-                      <div>
-                        <div className="text-sm font-semibold text-slate-900">
-                          {label}
-                        </div>
-                        <div className="mt-1 text-xs text-slate-500">
-                          Perform Action
-                        </div>
-                      </div>
+
+                      <h3 className="text-sm font-semibold text-slate-800">
+                        {label}
+                      </h3>
+
+                      {/* <p className="mt-1 text-xs text-slate-500">
+                        Perform Action
+                      </p> */}
                     </div>
                   </button>
                 );
@@ -473,7 +472,9 @@ function Dashboardpage() {
         </div>
         <div className="w-full xl:flex-1">
           <div className="grid gap-4 xl:grid-cols-2">
-            <section className="flex h-full flex-col rounded-lg bg-white p-3 shadow-[0_0_6px_rgba(15,23,42,0.2)] backdrop-blur">
+            <section
+              className={`flex ${sidebarOpen ? "h-[350px]" : "h-[400px]"} flex-col rounded-lg bg-white p-3 shadow-[0_0_6px_rgba(15,23,42,0.2)] backdrop-blur`}
+            >
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="text-sm font-bold uppercase tracking-[0.22em] text-teal-600">
@@ -536,7 +537,9 @@ function Dashboardpage() {
               </div>
             </section>
 
-            <section className="flex h-full flex-col rounded-lg bg-white p-3 shadow-[0_0_6px_rgba(15,23,42,0.2)] backdrop-blur">
+            <section
+              className={`flex ${sidebarOpen ? "h-[350px]" : "h-[400px]"} flex-col rounded-lg bg-white p-3 shadow-[0_0_6px_rgba(15,23,42,0.2)] backdrop-blur`}
+            >
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="text-sm font-bold uppercase tracking-[0.22em] text-teal-600">

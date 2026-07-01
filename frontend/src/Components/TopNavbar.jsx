@@ -78,16 +78,16 @@ function TopNavbar() {
   };
 
   return (
-    <nav className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-slate-200/70 bg-white/90 px-6 backdrop-blur-xl">
+    <nav className="sticky top-0 z-30 flex h-[8vh] items-center justify-between shadow-sm bg-white px-4">
       {/* LEFT */}
 
       <div className="flex items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">
             {current.title}
           </h1>
 
-          <p className="text-sm text-slate-500">{current.subtitle}</p>
+          <p className="text-xs text-slate-500">{current.subtitle}</p>
         </div>
       </div>
 
@@ -99,10 +99,10 @@ function TopNavbar() {
             {user?.name || "Guest"}
           </p>
 
-          <p className="text-sm text-slate-500">{user?.email}</p>
+          <p className="text-xs text-slate-500">{user?.email}</p>
         </div>
 
-        <div className="flex h-12 w-12 items-center justify-center rounded-full border border-emerald-300 bg-gradient-to-br from-emerald-100 to-cyan-100 text-lg text-emerald-800 font-semibold shadow-md">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full border border-emerald-300 bg-gradient-to-br from-emerald-100 to-cyan-100 text-lg text-emerald-800 font-semibold shadow-md">
           {user?.name?.charAt(0)?.toUpperCase() || "G"}
         </div>
       </div>

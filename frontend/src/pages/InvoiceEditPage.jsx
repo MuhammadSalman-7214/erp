@@ -210,7 +210,7 @@ function InvoiceEditPage() {
     return <p className="p-6 text-center text-red-500">Invoice not found</p>;
 
   return (
-    <div className="min-h-[92vh] bg-gray-100 p-4">
+    <div className="min-h-[92vh] bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.14),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#f1f5f9_100%)] p-4">
       <div className="p-6 max-w-5xl mx-auto">
         <div className="bg-white rounded-lg shadow p-6">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">
