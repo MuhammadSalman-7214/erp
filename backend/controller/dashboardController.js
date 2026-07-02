@@ -1,56 +1,120 @@
 const query = require("../libs/dbQuery.js");
 
-const buildWeeklySummary = async (userId) => {
+const toTime = (value) => {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  const time = date.getTime();
+  return Number.isNaN(time) ? null : time;
+};
+
+const toMoney = (value) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : 0;
+};
+
+const toDateKey = (date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+    date.getDate(),
+  ).padStart(2, "0")}`;
+
+const getRangeConfig = (range = "week") => {
   const now = new Date();
-  const weekStart = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate() - 6,
-    0,
-    0,
-    0,
-    0,
-  );
-  const weekEnd = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-    23,
-    59,
-    59,
-    999,
-  );
-  const startMs = weekStart.getTime();
-  const endMs = weekEnd.getTime();
+  const normalizedRange = ["today", "week", "month", "year"].includes(range)
+    ? range
+    : "week";
 
-  const toTime = (value) => {
-    if (!value) return null;
-    const date = value instanceof Date ? value : new Date(value);
-    const time = date.getTime();
-    return Number.isNaN(time) ? null : time;
-  };
+  const startOfDay = (date) =>
+    new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
 
-  const toMoney = (value) => {
-    const numeric = Number(value);
-    return Number.isFinite(numeric) ? numeric : 0;
-  };
-
-  const toDateKey = (date) =>
-    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+  const endOfDay = (date) =>
+    new Date(
+      date.getFullYear(),
+      date.getMonth(),
       date.getDate(),
-    ).padStart(2, "0")}`;
+      23,
+      59,
+      59,
+      999,
+    );
 
-  const weekDays = Array.from({ length: 7 }, (_, index) => {
-    const day = new Date(weekStart);
-    day.setDate(weekStart.getDate() + index);
-      return {
-        key: toDateKey(day),
-        label: day.toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-        }),
-      };
-  });
+  let startDate;
+  let endDate;
+  if (normalizedRange === "today") {
+    startDate = startOfDay(now);
+    endDate = endOfDay(now);
+  } else if (normalizedRange === "month") {
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    endDate = endOfDay(now);
+  } else if (normalizedRange === "year") {
+    startDate = new Date(now.getFullYear(), 0, 1); // Jan 1 this year
+    endDate = endOfDay(now); // through today
+  } else {
+    const currentDay = now.getDay();
+    const offsetFromMonday = (currentDay + 6) % 7;
+    startDate = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() - offsetFromMonday,
+      0,
+      0,
+      0,
+      0,
+    );
+    endDate = endOfDay(now);
+  }
+
+  return {
+    normalizedRange,
+    startDate,
+    endDate,
+    startMs: startDate.getTime(),
+    endMs: endDate.getTime(),
+  };
+};
+
+const formatRangeLabel = (date, range) => {
+  if (range === "today") return "Today";
+  if (range === "year")
+    return date.toLocaleDateString("en-US", { month: "short" });
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+};
+const toMonthKey = (date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+
+const getBucketGranularity = (range) => (range === "year" ? "month" : "day");
+
+const buildRangeSummary = async (userId, range = "week") => {
+  const { normalizedRange, startDate, endDate, startMs, endMs } =
+    getRangeConfig(range);
+  const granularity = getBucketGranularity(normalizedRange);
+
+  const bucketDates = [];
+  if (granularity === "month") {
+    const cursor = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+    while (cursor.getTime() <= endDate.getTime()) {
+      bucketDates.push(new Date(cursor));
+      cursor.setMonth(cursor.getMonth() + 1);
+    }
+  } else {
+    const cursor = new Date(startDate);
+    while (cursor.getTime() <= endDate.getTime()) {
+      bucketDates.push(new Date(cursor));
+      cursor.setDate(cursor.getDate() + 1);
+    }
+  }
+
+  const buckets = bucketDates.map((date) => ({
+    key: granularity === "month" ? toMonthKey(date) : toDateKey(date),
+    label: formatRangeLabel(date, normalizedRange),
+    sales: 0,
+    purchases: 0,
+    receivedPayments: 0,
+    paidPayments: 0,
+  }));
+  const bucketIndexByKey = buckets.reduce((acc, bucket, index) => {
+    acc[bucket.key] = index;
+    return acc;
+  }, {});
 
   const [salesInvoices, purchaseInvoices, payments] = await Promise.all([
     query(
@@ -67,27 +131,13 @@ const buildWeeklySummary = async (userId) => {
     ),
   ]);
 
-  const buckets = weekDays.map((day) => ({
-    label: day.label,
-    sales: 0,
-    purchases: 0,
-    receivedPayments: 0,
-    paidPayments: 0,
-  }));
-
-  const bucketIndexByKey = weekDays.reduce((acc, day, index) => {
-    acc[day.key] = index;
-    return acc;
-  }, {});
-
   const addToBucket = (value, dateValue, field) => {
     const time = toTime(dateValue);
     if (time === null || time < startMs || time > endMs) return;
-
     const date = new Date(time);
-    const bucketIndex = bucketIndexByKey[toDateKey(date)];
+    const key = granularity === "month" ? toMonthKey(date) : toDateKey(date);
+    const bucketIndex = bucketIndexByKey[key];
     if (bucketIndex === undefined) return;
-
     buckets[bucketIndex][field] += toMoney(value);
   };
 
@@ -109,10 +159,11 @@ const buildWeeklySummary = async (userId) => {
 
   payments.forEach((payment) => {
     const paymentDate = payment.paidAt ?? payment.createdAt;
-    if (payment.type === "received") {
+    const type = String(payment.type || "").toLowerCase();
+    if (type === "received") {
       addToBucket(payment.amount, paymentDate, "receivedPayments");
     }
-    if (payment.type === "paid") {
+    if (type === "paid") {
       addToBucket(payment.amount, paymentDate, "paidPayments");
     }
   });
@@ -129,6 +180,7 @@ const buildWeeklySummary = async (userId) => {
 const getDashboardSummary = async (req, res) => {
   try {
     const userId = req.user.userId;
+    const requestedRange = String(req.query.range || "week").toLowerCase();
     const lowStockThreshold = 50;
     const now = new Date();
     const startOfDay = new Date(
@@ -161,18 +213,6 @@ const getDashboardSummary = async (req, res) => {
       0,
     );
 
-    const toTime = (value) => {
-      if (!value) return null;
-      const date = value instanceof Date ? value : new Date(value);
-      const time = date.getTime();
-      return Number.isNaN(time) ? null : time;
-    };
-
-    const toMoney = (value) => {
-      const numeric = Number(value);
-      return Number.isFinite(numeric) ? numeric : 0;
-    };
-
     let salesInvoices;
     let completedSalesProfitRows;
     let purchaseInvoices;
@@ -189,12 +229,12 @@ const getDashboardSummary = async (req, res) => {
         payments,
         customers,
       ] = await Promise.all([
-          query(
-            "SELECT id, customerId, customer_name, customer_code, totalAmount, dueDate, status, createdAt FROM invoices WHERE invoiceType = ? AND user_id = ?",
-            ["sales", userId],
-          ),
-          query(
-            `SELECT COALESCE(SUM(s.totalAmount - IFNULL(costs.cost, 0)), 0) AS totalProfit
+        query(
+          "SELECT id, customerId, customer_name, customer_code, totalAmount, dueDate, status, createdAt FROM invoices WHERE invoiceType = ? AND user_id = ?",
+          ["sales", userId],
+        ),
+        query(
+          `SELECT COALESCE(SUM(s.totalAmount - IFNULL(costs.cost, 0)), 0) AS totalProfit
            FROM sales s
            LEFT JOIN (
              SELECT si.sale_id, SUM(si.quantity * COALESCE(p.purchasePrice, p.Price, 0)) AS cost
@@ -204,27 +244,27 @@ const getDashboardSummary = async (req, res) => {
              GROUP BY si.sale_id
            ) costs ON costs.sale_id = s.id
            WHERE s.user_id = ? AND LOWER(COALESCE(s.status, '')) = 'completed'`,
-            [userId, userId],
-          ),
-          query(
-            "SELECT id, vendor, totalAmount, dueDate, status, createdAt FROM invoices WHERE invoiceType = ? AND user_id = ?",
-            ["purchase", userId],
-          ),
-          query(
-            "SELECT id, name, openingBalance FROM vendors WHERE user_id = ?",
-            [userId],
-          ),
-          query(
-            "SELECT amount, type, invoice, paidAt, invoiceType, partyType, vendor, customerId, customer_name, customer_code FROM payments WHERE user_id = ?",
-            [userId],
-          ),
-          query(
-            "SELECT id, name, customerCode, openingBalance FROM customers WHERE user_id = ?",
-            [userId],
-          ),
-        ]);
+          [userId, userId],
+        ),
+        query(
+          "SELECT id, vendor, totalAmount, dueDate, status, createdAt FROM invoices WHERE invoiceType = ? AND user_id = ?",
+          ["purchase", userId],
+        ),
+        query(
+          "SELECT id, name, openingBalance FROM vendors WHERE user_id = ?",
+          [userId],
+        ),
+        query(
+          "SELECT amount, type, invoice, paidAt, invoiceType, partyType, vendor, customerId, customer_name, customer_code FROM payments WHERE user_id = ?",
+          [userId],
+        ),
+        query(
+          "SELECT id, name, customerCode, openingBalance FROM customers WHERE user_id = ?",
+          [userId],
+        ),
+      ]);
       try {
-        weeklySummary = await buildWeeklySummary(userId);
+        weeklySummary = await buildRangeSummary(userId, requestedRange);
       } catch (weeklyError) {
         weeklySummary = null;
       }
@@ -435,14 +475,17 @@ const getDashboardSummary = async (req, res) => {
       return acc;
     }, {});
 
-    const unresolvedPurchasePayable = purchaseInvoices.reduce((sum, invoice) => {
-      const vendorKey = resolveVendorSummaryKey(invoice);
-      if (vendorKey) {
-        return sum;
-      }
-      const paid = paymentByInvoice[String(invoice.id)] || 0;
-      return sum + Math.max(toMoney(invoice.totalAmount) - paid, 0);
-    }, 0);
+    const unresolvedPurchasePayable = purchaseInvoices.reduce(
+      (sum, invoice) => {
+        const vendorKey = resolveVendorSummaryKey(invoice);
+        if (vendorKey) {
+          return sum;
+        }
+        const paid = paymentByInvoice[String(invoice.id)] || 0;
+        return sum + Math.max(toMoney(invoice.totalAmount) - paid, 0);
+      },
+      0,
+    );
 
     const unresolvedSalesReceivable = salesInvoices.reduce((sum, invoice) => {
       const customerKey = resolveCustomerSummaryKey(invoice);
@@ -466,6 +509,26 @@ const getDashboardSummary = async (req, res) => {
       ) + unresolvedPurchasePayable;
 
     const totalProfit = Number(completedSalesProfitRows?.[0]?.totalProfit || 0);
+
+    const totalSales = salesInvoices.reduce(
+      (sum, inv) => sum + toMoney(inv.totalAmount),
+      0,
+    );
+
+    const totalPurchases = purchaseInvoices.reduce(
+      (sum, inv) => sum + toMoney(inv.totalAmount),
+      0,
+    );
+
+    const totalReceivedPayments = payments
+      .filter(
+        (payment) => String(payment.type || "").toLowerCase() === "received",
+      )
+      .reduce((sum, payment) => sum + toMoney(payment.amount), 0);
+
+    const totalPaidPayments = payments
+      .filter((payment) => String(payment.type || "").toLowerCase() === "paid")
+      .reduce((sum, payment) => sum + toMoney(payment.amount), 0);
 
     const todaysSales = salesInvoices
       .filter((inv) => {
@@ -544,6 +607,10 @@ const getDashboardSummary = async (req, res) => {
         totalReceivable,
         totalProfit,
         totalPayable,
+        totalSales,
+        totalPurchases,
+        totalReceivedPayments,
+        totalPaidPayments,
         todaysSales,
         todaysPurchases,
         cashBankBalance,

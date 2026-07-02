@@ -1243,8 +1243,7 @@ function Productpage({ readOnly = false }) {
               </label>
               <SelectDropdown
                 value={Category}
-                onChange={(e) => {
-                  const value = e.target.value;
+                onChange={(value) => {
                   setCategory(value);
                   validateField("Category", value, (current) =>
                     validateTextInput(current, "Category", {
@@ -1263,7 +1262,6 @@ function Productpage({ readOnly = false }) {
                 }
                 placeholder="Select Category"
               >
-                <option value="">Select category</option>
                 {getallCategory?.map((c) => (
                   <option key={getId(c)} value={getId(c)}>
                     {c.name}

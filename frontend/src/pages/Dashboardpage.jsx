@@ -13,6 +13,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import { SelectDropdown } from "../UI";
 import {
   Clipboard,
   CreditCard,
@@ -48,6 +49,9 @@ function Dashboardpage() {
   );
   const [summary, setSummary] = useState(null);
   const [weeklySummary, setWeeklySummary] = useState(null);
+  const [chartRange, setChartRange] = useState("week");
+  const [chartLoading, setChartLoading] = useState(false);
+  const [lastChartRangeLoaded, setLastChartRangeLoaded] = useState("week");
   const [recentInvoices, setRecentInvoices] = useState([]);
   const [overdueInvoices, setOverdueInvoices] = useState([]);
   const [lowStockProducts, setLowStockProducts] = useState([]);
@@ -56,6 +60,7 @@ function Dashboardpage() {
   const [bannerLoading, setBannerLoading] = useState(false);
   const [resolvedUser, setResolvedUser] = useState(user);
   const { sidebarOpen } = useSelector((state) => state.sidebar);
+  const [dashboardReady, setDashboardReady] = useState(false);
 
   const sortedRecentInvoices = useMemo(
     () =>
@@ -130,7 +135,10 @@ function Dashboardpage() {
   useEffect(() => {
     const fetchSummary = async () => {
       try {
-        const res = await axiosInstance.get("/dashboard/summary");
+        setLoading(true);
+        const res = await axiosInstance.get(
+          `/dashboard/summary?range=${chartRange}`,
+        );
         setSummary(res.data.summary || null);
         setWeeklySummary(res.data.summary?.weeklySummary || null);
         setRecentInvoices(res.data.recentInvoices || []);
@@ -140,11 +148,34 @@ function Dashboardpage() {
         console.error("Failed to load dashboard summary:", error);
       } finally {
         setLoading(false);
+        setDashboardReady(true);
       }
     };
 
     fetchSummary();
   }, []);
+
+  useEffect(() => {
+    if (!dashboardReady) return;
+    if (chartRange === lastChartRangeLoaded) return;
+
+    const fetchChartSummary = async () => {
+      try {
+        setChartLoading(true);
+        const res = await axiosInstance.get(
+          `/dashboard/summary?range=${chartRange}`,
+        );
+        setWeeklySummary(res.data.summary?.weeklySummary || null);
+        setLastChartRangeLoaded(chartRange);
+      } catch (error) {
+        console.error("Failed to load dashboard chart summary:", error);
+      } finally {
+        setChartLoading(false);
+      }
+    };
+
+    fetchChartSummary();
+  }, [chartRange, dashboardReady, lastChartRangeLoaded]);
 
   useEffect(() => {
     const fetchCurrentUser = async () => {
@@ -219,85 +250,166 @@ function Dashboardpage() {
     },
   ];
 
-  const todayChartData = {
-    labels: ["Sales", "Purchases", "Received", "Paid"],
-    datasets: [
-      {
-        label: "Today",
-        data: [
-          safeNumber(summary?.todaysSales),
-          safeNumber(summary?.todaysPurchases),
-          safeNumber(summary?.todaysReceivedPayments),
-          safeNumber(summary?.todaysPaidPayments),
-        ],
-        backgroundColor: chartBarPalette.map((item) => item.fill),
-        borderColor: chartBarPalette.map((item) => item.border),
-        borderWidth: 2,
-        borderRadius: {
-          topLeft: 16,
-          topRight: 16,
-          bottomLeft: 0,
-          bottomRight: 0,
+  const todayChartData = useMemo(
+    () => ({
+      labels: ["Sales", "Purchases", "Received", "Paid"],
+      datasets: [
+        {
+          label: "Total",
+          data: [
+            safeNumber(summary?.totalSales),
+            safeNumber(summary?.totalPurchases),
+            safeNumber(summary?.totalReceivedPayments),
+            safeNumber(summary?.totalPaidPayments),
+          ],
+          backgroundColor: chartBarPalette.map((item) => item.fill),
+          borderColor: chartBarPalette.map((item) => item.border),
+          borderWidth: 2,
+          borderRadius: {
+            topLeft: 16,
+            topRight: 16,
+            bottomLeft: 0,
+            bottomRight: 0,
+          },
+          borderSkipped: false,
+          hoverBackgroundColor: chartBarPalette.map((item) => item.fill),
         },
-        borderSkipped: false,
-        hoverBackgroundColor: chartBarPalette.map((item) => item.fill),
-      },
+      ],
+    }),
+    [
+      summary?.totalSales,
+      summary?.totalPurchases,
+      summary?.totalReceivedPayments,
+      summary?.totalPaidPayments,
     ],
-  };
+  );
 
-  const weeklyChartData = {
-    labels: weeklySummary?.labels || [],
-    datasets: [
-      {
-        label: "Sales",
-        data: weeklySummary?.sales || [],
-        borderColor: "rgba(20, 184, 166, 1)",
-        backgroundColor: "rgba(20, 184, 166, 0.12)",
-        pointBackgroundColor: "rgba(20, 184, 166, 1)",
-        pointBorderColor: "#fff",
-        pointRadius: 3,
-        pointHoverRadius: 5,
-        tension: 0.38,
-        fill: false,
+  const todayChartOptions = useMemo(
+    () => ({
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          enabled: showFinancialAmounts,
+          backgroundColor: "rgba(15, 23, 42, 0.95)",
+          padding: 12,
+          titleColor: "#fff",
+          bodyColor: "#fff",
+        },
       },
-      {
-        label: "Purchases",
-        data: weeklySummary?.purchases || [],
-        borderColor: "rgba(59, 130, 246, 1)",
-        backgroundColor: "rgba(59, 130, 246, 0.12)",
-        pointBackgroundColor: "rgba(59, 130, 246, 1)",
-        pointBorderColor: "#fff",
-        pointRadius: 3,
-        pointHoverRadius: 5,
-        tension: 0.38,
-        fill: false,
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: "#64748b" },
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: "rgba(148, 163, 184, 0.15)" },
+          ticks: { color: "#64748b" },
+        },
       },
-      {
-        label: "Received",
-        data: weeklySummary?.receivedPayments || [],
-        borderColor: "rgba(245, 158, 11, 1)",
-        backgroundColor: "rgba(245, 158, 11, 0.12)",
-        pointBackgroundColor: "rgba(245, 158, 11, 1)",
-        pointBorderColor: "#fff",
-        pointRadius: 3,
-        pointHoverRadius: 5,
-        tension: 0.38,
-        fill: false,
-      },
-      {
-        label: "Paid",
-        data: weeklySummary?.paidPayments || [],
-        borderColor: "rgba(244, 63, 94, 1)",
-        backgroundColor: "rgba(244, 63, 94, 0.12)",
-        pointBackgroundColor: "rgba(244, 63, 94, 1)",
-        pointBorderColor: "#fff",
-        pointRadius: 3,
-        pointHoverRadius: 5,
-        tension: 0.38,
-        fill: false,
-      },
+    }),
+    [showFinancialAmounts],
+  );
+
+  const weeklyChartData = useMemo(
+    () => ({
+      labels: weeklySummary?.labels || [],
+      datasets: [
+        {
+          label: "Sales",
+          data: weeklySummary?.sales || [],
+          borderColor: "rgba(20, 184, 166, 1)",
+          backgroundColor: "rgba(20, 184, 166, 0.12)",
+          pointBackgroundColor: "rgba(20, 184, 166, 1)",
+          pointBorderColor: "#fff",
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          tension: 0.38,
+          fill: false,
+        },
+        {
+          label: "Purchases",
+          data: weeklySummary?.purchases || [],
+          borderColor: "rgba(59, 130, 246, 1)",
+          backgroundColor: "rgba(59, 130, 246, 0.12)",
+          pointBackgroundColor: "rgba(59, 130, 246, 1)",
+          pointBorderColor: "#fff",
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          tension: 0.38,
+          fill: false,
+        },
+        {
+          label: "Received",
+          data: weeklySummary?.receivedPayments || [],
+          borderColor: "rgba(245, 158, 11, 1)",
+          backgroundColor: "rgba(245, 158, 11, 0.12)",
+          pointBackgroundColor: "rgba(245, 158, 11, 1)",
+          pointBorderColor: "#fff",
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          tension: 0.38,
+          fill: false,
+        },
+        {
+          label: "Paid",
+          data: weeklySummary?.paidPayments || [],
+          borderColor: "rgba(244, 63, 94, 1)",
+          backgroundColor: "rgba(244, 63, 94, 0.12)",
+          pointBackgroundColor: "rgba(244, 63, 94, 1)",
+          pointBorderColor: "#fff",
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          tension: 0.38,
+          fill: false,
+        },
+      ],
+    }),
+    [
+      weeklySummary?.labels,
+      weeklySummary?.sales,
+      weeklySummary?.purchases,
+      weeklySummary?.receivedPayments,
+      weeklySummary?.paidPayments,
     ],
-  };
+  );
+
+  const weeklyChartOptions = useMemo(
+    () => ({
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: "top",
+          labels: {
+            usePointStyle: true,
+            boxWidth: 10,
+          },
+        },
+        tooltip: {
+          enabled: showFinancialAmounts,
+          backgroundColor: "rgba(15, 23, 42, 0.95)",
+          padding: 12,
+          titleColor: "#fff",
+          bodyColor: "#fff",
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: "#64748b" },
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: "rgba(148, 163, 184, 0.15)" },
+          ticks: { color: "#64748b" },
+        },
+      },
+    }),
+    [showFinancialAmounts],
+  );
 
   return (
     <div className="min-h-[92vh] bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.14),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#f1f5f9_100%)] p-4">
@@ -478,14 +590,14 @@ function Dashboardpage() {
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="text-sm font-bold uppercase tracking-[0.22em] text-teal-600">
-                    Today&apos;s chart
+                    Total chart
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Sales, purchases, and payments
+                    All-time sales, purchases, and payments
                   </p>
                 </div>
                 <div className="rounded-2xl bg-teal-50 px-3 py-2 text-xs font-semibold text-teal-700">
-                  Live day summary
+                  Lifetime totals
                 </div>
               </div>
 
@@ -503,34 +615,7 @@ function Dashboardpage() {
                           : "scale-[0.99] blur-md opacity-70"
                       }`}
                     >
-                      <Bar
-                        data={todayChartData}
-                        options={{
-                          responsive: true,
-                          maintainAspectRatio: false,
-                          plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                              enabled: showFinancialAmounts,
-                              backgroundColor: "rgba(15, 23, 42, 0.95)",
-                              padding: 12,
-                              titleColor: "#fff",
-                              bodyColor: "#fff",
-                            },
-                          },
-                          scales: {
-                            x: {
-                              grid: { display: false },
-                              ticks: { color: "#64748b" },
-                            },
-                            y: {
-                              beginAtZero: true,
-                              grid: { color: "rgba(148, 163, 184, 0.15)" },
-                              ticks: { color: "#64748b" },
-                            },
-                          },
-                        }}
-                      />
+                      <Bar data={todayChartData} options={todayChartOptions} />
                     </div>
                   </>
                 )}
@@ -546,16 +631,27 @@ function Dashboardpage() {
                     Weekly chart
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Seven day sales and payment trend
+                    Sales, purchases, and payments by selected range
                   </p>
                 </div>
-                <div className="rounded-2xl bg-teal-50 px-3 py-2 text-xs font-semibold text-teal-700">
-                  7 day overview
-                </div>
+                <SelectDropdown
+                  value={chartRange}
+                  onChange={(value) => setChartRange(value)}
+                  options={[
+                    { value: "today", label: "Today" },
+                    { value: "week", label: "This Week" },
+                    { value: "month", label: "This Month" },
+                    { value: "year", label: "This Year" },
+                  ]}
+                  placeholder="Select Duration"
+                  uppercase={false}
+                  wrapperClassName="w-32"
+                  selectClassName="py-2 text-xs font-semibold text-teal-700 bg-teal-50 border-teal-100"
+                />
               </div>
 
               <div className="relative mt-4 h-[340px] overflow-hidden rounded-lg border border-slate-100 bg-gradient-to-br from-slate-50/80 to-white/80 p-3 backdrop-blur-md">
-                {loading ? (
+                {loading || chartLoading ? (
                   <div className="flex h-full items-center justify-center rounded-lg bg-white/70 text-sm text-slate-500">
                     Loading weekly chart...
                   </div>
@@ -570,37 +666,7 @@ function Dashboardpage() {
                     >
                       <Line
                         data={weeklyChartData}
-                        options={{
-                          responsive: true,
-                          maintainAspectRatio: false,
-                          plugins: {
-                            legend: {
-                              position: "top",
-                              labels: {
-                                usePointStyle: true,
-                                boxWidth: 10,
-                              },
-                            },
-                            tooltip: {
-                              enabled: showFinancialAmounts,
-                              backgroundColor: "rgba(15, 23, 42, 0.95)",
-                              padding: 12,
-                              titleColor: "#fff",
-                              bodyColor: "#fff",
-                            },
-                          },
-                          scales: {
-                            x: {
-                              grid: { display: false },
-                              ticks: { color: "#64748b" },
-                            },
-                            y: {
-                              beginAtZero: true,
-                              grid: { color: "rgba(148, 163, 184, 0.15)" },
-                              ticks: { color: "#64748b" },
-                            },
-                          },
-                        }}
+                        options={weeklyChartOptions}
                       />
                     </div>
                   </>
@@ -751,7 +817,15 @@ function Dashboardpage() {
                     </span>
                   </span>
                   <span className="text-sm font-semibold text-amber-600">
-                    {product.quantity} {product.unit || ""}
+                    {(() => {
+                      return product.quantity > 0 ? (
+                        <span>
+                          {product.quantity} {product.unit || ""}
+                        </span>
+                      ) : (
+                        <span>Out of stock</span>
+                      );
+                    })()}
                   </span>
                 </li>
               ))}
