@@ -36,6 +36,7 @@ import {
   Tooltip,
 } from "../UI";
 import CodeBadge from "../Components/CodeBadge";
+import TablePagination from "../UI/TablePagination";
 
 const emptyCode = {
   code: "",
@@ -66,6 +67,7 @@ function Productpage({ readOnly = false }) {
     isproductadd,
     searchdata,
     isallproductget,
+    pagination,
   } = useSelector((state) => state.product);
 
   const { getallCategory } = useSelector((state) => state.category);
@@ -92,11 +94,35 @@ function Productpage({ readOnly = false }) {
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
   const [isCodeSubmitting, setIsCodeSubmitting] = useState(false);
 
-  useEffect(() => {
-    dispatch(gettingallproducts());
-    dispatch(gettingallCategory());
-  }, [dispatch, editedProduct, isproductadd]);
+  const PAGE_SIZE = 5;
+  const [currentPage, setCurrentPage] = useState(1);
 
+  useEffect(() => {
+    dispatch(
+      gettingallproducts({
+        page: currentPage,
+        pageSize: PAGE_SIZE,
+        sortDir: createdAtSort,
+      }),
+    );
+    dispatch(gettingallCategory());
+  }, [dispatch, editedProduct, isproductadd, currentPage, createdAtSort]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [productCodeQuery]);
+
+  useEffect(() => {
+    if (productCodeQuery.trim() === "") {
+      dispatch(
+        gettingallproducts({
+          page: 1,
+          pageSize: PAGE_SIZE,
+          sortDir: createdAtSort,
+        }),
+      );
+    }
+  }, [dispatch, productCodeQuery, createdAtSort]);
   useEffect(() => {
     if (productCodeQuery.trim() !== "") {
       const debounce = setTimeout(() => {
@@ -104,7 +130,7 @@ function Productpage({ readOnly = false }) {
       }, 500); // debounce for 0.5s
       return () => clearTimeout(debounce);
     }
-    dispatch(gettingallproducts());
+    // dispatch(gettingallproducts());
   }, [productCodeQuery, dispatch]);
 
   const handleremove = async (productId) => {
@@ -789,14 +815,14 @@ function Productpage({ readOnly = false }) {
           ) : (
             <div className="overflow-x-auto">
               <div
-                className={`w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1246px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
+                className={`max-h-[56vh] overflow-y-auto w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1246px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
               >
                 <div
                   className={`flex gap-2 ${sidebarOpen ? "w-max" : "w-full"}`}
                 >
                   <table className="w-full text-sm border-collapse">
                     <thead>
-                      <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                      <tr className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
                         <th className="px-5 py-4 font-semibold">#</th>
                         <th className="px-5 py-4 font-semibold">Product</th>
                         <th className="px-5 py-4 font-semibold">
@@ -825,7 +851,7 @@ function Productpage({ readOnly = false }) {
 
                         {!isReadOnlyMode && (
                           <th
-                            className="px-5 py-4 font-semibold text-center sticky right-0 bg-slate-50 z-20"
+                            className="px-5 py-4 font-semibold text-center sticky right-0 bg-slate-50 z-40"
                             style={{
                               boxShadow:
                                 "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
@@ -1008,7 +1034,7 @@ function Productpage({ readOnly = false }) {
                     </tbody>
 
                     <tfoot>
-                      <tr className="border-t-2 border-slate-200 text-sm font-semibold text-slate-700">
+                      <tr className="sticky z-20 bottom-0 bg-slate-50 border-t-2 border-slate-200 text-sm font-semibold text-slate-700">
                         <td
                           className="px-5 py-4 text-md text-teal-800"
                           colSpan={4}
@@ -1122,6 +1148,13 @@ function Productpage({ readOnly = false }) {
           )}
         </div>
       </div>
+      <TablePagination
+        currentPage={pagination.page}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.totalItems}
+        pageSize={pagination.pageSize}
+        onPageChange={setCurrentPage}
+      />
 
       <DrawerPanel
         open={isFormVisible}

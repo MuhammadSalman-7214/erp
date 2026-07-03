@@ -101,12 +101,41 @@ module.exports.RemoveCategory = async (req, res) => {
 module.exports.getCategory = async (req, res) => {
   try {
     const userId = req.user.userId;
+
+    const isPaginated = req.query.page !== undefined;
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const pageSize = Math.min(
+      Math.max(parseInt(req.query.pageSize, 10) || 5, 1),
+      100,
+    );
+    const offset = (page - 1) * pageSize;
+    const sortDir = req.query.sortDir === "desc" ? "DESC" : "ASC";
+
     let allCategory;
+    let countRows = null;
+
     try {
-      allCategory = await query(
-        "SELECT * FROM categories WHERE user_id = ? ORDER BY createdAt ASC",
-        [userId],
-      );
+      if (isPaginated) {
+        [allCategory, countRows] = await Promise.all([
+          query(
+            `SELECT * FROM categories
+             WHERE user_id = ?
+             ORDER BY createdAt ${sortDir}
+             LIMIT ? OFFSET ?`,
+            [userId, pageSize, offset],
+          ),
+          query("SELECT COUNT(*) AS count FROM categories WHERE user_id = ?", [
+            userId,
+          ]),
+        ]);
+      } else {
+        allCategory = await query(
+          `SELECT * FROM categories
+           WHERE user_id = ?
+           ORDER BY createdAt ${sortDir}`,
+          [userId],
+        );
+      }
     } catch (err) {
       return res.status(500).json({
         success: false,
@@ -115,29 +144,41 @@ module.exports.getCategory = async (req, res) => {
       });
     }
 
-    // if (!allCategory || allCategory.length === 0) {
-    //   return res.status(404).json({ message: "Categories not found" });
-    // }
-
     const categoriesWithCount = await Promise.all(
       allCategory.map(async (category) => {
-        const countRows = await query(
-          "SELECT COUNT(*) as count FROM products WHERE Category = ? AND user_id = ?",
+        const count = await query(
+          "SELECT COUNT(*) AS count FROM products WHERE Category = ? AND user_id = ?",
           [category.id, userId],
         );
-        const count = countRows[0]?.count || 0;
+
         return {
           ...category,
-          productCount: count,
+          productCount: count[0]?.count || 0,
         };
       }),
     );
 
-    res.status(200).json({ categoriesWithCount });
+    const response = {
+      success: true,
+      categoriesWithCount,
+    };
+
+    if (isPaginated) {
+      const totalItems = countRows[0]?.count || 0;
+      response.pagination = {
+        page,
+        pageSize,
+        totalItems,
+        totalPages: Math.max(Math.ceil(totalItems / pageSize), 1),
+      };
+    }
+
+    res.status(200).json(response);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error getting categories", error: error.message });
+    res.status(500).json({
+      message: "Error getting categories",
+      error: error.message,
+    });
   }
 };
 

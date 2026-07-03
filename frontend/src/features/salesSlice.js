@@ -5,6 +5,7 @@ import { uppercasePayload } from "../lib/uppercasePayload";
 
 const initialState = {
   getallsales: null,
+  pagination: { page: 1, pageSize: 5, totalItems: 0, totalPages: 1 },
   isgetallsales: false,
   iscreatedsales: false,
   editedsales: null,
@@ -17,7 +18,9 @@ export const CreateSales = createAsyncThunk(
     try {
       const response = await axiosInstance.post(
         "sales",
-        uppercasePayload(Category, { excludeKeys: ["paymentMethod", "status"] }),
+        uppercasePayload(Category, {
+          excludeKeys: ["paymentMethod", "status"],
+        }),
         {
           withCredentials: true,
         },
@@ -31,9 +34,13 @@ export const CreateSales = createAsyncThunk(
 
 export const gettingallSales = createAsyncThunk(
   "sales/getallsales",
-  async (_, { rejectWithValue }) => {
+  async (
+    { page = 1, pageSize = 5, sortDir = "desc" } = {},
+    { rejectWithValue },
+  ) => {
     try {
       const response = await axiosInstance.get("sales", {
+        params: { page, pageSize, sortDir },
         withCredentials: true,
       });
       return response.data;
@@ -129,6 +136,7 @@ const salesSlice = createSlice({
       .addCase(gettingallSales.fulfilled, (state, action) => {
         state.isgetallsales = false;
         state.getallsales = action.payload.sales;
+        state.pagination = action.payload.pagination || state.pagination;
       })
 
       .addCase(gettingallSales.rejected, (state, action) => {

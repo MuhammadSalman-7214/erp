@@ -436,12 +436,31 @@ const hydrateOrderRows = async (orders, userId) => {
 const getOrder = async (req, res) => {
   try {
     const userId = req.user.userId;
+    // let orders;
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const pageSize = Math.min(
+      Math.max(parseInt(req.query.pageSize, 10) || 5, 1),
+      100,
+    );
+    const offset = (page - 1) * pageSize;
+    const sortDir = req.query.sortDir === "desc" ? "DESC" : "ASC";
+
     let orders;
+    let countRows;
     try {
-      orders = await query(
-        "SELECT * FROM orders WHERE user_id = ? ORDER BY createdAt ASC",
-        [userId],
-      );
+      // orders = await query(
+      //   "SELECT * FROM orders WHERE user_id = ? ORDER BY createdAt ASC",
+      //   [userId],
+      // );
+      [orders, countRows] = await Promise.all([
+        query(
+          `SELECT * FROM orders WHERE user_id = ? ORDER BY createdAt ${sortDir} LIMIT ? OFFSET ?`,
+          [userId, pageSize, offset],
+        ),
+        query("SELECT COUNT(*) as count FROM orders WHERE user_id = ?", [
+          userId,
+        ]),
+      ]);
     } catch (err) {
       return res.status(500).json({
         success: false,
@@ -460,7 +479,14 @@ const getOrder = async (req, res) => {
       });
     }
 
-    res.status(200).json(hydrated);
+    // res.status(200).json(hydrated);
+    const totalItems = countRows[0]?.count || 0;
+    const totalPages = Math.max(Math.ceil(totalItems / pageSize), 1);
+
+    res.status(200).json({
+      orders: hydrated,
+      pagination: { page, pageSize, totalItems, totalPages },
+    });
   } catch (error) {
     res
       .status(500)

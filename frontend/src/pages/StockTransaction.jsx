@@ -18,9 +18,10 @@ import { sortByDateValue } from "../lib/dateFormat";
 import { validateNumberInput, validateTextInput } from "../lib/formValidation";
 import { Button, Inputfield, SelectDropdown } from "../UI";
 import CodeBadge from "../Components/CodeBadge";
+import TablePagination from "../UI/TablePagination";
 
 function StockTransaction({ readOnly = false }) {
-  const { getallStocks, iscreatedStocks, searchdata } = useSelector(
+  const { getallStocks, iscreatedStocks, searchdata, pagination } = useSelector(
     (state) => state.stocktransaction,
   );
 
@@ -41,10 +42,12 @@ function StockTransaction({ readOnly = false }) {
   const [transactionDateSort, setTransactionDateSort] = useState("asc");
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
   const { sidebarOpen } = useSelector((state) => state.sidebar);
-
+  const PAGE_SIZE = 5;
+  const [currentPage, setCurrentPage] = useState(1);
   // Determine if page is in read-only mode (from props OR role)
   const isReadOnlyMode = readOnly || checkReadOnly("stock");
   const canWrite = hasPermission("stock", "write");
+
   useEffect(() => {
     if (query.trim() !== "") {
       const repeatTimeout = setTimeout(() => {
@@ -52,14 +55,26 @@ function StockTransaction({ readOnly = false }) {
       }, 500);
       return () => clearTimeout(repeatTimeout);
     }
-    dispatch(getAllStockTransactions());
   }, [query, dispatch]);
 
   useEffect(() => {
     dispatch(gettingallproducts());
-    dispatch(getAllStockTransactions());
     dispatch(gettingallSupplier());
   }, [dispatch]);
+
+  useEffect(() => {
+    dispatch(
+      getAllStockTransactions({
+        page: currentPage,
+        pageSize: PAGE_SIZE,
+        sortDir: transactionDateSort,
+      }),
+    );
+  }, [dispatch, currentPage, transactionDateSort]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [query]);
 
   const selectedProductRecord = useMemo(
     () => getallproduct.find((p) => p.id === product),
@@ -397,12 +412,12 @@ function StockTransaction({ readOnly = false }) {
           {Array.isArray(displaystock) && displaystock.length > 0 ? (
             <div className="overflow-x-auto">
               <div
-                className={`w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1230px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
+                className={`max-h-[56vh] overflow-y-auto w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1245px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
               >
                 <div className="flex gap-2">
                   <table className="w-full text-sm">
                     <thead className="bg-slate-50 border-b">
-                      <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                      <tr className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
                         <th className="px-5 py-4 font-semibold">#</th>
 
                         <th className="px-5 py-4 font-semibold">Product</th>
@@ -485,6 +500,13 @@ function StockTransaction({ readOnly = false }) {
           )}
         </div>
       </div>
+      <TablePagination
+        currentPage={pagination.page}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.totalItems}
+        pageSize={pagination.pageSize}
+        onPageChange={setCurrentPage}
+      />
     </div>
   );
 }

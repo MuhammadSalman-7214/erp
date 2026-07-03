@@ -5,6 +5,7 @@ import { uppercasePayload } from "../lib/uppercasePayload";
 
 const initialState = {
   getallCategory: [],
+  pagination: { page: 1, pageSize: 5, totalItems: 0, totalPages: 1 },
   isgetallCategory: false,
   iscreatedCategory: false,
   iscategoryremove: false,
@@ -15,9 +16,13 @@ export const CreateCategory = createAsyncThunk(
   "category/createcategory",
   async (Category, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.post("category", uppercasePayload(Category), {
-        withCredentials: true,
-      });
+      const response = await axiosInstance.post(
+        "category",
+        uppercasePayload(Category),
+        {
+          withCredentials: true,
+        },
+      );
       return response.data;
     } catch (error) {
       console.error("CreateCategory error:", error.response || error);
@@ -30,9 +35,14 @@ export const CreateCategory = createAsyncThunk(
 
 export const gettingallCategory = createAsyncThunk(
   "category/getcategory",
-  async (_, { rejectWithValue }) => {
+  async (
+    { page = 1, pageSize = 5, sortDir = "desc" } = {},
+    { rejectWithValue },
+  ) => {
     try {
-      const response = await axiosInstance.get("category");
+      const response = await axiosInstance.get("category", {
+        params: { page, pageSize, sortDir },
+      });
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message);
@@ -97,6 +107,7 @@ const categorySlice = createSlice({
       .addCase(gettingallCategory.fulfilled, (state, action) => {
         state.isgetallCategory = false;
         state.getallCategory = action.payload.categoriesWithCount;
+        state.pagination = action.payload.pagination || state.pagination;
       })
 
       .addCase(gettingallCategory.rejected, (state, action) => {

@@ -17,9 +17,12 @@ import DateSortHeader from "../Components/DateSortHeader";
 import { sortByDateValue } from "../lib/dateFormat";
 import { validateTextInput } from "../lib/formValidation";
 import { Button, ConfirmDialog, Inputfield, Tooltip } from "../UI";
+import TablePagination from "../UI/TablePagination";
 
 function Categorypage() {
-  const { getallCategory, searchdata } = useSelector((state) => state.category);
+  const { getallCategory, searchdata, pagination } = useSelector(
+    (state) => state.category,
+  );
   const dispatch = useDispatch();
   const [query, setquery] = useState("");
   const [createdAtSort, setCreatedAtSort] = useState("asc");
@@ -31,26 +34,42 @@ function Categorypage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { sidebarOpen } = useSelector((state) => state.sidebar);
 
+  const PAGE_SIZE = 5;
+  const [currentPage, setCurrentPage] = useState(1);
+
   useEffect(() => {
-    dispatch(gettingallCategory());
-  }, [dispatch]);
+    dispatch(
+      gettingallCategory({
+        page: currentPage,
+        pageSize: PAGE_SIZE,
+        sortDir: createdAtSort,
+      }),
+    );
+  }, [dispatch, currentPage, createdAtSort]);
 
   useEffect(() => {
     if (query.trim() !== "") {
-      const repeatTimeout = setTimeout(() => {
+      const timer = setTimeout(() => {
         dispatch(SearchCategory(query));
       }, 500);
-      return () => clearTimeout(repeatTimeout);
-    } else {
-      dispatch(gettingallCategory());
+
+      return () => clearTimeout(timer);
     }
-  }, [query, dispatch]);
+
+    dispatch(
+      gettingallCategory({
+        page: currentPage,
+        pageSize: PAGE_SIZE,
+        sortDir: createdAtSort,
+      }),
+    );
+  }, [query, currentPage, createdAtSort, dispatch]);
 
   const handleremove = async (categoryId) => {
     dispatch(RemoveCategory(categoryId))
       .unwrap()
       .then(() => {
-        toast.success("category removed successfully");
+        toast.success("Category removed successfully");
       })
       .catch((error) => {
         toast.error(error?.message || "Failed to remove category");
@@ -263,12 +282,12 @@ function Categorypage() {
           {Array.isArray(displayCategory) && displayCategory.length > 0 ? (
             <div className="overflow-x-auto">
               <div
-                className={`w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1246px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
+                className={`max-h-[56vh] overflow-y-auto w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1246px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
               >
                 <div className="flex gap-2">
                   <table className="w-full text-sm border-collapse">
                     <thead>
-                      <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                      <tr className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
                         <th className="px-5 py-4 font-semibold">#</th>
                         <th className="px-5 py-4 font-semibold">Name</th>
                         <th className="px-5 py-4 font-semibold">
@@ -394,6 +413,13 @@ function Categorypage() {
           )}
         </div>
       </div>
+      <TablePagination
+        currentPage={pagination.page}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.totalItems}
+        pageSize={pagination.pageSize}
+        onPageChange={setCurrentPage}
+      />
     </div>
   );
 }

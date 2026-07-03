@@ -43,6 +43,7 @@ import {
 } from "../UI";
 import { AiOutlineDownload } from "react-icons/ai";
 import { useCompanyBranding } from "../hooks/useCompanyBranding";
+import TablePagination from "../UI/TablePagination";
 
 const sanitizeFileName = (value) =>
   String(value || "invoice")
@@ -93,7 +94,7 @@ const loadLogoDataUrl = async (url) => {
 function Salespage() {
   const companyBranding = useCompanyBranding();
   const getId = (value) => value?.id ?? value?.id ?? value;
-  const { getallsales } = useSelector((state) => state.sales);
+  const { getallsales, pagination } = useSelector((state) => state.sales);
 
   const { getallproduct } = useSelector((state) => state.product);
   const { sidebarOpen } = useSelector((state) => state.sidebar);
@@ -130,6 +131,9 @@ function Salespage() {
 
   const [selectedSales, setselectedSales] = useState(null);
   const { getAllCustomer } = useSelector((state) => state.customer);
+  const PAGE_SIZE = 5;
+  const [currentPage, setCurrentPage] = useState(1);
+
   const getStatusBadge = (status) => {
     const mapping = {
       pending: "bg-yellow-50 text-yellow-700",
@@ -144,8 +148,18 @@ function Salespage() {
   }, [dispatch]);
 
   useEffect(() => {
-    dispatch(gettingallSales());
-  }, [dispatch]);
+    dispatch(
+      gettingallSales({
+        page: currentPage,
+        pageSize: PAGE_SIZE,
+        sortDir: saleDateSort,
+      }),
+    );
+  }, [dispatch, currentPage, saleDateSort]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [query, dateFrom, dateTo]);
 
   useEffect(() => {
     const fetchPayments = async () => {
@@ -1505,8 +1519,6 @@ function Salespage() {
 
   return (
     <div className="min-h-[92vh] bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.14),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#f1f5f9_100%)] p-4">
-      {/* <SalesChart /> */}
-
       <div className="mb-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
           <div className="flex flex-col gap-3.5 lg:flex-row lg:items-center lg:justify-between">
@@ -2238,13 +2250,13 @@ function Salespage() {
         ) : (
           <div className="overflow-x-auto">
             <div
-              className={`w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1230px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
+              className={`max-h-[56vh] overflow-y-auto w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1245px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
             >
               <div className={`flex gap-2 ${sidebarOpen ? "w-max" : "w-full"}`}>
                 <table className="w-full text-sm border-collapse">
                   {/* HEADER */}
                   <thead>
-                    <tr className="text-left text-xs font-semibold text-slate-500 uppercase bg-slate-50 border-y border-slate-200">
+                    <tr className="sticky top-0 z-20 text-left text-xs font-semibold text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
                       <th className="px-4 py-4 font-semibold">#</th>
                       <th className="px-4 py-4 font-semibold">Invoice No</th>
                       <th className="px-4 py-4 font-semibold">Customer</th>
@@ -2268,7 +2280,7 @@ function Salespage() {
                         Payment Status
                       </th>
                       <th
-                        className="px-4 py-4 font-semibold text-center sticky right-0 bg-slate-50 z-20"
+                        className="px-4 py-4 font-semibold text-center sticky right-0 bg-slate-50 z-40"
                         style={{
                           boxShadow: "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
                         }}
@@ -2542,6 +2554,13 @@ function Salespage() {
           </div>
         )}
       </div>
+      <TablePagination
+        currentPage={pagination.page}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.totalItems}
+        pageSize={pagination.pageSize}
+        onPageChange={setCurrentPage}
+      />
     </div>
   );
 }

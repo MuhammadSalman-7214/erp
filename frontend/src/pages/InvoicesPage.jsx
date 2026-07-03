@@ -22,11 +22,20 @@ import { CgSoftwareDownload } from "react-icons/cg";
 import { PiInvoiceBold } from "react-icons/pi";
 import { useCompanyBranding } from "../hooks/useCompanyBranding";
 import { useSelector } from "react-redux";
+import TablePagination from "../UI/TablePagination";
 
 function InvoicesPage() {
   const companyBranding = useCompanyBranding();
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    pageSize: 5,
+    totalItems: 0,
+    totalPages: 1,
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 5;
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -37,11 +46,21 @@ function InvoicesPage() {
   const [remainingAmount, setRemainingAmount] = useState(0);
   const { sidebarOpen } = useSelector((state) => state.sidebar);
 
-  const fetchInvoices = async () => {
+  const fetchInvoices = async (page = currentPage) => {
     setLoading(true);
     try {
-      const res = await axiosInstance.get("/invoice/");
+      const res = await axiosInstance.get("/invoice/", {
+        params: { page, pageSize: PAGE_SIZE, sortDir: dueDateSort },
+      });
       setInvoices(res.data.data || []);
+      setPagination(
+        res.data.pagination || {
+          page,
+          pageSize: PAGE_SIZE,
+          totalItems: res.data.data?.length || 0,
+          totalPages: 1,
+        },
+      );
     } catch (err) {
       console.error(err);
       toast.error("Failed to fetch invoices");
@@ -51,8 +70,12 @@ function InvoicesPage() {
   };
 
   useEffect(() => {
-    fetchInvoices();
-  }, []);
+    fetchInvoices(currentPage);
+  }, [currentPage, dueDateSort]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [query, typeFilter]);
 
   useEffect(() => {
     const fetchInvoicePayments = async () => {
@@ -429,12 +452,12 @@ function InvoicesPage() {
           ) : (
             <div className="overflow-x-auto">
               <div
-                className={`w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1230px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
+                className={`max-h-[56vh] overflow-y-auto w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1245px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
               >
                 <div className="flex gap-2">
                   <table className="w-full text-sm border-collapse">
                     <thead>
-                      <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                      <tr className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
                         <th className="px-5 py-4 font-semibold">#</th>
                         <th className="px-5 py-4 font-semibold">Invoice</th>
                         <th className="px-5 py-4 font-semibold">Type</th>
@@ -618,7 +641,13 @@ function InvoicesPage() {
           )}
         </div>
       </div>
-
+      <TablePagination
+        currentPage={pagination.page}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.totalItems}
+        pageSize={pagination.pageSize}
+        onPageChange={setCurrentPage}
+      />
       {showBillModal && billInvoice && (
         <>
           <div

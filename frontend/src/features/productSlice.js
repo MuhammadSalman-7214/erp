@@ -5,6 +5,7 @@ import { uppercasePayload } from "../lib/uppercasePayload";
 
 const initialState = {
   getallproduct: [],
+  pagination: { page: 1, pageSize: 5, totalItems: 0, totalPages: 1 },
   isallproductget: false,
   isproductadd: false,
   isproductremove: false,
@@ -49,8 +50,11 @@ export const EditProduct = createAsyncThunk(
     try {
       const normalizedData = uppercasePayload(updatedData);
 
-      const response = await axiosInstance.put(`/product/${id}`, normalizedData, {
-      });
+      const response = await axiosInstance.put(
+        `/product/${id}`,
+        normalizedData,
+        {},
+      );
 
       return response.data;
     } catch (error) {
@@ -80,9 +84,13 @@ export const Removeproduct = createAsyncThunk(
 
 export const gettingallproducts = createAsyncThunk(
   "product/getproduct",
-  async (_, { rejectWithValue }) => {
+  async (
+    { page = 1, pageSize = 10, sortDir = "desc" } = {},
+    { rejectWithValue },
+  ) => {
     try {
       const response = await axiosInstance.get("product", {
+        params: { page, pageSize, sortDir },
         withCredentials: true,
       });
       return response.data;
@@ -199,7 +207,9 @@ const productSlice = createSlice({
       .addCase(gettingallproducts.fulfilled, (state, action) => {
         state.isallproductget = false;
         state.getallproduct = action.payload.Products || [];
+        state.pagination = action.payload.pagination || state.pagination;
       })
+
       .addCase(gettingallproducts.rejected, (state) => {
         state.isallproductget = false;
       })

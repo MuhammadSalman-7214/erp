@@ -5,6 +5,7 @@ import { uppercasePayload } from "../lib/uppercasePayload";
 
 const initialState = {
   getorder: [],
+  pagination: { page: 1, pageSize: 5, totalItems: 0, totalPages: 1 },
   isgetorder: false,
   isorderadd: true,
   isorderremove: true,
@@ -92,9 +93,13 @@ export const SearchOrder = createAsyncThunk(
 
 export const gettingallOrder = createAsyncThunk(
   "order/getorders",
-  async (_, { rejectWithValue }) => {
+  async (
+    { page = 1, pageSize = 5, sortDir = "asc" } = {},
+    { rejectWithValue },
+  ) => {
     try {
       const response = await axiosInstance.get("order/getorders", {
+        params: { page, pageSize, sortDir },
         withCredentials: true,
       });
       return response.data;
@@ -134,7 +139,8 @@ const orderSlice = createSlice({
       })
       .addCase(gettingallOrder.fulfilled, (state, action) => {
         state.isgetorder = false;
-        state.getorder = action.payload;
+        state.getorder = action.payload.orders || [];
+        state.pagination = action.payload.pagination || state.pagination;
       })
 
       .addCase(gettingallOrder.rejected, (state, action) => {

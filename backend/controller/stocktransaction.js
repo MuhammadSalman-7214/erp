@@ -73,7 +73,9 @@ const hydrateTransactions = async (rows) =>
               variantName: row.productCode_variantName,
             }
           : null,
-        vendor: row.vendor_id ? { id: row.vendor_id, name: row.vendor_name } : null,
+        vendor: row.vendor_id
+          ? { id: row.vendor_id, name: row.vendor_name }
+          : null,
         supplier: row.supplier_id
           ? { id: row.supplier_id, name: row.supplier_name }
           : null,
@@ -145,7 +147,10 @@ module.exports.createStockTransaction = async (req, res) => {
       });
     }
 
-    if (type === "Stock-out" && Number(codeRecord.quantity) < Number(quantity)) {
+    if (
+      type === "Stock-out" &&
+      Number(codeRecord.quantity) < Number(quantity)
+    ) {
       return res.status(400).json({
         success: false,
         message: "Insufficient stock for Stock-out",
@@ -224,7 +229,9 @@ module.exports.createStockTransaction = async (req, res) => {
       });
     }
 
-    const populatedTransaction = (await hydrateTransactions(transactionRows))[0];
+    const populatedTransaction = (
+      await hydrateTransactions(transactionRows)
+    )[0];
 
     res.status(201).json({
       success: true,
@@ -242,12 +249,27 @@ module.exports.createStockTransaction = async (req, res) => {
 module.exports.getAllStockTransactions = async (req, res) => {
   try {
     const userId = req.user.userId;
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const pageSize = Math.min(
+      Math.max(parseInt(req.query.pageSize, 10) || 5, 1),
+      100,
+    );
+    const offset = (page - 1) * pageSize;
+    const sortDir = req.query.sortDir === "desc" ? "DESC" : "ASC";
+
     let transactions;
+    let countRows;
     try {
-      transactions = await query(
-        "SELECT st.*, p.id AS product_id, p.name AS product_name, p.description AS product_description, p.company AS product_company, p.brand AS product_brand, pc.id AS productCode_id, pc.code AS productCode_code, pc.variantName AS productCode_variantName, v.id AS vendor_id, v.name AS vendor_name, s.id AS supplier_id, s.name AS supplier_name FROM stock_transactions st LEFT JOIN products p ON p.id = st.product LEFT JOIN product_codes pc ON pc.id = st.productCode LEFT JOIN vendors v ON v.id = st.vendor LEFT JOIN vendors s ON s.id = st.supplier WHERE st.user_id = ? ORDER BY st.transactionDate ASC",
-        [userId],
-      );
+      [transactions, countRows] = await Promise.all([
+        query(
+          `SELECT st.*, p.id AS product_id, p.name AS product_name, p.description AS product_description, p.company AS product_company, p.brand AS product_brand, pc.id AS productCode_id, pc.code AS productCode_code, pc.variantName AS productCode_variantName, v.id AS vendor_id, v.name AS vendor_name, s.id AS supplier_id, s.name AS supplier_name FROM stock_transactions st LEFT JOIN products p ON p.id = st.product LEFT JOIN product_codes pc ON pc.id = st.productCode LEFT JOIN vendors v ON v.id = st.vendor LEFT JOIN vendors s ON s.id = st.supplier WHERE st.user_id = ? ORDER BY st.transactionDate ${sortDir} LIMIT ? OFFSET ?`,
+          [userId, pageSize, offset],
+        ),
+        query(
+          "SELECT COUNT(*) as count FROM stock_transactions WHERE user_id = ?",
+          [userId],
+        ),
+      ]);
     } catch (err) {
       return res.status(500).json({
         success: false,
@@ -257,10 +279,12 @@ module.exports.getAllStockTransactions = async (req, res) => {
     }
 
     const hydratedTransactions = await hydrateTransactions(transactions);
-
+    const totalItems = countRows[0]?.count || 0;
+    const totalPages = Math.max(Math.ceil(totalItems / pageSize), 1);
     res.status(200).json({
       success: true,
       transactions: hydratedTransactions,
+      pagination: { page, pageSize, totalItems, totalPages },
     });
   } catch (error) {
     console.error("Get All Stock Transactions Error:", error);

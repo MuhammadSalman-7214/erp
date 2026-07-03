@@ -31,6 +31,7 @@ import {
   SelectDropdown,
   Tooltip,
 } from "../UI";
+import TablePagination from "../UI/TablePagination";
 
 function Supplierpage({ readOnly = false }) {
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
@@ -40,7 +41,9 @@ function Supplierpage({ readOnly = false }) {
   const canWrite = hasPermission("supplier", "write");
   const canDelete = hasPermission("supplier", "delete");
 
-  const { getallSupplier, searchdata } = useSelector((state) => state.supplier);
+  const { getallSupplier, searchdata, pagination } = useSelector(
+    (state) => state.supplier,
+  );
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -61,6 +64,8 @@ function Supplierpage({ readOnly = false }) {
   const [createdAtSort, setCreatedAtSort] = useState("asc");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { sidebarOpen } = useSelector((state) => state.sidebar);
+  const PAGE_SIZE = 5;
+  const [currentPage, setCurrentPage] = useState(1);
 
   const getId = (value) => value?.id ?? value?.id ?? value;
 
@@ -83,7 +88,6 @@ function Supplierpage({ readOnly = false }) {
   };
 
   useEffect(() => {
-    dispatch(gettingallSupplier());
     dispatch(gettingallproducts());
     fetchVendorBalances();
   }, [dispatch]);
@@ -94,10 +98,22 @@ function Supplierpage({ readOnly = false }) {
         dispatch(SearchSupplier(query));
       }, 500);
       return () => clearTimeout(repeatTimeout);
-    } else {
-      dispatch(gettingallSupplier());
     }
   }, [query, dispatch]);
+
+  useEffect(() => {
+    dispatch(
+      gettingallSupplier({
+        page: currentPage,
+        pageSize: PAGE_SIZE,
+        sortDir: createdAtSort,
+      }),
+    );
+  }, [dispatch, currentPage, createdAtSort]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [query]);
 
   const handleRemove = async (supplierId) => {
     if (!canDelete) {
@@ -403,18 +419,15 @@ function Supplierpage({ readOnly = false }) {
     [displaySuppliers, createdAtSort],
   );
   const currency = (value) => `Rs ${Number(value || 0).toLocaleString()}`;
-  const summaryTotals = Array.isArray(getallSupplier)
-    ? getallSupplier.reduce(
-        (acc, supplier) => {
-          const vendorSummary = vendorBalances[String(getId(supplier))] || {};
-          acc.total += Number(vendorSummary.totalAmount || 0);
-          acc.paid += Number(vendorSummary.paidAmount || 0);
-          acc.remaining += Number(vendorSummary.remainingAmount || 0);
-          return acc;
-        },
-        { total: 0, paid: 0, remaining: 0 },
-      )
-    : { total: 0, paid: 0, remaining: 0 };
+  const summaryTotals = Object.values(vendorBalances).reduce(
+    (acc, vendorSummary) => {
+      acc.total += Number(vendorSummary.totalAmount || 0);
+      acc.paid += Number(vendorSummary.paidAmount || 0);
+      acc.remaining += Number(vendorSummary.remainingAmount || 0);
+      return acc;
+    },
+    { total: 0, paid: 0, remaining: 0 },
+  );
 
   return (
     <div className="min-h-[92vh] bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.14),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#f1f5f9_100%)] p-4">
@@ -623,12 +636,12 @@ function Supplierpage({ readOnly = false }) {
           ) : (
             <div className="overflow-x-auto">
               <div
-                className={`w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1246px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
+                className={`max-h-[56vh] overflow-y-auto w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1246px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
               >
                 <div className="flex gap-2">
                   <table className="min-w-[1390px] w-full text-sm border-collapse">
                     <thead className="bg-slate-50 border-b">
-                      <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                      <tr className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
                         <th className="px-5 py-4 font-semibold">#</th>
                         <th className="px-5 py-4 font-semibold">Name</th>
                         <th className="px-5 py-4 font-semibold">Phone</th>
@@ -781,7 +794,7 @@ function Supplierpage({ readOnly = false }) {
                       })}
                     </tbody>
                     <tfoot>
-                      <tr className="border-t-2 border-slate-200 text-sm font-semibold text-slate-700">
+                      <tr className="sticky bottom-0 z-20 bg-slate-50 border-t-2 border-slate-200 text-sm font-semibold text-slate-700">
                         <td
                           className="px-5 py-4 text-md text-teal-800"
                           colSpan={4}
@@ -791,7 +804,7 @@ function Supplierpage({ readOnly = false }) {
                               Grand Total
                             </span>
                             <span className="text-xs font-medium uppercase tracking-[0.2em] text-teal-700/80">
-                              Vendor Overview - {getallSupplier?.length || 0}{" "}
+                              Vendor Overview - {pagination.totalItems || 0}{" "}
                               Vendors
                             </span>
                           </div>
@@ -855,6 +868,13 @@ function Supplierpage({ readOnly = false }) {
           )}
         </div>
       </div>
+      <TablePagination
+        currentPage={pagination.page}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.totalItems}
+        pageSize={pagination.pageSize}
+        onPageChange={setCurrentPage}
+      />
     </div>
   );
 }

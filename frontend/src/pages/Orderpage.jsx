@@ -27,10 +27,11 @@ import {
   SelectDropdown,
   Tooltip,
 } from "../UI";
+import TablePagination from "../UI/TablePagination";
 
 function Orderpage() {
   const getId = (value) => value?.id ?? value?.id ?? value;
-  const { getorder, isgetorder, editorder } = useSelector(
+  const { getorder, isgetorder, editorder, pagination } = useSelector(
     (state) => state.order,
   );
   const { getallproduct } = useSelector((state) => state.product);
@@ -50,8 +51,11 @@ function Orderpage() {
   const [debouncedCodeQuery, setDebouncedCodeQuery] = useState("");
   const [showCodeOptions, setShowCodeOptions] = useState(false);
   const [cartItems, setCartItems] = useState([]);
-  const [timestampSort, setTimestampSort] = useState("asc");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const PAGE_SIZE = 5;
+  const [currentPage, setCurrentPage] = useState(1);
+  const [timestampSort, setTimestampSort] = useState("asc");
+
   const getStatusBadge = (status) => {
     const mapping = {
       pending: "bg-yellow-50 text-yellow-700",
@@ -97,14 +101,26 @@ function Orderpage() {
   };
 
   useEffect(() => {
-    dispatch(gettingallOrder());
+    // dispatch(gettingallOrder());
     dispatch(gettingallproducts());
     dispatch(gettingallSupplier());
   }, [dispatch, user]);
 
   useEffect(() => {
-    dispatch(gettingallOrder());
-  }, [dispatch, editorder]);
+    //   dispatch(gettingallOrder());
+    // }, [dispatch, editorder]);
+    dispatch(
+      gettingallOrder({
+        page: currentPage,
+        pageSize: PAGE_SIZE,
+        sortDir: timestampSort,
+      }),
+    );
+  }, [dispatch, editorder, currentPage, timestampSort]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [query]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -309,6 +325,7 @@ function Orderpage() {
 
   const submitOrder = async (event) => {
     event.preventDefault();
+    console.log("🚀 ~ submitOrder ~ called:");
 
     if (!cartItems.length) {
       toast.error("Add at least one product");
@@ -666,18 +683,18 @@ function Orderpage() {
       </DrawerPanel>
 
       {/* Orders Table */}
-      <div className="mt-4 bg-white rounded-2xl shadow-sm border overflow-x-auto">
+      <div className="mt-4 bg-white rounded-lg shadow-sm border overflow-x-auto">
         {isTableLoading ? (
           <TableSkeleton rows={6} showFilters={false} />
         ) : Array.isArray(displayOrder) && displayOrder.length > 0 ? (
           <div className="overflow-x-auto">
             <div
-              className={`w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1246px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
+              className={`max-h-[56vh] overflow-y-auto w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1246px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
             >
               <div className="flex gap-2">
                 <table className="w-full text-sm border-collapse">
                   <thead>
-                    <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                    <tr className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
                       <th className="px-5 py-4 font-semibold">#</th>
                       <th className="px-5 py-4 font-semibold">Products</th>
                       <th className="px-5 py-4 font-semibold">Total Amount</th>
@@ -694,7 +711,7 @@ function Orderpage() {
                         />
                       </th>
                       <th
-                        className="px-5 py-4 font-semibold text-center sticky right-0 bg-slate-50 z-20"
+                        className="px-5 py-4 font-semibold text-center sticky right-0 bg-slate-50 z-40"
                         style={{
                           boxShadow: "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
                         }}
@@ -898,6 +915,13 @@ function Orderpage() {
           </div>
         )}
       </div>
+      <TablePagination
+        currentPage={pagination.page}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.totalItems}
+        pageSize={pagination.pageSize}
+        onPageChange={setCurrentPage}
+      />
     </div>
   );
 }

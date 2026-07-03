@@ -15,6 +15,7 @@ import { Button, Inputfield, SelectDropdown } from "../UI";
 import DrawerPanel from "../Components/DrawerPanel";
 import { IoMdAdd, IoMdSearch } from "react-icons/io";
 import { useSelector } from "react-redux";
+import TablePagination from "../UI/TablePagination";
 
 const getLocalDateInputValue = (date = new Date()) => {
   const offsetMinutes = date.getTimezoneOffset();
@@ -54,6 +55,14 @@ const dedupeOptions = (items = [], kind) => {
 
 function PaymentsPage() {
   const [payments, setPayments] = useState([]);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    pageSize: 5,
+    totalItems: 0,
+    totalPages: 1,
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 5;
   const [vendors, setVendors] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [type, setType] = useState("received");
@@ -78,10 +87,15 @@ function PaymentsPage() {
 
   const getId = (value) => value?.id ?? value?.id ?? value;
 
-  const fetchPayments = async () => {
+  const fetchPayments = async (page = currentPage) => {
     try {
-      const res = await axiosInstance.get("/payment");
+      const res = await axiosInstance.get("/payment", {
+        params: { page, pageSize: PAGE_SIZE, sortDir: paymentDateSort },
+      });
       setPayments(res.data.payments || []);
+      if (res.data.pagination) {
+        setPagination(res.data.pagination);
+      }
     } catch (error) {
       console.error(error);
       toast.error("Failed to load payments");
@@ -94,17 +108,21 @@ function PaymentsPage() {
         axiosInstance.get("/supplier"),
         axiosInstance.get("/customer"),
       ]);
-      setVendors(vendorsRes.data || []);
-      setCustomers(customersRes.data || []);
+      setVendors(vendorsRes.data.suppliers || []);
+      setCustomers(customersRes.data.customers || []);
     } catch (error) {
       console.error(error);
     }
   };
 
   useEffect(() => {
-    fetchPayments();
+    fetchPayments(currentPage);
     fetchDropdownData();
-  }, []);
+  }, [currentPage, paymentDateSort]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [query]);
 
   const validateField = (field, value, validator) => {
     const result = validator(value);
@@ -274,7 +292,7 @@ function PaymentsPage() {
       setShowVendorOptions(false);
       setDescription("");
       setPaidAt(getLocalDateInputValue());
-      fetchPayments();
+      fetchPayments(currentPage);
     } catch (error) {
       console.error(error);
       toast.error("Failed to record payment");
@@ -746,12 +764,12 @@ function PaymentsPage() {
           ) : (
             <div className="overflow-x-auto">
               <div
-                className={`w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1230px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
+                className={`max-h-[56vh] overflow-y-auto w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1245px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
               >
                 <div className="flex gap-2">
                   <table className="w-full text-sm border-collapse">
                     <thead className="bg-slate-50 border-b">
-                      <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                      <tr className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
                         <th className="px-5 py-4 font-semibold">
                           <DateSortHeader
                             label="Date"
@@ -810,6 +828,13 @@ function PaymentsPage() {
           )}
         </div>
       </div>
+      <TablePagination
+        currentPage={pagination.page}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.totalItems}
+        pageSize={pagination.pageSize}
+        onPageChange={setCurrentPage}
+      />
     </div>
   );
 }

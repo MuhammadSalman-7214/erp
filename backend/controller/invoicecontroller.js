@@ -224,10 +224,25 @@ module.exports.createInvoice = async (req, res) => {
 module.exports.getAllInvoices = async (req, res) => {
   try {
     const userId = req.user.userId;
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const pageSize = Math.min(
+      Math.max(parseInt(req.query.pageSize, 10) || 5, 1),
+      100,
+    );
+    const offset = (page - 1) * pageSize;
+    const sortDir = req.query.sortDir === "desc" ? "DESC" : "ASC";
+
     let invoices;
+    let countRows;
     try {
-      invoices = await query("SELECT * FROM invoices WHERE user_id = ? ORDER BY createdAt ASC", [
-        userId,
+      [invoices, countRows] = await Promise.all([
+        query(
+          `SELECT * FROM invoices WHERE user_id = ? ORDER BY createdAt ${sortDir} LIMIT ? OFFSET ?`,
+          [userId, pageSize, offset],
+        ),
+        query("SELECT COUNT(*) as count FROM invoices WHERE user_id = ?", [
+          userId,
+        ]),
       ]);
     } catch (err) {
       return res.status(500).json({
@@ -292,11 +307,13 @@ module.exports.getAllInvoices = async (req, res) => {
         };
       }),
     );
-
+    const totalItems = countRows[0]?.count || 0;
+    const totalPages = Math.max(Math.ceil(totalItems / pageSize), 1);
     res.status(200).json({
       success: true,
       count: invoicesWithDetails.length,
       data: invoicesWithDetails,
+      pagination: { page, pageSize, totalItems, totalPages },
     });
   } catch (error) {
     res.status(500).json({

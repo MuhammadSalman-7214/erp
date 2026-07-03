@@ -67,12 +67,26 @@ module.exports.createCustomer = async (req, res) => {
 module.exports.getAllCustomers = async (req, res) => {
   try {
     const userId = req.user.userId;
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const pageSize = Math.min(
+      Math.max(parseInt(req.query.pageSize, 10) || 5, 1),
+      100,
+    );
+    const offset = (page - 1) * pageSize;
+    const sortDir = req.query.sortDir === "desc" ? "DESC" : "ASC";
+
     let customers;
+    let countRows;
     try {
-      customers = await query(
-        "SELECT * FROM customers WHERE user_id = ? ORDER BY createdAt ASC",
-        [userId],
-      );
+      [customers, countRows] = await Promise.all([
+        query(
+          `SELECT * FROM customers WHERE user_id = ? ORDER BY createdAt ${sortDir} LIMIT ? OFFSET ?`,
+          [userId, pageSize, offset],
+        ),
+        query("SELECT COUNT(*) as count FROM customers WHERE user_id = ?", [
+          userId,
+        ]),
+      ]);
     } catch (err) {
       return res.status(500).json({
         success: false,
@@ -87,7 +101,14 @@ module.exports.getAllCustomers = async (req, res) => {
         address: c.contact_address || "",
       },
     }));
-    res.status(200).json(formatted);
+    const totalItems = countRows[0]?.count || 0;
+    const totalPages = Math.max(Math.ceil(totalItems / pageSize), 1);
+
+    res.status(200).json({
+      success: true,
+      customers: formatted,
+      pagination: { page, pageSize, totalItems, totalPages },
+    });
   } catch (error) {
     res.status(500).json({
       success: false,

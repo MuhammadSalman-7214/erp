@@ -232,12 +232,34 @@ const createPayment = async (req, res) => {
 const getPayments = async (req, res) => {
   try {
     const userId = req.user.userId;
+    const isPaginated = req.query.page !== undefined;
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const pageSize = Math.min(
+      Math.max(parseInt(req.query.pageSize, 10) || 5, 1),
+      100,
+    );
+    const offset = (page - 1) * pageSize;
+    const sortDir = req.query.sortDir === "desc" ? "DESC" : "ASC";
+
     let payments;
+    let countRows = null;
     try {
-      payments = await query(
-        "SELECT * FROM payments WHERE user_id = ? ORDER BY createdAt ASC",
-        [userId],
-      );
+      if (isPaginated) {
+        [payments, countRows] = await Promise.all([
+          query(
+            `SELECT * FROM payments WHERE user_id = ? ORDER BY createdAt ${sortDir} LIMIT ? OFFSET ?`,
+            [userId, pageSize, offset],
+          ),
+          query("SELECT COUNT(*) as count FROM payments WHERE user_id = ?", [
+            userId,
+          ]),
+        ]);
+      } else {
+        payments = await query(
+          "SELECT * FROM payments WHERE user_id = ? ORDER BY createdAt ASC",
+          [userId],
+        );
+      }
     } catch (err) {
       return res.status(500).json({
         success: false,
@@ -305,7 +327,14 @@ const getPayments = async (req, res) => {
       });
     }
 
-    res.status(200).json({ success: true, payments: hydrated });
+    const response = { success: true, payments: hydrated };
+    if (isPaginated) {
+      const totalItems = countRows[0]?.count || 0;
+      const totalPages = Math.max(Math.ceil(totalItems / pageSize), 1);
+      response.pagination = { page, pageSize, totalItems, totalPages };
+    }
+
+    res.status(200).json(response);
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

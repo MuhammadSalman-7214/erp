@@ -23,10 +23,11 @@ import {
   removeCustomer,
 } from "../features/customerSlice";
 import FormattedTime from "../lib/FormattedTime";
+import TablePagination from "../UI/TablePagination";
 
 function Customerpage({ readOnly = false }) {
   const dispatch = useDispatch();
-  const { getAllCustomer } = useSelector((state) => state.customer);
+  const { getAllCustomer, pagination } = useSelector((state) => state.customer);
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
   const navigate = useNavigate();
 
@@ -46,6 +47,8 @@ function Customerpage({ readOnly = false }) {
   const [amountFilter, setAmountFilter] = useState("all");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { sidebarOpen } = useSelector((state) => state.sidebar);
+  const PAGE_SIZE = 5;
+  const [currentPage, setCurrentPage] = useState(1);
 
   const getId = (value) => value?.id ?? value?.id ?? value;
 
@@ -66,9 +69,12 @@ function Customerpage({ readOnly = false }) {
   };
 
   useEffect(() => {
-    dispatch(getAllCustomers());
     fetchCustomerBalances();
   }, [dispatch]);
+
+  useEffect(() => {
+    dispatch(getAllCustomers({ page: currentPage, pageSize: PAGE_SIZE }));
+  }, [dispatch, currentPage]);
 
   const resetForm = () => {
     setName("");
@@ -294,19 +300,15 @@ function Customerpage({ readOnly = false }) {
       })
     : [];
   const currency = (value) => `Rs ${Number(value || 0).toLocaleString()}`;
-  const summaryTotals = Array.isArray(getAllCustomer)
-    ? getAllCustomer.reduce(
-        (acc, customer) => {
-          const customerSummary =
-            customerBalances[String(getId(customer))] || {};
-          acc.total += Number(customerSummary.totalAmount || 0);
-          acc.paid += Number(customerSummary.paidAmount || 0);
-          acc.remaining += Number(customerSummary.remainingAmount || 0);
-          return acc;
-        },
-        { total: 0, paid: 0, remaining: 0 },
-      )
-    : { total: 0, paid: 0, remaining: 0 };
+  const summaryTotals = Object.values(customerBalances).reduce(
+    (acc, customerSummary) => {
+      acc.total += Number(customerSummary.totalAmount || 0);
+      acc.paid += Number(customerSummary.paidAmount || 0);
+      acc.remaining += Number(customerSummary.remainingAmount || 0);
+      return acc;
+    },
+    { total: 0, paid: 0, remaining: 0 },
+  );
 
   return (
     <div className="min-h-[92vh] bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.14),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#f1f5f9_100%)] p-4">
@@ -513,12 +515,12 @@ function Customerpage({ readOnly = false }) {
           ) : (
             <div className="overflow-x-auto">
               <div
-                className={`w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1246px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
+                className={`max-h-[56vh] overflow-y-auto w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1246px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
               >
                 <div className="flex gap-2">
                   <table className="min-w-[1390px] w-full text-sm border-collapse">
                     <thead className="bg-slate-50 border-b">
-                      <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                      <tr className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
                         <th className="px-5 py-4 font-semibold">Customer</th>
                         <th className="px-5 py-4 font-semibold">Phone</th>
                         <th className="px-5 py-4 font-semibold">Total</th>
@@ -630,7 +632,7 @@ function Customerpage({ readOnly = false }) {
                       })}
                     </tbody>
                     <tfoot>
-                      <tr className="border-t-2 border-slate-200 text-sm font-semibold text-slate-700">
+                      <tr className="sticky bottom-0 z-20 bg-slate-50 border-t-2 border-slate-200 text-sm font-semibold text-slate-700">
                         <td
                           className="px-5 py-4 text-md text-teal-800"
                           colSpan={2}
@@ -640,7 +642,7 @@ function Customerpage({ readOnly = false }) {
                               Grand Total
                             </span>
                             <span className="text-xs font-medium uppercase tracking-[0.2em] text-teal-700/80">
-                              Customer Overview - {getAllCustomers?.length || 0}{" "}
+                              Customer Overview - {pagination.totalItems || 0}{" "}
                               Customers
                             </span>
                           </div>
@@ -704,6 +706,13 @@ function Customerpage({ readOnly = false }) {
           )}
         </div>
       </div>
+      <TablePagination
+        currentPage={pagination.page}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.totalItems}
+        pageSize={pagination.pageSize}
+        onPageChange={setCurrentPage}
+      />
     </div>
   );
 }
