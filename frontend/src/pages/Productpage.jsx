@@ -379,6 +379,7 @@ function Productpage({ readOnly = false }) {
       .unwrap()
       .then(() => {
         toast.success("Product added successfully");
+        setCurrentPage(1);
         closeForm();
       })
       .catch(() => toast.error("Product add unsuccessful"))

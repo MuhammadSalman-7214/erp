@@ -325,31 +325,28 @@ module.exports.getProduct = async (req, res) => {
       query(
         `
         SELECT
-          pc.*,
-
-          p.id AS product_id,
+          p.id,
           p.name,
+          p.description,
           p.company,
+          p.brand,
           p.purchasePrice,
           p.tradePrice,
           p.salePrice,
+          p.pricing,
+          p.priceHistory,
+          p.Price,
+          p.sku,
           p.createdAt,
           p.image,
           p.Category,
-
           c.id AS category_id,
           c.name AS category_name
-
-        FROM product_codes pc
-        INNER JOIN products p
-          ON p.id = pc.product
+        FROM products p
         LEFT JOIN categories c
           ON c.id = p.Category
-
         WHERE p.user_id = ?
-
-        ORDER BY p.createdAt ${sortDir}, pc.id ${sortDir}
-
+        ORDER BY p.createdAt ${sortDir}, p.id ${sortDir}
         LIMIT ? OFFSET ?
         `,
         [userId, pageSize, offset],
@@ -358,42 +355,22 @@ module.exports.getProduct = async (req, res) => {
       query(
         `
         SELECT COUNT(*) AS count
-        FROM product_codes pc
-        INNER JOIN products p
-          ON p.id = pc.product
+        FROM products p
         WHERE p.user_id = ?
         `,
         [userId],
       ),
     ]);
 
-    const Products = rows.map((row) => ({
-      id: row.product_id,
-      name: row.name,
-      company: row.company,
-      purchasePrice: row.purchasePrice,
-      tradePrice: row.tradePrice,
-      salePrice: row.salePrice,
-      createdAt: row.createdAt,
-      image: row.image,
-      Category: row.category_id
+    const enrichedProducts = await attachProductCodes(rows, userId);
+    const Products = enrichedProducts.map((product) => ({
+      ...product,
+      Category: product.category_id
         ? {
-            id: row.category_id,
-            name: row.category_name,
+            id: product.category_id,
+            name: product.category_name,
           }
-        : null,
-
-      productCodes: [
-        {
-          id: row.id,
-          code: row.code,
-          quantity: row.quantity,
-          purchasePrice: row.purchasePrice,
-          tradePrice: row.tradePrice,
-          salePrice: row.salePrice,
-          createdAt: row.createdAt,
-        },
-      ],
+        : product.Category || null,
     }));
 
     const totalItems = Number(countRows[0]?.count || 0);
