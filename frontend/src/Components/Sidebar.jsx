@@ -12,6 +12,7 @@ import {
   MdOutlinePayment,
   MdOutlinePayments,
   MdOutlineSettings,
+  MdInsights,
 } from "react-icons/md";
 import { CiMenuFries } from "react-icons/ci";
 import { TfiSupport } from "react-icons/tfi";
@@ -174,6 +175,13 @@ function Sidebar() {
             />
 
             <NavItem
+              to="/ai-insights-history"
+              icon={<MdInsights />}
+              label="AI Insights"
+              sidebarOpen={sidebarOpen}
+            />
+
+            <NavItem
               to="/Userstatus"
               icon={<LuUsers />}
               label="Users"
@@ -260,6 +268,13 @@ function Sidebar() {
             />
 
             <NavItem
+              to="/ai-insights-history"
+              icon={<MdInsights />}
+              label="AI Insights"
+              sidebarOpen={sidebarOpen}
+            />
+
+            <NavItem
               to="/setting"
               icon={<MdOutlineSettings />}
               label="Setting"
@@ -329,6 +344,13 @@ function Sidebar() {
               to="/notifications"
               icon={<IoNotificationsOutline />}
               label="Notifications"
+              sidebarOpen={sidebarOpen}
+            />
+
+            <NavItem
+              to="/ai-insights-history"
+              icon={<MdInsights />}
+              label="AI Insights"
               sidebarOpen={sidebarOpen}
             />
           </ul>

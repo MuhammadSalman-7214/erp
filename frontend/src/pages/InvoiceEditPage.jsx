@@ -43,7 +43,7 @@ function InvoiceEditPage() {
         const inv = invoiceRes.data.data;
 
         setInvoice(inv);
-        setCustomers(customersRes.data || []);
+        setCustomers(customersRes.data.customers || []);
         setInvoiceType(inv.invoiceType || "sales");
         setCustomerId(inv.customerId?.id || inv.customerId || "");
         setVendorName(inv.vendor?.name || "");

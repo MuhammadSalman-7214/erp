@@ -358,6 +358,30 @@ const initDb = async () => {
       UNIQUE KEY uniq_company_settings_user (user_id),
       INDEX idx_company_settings_user (user_id)
     )`,
+    `CREATE TABLE IF NOT EXISTS business_insights (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      \`date\` DATE NOT NULL,
+      stats LONGTEXT NOT NULL,
+      aiSummary TEXT NOT NULL,
+      aiRecommendations LONGTEXT NOT NULL,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_business_insight_user_date (user_id, \`date\`),
+      INDEX idx_business_insights_user (user_id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS user_insight_views (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      userId INT NOT NULL,
+      insightId INT NOT NULL,
+      seen TINYINT(1) DEFAULT 0,
+      seenAt DATETIME DEFAULT NULL,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_user_insight_view (userId, insightId),
+      INDEX idx_user_insight_view_user (userId),
+      INDEX idx_user_insight_view_insight (insightId)
+    )`,
   ];
 
   for (const sql of statements) {

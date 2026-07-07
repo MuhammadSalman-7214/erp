@@ -23,6 +23,7 @@ const subscriptionPaymentsRouter = require("./Routers/paymentsRouter.js");
 const usersRouter = require("./Routers/usersRouter.js");
 const dashboardRouter = require("./Routers/dashboardRouter.js");
 const startSubscriptionCron = require("./cron/subscriptionCron.js");
+const startDailyBusinessInsightsCron = require("./cron/dailyBusinessInsights.js");
 
 require("dotenv").config();
 const PORT = process.env.PORT;
@@ -99,6 +100,7 @@ app.use("/api/users", usersRouter);
 app.use("/api/dashboard", dashboardRouter);
 
 startSubscriptionCron();
+startDailyBusinessInsightsCron();
 
 server.listen(PORT, () => {
   initDb()

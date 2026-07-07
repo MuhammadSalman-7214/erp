@@ -66,6 +66,12 @@ function TopNavbar() {
         "Organize products into structured categories for efficient inventory management.",
     },
 
+    "/ai-insights-history": {
+      title: "AI Insights History",
+      subtitle:
+        "Review past AI-generated business insights, sales trends, and strategic recommendations.",
+    },
+
     "/setting": {
       title: "Settings",
       subtitle: "Organize profile and system configurations.",

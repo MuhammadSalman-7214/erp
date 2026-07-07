@@ -40,6 +40,7 @@ import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import { fetchCurrentUser } from "./features/authSlice";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import Settings from "./pages/Settings";
+import AIInsightsHistoryPage from "./pages/AIInsightsHistoryPage";
 
 const RoleDashboardLayout = () => {
   const { user } = useSelector((state) => state.auth);
@@ -180,6 +181,7 @@ function App() {
               <Route path="notifications" element={<NotificationsByRole />} />
               <Route path="Profilepage" element={<Profilepage />} />
               <Route path="setting" element={<Settings />} />
+              <Route path="ai-insights-history" element={<AIInsightsHistoryPage />} />
               <Route path="supplier" element={<SupplierByRole />} />
               <Route path="supplier/:id" element={<SupplierDetailPage />} />
               <Route path="customer" element={<CustomerByRole />} />

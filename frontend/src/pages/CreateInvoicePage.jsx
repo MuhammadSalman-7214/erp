@@ -41,8 +41,8 @@ function CreateInvoicePage() {
           axiosInstance.get("/supplier"),
           axiosInstance.get("/customer"),
         ]);
-        setVendors(vendorsRes.data || []);
-        setCustomers(customersRes.data || []);
+        setVendors(vendorsRes.data.suppliers || []);
+        setCustomers(customersRes.data.customers || []);
       } catch (error) {
         console.error("Failed to load dropdown data", error);
       }

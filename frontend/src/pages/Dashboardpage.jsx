@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axiosInstance from "../lib/axios";
 import { useNavigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
+import toast from "react-hot-toast";
 import { Bar, Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -29,6 +30,7 @@ import {
 } from "lucide-react";
 import { formatDateLabel } from "../lib/dateFormat";
 import { dashboardShowFinancialAmountsStorageKey } from "../features/dashboardSlice";
+import BusinessInsightPopup from "../Components/BusinessInsightPopup";
 
 ChartJS.register(
   CategoryScale,
@@ -40,9 +42,27 @@ ChartJS.register(
   Legend,
 );
 
+const chartBarPalette = [
+  {
+    border: "rgba(20, 184, 166, 1)",
+    fill: "rgba(20, 184, 166, 0.16)",
+  },
+  {
+    border: "rgba(59, 130, 246, 1)",
+    fill: "rgba(59, 130, 246, 0.16)",
+  },
+  {
+    border: "rgba(245, 158, 11, 1)",
+    fill: "rgba(245, 158, 11, 0.16)",
+  },
+  {
+    border: "rgba(244, 63, 94, 1)",
+    fill: "rgba(244, 63, 94, 0.16)",
+  },
+];
+
 function Dashboardpage() {
   const navigate = useNavigate();
-  const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
   const showFinancialAmounts = useSelector(
     (state) => state.dashboard.showFinancialAmounts,
@@ -61,6 +81,9 @@ function Dashboardpage() {
   const [resolvedUser, setResolvedUser] = useState(user);
   const { sidebarOpen } = useSelector((state) => state.sidebar);
   const [dashboardReady, setDashboardReady] = useState(false);
+  const [businessInsight, setBusinessInsight] = useState(null);
+  const [insightLoading, setInsightLoading] = useState(false);
+  const [insightAcknowledging, setInsightAcknowledging] = useState(false);
 
   const sortedRecentInvoices = useMemo(
     () =>
@@ -136,9 +159,7 @@ function Dashboardpage() {
     const fetchSummary = async () => {
       try {
         setLoading(true);
-        const res = await axiosInstance.get(
-          `/dashboard/summary?range=${chartRange}`,
-        );
+        const res = await axiosInstance.get("/dashboard/summary?range=week");
         setSummary(res.data.summary || null);
         setWeeklySummary(res.data.summary?.weeklySummary || null);
         setRecentInvoices(res.data.recentInvoices || []);
@@ -216,6 +237,30 @@ function Dashboardpage() {
   }, [resolvedUser?.id, resolvedUser?.role]);
 
   useEffect(() => {
+    const fetchBusinessInsight = async () => {
+      try {
+        setInsightLoading(true);
+        const response = await axiosInstance.get("/dashboard/insights/today");
+
+        if (response.data?.showPopup && response.data?.insight) {
+          setBusinessInsight(response.data.insight);
+        } else {
+          setBusinessInsight(null);
+        }
+      } catch (error) {
+        setBusinessInsight(null);
+        if (error?.response?.status !== 401) {
+          console.error("Failed to load business insight:", error);
+        }
+      } finally {
+        setInsightLoading(false);
+      }
+    };
+
+    fetchBusinessInsight();
+  }, []);
+
+  useEffect(() => {
     try {
       localStorage.setItem(
         dashboardShowFinancialAmountsStorageKey,
@@ -231,24 +276,28 @@ function Dashboardpage() {
     return Number.isFinite(numeric) ? numeric : 0;
   };
 
-  const chartBarPalette = [
-    {
-      border: "rgba(20, 184, 166, 1)",
-      fill: "rgba(20, 184, 166, 0.16)",
-    },
-    {
-      border: "rgba(59, 130, 246, 1)",
-      fill: "rgba(59, 130, 246, 0.16)",
-    },
-    {
-      border: "rgba(245, 158, 11, 1)",
-      fill: "rgba(245, 158, 11, 0.16)",
-    },
-    {
-      border: "rgba(244, 63, 94, 1)",
-      fill: "rgba(244, 63, 94, 0.16)",
-    },
-  ];
+  const handleInsightSeen = async () => {
+    if (!businessInsight?.id || insightAcknowledging) {
+      setBusinessInsight(null);
+      return;
+    }
+
+    try {
+      setInsightAcknowledging(true);
+      await axiosInstance.post("/dashboard/insights/seen", {
+        insightId: businessInsight.id,
+      });
+      setBusinessInsight(null);
+      toast.success("Business insight saved for today.");
+    } catch (error) {
+      console.error("Failed to mark insight as seen:", error);
+      toast.error(
+        error?.response?.data?.message || "Unable to save insight acknowledgement.",
+      );
+    } finally {
+      setInsightAcknowledging(false);
+    }
+  };
 
   const todayChartData = useMemo(
     () => ({
@@ -413,6 +462,12 @@ function Dashboardpage() {
 
   return (
     <div className="min-h-[92vh] bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.14),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#f1f5f9_100%)] p-4">
+      <BusinessInsightPopup
+        open={Boolean(businessInsight) && !insightLoading}
+        insight={businessInsight}
+        onConfirm={handleInsightSeen}
+        loading={insightAcknowledging}
+      />
       {bannerLoading ? null : banner ? (
         <div className="mb-6 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-3 shadow-sm">
           <div className="flex items-start gap-3">
