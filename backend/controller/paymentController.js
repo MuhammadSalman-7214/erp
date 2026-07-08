@@ -15,6 +15,146 @@ const customerSnapshotFromDoc = (customerDoc) => ({
   name: customerDoc?.name || "Customer",
 });
 
+const getPaymentRowById = async (paymentId, userId) => {
+  const rows = await query(
+    "SELECT * FROM payments WHERE id = ? AND user_id = ? LIMIT 1",
+    [paymentId, userId],
+  );
+  return rows[0] || null;
+};
+
+const getCustomerDocForPayment = async (customerValue, userId) => {
+  if (!customerValue) {
+    return null;
+  }
+
+  const isNumericId =
+    typeof customerValue === "number" ||
+    (typeof customerValue === "string" && /^\d+$/.test(customerValue));
+
+  if (isNumericId) {
+    const rows = await query(
+      "SELECT * FROM customers WHERE id = ? AND user_id = ? LIMIT 1",
+      [customerValue, userId],
+    );
+    return rows[0] || null;
+  }
+
+  const rows = await query(
+    "SELECT * FROM customers WHERE user_id = ? AND (name = ? OR customerCode = ?) LIMIT 1",
+    [userId, String(customerValue).trim(), String(customerValue).trim()],
+  );
+  return rows[0] || null;
+};
+
+const getVendorDocForPayment = async (vendorValue, userId) => {
+  if (!vendorValue) {
+    return null;
+  }
+
+  const rows = await query(
+    "SELECT * FROM vendors WHERE id = ? AND user_id = ? LIMIT 1",
+    [vendorValue, userId],
+  );
+  return rows[0] || null;
+};
+
+const hydratePaymentRecord = async (payment, userId) => {
+  if (!payment) {
+    return null;
+  }
+
+  let invoiceDoc = null;
+  let vendorDoc = null;
+  let customerDoc = null;
+
+  if (payment.invoice) {
+    const invoiceRows = await query(
+      "SELECT * FROM invoices WHERE id = ? AND user_id = ? LIMIT 1",
+      [payment.invoice, userId],
+    );
+    invoiceDoc = invoiceRows[0] || null;
+  }
+
+  if (payment.vendor) {
+    vendorDoc = await getVendorDocForPayment(payment.vendor, userId);
+  }
+
+  if (payment.customerId) {
+    const customerRow = await getCustomerDocForPayment(payment.customerId, userId);
+    customerDoc = customerRow
+      ? {
+          ...customerRow,
+          contactInfo: {
+            phone: customerRow.contact_phone || "",
+            address: customerRow.contact_address || "",
+          },
+        }
+      : null;
+  }
+
+  return {
+    ...payment,
+    description: payment.notes || "",
+    invoice: invoiceDoc,
+    vendor: vendorDoc,
+    customerId: customerDoc,
+    customer:
+      customerDoc || payment.customer_name
+        ? {
+            code: payment.customer_code || "",
+            name: payment.customer_name || "Customer",
+          }
+        : undefined,
+  };
+};
+
+const syncInvoicePaymentStatus = async (invoiceId, userId) => {
+  if (!invoiceId) {
+    return null;
+  }
+
+  const [paymentRows, invoiceRows] = await Promise.all([
+    query(
+      "SELECT SUM(amount) AS total FROM payments WHERE invoice = ? AND user_id = ?",
+      [invoiceId, userId],
+    ),
+    query(
+      "SELECT totalAmount FROM invoices WHERE id = ? AND user_id = ? LIMIT 1",
+      [invoiceId, userId],
+    ),
+  ]);
+
+  const invoiceDoc = invoiceRows[0];
+  if (!invoiceDoc) {
+    return null;
+  }
+
+  const paidTotal = Number(paymentRows?.[0]?.total || 0);
+  const invoiceTotal = Number(invoiceDoc.totalAmount || 0);
+
+  let status = "sent";
+  let paidAt = null;
+
+  if (paidTotal >= invoiceTotal && invoiceTotal > 0) {
+    status = "paid";
+    const latestPaidAtRows = await query(
+      "SELECT MAX(paidAt) AS latestPaidAt FROM payments WHERE invoice = ? AND user_id = ?",
+      [invoiceId, userId],
+    );
+    paidAt = latestPaidAtRows?.[0]?.latestPaidAt || new Date();
+  } else if (paidTotal > 0) {
+    status = "partial";
+  }
+
+  await query(
+    "UPDATE invoices SET status = ?, paidAt = ? WHERE id = ? AND user_id = ?",
+    [status, paidAt, invoiceId, userId],
+  );
+
+  return { status, paidAt };
+};
+
 const createPayment = async (req, res) => {
   try {
     const {
@@ -229,6 +369,190 @@ const createPayment = async (req, res) => {
   }
 };
 
+const updatePayment = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const paymentId = req.params.id;
+    const payment = await getPaymentRowById(paymentId, userId);
+
+    if (!payment) {
+      return res.status(404).json({ message: "Payment not found" });
+    }
+
+    const nextType =
+      req.body.type !== undefined ? req.body.type : payment.type;
+    const nextAmount =
+      req.body.amount !== undefined ? req.body.amount : payment.amount;
+    const nextMethod =
+      req.body.method !== undefined ? req.body.method : payment.method;
+    const nextPartyType =
+      req.body.partyType !== undefined ? req.body.partyType : payment.partyType;
+    const nextPaidAt =
+      req.body.paidAt !== undefined ? req.body.paidAt : payment.paidAt;
+    const nextInvoice =
+      Object.prototype.hasOwnProperty.call(req.body, "invoice")
+        ? req.body.invoice
+        : payment.invoice;
+    const resolvedDescription = String(
+      req.body.description ?? req.body.notes ?? payment.notes ?? "",
+    ).trim();
+
+    if (!nextType || nextAmount === undefined || !nextPartyType) {
+      return res
+        .status(400)
+        .json({ message: "Type, amount, and party are required" });
+    }
+
+    let invoiceType = payment.invoiceType || null;
+    let resolvedCustomerId =
+      Object.prototype.hasOwnProperty.call(req.body, "customerId")
+        ? req.body.customerId
+        : payment.customerId;
+    let resolvedCustomer = req.body.customer ?? null;
+    if (!resolvedCustomer && (payment.customer_name || payment.customer_code)) {
+      resolvedCustomer = {
+        code: payment.customer_code || "",
+        name: payment.customer_name || "Customer",
+      };
+    }
+    let resolvedVendor =
+      Object.prototype.hasOwnProperty.call(req.body, "vendor")
+        ? req.body.vendor
+        : payment.vendor;
+
+    if (nextInvoice) {
+      const invoiceRows = await query(
+        "SELECT * FROM invoices WHERE id = ? AND user_id = ? LIMIT 1",
+        [nextInvoice, userId],
+      );
+      const invoiceDoc = invoiceRows[0];
+      if (!invoiceDoc) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+
+      invoiceType = invoiceDoc.invoiceType;
+
+      if (invoiceDoc.customerId && !resolvedCustomerId) {
+        resolvedCustomerId = String(invoiceDoc.customerId);
+      }
+
+      if (invoiceDoc.customer_name && !resolvedCustomer) {
+        resolvedCustomer = {
+          code: invoiceDoc.customer_code || "",
+          name: invoiceDoc.customer_name || "Customer",
+        };
+      }
+
+      if (invoiceDoc.vendor && !resolvedVendor) {
+        resolvedVendor = invoiceDoc.vendor;
+      }
+    }
+
+    if (nextPartyType === "customer") {
+      const customerDoc = await getCustomerDocForPayment(
+        resolvedCustomerId,
+        userId,
+      );
+      if (!customerDoc && !resolvedCustomer?.name) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+
+      if (customerDoc) {
+        resolvedCustomerId = customerDoc.id;
+        resolvedCustomer = customerSnapshotFromDoc(customerDoc);
+      }
+    }
+
+    if (nextPartyType === "vendor") {
+      const vendorDoc = await getVendorDocForPayment(resolvedVendor, userId);
+      if (!vendorDoc && resolvedVendor) {
+        return res.status(404).json({ message: "Vendor not found" });
+      }
+      if (vendorDoc) {
+        resolvedVendor = vendorDoc.id;
+      }
+    }
+
+    if (nextPartyType === "customer" && !resolvedCustomerId && !resolvedCustomer?.name) {
+      return res.status(400).json({
+        message: "Customer is required for customer payments",
+      });
+    }
+
+    if (nextPartyType === "vendor" && !resolvedVendor) {
+      return res.status(400).json({
+        message: "Vendor is required for vendor payments",
+      });
+    }
+
+    await query(
+      "UPDATE payments SET type = ?, amount = ?, method = ?, invoice = ?, invoiceType = ?, partyType = ?, customerId = ?, customer_code = ?, customer_name = ?, vendor = ?, paidAt = ?, notes = ? WHERE id = ? AND user_id = ?",
+      [
+        nextType,
+        nextAmount,
+        nextMethod || "cash",
+        nextInvoice || null,
+        invoiceType || null,
+        nextPartyType,
+        resolvedCustomerId || null,
+        resolvedCustomer?.code || "",
+        resolvedCustomer?.name || "",
+        resolvedVendor || null,
+        nextPaidAt || new Date(),
+        resolvedDescription,
+        paymentId,
+        userId,
+      ],
+    );
+
+    if (payment.invoice) {
+      await syncInvoicePaymentStatus(payment.invoice, userId);
+    }
+    if (nextInvoice && String(nextInvoice) !== String(payment.invoice || "")) {
+      await syncInvoicePaymentStatus(nextInvoice, userId);
+    }
+
+    const updatedPayment = await getPaymentRowById(paymentId, userId);
+    const hydratedPayment = await hydratePaymentRecord(updatedPayment, userId);
+
+    res.status(200).json({
+      success: true,
+      message: "Payment updated successfully",
+      payment: hydratedPayment,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const deletePayment = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const paymentId = req.params.id;
+    const payment = await getPaymentRowById(paymentId, userId);
+
+    if (!payment) {
+      return res.status(404).json({ message: "Payment not found" });
+    }
+
+    await query("DELETE FROM payments WHERE id = ? AND user_id = ?", [
+      paymentId,
+      userId,
+    ]);
+
+    if (payment.invoice) {
+      await syncInvoicePaymentStatus(payment.invoice, userId);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Payment deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 const getPayments = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -248,51 +572,11 @@ const getPayments = async (req, res) => {
 
     const hydrated = await Promise.all(
       payments.map(async (payment) => {
-        let invoiceDoc = null;
-        let vendorDoc = null;
-        let customerDoc = null;
         try {
-          if (payment.invoice) {
-            const invoiceRows = await query(
-              "SELECT * FROM invoices WHERE id = ? AND user_id = ? LIMIT 1",
-              [payment.invoice, userId],
-            );
-            invoiceDoc = invoiceRows[0] || null;
-          }
-          if (payment.vendor) {
-            const vendorRows = await query(
-              "SELECT * FROM vendors WHERE id = ? AND user_id = ? LIMIT 1",
-              [payment.vendor, userId],
-            );
-            vendorDoc = vendorRows[0] || null;
-          }
-          if (payment.customerId) {
-            const customerRows = await query(
-              "SELECT * FROM customers WHERE id = ? AND user_id = ? LIMIT 1",
-              [payment.customerId, userId],
-            );
-            const c = customerRows[0];
-            customerDoc = c
-              ? {
-                  ...c,
-                  contactInfo: {
-                    phone: c.contact_phone || "",
-                    address: c.contact_address || "",
-                  },
-                }
-              : null;
-          }
+          return await hydratePaymentRecord(payment, userId);
         } catch (err) {
           return { error: err };
         }
-
-        return {
-          ...payment,
-          description: payment.notes || "",
-          invoice: invoiceDoc,
-          vendor: vendorDoc,
-          customerId: customerDoc,
-        };
       }),
     );
 
@@ -852,6 +1136,8 @@ const getCustomerLedger = async (req, res) => {
 
 module.exports = {
   createPayment,
+  updatePayment,
+  deletePayment,
   getPayments,
   getPartyBalances,
   getVendorLedger,

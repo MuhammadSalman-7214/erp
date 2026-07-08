@@ -210,6 +210,22 @@ const paymentBody = Joi.object({
   notes: optionalText.optional(),
 }).unknown(true);
 
+const paymentUpdateBody = Joi.object({
+  type: Joi.string().valid("paid", "received", "debit").optional(),
+  amount: Joi.number().positive().optional(),
+  method: optionalText.optional(),
+  invoice: positiveId.optional(),
+  partyType: Joi.string().valid("customer", "vendor").optional(),
+  customer: Joi.object().unknown(true).optional(),
+  customerId: Joi.alternatives().try(positiveId, anyText).optional(),
+  vendor: positiveId.optional(),
+  paidAt: Joi.date().iso().optional(),
+  description: optionalText.optional(),
+  notes: optionalText.optional(),
+})
+  .min(1)
+  .unknown(true);
+
 const ledgerParam = idParam;
 
 const subscriptionPaymentBody = Joi.object({
@@ -380,6 +396,7 @@ module.exports = {
   orderStatusBody,
   paymentBody,
   paymentParam,
+  paymentUpdateBody,
   priceListBody,
   priceListUpdateBody,
   productBody,

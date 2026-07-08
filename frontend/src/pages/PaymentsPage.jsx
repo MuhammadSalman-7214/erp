@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import { MdDelete, MdEdit } from "react-icons/md";
 import axiosInstance from "../lib/axios";
 import toast from "react-hot-toast";
+import { Popconfirm } from "antd";
 import NoData from "../Components/NoData";
 import LoadingButton from "../Components/LoadingButton";
 import useKeyboardDropdown from "../hooks/useKeyboardDropdown";
@@ -17,6 +19,22 @@ const getLocalDateInputValue = (date = new Date()) => {
   const offsetMinutes = date.getTimezoneOffset();
   const localDate = new Date(date.getTime() - offsetMinutes * 60 * 1000);
   return localDate.toISOString().slice(0, 10);
+};
+
+const toDateInputValue = (value) => {
+  if (!value) {
+    return getLocalDateInputValue();
+  }
+
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return getLocalDateInputValue();
+  }
+
+  const offsetMinutes = date.getTimezoneOffset();
+  return new Date(date.getTime() - offsetMinutes * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
 };
 
 const normalizeString = (value) =>
@@ -68,6 +86,7 @@ function PaymentsPage() {
   const [showVendorOptions, setShowVendorOptions] = useState(false);
   const [paymentDateSort, setPaymentDateSort] = useState("asc");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState(null);
 
   const getId = (value) => value?.id ?? value?.id ?? value;
 
@@ -108,19 +127,78 @@ function PaymentsPage() {
     return result;
   };
 
-  useEffect(() => {
-    if (type === "received") {
+  const resetPaymentForm = () => {
+    setSelectedPayment(null);
+    setType("received");
+    setPartyType("customer");
+    setAmount("");
+    setMethod("cash");
+    setPaidAt(getLocalDateInputValue());
+    setDescription("");
+    setCustomerId("");
+    setVendorId("");
+    setCustomerQuery("");
+    setVendorQuery("");
+    setShowCustomerOptions(false);
+    setShowVendorOptions(false);
+    setErrors({});
+  };
+
+  const openPaymentForm = (payment = null) => {
+    setSelectedPayment(payment);
+    setType(payment?.type || "received");
+    setPartyType(
+      payment?.partyType ||
+        (payment?.type === "received" ? "customer" : "vendor"),
+    );
+    setAmount(payment?.amount ? String(payment.amount) : "");
+    setMethod(payment?.method || "cash");
+    setPaidAt(toDateInputValue(payment?.paidAt));
+    setDescription(payment?.description || payment?.notes || "");
+    setCustomerId(
+      String(
+        payment?.customerId?.id ||
+          payment?.customer?.id ||
+          payment?.customerId ||
+          "",
+      ),
+    );
+    setVendorId(String(payment?.vendor?.id || payment?.vendor || ""));
+    setCustomerQuery(
+      payment?.partyType === "customer"
+        ? `${payment?.customerId?.name || payment?.customer?.name || "Customer"}${
+            payment?.customerId?.customerCode || payment?.customer?.code
+              ? ` (${payment?.customerId?.customerCode || payment?.customer?.code})`
+              : ""
+          }`
+        : "",
+    );
+    setVendorQuery(
+      payment?.partyType === "vendor"
+        ? `${payment?.vendor?.name || "Vendor"}${
+            payment?.vendor?.vendorCode ? ` (${payment.vendor.vendorCode})` : ""
+          }`
+        : "",
+    );
+    setShowCustomerOptions(false);
+    setShowVendorOptions(false);
+    setErrors({});
+  };
+
+  const handleTypeChange = (value) => {
+    setType(value);
+    if (value === "received") {
       setPartyType("customer");
       setVendorId("");
       setVendorQuery("");
       setShowVendorOptions(false);
-    } else {
+    } else if (value === "paid") {
       setPartyType("vendor");
       setCustomerId("");
       setCustomerQuery("");
       setShowCustomerOptions(false);
     }
-  }, [type]);
+  };
 
   const filteredCustomers = useMemo(() => {
     const uniqueCustomers = dedupeOptions(customers, "customer");
@@ -206,12 +284,17 @@ function PaymentsPage() {
       return;
     }
 
-    if (partyType === "customer" && !customerId) {
+    if (
+      partyType === "customer" &&
+      !customerId &&
+      !selectedPayment?.customerId?.name &&
+      !selectedPayment?.customer?.name
+    ) {
       toast.error("Customer is required");
       return;
     }
 
-    if (partyType === "vendor" && !vendorId) {
+    if (partyType === "vendor" && !vendorId && !selectedPayment?.vendor?.id) {
       toast.error("Vendor is required");
       return;
     }
@@ -224,12 +307,15 @@ function PaymentsPage() {
       return;
     }
 
-    const descriptionCheck = validateField("description", description, (value) =>
-      validateTextInput(value, "Description", {
-        required: false,
-        maxLength: 200,
-        allowEmpty: true,
-      }),
+    const descriptionCheck = validateField(
+      "description",
+      description,
+      (value) =>
+        validateTextInput(value, "Description", {
+          required: false,
+          maxLength: 200,
+          allowEmpty: true,
+        }),
     );
     if (!descriptionCheck.ok) {
       toast.error(descriptionCheck.message);
@@ -245,31 +331,68 @@ function PaymentsPage() {
       description: uppercasePayload(descriptionCheck.value),
     };
 
-    if (partyType === "customer") payload.customerId = customerId;
+    if (partyType === "customer") {
+      if (customerId) {
+        payload.customerId = customerId;
+      } else if (
+        selectedPayment?.customerId?.name ||
+        selectedPayment?.customer?.name
+      ) {
+        payload.customer = {
+          code:
+            selectedPayment?.customerId?.customerCode ||
+            selectedPayment?.customer?.code ||
+            "",
+          name:
+            selectedPayment?.customerId?.name ||
+            selectedPayment?.customer?.name ||
+            "",
+        };
+      }
+    }
 
     if (partyType === "vendor") {
-      payload.vendor = vendorId || undefined;
+      payload.vendor = vendorId || selectedPayment?.vendor?.id || undefined;
     }
 
     try {
       setIsSubmitting(true);
-      await axiosInstance.post("/payment", payload);
-      toast.success("Payment recorded");
-      setAmount("");
-      setCustomerId("");
-      setVendorId("");
-      setCustomerQuery("");
-      setVendorQuery("");
-      setShowCustomerOptions(false);
-      setShowVendorOptions(false);
-      setDescription("");
-      setPaidAt(getLocalDateInputValue());
+      if (selectedPayment) {
+        await axiosInstance.put(`/payment/${selectedPayment.id}`, payload);
+        toast.success("Payment updated");
+      } else {
+        await axiosInstance.post("/payment", payload);
+        toast.success("Payment recorded");
+      }
+      resetPaymentForm();
       fetchPayments();
     } catch (error) {
       console.error(error);
-      toast.error("Failed to record payment");
+      toast.error(
+        selectedPayment
+          ? "Failed to update payment"
+          : "Failed to record payment",
+      );
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleEditClick = (payment) => {
+    openPaymentForm(payment);
+  };
+
+  const handleDelete = async (paymentId) => {
+    try {
+      await axiosInstance.delete(`/payment/${paymentId}`);
+      toast.success("Payment deleted");
+      if (selectedPayment?.id === paymentId) {
+        resetPaymentForm();
+      }
+      fetchPayments();
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to delete payment");
     }
   };
 
@@ -280,6 +403,9 @@ function PaymentsPage() {
     }
     if (normalizedType === "paid") {
       return "bg-emerald-50/70 hover:bg-emerald-100/80 border-emerald-200";
+    }
+    if (normalizedType === "debit") {
+      return "bg-slate-50/80 hover:bg-slate-100 border-slate-200";
     }
     return "bg-white hover:bg-slate-50 border-slate-200";
   };
@@ -296,6 +422,18 @@ function PaymentsPage() {
     <div className="min-h-[92vh] bg-gray-100 p-4">
       <div className="bg-white rounded-2xl shadow-sm border p-4">
         <h2 className="text-lg font-semibold mb-4">Record Payment</h2>
+        {selectedPayment && (
+          <div className="mb-4 flex items-center justify-between rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+            <span>Editing payment #{selectedPayment.id}</span>
+            <button
+              type="button"
+              onClick={resetPaymentForm}
+              className="font-medium text-blue-700 hover:text-blue-900"
+            >
+              Cancel edit
+            </button>
+          </div>
+        )}
         <form
           onSubmit={handleSubmit}
           className="grid grid-cols-1 md:grid-cols-2 gap-3"
@@ -306,7 +444,7 @@ function PaymentsPage() {
               value={type}
               onChange={(e) => {
                 const value = e.target.value;
-                setType(value);
+                handleTypeChange(value);
                 validateField("type", value, (current) =>
                   validateTextInput(current, "Type", {
                     required: true,
@@ -318,8 +456,11 @@ function PaymentsPage() {
             >
               <option value="received">Receive</option>
               <option value="paid">Pay</option>
+              <option value="debit">Debit</option>
             </select>
-            {errors.type && <p className="mt-1 text-sm text-red-500">{errors.type}</p>}
+            {errors.type && (
+              <p className="mt-1 text-sm text-red-500">{errors.type}</p>
+            )}
           </div>
 
           <div>
@@ -345,7 +486,9 @@ function PaymentsPage() {
               <option value="paypal">PayPal</option>
               <option value="other">Other</option>
             </select>
-            {errors.method && <p className="mt-1 text-sm text-red-500">{errors.method}</p>}
+            {errors.method && (
+              <p className="mt-1 text-sm text-red-500">{errors.method}</p>
+            )}
           </div>
 
           <div>
@@ -367,7 +510,9 @@ function PaymentsPage() {
               }
               className="w-full h-10 px-3 border rounded-xl mt-1"
             />
-            {errors.paidAt && <p className="mt-1 text-sm text-red-500">{errors.paidAt}</p>}
+            {errors.paidAt && (
+              <p className="mt-1 text-sm text-red-500">{errors.paidAt}</p>
+            )}
           </div>
 
           <div>
@@ -398,7 +543,9 @@ function PaymentsPage() {
               min="0"
               step="0.01"
             />
-            {errors.amount && <p className="mt-1 text-sm text-red-500">{errors.amount}</p>}
+            {errors.amount && (
+              <p className="mt-1 text-sm text-red-500">{errors.amount}</p>
+            )}
           </div>
 
           <div>
@@ -430,42 +577,44 @@ function PaymentsPage() {
               placeholder="Enter payment description"
               maxLength={200}
             />
-            {errors.description && <p className="mt-1 text-sm text-red-500">{errors.description}</p>}
+            {errors.description && (
+              <p className="mt-1 text-sm text-red-500">{errors.description}</p>
+            )}
           </div>
 
           {partyType === "customer" ? (
             <>
               <div className="relative">
                 <label className="text-sm font-medium">Customer</label>
-              <input
-                type="text"
-                value={customerQuery}
-                onChange={(e) => {
-                  const value = e.target.value;
+                <input
+                  type="text"
+                  value={customerQuery}
+                  onChange={(e) => {
+                    const value = e.target.value;
                     setCustomerQuery(value);
                     setCustomerId("");
                     setShowCustomerOptions(true);
-                  validateField("customerQuery", value, (current) =>
-                    validateTextInput(current, "Customer", {
-                      required: true,
-                      minLength: 2,
-                      maxLength: 120,
-                    }),
-                  );
-                }}
-                onBlur={(e) => {
-                  validateField("customerQuery", e.target.value, (current) =>
-                    validateTextInput(current, "Customer", {
-                      required: true,
-                      minLength: 2,
-                      maxLength: 120,
-                    }),
-                  );
-                  setTimeout(() => {
-                    setShowCustomerOptions(false);
-                    setCustomerActiveIndex(-1);
-                  }, 150);
-                }}
+                    validateField("customerQuery", value, (current) =>
+                      validateTextInput(current, "Customer", {
+                        required: true,
+                        minLength: 2,
+                        maxLength: 120,
+                      }),
+                    );
+                  }}
+                  onBlur={(e) => {
+                    validateField("customerQuery", e.target.value, (current) =>
+                      validateTextInput(current, "Customer", {
+                        required: true,
+                        minLength: 2,
+                        maxLength: 120,
+                      }),
+                    );
+                    setTimeout(() => {
+                      setShowCustomerOptions(false);
+                      setCustomerActiveIndex(-1);
+                    }, 150);
+                  }}
                   maxLength={120}
                   onFocus={() => {
                     setShowCustomerOptions(true);
@@ -473,11 +622,13 @@ function PaymentsPage() {
                   }}
                   onKeyDownCapture={onCustomerKeyDown}
                   className="w-full h-10 px-3 border rounded-xl mt-1"
-                placeholder="Search customer..."
-              />
-              {errors.customerQuery && (
-                <p className="mt-1 text-sm text-red-500">{errors.customerQuery}</p>
-              )}
+                  placeholder="Search customer..."
+                />
+                {errors.customerQuery && (
+                  <p className="mt-1 text-sm text-red-500">
+                    {errors.customerQuery}
+                  </p>
+                )}
                 {showCustomerOptions && filteredCustomers.length > 0 && (
                   <div className="absolute z-50 mt-1 w-full max-h-56 overflow-auto rounded-lg border bg-white shadow">
                     {filteredCustomers.map((customer) => (
@@ -547,7 +698,9 @@ function PaymentsPage() {
                 placeholder="Search vendor..."
               />
               {errors.vendorQuery && (
-                <p className="mt-1 text-sm text-red-500">{errors.vendorQuery}</p>
+                <p className="mt-1 text-sm text-red-500">
+                  {errors.vendorQuery}
+                </p>
               )}
               {showVendorOptions && filteredVendors.length > 0 && (
                 <div className="absolute z-50 mt-1 w-full max-h-56 overflow-auto rounded-lg border bg-white shadow">
@@ -579,10 +732,10 @@ function PaymentsPage() {
             <LoadingButton
               type="submit"
               loading={isSubmitting}
-              loadingText="Saving..."
+              loadingText={selectedPayment ? "Updating..." : "Saving..."}
               className="w-full h-11 bg-teal-700 text-white rounded-xl hover:bg-teal-600"
             >
-              Save Payment
+              {selectedPayment ? "Update Payment" : "Save Payment"}
             </LoadingButton>
           </div>
         </form>
@@ -614,6 +767,7 @@ function PaymentsPage() {
                   <th className="px-4 py-3 font-medium">Description</th>
                   <th className="px-4 py-3 font-medium">Party</th>
                   <th className="px-4 py-3 font-medium">Method</th>
+                  <th className="px-4 py-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -642,6 +796,51 @@ function PaymentsPage() {
                           "Customer"}
                     </td>
                     <td className="px-4 py-3 capitalize">{payment.method}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleEditClick(payment)}
+                          className="p-2 rounded-lg bg-slate-100 hover:bg-blue-100 text-blue-600 transition"
+                          title="Edit Payment"
+                        >
+                          <MdEdit size={18} />
+                        </button>
+
+                        <Popconfirm
+                          title={
+                            <div className="flex flex-col gap-1 max-w-xs">
+                              <span className="font-semibold text-red-600 text-sm">
+                                Confirm Payment Deletion
+                              </span>
+                              <span className="text-xs text-gray-600 leading-snug">
+                                This will remove the payment and update the
+                                related customer or vendor ledger totals.
+                              </span>
+                            </div>
+                          }
+                          okText="Delete"
+                          cancelText="Cancel"
+                          okButtonProps={{
+                            danger: true,
+                            className: "font-semibold",
+                          }}
+                          cancelButtonProps={{
+                            className: "font-medium",
+                          }}
+                          placement="topRight"
+                          onConfirm={() => handleDelete(payment.id)}
+                        >
+                          <button
+                            type="button"
+                            className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 transition"
+                            title="Delete Payment"
+                          >
+                            <MdDelete size={18} />
+                          </button>
+                        </Popconfirm>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
