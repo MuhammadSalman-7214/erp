@@ -82,9 +82,10 @@ function PaymentsPage() {
   const [errors, setErrors] = useState({});
   const [customerQuery, setCustomerQuery] = useState("");
   const [vendorQuery, setVendorQuery] = useState("");
+  const [query, setQuery] = useState("");
   const [showCustomerOptions, setShowCustomerOptions] = useState(false);
   const [showVendorOptions, setShowVendorOptions] = useState(false);
-  const [paymentDateSort, setPaymentDateSort] = useState("asc");
+  const [paymentDateSort, setPaymentDateSort] = useState("desc");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
 
@@ -418,6 +419,52 @@ function PaymentsPage() {
     );
   }, [payments, paymentDateSort]);
 
+  const filteredPayments = useMemo(() => {
+    const normalizedQuery = normalizeString(query);
+    if (!normalizedQuery) {
+      return sortedPayments;
+    }
+
+    return sortedPayments.filter((payment) => {
+      const typeText = normalizeString(payment.type);
+      const partyText = normalizeString(
+        payment.partyType === "vendor"
+          ? [
+              payment.vendor?.name,
+              payment.vendor?.vendorCode,
+              payment.vendor_code,
+              "vendor",
+            ]
+              .filter(Boolean)
+              .join(" ")
+          : [
+              payment.customerId?.name,
+              payment.customer?.name,
+              payment.customerId?.customerCode,
+              payment.customer?.code,
+              payment.customer_code,
+              payment.customer_name,
+              "customer",
+            ]
+              .filter(Boolean)
+              .join(" "),
+      );
+      const amountText = normalizeString(
+        `${Number(payment.amount || 0).toLocaleString("en-PK")} ${Number(payment.amount || 0)}`,
+      );
+      const dateText = normalizeString(
+        `${formatDateLabel(payment.paidAt || payment.createdAt)} ${payment.paidAt || payment.createdAt || ""}`,
+      );
+
+      return (
+        typeText.includes(normalizedQuery) ||
+        partyText.includes(normalizedQuery) ||
+        amountText.includes(normalizedQuery) ||
+        dateText.includes(normalizedQuery)
+      );
+    });
+  }, [query, sortedPayments]);
+
   return (
     <div className="min-h-[92vh] bg-gray-100 p-4">
       <div className="bg-white rounded-2xl shadow-sm border p-4">
@@ -740,13 +787,28 @@ function PaymentsPage() {
           </div>
         </form>
       </div>
-
+      <div className="my-4">
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="w-full md:w-96 h-10 px-4 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+          placeholder="Search by type, party, amount, or date..."
+        />
+      </div>
       <div className="mt-4 bg-white rounded-2xl shadow-sm border p-4">
         <h2 className="text-lg font-semibold mb-4">Payment History</h2>
-        {payments.length === 0 ? (
+
+        {filteredPayments.length === 0 ? (
           <NoData
-            title="No Payments"
-            description="Record a payment to see it listed here."
+            title={
+              payments.length === 0 ? "No Payments" : "No Matching Payments"
+            }
+            description={
+              payments.length === 0
+                ? "Record a payment to see it listed here."
+                : "Try adjusting the search to find matching payments."
+            }
           />
         ) : (
           <div className="overflow-x-auto">
@@ -771,7 +833,7 @@ function PaymentsPage() {
                 </tr>
               </thead>
               <tbody>
-                {sortedPayments.map((payment) => (
+                {filteredPayments.map((payment) => (
                   <tr
                     key={getId(payment)}
                     className={`border-b last:border-b-0 transition ${getRowStyle(

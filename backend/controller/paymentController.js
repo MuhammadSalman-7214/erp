@@ -559,7 +559,7 @@ const getPayments = async (req, res) => {
     let payments;
     try {
       payments = await query(
-        "SELECT * FROM payments WHERE user_id = ? ORDER BY createdAt ASC",
+        "SELECT * FROM payments WHERE user_id = ? ORDER BY createdAt DESC, id DESC",
         [userId],
       );
     } catch (err) {
