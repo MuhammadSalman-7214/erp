@@ -441,7 +441,6 @@ const getPartyBalances = async (req, res) => {
     }
 
     const customerMap = new Map();
-    const customerLookup = new Map();
     const salesInvoiceIdsWithPayments = new Set();
 
     for (const customer of customers) {
@@ -457,40 +456,34 @@ const getPartyBalances = async (req, res) => {
         invoiceCount: 0,
         paymentCount: 0,
       });
-      const codeKey = normalizeText(customer.customerCode);
-      const nameKey = normalizeText(customer.name);
-      if (codeKey) customerLookup.set(`code:${codeKey}`, customerId);
-      if (nameKey) customerLookup.set(`name:${nameKey}`, customerId);
-      if (codeKey || nameKey) {
-        customerLookup.set(`combo:${codeKey}|${nameKey}`, customerId);
-      }
     }
 
     const ensureLegacyCustomer = (details) => {
-      const code = normalizeText(details?.code || details?.customer_code);
-      const name = normalizeText(details?.name || details?.customer_name);
-      const matchedCustomerId =
-        customerLookup.get(`combo:${code}|${name}`) ||
-        customerLookup.get(`code:${code}`) ||
-        customerLookup.get(`name:${name}`);
-      if (matchedCustomerId) return matchedCustomerId;
+      const customerId = details?.customerId ? String(details.customerId) : "";
+      if (customerId && customerMap.has(customerId)) {
+        return customerId;
+      }
 
-      const key = customerKeyFromFields({
-        code: details?.code || details?.customer_code,
-        name: details?.name || details?.customer_name,
-      });
+      const key =
+        customerKeyFromFields({
+          code: details?.code || details?.customer_code,
+          name: details?.name || details?.customer_name,
+        }) || (customerId ? `deleted:${customerId}` : "");
       if (!key) return null;
+
       if (!customerMap.has(key)) {
         customerMap.set(key, {
           customerId: "",
           customerCode: details?.code || details?.customer_code || "",
-          customerName: details?.name || details?.customer_name || "Customer",
+          customerName:
+            details?.name || details?.customer_name || "Deleted Customer",
           openingBalance: 0,
           totalAmount: 0,
           paidAmount: 0,
           remainingAmount: 0,
           invoiceCount: 0,
           paymentCount: 0,
+          isLegacy: true,
         });
       }
       return key;
@@ -503,23 +496,25 @@ const getPartyBalances = async (req, res) => {
       }
 
       const legacyKey = ensureLegacyCustomer(details);
-      if (legacyKey) {
-        return legacyKey;
-      }
+      if (legacyKey) return legacyKey;
 
       if (customerId) {
-        customerMap.set(customerId, {
-          customerId,
-          customerCode: details?.customer_code || "",
-          customerName: details?.customer_name || "Customer",
-          openingBalance: 0,
-          totalAmount: 0,
-          paidAmount: 0,
-          remainingAmount: 0,
-          invoiceCount: 0,
-          paymentCount: 0,
-        });
-        return customerId;
+        const fallbackKey = `deleted:${customerId}`;
+        if (!customerMap.has(fallbackKey)) {
+          customerMap.set(fallbackKey, {
+            customerId: "",
+            customerCode: details?.customer_code || "",
+            customerName: "Deleted Customer",
+            openingBalance: 0,
+            totalAmount: 0,
+            paidAmount: 0,
+            remainingAmount: 0,
+            invoiceCount: 0,
+            paymentCount: 0,
+            isLegacy: true,
+          });
+        }
+        return fallbackKey;
       }
 
       return "";
@@ -739,14 +734,8 @@ const getCustomerLedger = async (req, res) => {
 
     const [invoices, payments] = await Promise.all([
       query(
-        "SELECT id, invoiceNumber, totalAmount, issueDate, status, createdAt FROM invoices WHERE invoiceType = ? AND user_id = ? AND (customerId = ? OR customer_name = ? OR customer_code = ?) ORDER BY createdAt ASC, id ASC",
-        [
-          "sales",
-          userId,
-          customerId,
-          customer.name || "",
-          customer.customerCode || "",
-        ],
+        "SELECT id, invoiceNumber, totalAmount, issueDate, status, createdAt FROM invoices WHERE invoiceType = ? AND user_id = ? AND customerId = ? ORDER BY createdAt ASC, id ASC",
+        ["sales", userId, customerId],
       ),
       query(
         "SELECT id, amount, method, invoice, notes, paidAt, createdAt, type, customerId, customer_code, customer_name FROM payments WHERE partyType = ? AND type IN (?, ?) AND user_id = ? ORDER BY createdAt ASC, id ASC",
@@ -797,15 +786,7 @@ const getCustomerLedger = async (req, res) => {
       const paymentCustomerId = payment.customerId
         ? String(payment.customerId)
         : "";
-      const paymentCustomerName = normalizeText(payment.customer_name);
-      const paymentCustomerCode = normalizeText(payment.customer_code);
-      const matchesCustomer =
-        paymentCustomerId === String(customerId) ||
-        (paymentCustomerId === "" &&
-          (paymentCustomerName === normalizedCustomerName ||
-            paymentCustomerCode === normalizedCustomerCode));
-
-      if (!matchesCustomer) {
+      if (paymentCustomerId !== String(customerId)) {
         return;
       }
 

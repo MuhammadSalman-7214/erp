@@ -19,46 +19,28 @@ const formatCustomerKey = (code = "", name = "") => {
 };
 
 const getSaleCustomerKeys = (sale) => {
-  const keys = [];
   const customerId = sale?.customer?.id ?? sale?.customer ?? "";
   if (customerId) {
-    keys.push(`id:${customerId}`);
+    return [`id:${customerId}`];
   }
 
   const customerName = sale?.customer?.name || sale?.customerName || "";
-  if (customerName) {
-    keys.push(`name:${normalizeText(customerName)}`);
-  }
-
   const customerCode =
     sale?.customer?.customerCode || sale?.customer_code || "";
   const legacyKey = formatCustomerKey(customerCode, customerName);
-  if (legacyKey) {
-    keys.push(legacyKey);
-  }
-
-  return [...new Set(keys)];
+  return legacyKey ? [legacyKey] : [];
 };
 
 const getPaymentCustomerKeys = (payment) => {
-  const keys = [];
   const customerId = payment?.customerId ?? "";
   if (customerId) {
-    keys.push(`id:${customerId}`);
+    return [`id:${customerId}`];
   }
 
   const customerName = payment?.customer_name || payment?.customer?.name || "";
-  if (customerName) {
-    keys.push(`name:${normalizeText(customerName)}`);
-  }
-
   const customerCode = payment?.customer_code || payment?.customer?.code || "";
   const legacyKey = formatCustomerKey(customerCode, customerName);
-  if (legacyKey) {
-    keys.push(legacyKey);
-  }
-
-  return [...new Set(keys)];
+  return legacyKey ? [legacyKey] : [];
 };
 
 const getPaymentStatus = (paidAmount, totalAmount) => {
@@ -281,12 +263,10 @@ const attachCustomerPaymentStatus = async (sales, userId) => {
   );
   const invoicePaymentTotals = new Map();
   const customerBuckets = new Map();
-  const customerAliases = new Map();
 
   const ensureBucket = (sale) => {
     const keys = getSaleCustomerKeys(sale);
-    const matchedBucketKey = keys.find((key) => customerAliases.has(key));
-    const bucketKey = matchedBucketKey || keys[0];
+    const bucketKey = keys[0];
 
     if (!bucketKey) {
       return null;
@@ -301,10 +281,6 @@ const attachCustomerPaymentStatus = async (sales, userId) => {
 
     const bucket = customerBuckets.get(bucketKey);
     bucket.sales.push(sale);
-
-    keys.forEach((key) => {
-      customerAliases.set(key, bucketKey);
-    });
 
     return bucketKey;
   };
@@ -329,9 +305,7 @@ const attachCustomerPaymentStatus = async (sales, userId) => {
     }
 
     const paymentKeys = getPaymentCustomerKeys(payment);
-    const bucketKey = paymentKeys
-      .map((key) => customerAliases.get(key))
-      .find(Boolean);
+    const bucketKey = paymentKeys[0];
 
     if (!bucketKey || !customerBuckets.has(bucketKey)) {
       return;
@@ -1506,10 +1480,6 @@ module.exports.getSalesByCustomer = async (req, res) => {
       { total: 0, paid: 0, count: 0 },
     );
 
-    const normalizeText = (value = "") => String(value).trim().toLowerCase();
-    const normalizedCustomerName = normalizeText(customer?.name);
-    const normalizedCustomerCode = normalizeText(customer?.customerCode);
-
     const paidPayments = await query(
       "SELECT amount, customer_name, customer_code, customerId, invoice FROM payments WHERE user_id = ? AND partyType = ? AND type = ? ORDER BY createdAt ASC, id ASC",
       [userId, "customer", "received"],
@@ -1521,16 +1491,7 @@ module.exports.getSalesByCustomer = async (req, res) => {
       const paymentCustomerId = payment.customerId
         ? String(payment.customerId)
         : "";
-      const paymentName = normalizeText(payment.customer_name);
-      const paymentCode = normalizeText(payment.customer_code);
-
-      const matchesCustomer =
-        paymentCustomerId === String(customerId) ||
-        (paymentCustomerId === "" &&
-          (paymentName === normalizedCustomerName ||
-            paymentCode === normalizedCustomerCode));
-
-      if (!matchesCustomer) return;
+      if (paymentCustomerId !== String(customerId)) return;
       paidAmount += Number(payment.amount) || 0;
       if (payment.invoice) {
         paidInvoiceIds.add(String(payment.invoice));
@@ -1538,14 +1499,8 @@ module.exports.getSalesByCustomer = async (req, res) => {
     });
 
     const invoices = await query(
-      "SELECT id, totalAmount, status FROM invoices WHERE invoiceType = ? AND user_id = ? AND (customerId = ? OR customer_name = ? OR customer_code = ?)",
-      [
-        "sales",
-        userId,
-        customerId,
-        customer?.name || "",
-        customer?.customerCode || "",
-      ],
+      "SELECT id, totalAmount, status FROM invoices WHERE invoiceType = ? AND user_id = ? AND customerId = ?",
+      ["sales", userId, customerId],
     );
 
     invoices.forEach((invoice) => {
