@@ -10,12 +10,10 @@ module.exports.createActivityLog = async (req, res) => {
     }
 
     if (!action || !entity || !entityId) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Please provide all required details.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Please provide all required details.",
+      });
     }
 
     let insertResult;
@@ -32,21 +30,19 @@ module.exports.createActivityLog = async (req, res) => {
       });
     }
 
-    res
-      .status(201)
-      .json({
-        success: true,
-        message: "Activity log created successfully.",
-        activity: {
-          id: insertResult.insertId,
-          action,
-          userId,
-          user_id: userId,
-          entity,
-          entityId,
-          ipAddress: req.ip,
-        },
-      });
+    res.status(201).json({
+      success: true,
+      message: "Activity log created successfully.",
+      activity: {
+        id: insertResult.insertId,
+        action,
+        userId,
+        user_id: userId,
+        entity,
+        entityId,
+        ipAddress: req.ip,
+      },
+    });
   } catch (error) {
     res
       .status(500)
@@ -57,6 +53,7 @@ module.exports.createActivityLog = async (req, res) => {
 module.exports.getAllActivityLogs = async (req, res) => {
   try {
     const userId = req.user?.userId;
+    console.log({ userId });
     let logs;
     try {
       logs = await query(
@@ -73,12 +70,10 @@ module.exports.getAllActivityLogs = async (req, res) => {
 
     res.status(200).json({ success: true, logs });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Error fetching activity logs.",
-        error,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Error fetching activity logs.",
+      error,
+    });
   }
 };
