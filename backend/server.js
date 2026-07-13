@@ -36,6 +36,7 @@ const allowedOrigins = [
   "http://localhost:3000",
   "https://imrantraders.shop",
   "https://www.imrantraders.shop",
+  "https://inventorysouq.dgexpense.com",
 ];
 
 app.use(
