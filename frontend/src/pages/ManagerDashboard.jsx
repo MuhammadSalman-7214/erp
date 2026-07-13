@@ -24,7 +24,7 @@ function ManagerDashboard() {
           <TopNavbar />
         </div>
 
-        <main className="pt-[8vh] h-full overflow-y-auto">
+        <main className="pt-16 h-full overflow-y-auto">
           <Outlet />
         </main>
       </div>

@@ -292,7 +292,8 @@ function Dashboardpage() {
     } catch (error) {
       console.error("Failed to mark insight as seen:", error);
       toast.error(
-        error?.response?.data?.message || "Unable to save insight acknowledgement.",
+        error?.response?.data?.message ||
+          "Unable to save insight acknowledgement.",
       );
     } finally {
       setInsightAcknowledging(false);
@@ -516,7 +517,7 @@ function Dashboardpage() {
         </Button>
       </div> */}
       {/* Financial Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2  top-0 lg:grid-cols-4 gap-4 mb-4">
         {loading
           ? Array.from({ length: 6 }).map((_, index) => (
               <div
