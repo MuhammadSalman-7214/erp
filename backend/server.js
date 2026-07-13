@@ -100,14 +100,20 @@ app.use("/api/payments", subscriptionPaymentsRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/dashboard", dashboardRouter);
 
-startSubscriptionCron();
-startDailyBusinessInsightsCron();
-
 server.listen(PORT, () => {
-  initDb()
-    .then(() => console.log("Database tables ensured"))
-    .catch((err) => console.error("Database init error:", err));
   console.log(`The server is running at port ${PORT}`);
 });
+
+(async () => {
+  try {
+    await initDb();
+    console.log("Database tables ensured");
+  } catch (err) {
+    console.error("Database init error:", err);
+  }
+
+  startSubscriptionCron();
+  startDailyBusinessInsightsCron();
+})();
 
 module.exports = { io, server };
