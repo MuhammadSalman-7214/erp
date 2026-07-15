@@ -488,7 +488,7 @@ function InvoicesPage() {
                           className="border-b last:border-b-0 hover:bg-slate-50 transition"
                         >
                           <td className="px-5 py-4 text-slate-500">
-                            {index + 1}
+                            {(currentPage - 1) * PAGE_SIZE + index + 1}
                           </td>
 
                           <td className="px-5 py-4">

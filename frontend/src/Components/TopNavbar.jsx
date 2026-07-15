@@ -1,6 +1,5 @@
 import { useSelector } from "react-redux";
 import { useLocation } from "react-router-dom";
-import { Home, Users, GraduationCap, BookOpen, Settings } from "lucide-react";
 
 function TopNavbar() {
   const { user } = useSelector((state) => state.auth);
@@ -84,7 +83,7 @@ function TopNavbar() {
   };
 
   return (
-    <nav className="sticky top-0 z-30 flex h-[8vh] items-center justify-between shadow-sm bg-white px-4">
+    <nav className="sticky top-0 z-30 flex  items-center justify-between shadow bg-white p-4">
       {/* LEFT */}
 
       <div className="flex items-center gap-4">

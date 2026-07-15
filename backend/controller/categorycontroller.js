@@ -26,17 +26,21 @@ module.exports.createCategory = async (req, res) => {
         error: err,
       });
     }
-
     await logActivity({
       action: "Add Category",
-      description: `Category "${name} was added`,
+      description: `Category "${name}" was added`,
       entity: "category",
       entityId: insertResult.insertId,
-      userId: userId,
-      ipAddress: ipAddress,
+      userId,
+      ipAddress,
     });
 
-    res.status(201).json({ id: insertResult.insertId, user_id: userId, name });
+    const newCategory = await query(
+      "SELECT * FROM categories WHERE id = ? AND user_id = ? LIMIT 1",
+      [insertResult.insertId, userId],
+    );
+
+    res.status(201).json(newCategory[0]);
   } catch (error) {
     res
       .status(500)

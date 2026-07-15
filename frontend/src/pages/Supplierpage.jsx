@@ -682,7 +682,7 @@ function Supplierpage({ readOnly = false }) {
                             className="group border-b border-slate-100 bg-white transition-colors duration-150 hover:bg-blue-50/30"
                           >
                             <td className="px-5 py-4 text-slate-500">
-                              {index + 1}
+                              {(currentPage - 1) * PAGE_SIZE + index + 1}
                             </td>
                             <td className="px-5 py-4 font-medium text-slate-800">
                               {supplier.name}

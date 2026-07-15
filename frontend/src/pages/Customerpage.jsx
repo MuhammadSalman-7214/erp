@@ -521,6 +521,7 @@ function Customerpage({ readOnly = false }) {
                   <table className="min-w-[1390px] w-full text-sm border-collapse">
                     <thead className="bg-slate-50 border-b">
                       <tr className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                        <th className="px-5 py-4 font-semibold"> #</th>
                         <th className="px-5 py-4 font-semibold">Customer</th>
                         <th className="px-5 py-4 font-semibold">Phone</th>
                         <th className="px-5 py-4 font-semibold">Total</th>
@@ -538,7 +539,7 @@ function Customerpage({ readOnly = false }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredCustomers.map((customer) => {
+                      {filteredCustomers.map((customer, index) => {
                         const customerSummary =
                           customerBalances[String(getId(customer))] || {};
                         return (
@@ -546,6 +547,9 @@ function Customerpage({ readOnly = false }) {
                             key={getId(customer)}
                             className="group border-b border-slate-100 bg-white transition-colors duration-150 hover:bg-blue-50/30"
                           >
+                            <td className="px-5 py-4">
+                              {(currentPage - 1) * PAGE_SIZE + index + 1}
+                            </td>
                             <td className="px-5 py-4">{customer.name}</td>
                             <td className="px-5 py-4">
                               {customer.contactInfo?.phone || "-"}
@@ -682,7 +686,7 @@ function Customerpage({ readOnly = false }) {
                         </td>
 
                         <td
-                          className="sticky right-0 z-20 px-4 py-4 bg-gray-50/80 text-center text-white"
+                          className="sticky right-0 z-20 px-8 py-4 bg-gray-50/80 text-center text-white"
                           style={{
                             boxShadow:
                               "inset 8px 0 16px -8px rgba(166, 174, 192, 0.45)",

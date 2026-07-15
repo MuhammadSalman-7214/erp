@@ -449,7 +449,9 @@ function StockTransaction({ readOnly = false }) {
                           key={stock.id}
                           className={` ${getRowStyle(stock.type)}`}
                         >
-                          <td className="px-5 py-4">{index + 1}</td>
+                          <td className="px-5 py-4">
+                            {(currentPage - 1) * PAGE_SIZE + index + 1}
+                          </td>
 
                           <td className="px-5 py-4">
                             <div className="font-medium text-slate-800">

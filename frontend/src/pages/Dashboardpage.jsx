@@ -876,7 +876,7 @@ function Dashboardpage() {
                     {(() => {
                       return product.quantity > 0 ? (
                         <span>
-                          {product.quantity} {product.unit || ""}
+                          {parseInt(product.quantity, 10)} {product.unit || ""}
                         </span>
                       ) : (
                         <span>Out of stock</span>

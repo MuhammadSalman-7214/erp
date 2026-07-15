@@ -2297,9 +2297,10 @@ function Salespage() {
                         key={getId(sale)}
                         className="group bg-white hover:bg-blue-50/30 transition-colors duration-150"
                       >
-                        {/* # */}
                         <td className="px-4 py-4 text-slate-400 text-xs font-medium">
-                          {String(index + 1).padStart(2, "0")}
+                          {String(
+                            (currentPage - 1) * PAGE_SIZE + index + 1,
+                          ).padStart(2, "0")}
                         </td>
 
                         {/* INVOICE NO */}

@@ -728,7 +728,7 @@ function Orderpage() {
                         className="group border-b border-slate-100 bg-white transition-colors duration-150 hover:bg-blue-50/30"
                       >
                         <td className="px-4 py-4 text-slate-400 text-xs font-medium">
-                          {index + 1}
+                          {(currentPage - 1) * PAGE_SIZE + index + 1}
                         </td>
                         <td className="px-5 py-4">
                           <div className="flex flex-col gap-1.5">

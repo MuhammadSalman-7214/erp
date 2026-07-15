@@ -23,7 +23,7 @@ function AdminDashboard() {
           <TopNavbar />
         </div>
 
-        <main className="pt-16 h-full overflow-y-auto">
+        <main className="pt-20 h-full overflow-y-auto">
           <Outlet />
         </main>
       </div>
