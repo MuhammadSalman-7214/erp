@@ -145,13 +145,6 @@ module.exports.createStockTransaction = async (req, res) => {
       });
     }
 
-    if (type === "Stock-out" && Number(codeRecord.quantity) < Number(quantity)) {
-      return res.status(400).json({
-        success: false,
-        message: "Insufficient stock for Stock-out",
-      });
-    }
-
     if (type === "Stock-in") {
       await query(
         "UPDATE product_codes SET quantity = quantity + ? WHERE id = ? AND user_id = ?",

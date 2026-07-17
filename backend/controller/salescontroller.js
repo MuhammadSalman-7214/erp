@@ -2,7 +2,6 @@ const query = require("../libs/dbQuery.js");
 const db = require("../db");
 const { getNextInvoiceNumber } = require("../libs/invoiceNumber");
 const {
-  validateSaleStockAvailability,
   createSaleCompletedStockOut,
   rollbackSaleCompletedStockOut,
 } = require("../libs/stockLifecycle");
@@ -662,10 +661,6 @@ module.exports.createSale = async (req, res) => {
       });
     }
 
-    if (resolvedSaleStatus === "completed") {
-      await validateSaleStockAvailability(resolvedProducts, [], userId);
-    }
-
     const saleInvoiceNumber = await getNextInvoiceNumber("SI", userId);
     const salePaymentStatus = getPaymentStatus(
       parsedReceivedAmount,
@@ -1142,10 +1137,6 @@ module.exports.updateSale = async (req, res) => {
 
       if (existingSaleWasStocked) {
         await rollbackSaleCompletedStockOut(existingSale.id, userId);
-      }
-
-      if (nextSaleWillBeStocked) {
-        await validateSaleStockAvailability(resolvedProducts, [], userId);
       }
 
       await executor(

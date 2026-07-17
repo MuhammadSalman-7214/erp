@@ -798,22 +798,6 @@ function Salespage() {
       return;
     }
 
-    const insufficient = cartItems.find((item) => {
-      const available =
-        item.availableQty ?? availableQtyByCode.get(String(item.codeId)) ?? 0;
-      return Number(item.quantity) > Number(available);
-    });
-    if (insufficient) {
-      const available =
-        insufficient.availableQty ??
-        availableQtyByCode.get(String(insufficient.codeId)) ??
-        0;
-      toast.error(
-        `Only ${available} available for ${insufficient.code} - ${insufficient.name}`,
-      );
-      return;
-    }
-
     const updatedData = {
       customerId,
       products: cartItems.map((item) => {
@@ -840,12 +824,6 @@ function Salespage() {
       })
       .catch((error) => {
         console.error("Error updating sale:", error);
-        if (error?.available !== undefined && error?.requested !== undefined) {
-          toast.error(
-            `Only ${error.available} items available. You requested ${error.requested}.`,
-          );
-          return;
-        }
         toast.error(error?.message || "Failed to update sale");
       })
       .finally(() => setIsSubmittingSale(false));
@@ -873,7 +851,7 @@ function Salespage() {
     setCodeQuery("");
     setShowCodeOptions(false);
   };
-  const hasStockIssue = cartItems.some(
+  const hasBackorderItems = cartItems.some(
     (item) =>
       Number(item.quantity) >
       Number(
@@ -1074,22 +1052,6 @@ function Salespage() {
       return;
     }
 
-    const insufficient = cartItems.find((item) => {
-      const available =
-        item.availableQty ?? availableQtyByCode.get(String(item.codeId)) ?? 0;
-      return Number(item.quantity) > Number(available);
-    });
-    if (insufficient) {
-      const available =
-        insufficient.availableQty ??
-        availableQtyByCode.get(String(insufficient.codeId)) ??
-        0;
-      toast.error(
-        `Only ${available} available for ${insufficient.code} - ${insufficient.name}`,
-      );
-      return;
-    }
-
     const salesData = {
       customerId: resolvedCustomerId,
       products: cartItems.map((item) => {
@@ -1135,13 +1097,6 @@ function Salespage() {
         openBillPreview(createdSale);
       }
     } catch (error) {
-      if (error?.available && error?.requested) {
-        toast.error(
-          `Only ${error.available} items available. You requested ${error.requested}.`,
-        );
-        return;
-      }
-
       toast.error(error?.message || "Failed to create sale");
     } finally {
       setIsSubmittingSale(false);
@@ -2362,15 +2317,16 @@ function Salespage() {
                   ? "Updating..."
                   : "Creating..."
             }
-            disabled={hasStockIssue}
-            className={`w-full py-3 rounded-xl ${
-              hasStockIssue
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-teal-700 hover:bg-teal-600 text-white"
-            }`}
+            className="w-full py-3 rounded-xl bg-teal-700 hover:bg-teal-600 text-white"
           >
             {selectedSales ? "Update Sale" : "Create Sale"}
           </LoadingButton>
+          {hasBackorderItems && (
+            <p className="text-xs text-amber-600 text-center -mt-2">
+              Some quantities exceed available stock — this sale will create a
+              backorder (negative inventory) for those items.
+            </p>
+          )}
         </form>
       </DrawerPanel>
 
