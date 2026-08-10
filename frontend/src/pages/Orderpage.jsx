@@ -3,6 +3,10 @@ import toast from "react-hot-toast";
 import { useDispatch, useSelector } from "react-redux";
 import { IoMdAdd, IoMdSearch } from "react-icons/io";
 import { MdEdit, MdDelete } from "react-icons/md";
+import { FiCamera } from "react-icons/fi";
+import BarcodeScannerModal from "../Components/BarcodeScannerModal";
+import BarcodeAssignModal from "../Components/BarcodeAssignModal";
+import { lookupProductCodeByCode } from "../lib/barcodeApi";
 import FormattedTime from "../lib/FormattedTime";
 import {
   createdOrder,
@@ -47,6 +51,9 @@ function Orderpage() {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
   const [selectedOrder, setselectedOrder] = useState(null);
+  const [showScanner, setShowScanner] = useState(false);
+  const [unknownScanCode, setUnknownScanCode] = useState("");
+  const [showAssignModal, setShowAssignModal] = useState(false);
   const [codeQuery, setCodeQuery] = useState("");
   const [debouncedCodeQuery, setDebouncedCodeQuery] = useState("");
   const [showCodeOptions, setShowCodeOptions] = useState(false);
@@ -300,6 +307,90 @@ function Orderpage() {
     setShowCodeOptions(false);
   };
 
+  const resolveScannedCode = async (rawCode) => {
+    const scanned = String(rawCode || "").trim();
+    if (!scanned) return;
+
+    const normalized = scanned.toLowerCase();
+    let matchedProduct = null;
+    let matchedCode = null;
+
+    getallproduct.forEach((product) => {
+      (product.productCodes || []).forEach((code) => {
+        if (String(code.code || "").toLowerCase() === normalized) {
+          matchedProduct = product;
+          matchedCode = code;
+        }
+      });
+    });
+
+    if (matchedProduct && matchedCode) {
+      addToCart({
+        productId: getId(matchedProduct),
+        codeId: getId(matchedCode),
+        code: matchedCode.code,
+        name: matchedProduct.name,
+        description: matchedProduct.description,
+        company: matchedProduct.company || matchedProduct.brand || "",
+        unitPrice: Number(
+          matchedProduct.purchasePrice ??
+            matchedProduct.pricing?.currentPurchasePrice ??
+            matchedCode.purchasePrice ??
+            0,
+        ),
+      });
+      return;
+    }
+
+    try {
+      const data = await lookupProductCodeByCode(scanned);
+      if (data.match === "single") {
+        addToCart({
+          productId: data.product.id,
+          codeId: data.productCode.id,
+          code: data.productCode.code,
+          name: data.product.name,
+          description: data.product.description,
+          company: data.product.company || data.product.brand || "",
+          unitPrice: Number(data.product.purchasePrice ?? 0),
+        });
+      } else if (data.match === "multiple") {
+        toast.error(
+          `"${scanned}" matches more than one product — search by name instead.`,
+        );
+      }
+    } catch (error) {
+      if (error?.response?.status === 404) {
+        setShowScanner(false);
+        setUnknownScanCode(scanned);
+        setShowAssignModal(true);
+        return;
+      }
+      const message =
+        error?.response?.data?.message ||
+        `No product found for code "${scanned}"`;
+      toast.error(message);
+    }
+  };
+
+  const handleBarcodeAssigned = (product, productCode) => {
+    if (!product || !productCode) return;
+    addToCart({
+      productId: getId(product),
+      codeId: getId(productCode),
+      code: productCode.code,
+      name: product.name,
+      description: product.description,
+      company: product.company || product.brand || "",
+      unitPrice: Number(
+        product.purchasePrice ?? product.pricing?.currentPurchasePrice ?? 0,
+      ),
+    });
+    setShowAssignModal(false);
+    setUnknownScanCode("");
+    setShowScanner(true);
+  };
+
   const {
     activeIndex: codeActiveIndex,
     onKeyDown: onCodeKeyDown,
@@ -531,7 +622,18 @@ function Orderpage() {
         <div className="p-6">
           <form onSubmit={selectedOrder ? handleEditSubmit : submitOrder}>
             <div className="mb-4">
-              <label>Product Code</label>
+              <div className="flex items-center justify-between">
+                <label>Product Code</label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowScanner(true)}
+                  className="!gap-1.5"
+                >
+                  <FiCamera size={14} /> Scan
+                </Button>
+              </div>
               <div className="relative">
                 <Inputfield
                   type="text"
@@ -921,6 +1023,22 @@ function Orderpage() {
         totalItems={pagination.totalItems}
         pageSize={pagination.pageSize}
         onPageChange={setCurrentPage}
+      />
+      <BarcodeScannerModal
+        open={showScanner}
+        onClose={() => setShowScanner(false)}
+        onDetected={resolveScannedCode}
+        continuous
+        title="Scan product to add to order"
+        helperText="Scan each item's barcode to add it to the purchase order, or type the code below."
+        manualPlaceholder="Type product code"
+      />
+      <BarcodeAssignModal
+        open={showAssignModal}
+        onClose={() => setShowAssignModal(false)}
+        code={unknownScanCode}
+        products={getallproduct}
+        onAssigned={handleBarcodeAssigned}
       />
     </div>
   );

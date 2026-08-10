@@ -40,6 +40,11 @@ const productCodeUpdateBody = Joi.object({
   .min(1)
   .unknown(true);
 
+const productCodeGenerateBody = Joi.object({
+  variantName: optionalText.optional(),
+  quantity: Joi.number().integer().min(0).optional(),
+}).unknown(true);
+
 const invoiceItemSchema = Joi.object({
   name: anyText.required(),
   quantity: Joi.number().integer().min(1).required(),
@@ -379,6 +384,7 @@ module.exports = {
   paymentParam,
   productBody,
   productCodeCreateBody,
+  productCodeGenerateBody,
   productCodeUpdateBody,
   productUpdateBody,
   profileBody,

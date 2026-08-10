@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { IoMdAdd, IoMdSearch } from "react-icons/io";
+import { FiCamera } from "react-icons/fi";
 import { useDispatch, useSelector } from "react-redux";
+import BarcodeScannerModal from "../Components/BarcodeScannerModal";
+import BarcodeAssignModal from "../Components/BarcodeAssignModal";
+import { lookupProductCodeByCode } from "../lib/barcodeApi";
 import FormattedTime from "../lib/FormattedTime";
 import {
   createStockTransaction,
@@ -39,6 +43,9 @@ function StockTransaction({ readOnly = false }) {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [showScanner, setShowScanner] = useState(false);
+  const [unknownScanCode, setUnknownScanCode] = useState("");
+  const [showAssignModal, setShowAssignModal] = useState(false);
   const [transactionDateSort, setTransactionDateSort] = useState("asc");
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
   const { sidebarOpen } = useSelector((state) => state.sidebar);
@@ -81,6 +88,67 @@ function StockTransaction({ readOnly = false }) {
     [getallproduct, product],
   );
   const availableCodes = selectedProductRecord?.productCodes || [];
+
+  const resolveScannedCode = async (rawCode) => {
+    const scanned = String(rawCode || "").trim();
+    if (!scanned) return;
+
+    const normalized = scanned.toLowerCase();
+    let matchedProduct = null;
+    let matchedCode = null;
+
+    getallproduct.forEach((productRecord) => {
+      (productRecord.productCodes || []).forEach((code) => {
+        if (String(code.code || "").toLowerCase() === normalized) {
+          matchedProduct = productRecord;
+          matchedCode = code;
+        }
+      });
+    });
+
+    if (matchedProduct && matchedCode) {
+      setproduct(matchedProduct.id);
+      setProductCode(matchedCode.id);
+      toast.success(`Selected ${matchedProduct.name} — ${matchedCode.code}`);
+      return;
+    }
+
+    try {
+      const data = await lookupProductCodeByCode(scanned);
+      if (data.match === "single") {
+        await dispatch(gettingallproducts());
+        setproduct(data.product.id);
+        setProductCode(data.productCode.id);
+        toast.success(
+          `Selected ${data.product.name} — ${data.productCode.code}`,
+        );
+      } else if (data.match === "multiple") {
+        toast.error(
+          `"${scanned}" matches more than one product — please select manually.`,
+        );
+      }
+    } catch (error) {
+      if (error?.response?.status === 404) {
+        setShowScanner(false);
+        setUnknownScanCode(scanned);
+        setShowAssignModal(true);
+        return;
+      }
+      const message =
+        error?.response?.data?.message ||
+        `No product found for code "${scanned}"`;
+      toast.error(message);
+    }
+  };
+
+  const handleBarcodeAssigned = (matchedProductRecord, productCode) => {
+    if (!matchedProductRecord || !productCode) return;
+    setproduct(matchedProductRecord.id);
+    setProductCode(productCode.id);
+    toast.success(`Selected ${matchedProductRecord.name} — ${productCode.code}`);
+    setShowAssignModal(false);
+    setUnknownScanCode("");
+  };
 
   const resetForm = () => {
     setproduct("");
@@ -250,6 +318,21 @@ function StockTransaction({ readOnly = false }) {
       >
         <div className="p-6">
           <form onSubmit={submitstocktranscation}>
+            <div className="mb-4 flex items-center justify-between">
+              <p className="text-xs font-medium text-slate-600">
+                Scan a barcode to auto-select the product and code below.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowScanner(true)}
+                className="!gap-1.5"
+              >
+                <FiCamera size={14} /> Scan
+              </Button>
+            </div>
+
             <div className="mb-4">
               <label>Product</label>
               <SelectDropdown
@@ -508,6 +591,21 @@ function StockTransaction({ readOnly = false }) {
         totalItems={pagination.totalItems}
         pageSize={pagination.pageSize}
         onPageChange={setCurrentPage}
+      />
+      <BarcodeScannerModal
+        open={showScanner}
+        onClose={() => setShowScanner(false)}
+        onDetected={resolveScannedCode}
+        title="Scan product barcode"
+        helperText="Scan a barcode to select the product and code, or type the code below."
+        manualPlaceholder="Type product code"
+      />
+      <BarcodeAssignModal
+        open={showAssignModal}
+        onClose={() => setShowAssignModal(false)}
+        code={unknownScanCode}
+        products={getallproduct}
+        onAssigned={handleBarcodeAssigned}
       />
     </div>
   );

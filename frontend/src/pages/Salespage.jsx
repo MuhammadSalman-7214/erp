@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { IoMdAdd, IoMdRefresh } from "react-icons/io";
 import { MdDelete, MdEdit } from "react-icons/md";
+import { FiCamera } from "react-icons/fi";
 import { useDispatch, useSelector } from "react-redux";
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
 import FormattedTime from "../lib/FormattedTime";
 import { CgSoftwareDownload } from "react-icons/cg";
 import { IoMdSearch } from "react-icons/io";
+import BarcodeScannerModal from "../Components/BarcodeScannerModal";
+import BarcodeAssignModal from "../Components/BarcodeAssignModal";
+import { lookupProductCodeByCode } from "../lib/barcodeApi";
 
 import {
   CreateSales,
@@ -123,6 +127,9 @@ function Salespage() {
   const [codeQuery, setCodeQuery] = useState("");
   const [debouncedCodeQuery, setDebouncedCodeQuery] = useState("");
   const [showCodeOptions, setShowCodeOptions] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
+  const [unknownScanCode, setUnknownScanCode] = useState("");
+  const [showAssignModal, setShowAssignModal] = useState(false);
   const [cartItems, setCartItems] = useState([]);
   const [showBillModal, setShowBillModal] = useState(false);
   const [billSale, setBillSale] = useState(null);
@@ -455,6 +462,95 @@ function Salespage() {
     setCodeQuery("");
     setShowCodeOptions(false);
   };
+
+  const resolveScannedCode = async (rawCode) => {
+    const scanned = String(rawCode || "").trim();
+    if (!scanned) return;
+
+    const normalized = scanned.toLowerCase();
+    let matchedProduct = null;
+    let matchedCode = null;
+
+    getallproduct.forEach((product) => {
+      (product.productCodes || []).forEach((code) => {
+        if (String(code.code || "").toLowerCase() === normalized) {
+          matchedProduct = product;
+          matchedCode = code;
+        }
+      });
+    });
+
+    if (matchedProduct && matchedCode) {
+      addToCart({
+        productId: getId(matchedProduct),
+        codeId: getId(matchedCode),
+        code: matchedCode.code,
+        description: matchedProduct.description,
+        name: matchedProduct.name,
+        company: matchedProduct.company || matchedProduct.brand || "",
+        availableQty: Number(matchedCode.quantity || 0),
+        unitPrice: Number(
+          matchedProduct.salePrice ??
+            matchedProduct.pricing?.currentSalesPrice ??
+            matchedProduct.Price ??
+            matchedCode.salePrice ??
+            0,
+        ),
+      });
+      return;
+    }
+
+    try {
+      const data = await lookupProductCodeByCode(scanned);
+      if (data.match === "single") {
+        addToCart({
+          productId: data.product.id,
+          codeId: data.productCode.id,
+          code: data.productCode.code,
+          description: data.product.description,
+          name: data.product.name,
+          company: data.product.company || data.product.brand || "",
+          availableQty: Number(data.productCode.quantity || 0),
+          unitPrice: Number(data.product.salePrice ?? data.product.Price ?? 0),
+        });
+      } else if (data.match === "multiple") {
+        toast.error(
+          `"${scanned}" matches more than one product — search by name instead.`,
+        );
+      }
+    } catch (error) {
+      if (error?.response?.status === 404) {
+        setShowScanner(false);
+        setUnknownScanCode(scanned);
+        setShowAssignModal(true);
+        return;
+      }
+      const message =
+        error?.response?.data?.message ||
+        `No product found for code "${scanned}"`;
+      toast.error(message);
+    }
+  };
+
+  const handleBarcodeAssigned = (product, productCode) => {
+    if (!product || !productCode) return;
+    addToCart({
+      productId: getId(product),
+      codeId: getId(productCode),
+      code: productCode.code,
+      description: product.description,
+      name: product.name,
+      company: product.company || product.brand || "",
+      availableQty: Number(productCode.quantity || 0),
+      unitPrice: Number(
+        product.salePrice ?? product.pricing?.currentSalesPrice ?? product.Price ?? 0,
+      ),
+    });
+    setShowAssignModal(false);
+    setUnknownScanCode("");
+    setShowScanner(true);
+  };
+
   const hasStockIssue = cartItems.some(
     (item) =>
       Number(item.quantity) >
@@ -1728,7 +1824,18 @@ function Salespage() {
           )}
 
           <div className="mb-4">
-            <label>Product Code</label>
+            <div className="flex items-center justify-between">
+              <label>Product Code</label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowScanner(true)}
+                className="!gap-1.5"
+              >
+                <FiCamera size={14} /> Scan
+              </Button>
+            </div>
             <div className="relative">
               <Inputfield
                 type="text"
@@ -2561,6 +2668,21 @@ function Salespage() {
         totalItems={pagination.totalItems}
         pageSize={pagination.pageSize}
         onPageChange={setCurrentPage}
+      />
+      <BarcodeScannerModal
+        open={showScanner}
+        onClose={() => setShowScanner(false)}
+        onDetected={resolveScannedCode}
+        title="Scan product to add to sale"
+        helperText="Scan each item's barcode to add it to the cart, or type the code below."
+        manualPlaceholder="Type product code"
+      />
+      <BarcodeAssignModal
+        open={showAssignModal}
+        onClose={() => setShowAssignModal(false)}
+        code={unknownScanCode}
+        products={getallproduct}
+        onAssigned={handleBarcodeAssigned}
       />
     </div>
   );

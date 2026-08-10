@@ -6,6 +6,7 @@ const {
   productBody,
   productUpdateBody,
   productCodeCreateBody,
+  productCodeGenerateBody,
   productCodeUpdateBody,
   idParam,
   queryParam,
@@ -27,6 +28,8 @@ const {
   addProductCode,
   updateProductCode,
   deleteProductCode,
+  lookupProductCodeByCode,
+  generateProductCode,
 } = require("../controller/productController.js");
 // Import your product controllers
 // const { getProducts, createProduct, updateProduct, deleteProduct } = require('../controller/productController');
@@ -40,6 +43,13 @@ router.get(
   SearchProduct,
 );
 router.get("/", authmiddleware, checkPermission("product", "read"), getProduct);
+router.get(
+  "/codes/lookup",
+  authmiddleware,
+  validateRequest({ query: queryParam("code") }),
+  checkPermission("product", "read"),
+  lookupProductCodeByCode,
+);
 router.get(
   "/:productId/codes",
   authmiddleware,
@@ -67,6 +77,16 @@ router.post(
   validateRequest({ params: idParam("productId"), body: productCodeCreateBody }),
   checkPermission("product", "write"),
   addProductCode,
+);
+router.post(
+  "/:productId/codes/generate",
+  authmiddleware,
+  validateRequest({
+    params: idParam("productId"),
+    body: productCodeGenerateBody,
+  }),
+  checkPermission("product", "write"),
+  generateProductCode,
 );
 
 // PUT - Admin and Manager only

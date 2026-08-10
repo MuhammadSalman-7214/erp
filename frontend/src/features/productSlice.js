@@ -15,6 +15,7 @@ const initialState = {
   iseditedProduct: false,
   gettopproduct: null,
   isproductcodeadd: false,
+  isproductcodegenerate: false,
   isproductcodeupdate: false,
   isproductcodedelete: false,
 };
@@ -160,6 +161,24 @@ export const addProductCode = createAsyncThunk(
   },
 );
 
+export const generateProductCode = createAsyncThunk(
+  "product/generateProductCode",
+  async ({ productId, codeData = {} }, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post(
+        `product/${productId}/codes/generate`,
+        codeData,
+        { withCredentials: true },
+      );
+      return { productId, productCode: response.data.productCode };
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Barcode generation failed",
+      );
+    }
+  },
+);
+
 export const updateProductCode = createAsyncThunk(
   "product/updateProductCode",
   async ({ codeId, updates }, { rejectWithValue }) => {
@@ -291,6 +310,32 @@ const productSlice = createSlice({
       })
       .addCase(addProductCode.rejected, (state) => {
         state.isproductcodeadd = false;
+      });
+
+    builder
+      .addCase(generateProductCode.pending, (state) => {
+        state.isproductcodegenerate = true;
+      })
+      .addCase(generateProductCode.fulfilled, (state, action) => {
+        state.isproductcodegenerate = false;
+        const { productId, productCode } = action.payload || {};
+        if (!productId || !productCode) return;
+        const productIndex = state.getallproduct.findIndex(
+          (product) => getId(product) === productId,
+        );
+        if (productIndex !== -1) {
+          const existing = state.getallproduct[productIndex].productCodes || [];
+          state.getallproduct[productIndex].productCodes = [
+            productCode,
+            ...existing,
+          ];
+          state.getallproduct[productIndex].totalQuantity =
+            (state.getallproduct[productIndex].totalQuantity || 0) +
+            Number(productCode.quantity || 0);
+        }
+      })
+      .addCase(generateProductCode.rejected, (state) => {
+        state.isproductcodegenerate = false;
       });
 
     builder

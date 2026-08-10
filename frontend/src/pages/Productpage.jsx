@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { IoMdAdd, IoMdTrash, IoMdSearch } from "react-icons/io";
 import { MdDelete, MdEdit } from "react-icons/md";
 import { AiOutlineDownload } from "react-icons/ai";
+import { FiCamera, FiPrinter } from "react-icons/fi";
 import { useDispatch, useSelector } from "react-redux";
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
@@ -16,6 +17,7 @@ import {
   Removeproduct,
   EditProduct,
   addProductCode,
+  generateProductCode,
   deleteProductCode,
 } from "../features/productSlice";
 import { gettingallCategory } from "../features/categorySlice";
@@ -37,6 +39,9 @@ import {
 } from "../UI";
 import CodeBadge from "../Components/CodeBadge";
 import TablePagination from "../UI/TablePagination";
+import BarcodeScannerModal from "../Components/BarcodeScannerModal";
+import { lookupProductCodeByCode } from "../lib/barcodeApi";
+import { printBarcodeLabel, downloadLabelSheetPdf } from "../lib/barcodeLabel";
 
 const emptyCode = {
   code: "",
@@ -93,6 +98,9 @@ function Productpage({ readOnly = false }) {
   const [errors, setErrors] = useState({});
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
   const [isCodeSubmitting, setIsCodeSubmitting] = useState(false);
+  const [isCodeGenerating, setIsCodeGenerating] = useState(false);
+  const [showFindScanner, setShowFindScanner] = useState(false);
+  const [showAddCodeScanner, setShowAddCodeScanner] = useState(false);
 
   const PAGE_SIZE = 5;
   const [currentPage, setCurrentPage] = useState(1);
@@ -483,6 +491,27 @@ function Productpage({ readOnly = false }) {
       code: codeCheck.value,
     };
 
+    try {
+      const existing = await lookupProductCodeByCode(codeCheck.value);
+      const matches =
+        existing?.match === "single"
+          ? [existing]
+          : existing?.match === "multiple"
+            ? existing.options
+            : [];
+      const usedElsewhere = matches.some(
+        (entry) => String(entry.product?.id) !== String(codeProductId),
+      );
+      if (usedElsewhere) {
+        toast(
+          `Heads up: "${codeCheck.value}" is already used on another product.`,
+          { icon: "⚠️" },
+        );
+      }
+    } catch {
+      // A 404 just means the code isn't used anywhere yet — nothing to warn about.
+    }
+
     setIsCodeSubmitting(true);
     dispatch(addProductCode({ productId: codeProductId, codeData: payload }))
       .unwrap()
@@ -492,6 +521,69 @@ function Productpage({ readOnly = false }) {
       })
       .catch((error) => toast.error(error || "Failed to add code"))
       .finally(() => setIsCodeSubmitting(false));
+  };
+
+  const handleScanNewCode = (rawCode) => {
+    const scanned = String(rawCode || "").trim();
+    if (!scanned) return;
+
+    setCodeForm((prev) => ({ ...prev, code: scanned }));
+    validateField("code", scanned, (current) =>
+      validateTextInput(current, "Shade code", {
+        required: true,
+        minLength: 1,
+        maxLength: 60,
+      }),
+    );
+    setShowAddCodeScanner(false);
+  };
+
+  const handleGenerateCode = () => {
+    if (!codeProductId) return;
+    setIsCodeGenerating(true);
+    dispatch(generateProductCode({ productId: codeProductId, codeData: {} }))
+      .unwrap()
+      .then((result) => {
+        toast.success(`Barcode ${result.productCode?.code} generated`);
+      })
+      .catch((error) => toast.error(error || "Failed to generate barcode"))
+      .finally(() => setIsCodeGenerating(false));
+  };
+
+  const handlePrintLabel = (code) => {
+    const printed = printBarcodeLabel({
+      code: code.code,
+      productName: codeProduct?.name,
+      variantName: code.variantName,
+      price: codeProduct?.salePrice || codeProduct?.Price,
+    });
+    if (!printed) {
+      toast.error("Please allow pop-ups to print the label");
+    }
+  };
+
+  const handlePrintAllLabels = () => {
+    const codes = codeProduct?.productCodes || [];
+    if (!codes.length) {
+      toast.error("No codes to print for this product");
+      return;
+    }
+    downloadLabelSheetPdf(
+      codes.map((code) => ({
+        code: code.code,
+        productName: codeProduct?.name,
+        price: codeProduct?.salePrice || codeProduct?.Price,
+      })),
+      `${String(codeProduct?.name || "product").replace(/[^a-z0-9-_]+/gi, "_")}_labels.pdf`,
+    );
+  };
+
+  const resolveFindScannedCode = (rawCode) => {
+    const scanned = String(rawCode || "").trim();
+    if (!scanned) return;
+
+    setShowFindScanner(false);
+    setProductCodeQuery(scanned);
   };
 
   const handleDeleteCode = (codeId) => {
@@ -777,6 +869,17 @@ function Productpage({ readOnly = false }) {
             >
               <AiOutlineDownload size={18} />
               Download Stock
+            </Button>
+          </div>
+
+          <div className="flex items-end">
+            <Button
+              type="button"
+              onClick={() => setShowFindScanner(true)}
+              variant="outline"
+            >
+              <FiCamera size={16} />
+              Scan to Find
             </Button>
           </div>
 
@@ -1452,9 +1555,20 @@ function Productpage({ readOnly = false }) {
               <div className="border rounded-lg p-4 bg-slate-50">
                 <h4 className="text-sm font-semibold mb-3">Add New Code</h4>
                 <div>
-                  <label className="text-xs font-medium text-slate-600">
-                    Shade Code
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-slate-600">
+                      Shade Code
+                    </label>
+                    <Button
+                      type="button"
+                      onClick={() => setShowAddCodeScanner(true)}
+                      variant="outline"
+                      size="sm"
+                      className="!gap-1.5"
+                    >
+                      <FiCamera size={12} /> Scan
+                    </Button>
+                  </div>
                   <Inputfield
                     type="text"
                     value={codeForm.code}
@@ -1487,20 +1601,49 @@ function Productpage({ readOnly = false }) {
                     <p className="mt-1 text-xs text-red-500">{errors.code}</p>
                   )}
                 </div>
-                <Button
-                  type="button"
-                  onClick={handleAddCode}
-                  loading={isCodeSubmitting}
-                  loadingText="Adding..."
-                  variant="primary"
-                  className="w-full mt-2"
-                >
-                  Add Code
-                </Button>
+                <div className="mt-2 flex gap-2">
+                  <Button
+                    type="button"
+                    onClick={handleAddCode}
+                    loading={isCodeSubmitting}
+                    loadingText="Adding..."
+                    variant="primary"
+                    className="flex-1"
+                  >
+                    Add Code
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleGenerateCode}
+                    loading={isCodeGenerating}
+                    loadingText="Generating..."
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    <FiCamera size={14} /> Generate Barcode
+                  </Button>
+                </div>
+                <p className="mt-2 text-xs text-slate-500">
+                  No barcode on the product yet? Generate one here, then print
+                  and stick a label on the item.
+                </p>
               </div>
               <div className="border rounded-lg bg-slate-50 p-4 flex flex-col min-h-0">
-                <div className="text-xs font-semibold text-slate-500 mb-3">
-                  Shade Codes
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="text-xs font-semibold text-slate-500">
+                    Shade Codes
+                  </div>
+                  {codeProduct?.productCodes?.length ? (
+                    <Button
+                      type="button"
+                      onClick={handlePrintAllLabels}
+                      variant="outline"
+                      size="sm"
+                      className="!gap-1.5"
+                    >
+                      <FiPrinter size={14} /> Print All Labels
+                    </Button>
+                  ) : null}
                 </div>
 
                 {codeProduct?.productCodes?.length ? (
@@ -1521,12 +1664,19 @@ function Productpage({ readOnly = false }) {
                           <CodeBadge>{code.code}</CodeBadge>
                         </div>
 
-                        <div className="mt-4 flex justify-center border-t border-slate-200 pt-4">
+                        <div className="mt-4 flex gap-2 border-t border-slate-200 pt-4">
+                          <Button
+                            onClick={() => handlePrintLabel(code)}
+                            variant="outline"
+                            className="flex flex-1 items-center justify-center gap-1 text-xs font-semibold"
+                          >
+                            <FiPrinter size={14} /> Print
+                          </Button>
                           <Button
                             onClick={() => handleDeleteCode(getId(code))}
                             variant="danger"
-                            className="flex w-full items-center justify-center gap-1  
-              bg-red-200 text-red-600 hover:bg-red-300 
+                            className="flex flex-1 items-center justify-center gap-1
+              bg-red-200 text-red-600 hover:bg-red-300
               text-xs font-semibold"
                           >
                             <IoMdTrash size={16} /> Delete
@@ -1545,6 +1695,22 @@ function Productpage({ readOnly = false }) {
           </div>
         </div>
       )}
+      <BarcodeScannerModal
+        open={showFindScanner}
+        onClose={() => setShowFindScanner(false)}
+        onDetected={resolveFindScannedCode}
+        title="Scan to find a product"
+        helperText="Scan a barcode to jump straight to that product's codes, or type the code below."
+        manualPlaceholder="Type product code"
+      />
+      <BarcodeScannerModal
+        open={showAddCodeScanner}
+        onClose={() => setShowAddCodeScanner(false)}
+        onDetected={handleScanNewCode}
+        title="Scan the product's barcode"
+        helperText="Scan the barcode printed on the physical item to fill in the code below."
+        manualPlaceholder="Type the code"
+      />
     </div>
   );
 }

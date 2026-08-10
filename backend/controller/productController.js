@@ -1057,3 +1057,159 @@ module.exports.deleteProductCode = async (req, res) => {
       .json({ message: "Error deleting product code", error: error.message });
   }
 };
+
+const mapCodeLookupRow = (row, userId) => ({
+  productCode: {
+    id: row.codeId,
+    user_id: userId,
+    product: row.product,
+    code: row.code,
+    variantName: row.variantName,
+    quantity: row.codeQuantity,
+  },
+  product: {
+    id: row.productId,
+    name: row.name,
+    description: row.description,
+    company: row.company,
+    brand: row.brand,
+    Category: row.Category,
+    purchasePrice: row.purchasePrice,
+    tradePrice: row.tradePrice,
+    salePrice: row.salePrice,
+    Price: row.Price,
+    image: row.image,
+  },
+});
+
+module.exports.lookupProductCodeByCode = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const rawCode = String(req.query.code || "").trim();
+
+    if (!rawCode) {
+      return res.status(400).json({ success: false, message: "Code is required" });
+    }
+
+    let rows;
+    try {
+      rows = await query(
+        `SELECT
+           pc.id AS codeId, pc.product, pc.code, pc.variantName, pc.quantity AS codeQuantity,
+           p.id AS productId, p.name, p.description, p.company, p.brand, p.Category,
+           p.purchasePrice, p.tradePrice, p.salePrice, p.Price, p.image
+         FROM product_codes pc
+         INNER JOIN products p ON p.id = pc.product AND p.user_id = pc.user_id
+         WHERE pc.user_id = ? AND pc.code = ?`,
+        [userId, rawCode],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+
+    if (!rows.length) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No product found for this code" });
+    }
+
+    if (rows.length === 1) {
+      return res.status(200).json({
+        success: true,
+        match: "single",
+        ...mapCodeLookupRow(rows[0], userId),
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      match: "multiple",
+      options: rows.map((row) => mapCodeLookupRow(row, userId)),
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error looking up product code", error: error.message });
+  }
+};
+
+const generateUniqueCodeValue = async (userId) => {
+  const key = "barcode";
+
+  const result = await query(
+    "INSERT INTO counters (`key`, user_id, seq) VALUES (?, ?, 1) ON DUPLICATE KEY UPDATE seq = LAST_INSERT_ID(seq + 1)",
+    [key, userId],
+  );
+  const seq = result.insertId;
+
+  return `LB${String(userId).padStart(4, "0")}${String(seq).padStart(8, "0")}`;
+};
+
+module.exports.generateProductCode = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { productId } = req.params;
+    const { variantName, quantity } = req.body || {};
+
+    let product;
+    try {
+      const rows = await query(
+        "SELECT * FROM products WHERE id = ? AND user_id = ? LIMIT 1",
+        [productId, userId],
+      );
+      product = rows[0];
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    const code = await generateUniqueCodeValue(userId);
+
+    let insertResult;
+    try {
+      insertResult = await query(
+        "INSERT INTO product_codes (user_id, product, code, variantName, quantity) VALUES (?, ?, ?, ?, ?)",
+        [userId, productId, code, variantName || "", Number(quantity || 0)],
+      );
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Database error",
+        error: err,
+      });
+    }
+
+    const created = {
+      id: insertResult.insertId,
+      user_id: userId,
+      product: Number(productId),
+      code,
+      variantName: variantName || "",
+      quantity: Number(quantity || 0),
+    };
+
+    if (product.Category) {
+      await ensureCategoryCodes({
+        userId,
+        categoryId: product.Category,
+        codes: [created],
+      });
+    }
+
+    res.status(201).json({ success: true, productCode: created });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error generating product code", error: error.message });
+  }
+};

@@ -87,6 +87,9 @@ export const buildInvoicePrintHtml = ({
     const qty = Number(item.quantity || 0);
     const unitPrice = Number(item.unitPrice || 0);
     const total = Number(item.total || qty * unitPrice || 0);
+    const barcodeImg = item.barcodeDataUrl
+      ? `<img class="item-barcode" src="${item.barcodeDataUrl}" alt="${code}" />`
+      : "";
 
     return `
       <tr>
@@ -96,6 +99,7 @@ export const buildInvoicePrintHtml = ({
             <div class="item-name">${name}</div>
             ${code ? `<div class="item-chip">${code}</div>` : ""}
           </div>
+          ${barcodeImg}
         </td>
         <td class="center">${qty}</td>
         ${
@@ -533,6 +537,11 @@ export const buildInvoicePrintHtml = ({
         font-weight: 700;
         white-space: nowrap;
         flex: 0 0 auto;
+      }
+      .item-barcode {
+        display: block;
+        height: 8mm;
+        margin-top: 0.8mm;
       }
       .bottom-grid {
         display: grid;
