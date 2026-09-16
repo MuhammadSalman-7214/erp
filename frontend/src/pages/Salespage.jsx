@@ -101,7 +101,6 @@ function Salespage() {
   const { getallsales, pagination } = useSelector((state) => state.sales);
 
   const { getallproduct } = useSelector((state) => state.product);
-  const { sidebarOpen } = useSelector((state) => state.sidebar);
 
   const dispatch = useDispatch();
   const [query, setquery] = useState("");
@@ -2356,11 +2355,8 @@ function Salespage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <div
-              className={`max-h-[56vh] overflow-y-auto w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1245px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
-            >
-              <div className={`flex gap-2 ${sidebarOpen ? "w-max" : "w-full"}`}>
-                <table className="w-full text-sm border-collapse">
+            <div className="max-h-[56vh] overflow-y-auto relative">
+              <table className="w-full min-w-[1450px] whitespace-nowrap text-sm border-collapse">
                   {/* HEADER */}
                   <thead>
                     <tr className="sticky top-0 z-20 text-left text-xs font-semibold text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
@@ -2423,7 +2419,10 @@ function Salespage() {
                             {/* <div className="w-5 h-5 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
                               {(sale.customerName || "?")[0].toUpperCase()}
                             </div> */}
-                            <span className="text-slate-700 font-medium whitespace-nowrap">
+                            <span
+                              className="text-slate-700 font-medium truncate max-w-[180px]"
+                              title={sale.customerName || "—"}
+                            >
                               {sale.customerName || "—"}
                             </span>
                           </div>
@@ -2445,8 +2444,11 @@ function Salespage() {
                                 }}
                               >
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-sm font-semibold text-slate-800 truncate">
+                                  <div className="flex items-center gap-2 flex-nowrap min-w-0">
+                                    <span
+                                      className="text-sm font-semibold text-slate-800 truncate max-w-[160px]"
+                                      title={item.product?.name || "N/A"}
+                                    >
                                       {item.product?.name || "N/A"}
                                     </span>
                                     {item.product?.description && (
@@ -2460,7 +2462,13 @@ function Salespage() {
                                   </div>
                                   {(item.product?.company ||
                                     item.product?.brand) && (
-                                    <div className="text-xs text-slate-500 mt-0.5">
+                                    <div
+                                      className="text-xs text-slate-500 mt-0.5 truncate max-w-[180px]"
+                                      title={
+                                        item.product?.company ||
+                                        item.product?.brand
+                                      }
+                                    >
                                       {item.product?.company ||
                                         item.product?.brand}
                                     </div>
@@ -2657,7 +2665,6 @@ function Salespage() {
                     ))}
                   </tbody>
                 </table>
-              </div>
             </div>
           </div>
         )}

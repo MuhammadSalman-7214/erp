@@ -11,7 +11,7 @@ function StaffDashboard() {
       <Sidebar />
 
       <div
-        className={`flex flex-col flex-1 transition-all duration-300 ${
+        className={`flex flex-col flex-1 min-w-0 transition-all duration-300 ${
           sidebarOpen ? "ml-64" : "ml-14"
         }`}
       >

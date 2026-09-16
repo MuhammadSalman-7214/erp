@@ -40,7 +40,6 @@ function Orderpage() {
   );
   const { getallproduct } = useSelector((state) => state.product);
   const { getallSupplier } = useSelector((state) => state.supplier);
-  const { sidebarOpen } = useSelector((state) => state.sidebar);
   const [supplier, setsupplier] = useState("");
 
   const { user } = useSelector((state) => state.auth);
@@ -790,12 +789,9 @@ function Orderpage() {
           <TableSkeleton rows={6} showFilters={false} />
         ) : Array.isArray(displayOrder) && displayOrder.length > 0 ? (
           <div className="overflow-x-auto">
-            <div
-              className={`max-h-[56vh] overflow-y-auto w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1246px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
-            >
-              <div className="flex gap-2">
-                <table className="w-full text-sm border-collapse">
-                  <thead>
+            <div className="max-h-[56vh] overflow-y-auto relative">
+              <table className="w-full min-w-[1200px] whitespace-nowrap text-sm border-collapse">
+                <thead>
                     <tr className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
                       <th className="px-5 py-4 font-semibold">#</th>
                       <th className="px-5 py-4 font-semibold">Products</th>
@@ -847,8 +843,11 @@ function Orderpage() {
                                 }}
                               >
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-sm font-semibold text-slate-800 truncate">
+                                  <div className="flex items-center gap-2 flex-nowrap">
+                                    <span
+                                      className="text-sm font-semibold text-slate-800 truncate max-w-[160px]"
+                                      title={item.product?.name || "N/A"}
+                                    >
                                       {item.product?.name || "N/A"}
                                     </span>
                                     {item.product?.description && (
@@ -862,7 +861,13 @@ function Orderpage() {
                                   </div>
                                   {(item.product?.company ||
                                     item.product?.brand) && (
-                                    <div className="text-xs text-slate-500 mt-0.5">
+                                    <div
+                                      className="text-xs text-slate-500 mt-0.5 truncate max-w-[220px]"
+                                      title={
+                                        item.product?.company ||
+                                        item.product?.brand
+                                      }
+                                    >
                                       {item.product?.company ||
                                         item.product?.brand}
                                     </div>
@@ -1004,8 +1009,7 @@ function Orderpage() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
-              </div>
+              </table>
             </div>
           </div>
         ) : (

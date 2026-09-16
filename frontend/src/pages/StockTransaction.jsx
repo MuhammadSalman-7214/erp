@@ -48,7 +48,6 @@ function StockTransaction({ readOnly = false }) {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [transactionDateSort, setTransactionDateSort] = useState("asc");
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
-  const { sidebarOpen } = useSelector((state) => state.sidebar);
   const PAGE_SIZE = 5;
   const [currentPage, setCurrentPage] = useState(1);
   // Determine if page is in read-only mode (from props OR role)
@@ -494,85 +493,100 @@ function StockTransaction({ readOnly = false }) {
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
           {Array.isArray(displaystock) && displaystock.length > 0 ? (
             <div className="overflow-x-auto">
-              <div
-                className={`max-h-[56vh] overflow-y-auto w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1245px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
-              >
-                <div className="flex gap-2">
-                  <table className="w-full text-sm">
-                    <thead className="bg-slate-50 border-b">
-                      <tr className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
-                        <th className="px-5 py-4 font-semibold">#</th>
+              <div className="max-h-[56vh] overflow-y-auto relative">
+                <table className="w-full min-w-[1100px] whitespace-nowrap text-sm">
+                  <thead className="bg-slate-50 border-b">
+                    <tr className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                      <th className="px-5 py-4 font-semibold">#</th>
 
-                        <th className="px-5 py-4 font-semibold">Product</th>
-                        <th className="px-5 py-4 font-semibold">
-                          Product Code
-                        </th>
-                        <th className="px-5 py-4 font-semibold">Type</th>
-                        <th className="px-5 py-4 font-semibold">Quantity</th>
-                        <th className="px-5 py-4 font-semibold">
-                          <DateSortHeader
-                            label="Date"
-                            direction={transactionDateSort}
-                            onToggle={() =>
-                              setTransactionDateSort((prev) =>
-                                prev === "asc" ? "desc" : "asc",
-                              )
-                            }
-                          />
-                        </th>
-                        <th className="px-5 py-4 font-semibold">
-                          Vendor/Customer
-                        </th>
-                      </tr>
-                    </thead>
+                      <th className="px-5 py-4 font-semibold">Product</th>
+                      <th className="px-5 py-4 font-semibold">
+                        Product Code
+                      </th>
+                      <th className="px-5 py-4 font-semibold">Type</th>
+                      <th className="px-5 py-4 font-semibold">Quantity</th>
+                      <th className="px-5 py-4 font-semibold">
+                        <DateSortHeader
+                          label="Date"
+                          direction={transactionDateSort}
+                          onToggle={() =>
+                            setTransactionDateSort((prev) =>
+                              prev === "asc" ? "desc" : "asc",
+                            )
+                          }
+                        />
+                      </th>
+                      <th className="px-5 py-4 font-semibold">
+                        Vendor/Customer
+                      </th>
+                    </tr>
+                  </thead>
 
-                    <tbody>
-                      {sortedStock.map((stock, index) => (
-                        <tr
-                          key={stock.id}
-                          className={` ${getRowStyle(stock.type)}`}
-                        >
-                          <td className="px-5 py-4">
-                            {(currentPage - 1) * PAGE_SIZE + index + 1}
-                          </td>
+                  <tbody>
+                    {sortedStock.map((stock, index) => (
+                      <tr
+                        key={stock.id}
+                        className={` ${getRowStyle(stock.type)}`}
+                      >
+                        <td className="px-5 py-4">
+                          {(currentPage - 1) * PAGE_SIZE + index + 1}
+                        </td>
 
-                          <td className="px-5 py-4">
-                            <div className="font-medium text-slate-800">
-                              {stock.product?.name || "N/A"}
+                        <td className="px-5 py-4">
+                          <div
+                            className="truncate max-w-[220px] font-medium text-slate-800"
+                            title={stock.product?.name || "N/A"}
+                          >
+                            {stock.product?.name || "N/A"}
+                          </div>
+                          {stock.product?.company || stock.product?.brand ? (
+                            <div
+                              className="truncate max-w-[220px] text-xs text-slate-500"
+                              title={
+                                stock.product?.company || stock.product?.brand
+                              }
+                            >
+                              {stock.product?.company || stock.product?.brand}
                             </div>
-                            {stock.product?.company || stock.product?.brand ? (
-                              <div className="text-xs text-slate-500">
-                                {stock.product?.company || stock.product?.brand}
+                          ) : null}
+                        </td>
+                        <td className="px-5 py-4">
+                          <CodeBadge>
+                            {stock.productCode?.code || "-"}
+                          </CodeBadge>
+                        </td>
+                        <td className="px-5 py-4">{stock.type}</td>
+                        <td className="px-5 py-4">{stock.quantity}</td>
+                        <td className="px-5 py-4">
+                          <FormattedTime timestamp={stock.transactionDate} />
+                        </td>
+                        <td className="px-5 py-4">
+                          {(() => {
+                            const vendorOrCustomer =
+                              stock.type === "Stock-out"
+                                ? stock.customer?.name ||
+                                  stock.customerName ||
+                                  stock.vendor?.name ||
+                                  stock.supplier?.name ||
+                                  "N/A"
+                                : stock.vendor?.name ||
+                                  stock.supplier?.name ||
+                                  stock.customer?.name ||
+                                  "N/A";
+                            return (
+                              <div
+                                className="truncate max-w-[200px]"
+                                title={vendorOrCustomer}
+                              >
+                                {vendorOrCustomer}
                               </div>
-                            ) : null}
-                          </td>
-                          <td className="px-5 py-4">
-                            <CodeBadge>
-                              {stock.productCode?.code || "-"}
-                            </CodeBadge>
-                          </td>
-                          <td className="px-5 py-4">{stock.type}</td>
-                          <td className="px-5 py-4">{stock.quantity}</td>
-                          <td className="px-5 py-4">
-                            <FormattedTime timestamp={stock.transactionDate} />
-                          </td>
-                          <td className="px-5 py-4">
-                            {stock.type === "Stock-out"
-                              ? stock.customer?.name ||
-                                stock.customerName ||
-                                stock.vendor?.name ||
-                                stock.supplier?.name ||
-                                "N/A"
-                              : stock.vendor?.name ||
-                                stock.supplier?.name ||
-                                stock.customer?.name ||
-                                "N/A"}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                            );
+                          })()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           ) : (

@@ -29,7 +29,6 @@ import { validateNumberInput, validateTextInput } from "../lib/formValidation";
 import { Button, ConfirmDialog, Inputfield, Textarea, Tooltip } from "../UI";
 import { CgSoftwareDownload } from "react-icons/cg";
 import { useCompanyBranding } from "../hooks/useCompanyBranding";
-import { useSelector } from "react-redux";
 
 const sanitizeFileName = (value) =>
   String(value || "customer_ledger")
@@ -67,7 +66,6 @@ function CustomerDetailPage() {
   const [salesDateTo, setSalesDateTo] = useState("");
   const [showBillModal, setShowBillModal] = useState(false);
   const [billSale, setBillSale] = useState(null);
-  const { sidebarOpen } = useSelector((state) => state.sidebar);
 
   const currency = (value) => `Rs ${Number(value || 0).toLocaleString()}`;
 
@@ -1057,11 +1055,8 @@ function CustomerDetailPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <div
-                  className={`w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1230px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
-                >
-                  <div className="flex gap-2">
-                    <table className="w-full text-sm border-collapse">
+                <div className="max-h-[56vh] overflow-y-auto relative">
+                  <table className="w-full min-w-[900px] text-sm border-collapse whitespace-nowrap">
                       <thead className="bg-slate-50 border-b text-left text-slate-500">
                         <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
                           <th className="px-5 py-4 font-semibold">
@@ -1091,10 +1086,20 @@ function CustomerDetailPage() {
                             <td className="px-5 py-4 text-slate-600">
                               <FormattedTime timestamp={entry.date} />
                             </td>
-                            <td className="px-5 py-4 text-slate-700 capitalize">
+                            <td
+                              className="px-5 py-4 text-slate-700 capitalize truncate max-w-[160px]"
+                              title={entry.source?.replace(/_/g, " ") || "-"}
+                            >
                               {entry.source?.replace(/_/g, " ") || "-"}
                             </td>
-                            <td className="px-5 py-4 text-slate-600">
+                            <td
+                              className="px-5 py-4 text-slate-600 truncate max-w-[220px]"
+                              title={
+                                entry.source === "manual"
+                                  ? entry.notes || "-"
+                                  : entry.reference || "-"
+                              }
+                            >
                               {entry.source === "manual"
                                 ? entry.notes || "-"
                                 : entry.reference || "-"}
@@ -1115,8 +1120,7 @@ function CustomerDetailPage() {
                           </tr>
                         ))}
                       </tbody>
-                    </table>
-                  </div>
+                  </table>
                 </div>
               </div>
             )}
@@ -1180,11 +1184,8 @@ function CustomerDetailPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <div
-                  className={`w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1230px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
-                >
-                  <div className="flex gap-2">
-                    <table className="w-full text-sm border-collapse">
+                <div className="max-h-[56vh] overflow-y-auto relative">
+                  <table className="w-full min-w-[1200px] text-sm border-collapse whitespace-nowrap">
                       <thead className="bg-slate-50 border-b text-left text-slate-500">
                         <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
                           <th className="px-5 py-4 font-semibold">
@@ -1239,7 +1240,10 @@ function CustomerDetailPage() {
                               <td className="px-5 py-4 text-slate-600">
                                 <FormattedTime timestamp={sale.createdAt} />
                               </td>
-                              <td className="px-5 py-4 text-slate-800 max-w-xs truncate">
+                              <td
+                                className="px-5 py-4 text-slate-800 max-w-[260px] truncate"
+                                title={itemsLabel || "-"}
+                              >
                                 {itemsLabel || "-"}
                               </td>
                               <td className="px-5 py-4 text-slate-600">
@@ -1303,8 +1307,7 @@ function CustomerDetailPage() {
                           );
                         })}
                       </tbody>
-                    </table>
-                  </div>
+                  </table>
                 </div>
               </div>
             )}
@@ -1326,11 +1329,8 @@ function CustomerDetailPage() {
               </Button>
             </div>
             <div className="overflow-x-auto">
-              <div
-                className={`w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1230px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
-              >
-                <div className="flex gap-2">
-                  <table className="w-full text-sm border-collapse">
+              <div className="max-h-[56vh] overflow-y-auto relative">
+                <table className="w-full min-w-[800px] text-sm border-collapse whitespace-nowrap">
                     <thead>
                       <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
                         <th className="px-5 py-4 font-semibold">
@@ -1369,7 +1369,10 @@ function CustomerDetailPage() {
                           <td className="px-5 py-4 text-slate-700 capitalize">
                             {entry.type}
                           </td>
-                          <td className="px-5 py-4 text-slate-600">
+                          <td
+                            className="px-5 py-4 text-slate-600 truncate max-w-[280px]"
+                            title={entry.description || "-"}
+                          >
                             {entry.description}
                           </td>
                           <td className="px-5 py-4 font-semibold text-slate-800">
@@ -1435,8 +1438,7 @@ function CustomerDetailPage() {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
-                </div>
+                </table>
               </div>
             </div>
           </div>

@@ -63,7 +63,6 @@ function Supplierpage({ readOnly = false }) {
   const [vendorBalances, setVendorBalances] = useState({});
   const [createdAtSort, setCreatedAtSort] = useState("asc");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { sidebarOpen } = useSelector((state) => state.sidebar);
   const PAGE_SIZE = 5;
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -635,234 +634,231 @@ function Supplierpage({ readOnly = false }) {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <div
-                className={`max-h-[56vh] overflow-y-auto w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1246px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
-              >
-                <div className="flex gap-2">
-                  <table className="min-w-[1390px] w-full text-sm border-collapse">
-                    <thead className="bg-slate-50 border-b">
-                      <tr className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
-                        <th className="px-5 py-4 font-semibold">#</th>
-                        <th className="px-5 py-4 font-semibold">Name</th>
-                        <th className="px-5 py-4 font-semibold">Phone</th>
-                        <th className="px-5 py-4 font-semibold">Address</th>
-                        <th className="px-5 py-4 font-semibold">Total Owed</th>
-                        <th className="px-5 py-4 font-semibold">Paid</th>
-                        <th className="px-5 py-4 font-semibold">Remaining</th>
-                        <th className="px-5 py-4 font-semibold">
-                          <DateSortHeader
-                            label="Date"
-                            direction={createdAtSort}
-                            onToggle={() =>
-                              setCreatedAtSort((prev) =>
-                                prev === "asc" ? "desc" : "asc",
-                              )
-                            }
-                          />
-                        </th>
+              <div className="max-h-[56vh] overflow-y-auto relative">
+                <table className="min-w-[1390px] w-full whitespace-nowrap text-sm border-collapse">
+                  <thead className="bg-slate-50 border-b">
+                    <tr className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                      <th className="px-5 py-4 font-semibold">#</th>
+                      <th className="px-5 py-4 font-semibold">Name</th>
+                      <th className="px-5 py-4 font-semibold">Phone</th>
+                      <th className="px-5 py-4 font-semibold">Address</th>
+                      <th className="px-5 py-4 font-semibold">Total Owed</th>
+                      <th className="px-5 py-4 font-semibold">Paid</th>
+                      <th className="px-5 py-4 font-semibold">Remaining</th>
+                      <th className="px-5 py-4 font-semibold">
+                        <DateSortHeader
+                          label="Date"
+                          direction={createdAtSort}
+                          onToggle={() =>
+                            setCreatedAtSort((prev) =>
+                              prev === "asc" ? "desc" : "asc",
+                            )
+                          }
+                        />
+                      </th>
 
-                        <th
-                          className="px-5 py-4 font-semibold text-center sticky right-0 bg-slate-50 z-20"
-                          style={{
-                            boxShadow: "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
-                          }}
+                      <th
+                        className="px-5 py-4 font-semibold text-center sticky right-0 bg-slate-50 z-20"
+                        style={{
+                          boxShadow: "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
+                        }}
+                      >
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {sortedSuppliers.map((supplier, index) => {
+                      const vendorSummary =
+                        vendorBalances[String(getId(supplier))] || {};
+                      return (
+                        <tr
+                          key={getId(supplier)}
+                          className="group border-b border-slate-100 bg-white transition-colors duration-150 hover:bg-blue-50/30"
                         >
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {sortedSuppliers.map((supplier, index) => {
-                        const vendorSummary =
-                          vendorBalances[String(getId(supplier))] || {};
-                        return (
-                          <tr
-                            key={getId(supplier)}
-                            className="group border-b border-slate-100 bg-white transition-colors duration-150 hover:bg-blue-50/30"
+                          <td className="px-5 py-4 text-slate-500">
+                            {(currentPage - 1) * PAGE_SIZE + index + 1}
+                          </td>
+                          <td
+                            className="px-5 py-4 max-w-[220px] truncate font-medium text-slate-800"
+                            title={supplier.name}
                           >
-                            <td className="px-5 py-4 text-slate-500">
-                              {(currentPage - 1) * PAGE_SIZE + index + 1}
-                            </td>
-                            <td className="px-5 py-4 font-medium text-slate-800">
-                              {supplier.name}
-                            </td>
+                            {supplier.name}
+                          </td>
 
-                            <td className="px-5 py-4 text-slate-700">
-                              {supplier.contactInfo?.phone || "-"}
-                            </td>
+                          <td className="px-5 py-4 text-slate-700">
+                            {supplier.contactInfo?.phone || "-"}
+                          </td>
 
-                            <td className="px-5 py-4 text-slate-600 max-w-xs truncate">
-                              {supplier.contactInfo?.address || "-"}
-                            </td>
+                          <td className="px-5 py-4 text-slate-600 max-w-xs truncate">
+                            {supplier.contactInfo?.address || "-"}
+                          </td>
 
-                            <td className="px-5 py-4 text-slate-600 font-medium">
-                              {currency(vendorSummary.totalAmount)}
-                            </td>
-                            <td className="px-5 py-4 text-emerald-700 font-medium">
-                              {currency(vendorSummary.paidAmount)}
-                            </td>
-                            <td className="px-5 py-4 text-red-700 font-medium">
-                              {currency(vendorSummary.remainingAmount)}
-                            </td>
+                          <td className="px-5 py-4 text-slate-600 font-medium">
+                            {currency(vendorSummary.totalAmount)}
+                          </td>
+                          <td className="px-5 py-4 text-emerald-700 font-medium">
+                            {currency(vendorSummary.paidAmount)}
+                          </td>
+                          <td className="px-5 py-4 text-red-700 font-medium">
+                            {currency(vendorSummary.remainingAmount)}
+                          </td>
 
-                            <td className="px-5 py-4 text-slate-600">
-                              <FormattedTime timestamp={supplier.createdAt} />
-                            </td>
+                          <td className="px-5 py-4 text-slate-600">
+                            <FormattedTime timestamp={supplier.createdAt} />
+                          </td>
 
-                            <td
-                              className="px-4 py-4 sticky right-0 z-10 bg-gray-50/80 text-center transition-colors duration-150"
-                              style={{
-                                boxShadow:
-                                  "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
-                              }}
-                            >
-                              <div className="flex justify-center">
-                                <div className="flex items-center justify-center gap-2 overflow-hidden">
-                                  {!isReadOnlyMode && canWrite && (
-                                    <Tooltip content="Edit Product">
-                                      <Button
-                                        onClick={() =>
-                                          handleEditClick(supplier)
-                                        }
-                                        className="metal-btn"
-                                        title="Edit"
-                                        variant="info"
-                                      >
-                                        <MdEdit size={18} />
-                                      </Button>
-                                    </Tooltip>
-                                  )}
-                                  {!isReadOnlyMode && canDelete && (
-                                    <ConfirmDialog
-                                      title={
-                                        <div className="flex flex-col gap-1 max-w-xs">
-                                          <span className="font-semibold text-red-600 text-sm">
-                                            Confirm Supplier Deletion
-                                          </span>
-                                          <span className="text-xs text-gray-600 leading-snug">
-                                            This action will permanently remove
-                                            this supplier and may affect linked
-                                            purchase records. This operation
-                                            cannot be undone.
-                                          </span>
-                                        </div>
-                                      }
-                                      okText="Delete"
-                                      cancelText="Cancel"
-                                      okButtonProps={{
-                                        danger: true,
-                                        className:
-                                          "font-semibold bg-red-50 hover:bg-red-100 border border-red-100",
-                                      }}
-                                      cancelButtonProps={{
-                                        className: "font-medium",
-                                      }}
-                                      placement="topRight"
-                                      onConfirm={() =>
-                                        handleRemove(getId(supplier))
-                                      }
-                                    >
-                                      <Tooltip content="Delete Vendor">
-                                        <Button
-                                          className="metal-btn"
-                                          title="Delete Supplier"
-                                          variant="danger"
-                                        >
-                                          <MdDelete size={18} />
-                                        </Button>
-                                      </Tooltip>
-                                    </ConfirmDialog>
-                                  )}
-                                  <Tooltip content="Vendor Details">
+                          <td
+                            className="px-4 py-4 sticky right-0 z-10 bg-gray-50/80 text-center transition-colors duration-150"
+                            style={{
+                              boxShadow:
+                                "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
+                            }}
+                          >
+                            <div className="flex justify-center">
+                              <div className="flex items-center justify-center gap-2 overflow-hidden">
+                                {!isReadOnlyMode && canWrite && (
+                                  <Tooltip content="Edit Product">
                                     <Button
-                                      onClick={() =>
-                                        handleViewSupplier(getId(supplier))
-                                      }
+                                      onClick={() => handleEditClick(supplier)}
                                       className="metal-btn"
-                                      title="View Details"
-                                      variant="emerald"
+                                      title="Edit"
+                                      variant="info"
                                     >
-                                      <IoMdEye size={18} />
+                                      <MdEdit size={18} />
                                     </Button>
                                   </Tooltip>
-                                </div>
+                                )}
+                                {!isReadOnlyMode && canDelete && (
+                                  <ConfirmDialog
+                                    title={
+                                      <div className="flex flex-col gap-1 max-w-xs">
+                                        <span className="font-semibold text-red-600 text-sm">
+                                          Confirm Supplier Deletion
+                                        </span>
+                                        <span className="text-xs text-gray-600 leading-snug">
+                                          This action will permanently remove
+                                          this supplier and may affect linked
+                                          purchase records. This operation
+                                          cannot be undone.
+                                        </span>
+                                      </div>
+                                    }
+                                    okText="Delete"
+                                    cancelText="Cancel"
+                                    okButtonProps={{
+                                      danger: true,
+                                      className:
+                                        "font-semibold bg-red-50 hover:bg-red-100 border border-red-100",
+                                    }}
+                                    cancelButtonProps={{
+                                      className: "font-medium",
+                                    }}
+                                    placement="topRight"
+                                    onConfirm={() =>
+                                      handleRemove(getId(supplier))
+                                    }
+                                  >
+                                    <Tooltip content="Delete Vendor">
+                                      <Button
+                                        className="metal-btn"
+                                        title="Delete Supplier"
+                                        variant="danger"
+                                      >
+                                        <MdDelete size={18} />
+                                      </Button>
+                                    </Tooltip>
+                                  </ConfirmDialog>
+                                )}
+                                <Tooltip content="Vendor Details">
+                                  <Button
+                                    onClick={() =>
+                                      handleViewSupplier(getId(supplier))
+                                    }
+                                    className="metal-btn"
+                                    title="View Details"
+                                    variant="emerald"
+                                  >
+                                    <IoMdEye size={18} />
+                                  </Button>
+                                </Tooltip>
                               </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                    <tfoot>
-                      <tr className="sticky bottom-0 z-20 bg-slate-50 border-t-2 border-slate-200 text-sm font-semibold text-slate-700">
-                        <td
-                          className="px-5 py-4 text-md text-teal-800"
-                          colSpan={4}
-                        >
-                          <div className="flex flex-col gap-1">
-                            <span className="font-bold uppercase">
-                              Grand Total
-                            </span>
-                            <span className="text-xs font-medium uppercase tracking-[0.2em] text-teal-700/80">
-                              Vendor Overview - {pagination.totalItems || 0}{" "}
-                              Vendors
-                            </span>
-                          </div>
-                        </td>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr className="sticky bottom-0 z-20 bg-slate-50 border-t-2 border-slate-200 text-sm font-semibold text-slate-700">
+                      <td
+                        className="px-5 py-4 text-md text-teal-800"
+                        colSpan={4}
+                      >
+                        <div className="flex flex-col gap-1">
+                          <span className="font-bold uppercase">
+                            Grand Total
+                          </span>
+                          <span className="text-xs font-medium uppercase tracking-[0.2em] text-teal-700/80">
+                            Vendor Overview - {pagination.totalItems || 0}{" "}
+                            Vendors
+                          </span>
+                        </div>
+                      </td>
 
-                        <td className="px-5 py-4">
-                          <div className="flex flex-col gap-1">
-                            <span className="inline-flex w-fit items-center rounded-full border border-emerald-200 bg-emerald-50/90 px-3 py-1 text-base font-bold text-emerald-800 shadow-sm">
-                              {currency(summaryTotals.total)}
-                            </span>
-                            <span className="text-xs font-medium uppercase tracking-[0.2em] text-emerald-700/80">
-                              Total Owed
-                            </span>
-                          </div>
-                        </td>
+                      <td className="px-5 py-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="inline-flex w-fit items-center rounded-full border border-emerald-200 bg-emerald-50/90 px-3 py-1 text-base font-bold text-emerald-800 shadow-sm">
+                            {currency(summaryTotals.total)}
+                          </span>
+                          <span className="text-xs font-medium uppercase tracking-[0.2em] text-emerald-700/80">
+                            Total Owed
+                          </span>
+                        </div>
+                      </td>
 
-                        <td className="px-5 py-4">
-                          <div className="flex flex-col gap-1">
-                            <span className="inline-flex w-fit items-center rounded-full border border-violet-200 bg-violet-50/90 px-3 py-1 text-base font-bold text-violet-800 shadow-sm">
-                              {currency(summaryTotals.paid)}
-                            </span>
-                            <span className="text-xs font-medium uppercase tracking-[0.2em] text-violet-700/80">
-                              Total Paid
-                            </span>
-                          </div>
-                        </td>
+                      <td className="px-5 py-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="inline-flex w-fit items-center rounded-full border border-violet-200 bg-violet-50/90 px-3 py-1 text-base font-bold text-violet-800 shadow-sm">
+                            {currency(summaryTotals.paid)}
+                          </span>
+                          <span className="text-xs font-medium uppercase tracking-[0.2em] text-violet-700/80">
+                            Total Paid
+                          </span>
+                        </div>
+                      </td>
 
-                        <td className="px-5 py-4" colSpan={2}>
-                          <div className="flex flex-col gap-1">
-                            <span className="inline-flex w-fit items-center rounded-full border border-amber-200 bg-amber-50/90 px-3 py-1 text-base font-bold text-amber-800 shadow-sm">
-                              {currency(summaryTotals.remaining)}
-                            </span>
-                            <span className="text-xs font-medium uppercase tracking-[0.2em] text-amber-700/80">
-                              Remaining
-                            </span>
-                          </div>
-                        </td>
+                      <td className="px-5 py-4" colSpan={2}>
+                        <div className="flex flex-col gap-1">
+                          <span className="inline-flex w-fit items-center rounded-full border border-amber-200 bg-amber-50/90 px-3 py-1 text-base font-bold text-amber-800 shadow-sm">
+                            {currency(summaryTotals.remaining)}
+                          </span>
+                          <span className="text-xs font-medium uppercase tracking-[0.2em] text-amber-700/80">
+                            Remaining
+                          </span>
+                        </div>
+                      </td>
 
-                        <td
-                          className="sticky right-0 z-20 px-4 py-4 bg-gray-50/80 text-center text-white"
-                          style={{
-                            boxShadow:
-                              "inset 8px 0 16px -8px rgba(166, 174, 192, 0.45)",
-                          }}
-                        >
-                          <div className="flex flex-col gap-1">
-                            <span className="text-sm font-semibold text-emerald-700/80">
-                              Summary
-                            </span>
-                            <span className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
-                              Actions
-                            </span>
-                          </div>
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
+                      <td
+                        className="sticky right-0 z-20 px-4 py-4 bg-gray-50/80 text-center text-white"
+                        style={{
+                          boxShadow:
+                            "inset 8px 0 16px -8px rgba(166, 174, 192, 0.45)",
+                        }}
+                      >
+                        <div className="flex flex-col gap-1">
+                          <span className="text-sm font-semibold text-emerald-700/80">
+                            Summary
+                          </span>
+                          <span className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
+                            Actions
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
               </div>
             </div>
           )}

@@ -46,7 +46,6 @@ function Customerpage({ readOnly = false }) {
   const [customerBalances, setCustomerBalances] = useState({});
   const [amountFilter, setAmountFilter] = useState("all");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { sidebarOpen } = useSelector((state) => state.sidebar);
   const PAGE_SIZE = 5;
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -514,11 +513,8 @@ function Customerpage({ readOnly = false }) {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <div
-                className={`max-h-[56vh] overflow-y-auto w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1246px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
-              >
-                <div className="flex gap-2">
-                  <table className="min-w-[1390px] w-full text-sm border-collapse">
+              <div className="max-h-[56vh] overflow-y-auto relative">
+                <table className="min-w-[1390px] w-full whitespace-nowrap text-sm border-collapse">
                     <thead className="bg-slate-50 border-b">
                       <tr className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
                         <th className="px-5 py-4 font-semibold"> #</th>
@@ -550,7 +546,12 @@ function Customerpage({ readOnly = false }) {
                             <td className="px-5 py-4">
                               {(currentPage - 1) * PAGE_SIZE + index + 1}
                             </td>
-                            <td className="px-5 py-4">{customer.name}</td>
+                            <td
+                              className="px-5 py-4 max-w-[220px] truncate"
+                              title={customer.name}
+                            >
+                              {customer.name}
+                            </td>
                             <td className="px-5 py-4">
                               {customer.contactInfo?.phone || "-"}
                             </td>
@@ -703,8 +704,7 @@ function Customerpage({ readOnly = false }) {
                         </td>
                       </tr>
                     </tfoot>
-                  </table>
-                </div>
+                </table>
               </div>
             </div>
           )}

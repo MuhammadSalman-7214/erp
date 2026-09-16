@@ -21,7 +21,6 @@ import { Button, Inputfield, SelectDropdown, Tooltip } from "../UI";
 import { CgSoftwareDownload } from "react-icons/cg";
 import { PiInvoiceBold } from "react-icons/pi";
 import { useCompanyBranding } from "../hooks/useCompanyBranding";
-import { useSelector } from "react-redux";
 import TablePagination from "../UI/TablePagination";
 
 function InvoicesPage() {
@@ -44,7 +43,6 @@ function InvoicesPage() {
   const [billInvoice, setBillInvoice] = useState(null);
   const [receivedAmount, setReceivedAmount] = useState(0);
   const [remainingAmount, setRemainingAmount] = useState(0);
-  const { sidebarOpen } = useSelector((state) => state.sidebar);
 
   const fetchInvoices = async (page = currentPage) => {
     setLoading(true);
@@ -451,116 +449,106 @@ function InvoicesPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <div
-                className={`max-h-[56vh] overflow-y-auto w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1245px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
-              >
-                <div className="flex gap-2">
-                  <table className="w-full text-sm border-collapse">
-                    <thead>
-                      <tr className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
-                        <th className="px-5 py-4 font-semibold">#</th>
-                        <th className="px-5 py-4 font-semibold">Invoice</th>
-                        <th className="px-5 py-4 font-semibold">Type</th>
-                        <th className="px-5 py-4 font-semibold">Party</th>
-                        <th className="px-5 py-4 font-semibold">Amount</th>
-                        <th className="px-5 py-4 font-semibold">Status</th>
-                        <th className="px-5 py-4 font-semibold">
-                          <DateSortHeader
-                            label="Due Date"
-                            direction={dueDateSort}
-                            onToggle={() =>
-                              setDueDateSort((prev) =>
-                                prev === "asc" ? "desc" : "asc",
-                              )
-                            }
-                          />
-                        </th>
-                        <th className="px-5 py-4 font-semibold text-center sticky right-0 bg-slate-50 z-20">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
+              <div className="max-h-[56vh] overflow-y-auto relative">
+                <table className="w-full min-w-[1100px] text-sm border-collapse whitespace-nowrap">
+                  <thead>
+                    <tr className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                      <th className="px-5 py-4 font-semibold">#</th>
+                      <th className="px-5 py-4 font-semibold">Invoice</th>
+                      <th className="px-5 py-4 font-semibold">Type</th>
+                      <th className="px-5 py-4 font-semibold">Party</th>
+                      <th className="px-5 py-4 font-semibold">Amount</th>
+                      <th className="px-5 py-4 font-semibold">Status</th>
+                      <th className="px-5 py-4 font-semibold">
+                        <DateSortHeader
+                          label="Due Date"
+                          direction={dueDateSort}
+                          onToggle={() =>
+                            setDueDateSort((prev) =>
+                              prev === "asc" ? "desc" : "asc",
+                            )
+                          }
+                        />
+                      </th>
+                      <th className="px-5 py-4 font-semibold text-center sticky right-0 bg-slate-50 z-20">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
 
-                    <tbody>
-                      {sortedInvoices.map((inv, index) => (
-                        <tr
-                          key={inv.id}
-                          className="border-b last:border-b-0 hover:bg-slate-50 transition"
-                        >
-                          <td className="px-5 py-4 text-slate-500">
-                            {(currentPage - 1) * PAGE_SIZE + index + 1}
-                          </td>
+                  <tbody>
+                    {sortedInvoices.map((inv, index) => (
+                      <tr
+                        key={inv.id}
+                        className="border-b last:border-b-0 hover:bg-slate-50 transition"
+                      >
+                        <td className="px-5 py-4 text-slate-500">
+                          {(currentPage - 1) * PAGE_SIZE + index + 1}
+                        </td>
 
-                          <td className="px-5 py-4">
-                            <div className="font-medium text-slate-800">
-                              {inv.invoiceNumber}
-                            </div>
-                          </td>
+                        <td className="px-5 py-4">
+                          <div className="font-medium text-slate-800">
+                            {inv.invoiceNumber}
+                          </div>
+                        </td>
 
-                          <td className="px-5 py-4 text-slate-700 capitalize">
-                            {normalizeInvoiceType(inv) ||
-                              inv.invoiceType ||
-                              "-"}
-                          </td>
+                        <td className="px-5 py-4 text-slate-700 capitalize">
+                          {normalizeInvoiceType(inv) || inv.invoiceType || "-"}
+                        </td>
 
-                          <td className="px-5 py-4 text-slate-700">
-                            {normalizeInvoiceType(inv) === "purchase"
-                              ? inv.vendor?.name || "-"
-                              : inv.customerId?.name ||
-                                inv.customer?.name ||
-                                "-"}
-                          </td>
+                        <td className="px-5 py-4 text-slate-700">
+                          {normalizeInvoiceType(inv) === "purchase"
+                            ? inv.vendor?.name || "-"
+                            : inv.customerId?.name || inv.customer?.name || "-"}
+                        </td>
 
-                          <td className="px-5 py-4 font-semibold text-slate-800">
-                            Rs {inv.totalAmount.toLocaleString()}
-                          </td>
+                        <td className="px-5 py-4 font-semibold text-slate-800">
+                          Rs {inv.totalAmount.toLocaleString()}
+                        </td>
 
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            {(() => {
-                              const map = {
-                                draft:
-                                  "bg-gray-50 text-gray-700 border-gray-200",
-                                sent: "bg-blue-50 text-blue-700 border-blue-200",
-                                paid: "bg-green-50 text-green-700 border-green-200",
-                                overdue:
-                                  "bg-red-50 text-red-700 border-red-200",
-                                cancelled:
-                                  "bg-yellow-50 text-yellow-700 border-yellow-200",
-                              };
-                              const dot = {
-                                draft: "bg-gray-400",
-                                sent: "bg-blue-500",
-                                paid: "bg-green-400",
-                                overdue: "bg-red-400",
-                                cancelled: "bg-yellow-500",
-                              };
-                              return (
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          {(() => {
+                            const map = {
+                              draft: "bg-gray-50 text-gray-700 border-gray-200",
+                              sent: "bg-blue-50 text-blue-700 border-blue-200",
+                              paid: "bg-green-50 text-green-700 border-green-200",
+                              overdue: "bg-red-50 text-red-700 border-red-200",
+                              cancelled:
+                                "bg-yellow-50 text-yellow-700 border-yellow-200",
+                            };
+                            const dot = {
+                              draft: "bg-gray-400",
+                              sent: "bg-blue-500",
+                              paid: "bg-green-400",
+                              overdue: "bg-red-400",
+                              cancelled: "bg-yellow-500",
+                            };
+                            return (
+                              <span
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border capitalize ${map[inv.status] || "bg-slate-100 text-slate-600 border-slate-200"}`}
+                              >
                                 <span
-                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border capitalize ${map[inv.status] || "bg-slate-100 text-slate-600 border-slate-200"}`}
-                                >
-                                  <span
-                                    className={`w-1.5 h-1.5 rounded-full ${dot[inv.status] || "bg-slate-400"}`}
-                                  />
-                                  {inv.status}
-                                </span>
-                              );
-                            })()}
-                          </td>
+                                  className={`w-1.5 h-1.5 rounded-full ${dot[inv.status] || "bg-slate-400"}`}
+                                />
+                                {inv.status}
+                              </span>
+                            );
+                          })()}
+                        </td>
 
-                          <td className="px-5 py-4 text-slate-600">
-                            {formatDateLabel(inv.dueDate)}
-                          </td>
+                        <td className="px-5 py-4 text-slate-600">
+                          {formatDateLabel(inv.dueDate)}
+                        </td>
 
-                          <td
-                            className="px-4 py-4 sticky right-0 z-10 bg-gray-50/80 text-center transition-colors duration-150"
-                            style={{
-                              boxShadow:
-                                "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
-                            }}
-                          >
-                            <div className="flex justify-center">
-                              <div className="flex items-center justify-center gap-2 overflow-hidden">
-                                {/* <ConfirmDialog
+                        <td
+                          className="px-4 py-4 sticky right-0 z-10 bg-gray-50/80 text-center transition-colors duration-150"
+                          style={{
+                            boxShadow: "inset 8px 0 16px -8px rgba(0,0,0,0.08)",
+                          }}
+                        >
+                          <div className="flex justify-center">
+                            <div className="flex items-center justify-center gap-2 overflow-hidden">
+                              {/* <ConfirmDialog
                             title={
                               <div className="flex flex-col gap-1 max-w-xs">
                                 <span className="font-semibold text-red-600 text-sm">
@@ -593,49 +581,48 @@ function InvoicesPage() {
                               <MdDelete size={18} />
                             </Button>
                           </ConfirmDialog> */}
-                                <Tooltip content="Edit Sale">
-                                  <Button
-                                    type="button"
-                                    onClick={() =>
-                                      navigate(`/editInvoice/${inv.id}`)
-                                    }
-                                    variant="info"
-                                    size="sm"
-                                    className="metal-btn"
-                                  >
-                                    <MdEdit size={16} />
-                                  </Button>
-                                </Tooltip>
-                                <Tooltip content="Print Invoice">
-                                  <Button
-                                    type="button"
-                                    onClick={() => openInvoicePreview(inv)}
-                                    variant="orange"
-                                    size="sm"
-                                    className="metal-btn"
-                                  >
-                                    <PiInvoiceBold size={16} />
-                                  </Button>
-                                </Tooltip>
-                                <Tooltip content="Download Invoice">
-                                  <Button
-                                    type="button"
-                                    onClick={() => downloadInvoice(inv)}
-                                    variant="violet"
-                                    size="sm"
-                                    className="metal-btn"
-                                  >
-                                    <CgSoftwareDownload size={18} />
-                                  </Button>
-                                </Tooltip>
-                              </div>
+                              <Tooltip content="Edit Sale">
+                                <Button
+                                  type="button"
+                                  onClick={() =>
+                                    navigate(`/editInvoice/${inv.id}`)
+                                  }
+                                  variant="info"
+                                  size="sm"
+                                  className="metal-btn"
+                                >
+                                  <MdEdit size={16} />
+                                </Button>
+                              </Tooltip>
+                              <Tooltip content="Print Invoice">
+                                <Button
+                                  type="button"
+                                  onClick={() => openInvoicePreview(inv)}
+                                  variant="orange"
+                                  size="sm"
+                                  className="metal-btn"
+                                >
+                                  <PiInvoiceBold size={16} />
+                                </Button>
+                              </Tooltip>
+                              <Tooltip content="Download Invoice">
+                                <Button
+                                  type="button"
+                                  onClick={() => downloadInvoice(inv)}
+                                  variant="violet"
+                                  size="sm"
+                                  className="metal-btn"
+                                >
+                                  <CgSoftwareDownload size={18} />
+                                </Button>
+                              </Tooltip>
                             </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}

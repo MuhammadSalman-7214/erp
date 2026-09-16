@@ -21,7 +21,6 @@ import { uppercasePayload } from "../lib/uppercasePayload";
 import toast from "react-hot-toast";
 import { validateNumberInput, validateTextInput } from "../lib/formValidation";
 import { Button, Inputfield, Textarea } from "../UI";
-import { useSelector } from "react-redux";
 
 const sanitizeFileName = (value) =>
   String(value || "vendor_ledger")
@@ -54,7 +53,6 @@ function SupplierDetailPage() {
   const [ledgerLoading, setLedgerLoading] = useState(true);
   const [ledgerDateSort, setLedgerDateSort] = useState("asc");
   const [ordersDateSort, setOrdersDateSort] = useState("asc");
-  const { sidebarOpen } = useSelector((state) => state.sidebar);
 
   useEffect(() => {
     const fetchVendorOrders = async () => {
@@ -488,66 +486,69 @@ function SupplierDetailPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <div
-                  className={`w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1230px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
-                >
-                  <div className="flex gap-2">
-                    <table className="w-full text-sm border-collapse">
-                      <thead className="bg-slate-50 border-b text-left text-slate-500">
-                        <tr>
-                          <th className="px-5 py-4 font-semibold">
-                            <DateSortHeader
-                              label="Date"
-                              direction={ledgerDateSort}
-                              onToggle={() =>
-                                setLedgerDateSort((prev) =>
-                                  prev === "asc" ? "desc" : "asc",
-                                )
-                              }
-                            />
-                          </th>
-                          <th className="px-5 py-4 font-medium">Source</th>
-                          <th className="px-5 py-4 font-medium">Reference</th>
-                          <th className="px-5 py-4 font-medium">Debit</th>
-                          <th className="px-5 py-4 font-medium">Credit</th>
-                          <th className="px-5 py-4 font-medium">Balance</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sortedLedger.map((entry) => (
-                          <tr
-                            key={entry.id}
-                            className="group border-b border-slate-100 bg-white transition-colors duration-150 hover:bg-blue-50/30"
-                          >
-                            <td className="px-5 py-4 text-slate-600">
-                              <FormattedTime timestamp={entry.date} />
-                            </td>
-                            <td className="px-5 py-4 text-slate-700 capitalize">
-                              {entry.source?.replace(/_/g, " ") || "-"}
-                            </td>
-                            <td className="px-5 py-4 text-slate-600">
-                              {entry.source === "manual"
+                <div className="max-h-[56vh] overflow-y-auto relative">
+                  <table className="w-full min-w-[900px] text-sm border-collapse whitespace-nowrap">
+                    <thead className="bg-slate-50 border-b text-left text-slate-500">
+                      <tr>
+                        <th className="px-5 py-4 font-semibold">
+                          <DateSortHeader
+                            label="Date"
+                            direction={ledgerDateSort}
+                            onToggle={() =>
+                              setLedgerDateSort((prev) =>
+                                prev === "asc" ? "desc" : "asc",
+                              )
+                            }
+                          />
+                        </th>
+                        <th className="px-5 py-4 font-medium">Source</th>
+                        <th className="px-5 py-4 font-medium">Reference</th>
+                        <th className="px-5 py-4 font-medium">Debit</th>
+                        <th className="px-5 py-4 font-medium">Credit</th>
+                        <th className="px-5 py-4 font-medium">Balance</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedLedger.map((entry) => (
+                        <tr
+                          key={entry.id}
+                          className="group border-b border-slate-100 bg-white transition-colors duration-150 hover:bg-blue-50/30"
+                        >
+                          <td className="px-5 py-4 text-slate-600">
+                            <FormattedTime timestamp={entry.date} />
+                          </td>
+                          <td className="px-5 py-4 text-slate-700 capitalize">
+                            {entry.source?.replace(/_/g, " ") || "-"}
+                          </td>
+                          <td
+                            className="px-5 py-4 text-slate-600 truncate max-w-[220px]"
+                            title={
+                              entry.source === "manual"
                                 ? entry.notes || "-"
-                                : entry.reference || "-"}
-                            </td>
-                            <td className="px-5 py-4 text-rose-700 font-medium">
-                              {entry.type === "debit"
-                                ? currency(entry.amount)
-                                : "-"}
-                            </td>
-                            <td className="px-5 py-4 text-emerald-700 font-medium">
-                              {entry.type === "credit"
-                                ? currency(entry.amount)
-                                : "-"}
-                            </td>
-                            <td className="px-5 py-4 text-slate-700 font-semibold">
-                              {currency(entry.balance)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                                : entry.reference || "-"
+                            }
+                          >
+                            {entry.source === "manual"
+                              ? entry.notes || "-"
+                              : entry.reference || "-"}
+                          </td>
+                          <td className="px-5 py-4 text-rose-700 font-medium">
+                            {entry.type === "debit"
+                              ? currency(entry.amount)
+                              : "-"}
+                          </td>
+                          <td className="px-5 py-4 text-emerald-700 font-medium">
+                            {entry.type === "credit"
+                              ? currency(entry.amount)
+                              : "-"}
+                          </td>
+                          <td className="px-5 py-4 text-slate-700 font-semibold">
+                            {currency(entry.balance)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
@@ -570,33 +571,30 @@ function SupplierDetailPage() {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <div
-                    className={`w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1230px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
-                  >
-                    <div className="flex gap-2">
-                      <table className="w-full text-sm border-collapse">
-                        <thead className="bg-slate-50 border-b text-left text-slate-500">
-                          <tr>
-                            <th className="px-5 py-4 font-semibold">
-                              <DateSortHeader
-                                label="Date"
-                                direction={ordersDateSort}
-                                onToggle={() =>
-                                  setOrdersDateSort((prev) =>
-                                    prev === "asc" ? "desc" : "asc",
-                                  )
-                                }
-                              />
-                            </th>
-                            <th className="px-5 py-4 font-medium">Items</th>
-                            <th className="px-5 py-4 font-medium">Qty</th>
-                            <th className="px-5 py-4 font-medium">Total</th>
-                            <th className="px-5 py-4 font-medium">Status</th>
-                          </tr>
-                        </thead>
+                  <div className="max-h-[56vh] overflow-y-auto relative">
+                    <table className="w-full min-w-[950px] text-sm border-collapse whitespace-nowrap">
+                      <thead className="bg-slate-50 border-b text-left text-slate-500">
+                        <tr>
+                          <th className="px-5 py-4 font-semibold">
+                            <DateSortHeader
+                              label="Date"
+                              direction={ordersDateSort}
+                              onToggle={() =>
+                                setOrdersDateSort((prev) =>
+                                  prev === "asc" ? "desc" : "asc",
+                                )
+                              }
+                            />
+                          </th>
+                          <th className="px-5 py-4 font-medium">Items</th>
+                          <th className="px-5 py-4 font-medium">Qty</th>
+                          <th className="px-5 py-4 font-medium">Total</th>
+                          <th className="px-5 py-4 font-medium">Status</th>
+                        </tr>
+                      </thead>
 
-                        <tbody>
-                          {sortedOrders.map((order) => {
+                      <tbody>
+                        {sortedOrders.map((order) => {
                             const products = order.products?.length
                               ? order.products.map((p) => p.name).join(", ")
                               : "No items";
@@ -615,7 +613,12 @@ function SupplierDetailPage() {
                                   {formatDateLabel(order.createdAt)}
                                 </td>
 
-                                <td className="px-5 py-4">{products}</td>
+                                <td
+                                  className="px-5 py-4 truncate max-w-[280px]"
+                                  title={products}
+                                >
+                                  {products}
+                                </td>
 
                                 <td className="px-5 py-4">{totalQty || 0}</td>
 
@@ -657,7 +660,6 @@ function SupplierDetailPage() {
                     </div>
                   </div>
                 </div>
-              </div>
             )}
           </div>
         </>

@@ -59,7 +59,6 @@ const getRowQuantity = (row) =>
 
 function Productpage({ readOnly = false }) {
   const { hasPermission, isReadOnly: checkReadOnly } = useRolePermissions();
-  const { sidebarOpen } = useSelector((state) => state.sidebar);
 
   // Determine if page is in read-only mode (from props OR role)
   const isReadOnlyMode = readOnly || checkReadOnly("product");
@@ -918,13 +917,8 @@ function Productpage({ readOnly = false }) {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <div
-                className={`max-h-[56vh] overflow-y-auto w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1246px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
-              >
-                <div
-                  className={`flex gap-2 ${sidebarOpen ? "w-max" : "w-full"}`}
-                >
-                  <table className="w-full text-sm border-collapse">
+              <div className="max-h-[56vh] overflow-y-auto relative">
+                <table className="w-full min-w-[1280px] whitespace-nowrap text-sm border-collapse">
                     <thead>
                       <tr className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
                         <th className="px-5 py-4 font-semibold">#</th>
@@ -1005,7 +999,10 @@ function Productpage({ readOnly = false }) {
                                 "-"
                               )}
                             </td>
-                            <td className="px-5 py-4 text-slate-700">
+                            <td
+                              className="max-w-[220px] truncate px-5 py-4 text-slate-700"
+                              title={product.description ?? "-"}
+                            >
                               {product.description ?? "-"}
                             </td>
                             <td className="px-5 py-4 text-slate-700">
@@ -1246,7 +1243,6 @@ function Productpage({ readOnly = false }) {
                       </tr>
                     </tfoot>
                   </table>
-                </div>
               </div>
             </div>
           )}

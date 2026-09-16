@@ -14,7 +14,6 @@ import {
 import { Button, Inputfield, SelectDropdown } from "../UI";
 import DrawerPanel from "../Components/DrawerPanel";
 import { IoMdAdd, IoMdSearch } from "react-icons/io";
-import { useSelector } from "react-redux";
 import TablePagination from "../UI/TablePagination";
 
 const getLocalDateInputValue = (date = new Date()) => {
@@ -83,7 +82,6 @@ function PaymentsPage() {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isDrawerMinimized, setIsDrawerMinimized] = useState(false);
   const [query, setquery] = useState("");
-  const { sidebarOpen } = useSelector((state) => state.sidebar);
 
   const getId = (value) => value?.id ?? value?.id ?? value;
 
@@ -763,66 +761,74 @@ function PaymentsPage() {
             />
           ) : (
             <div className="overflow-x-auto">
-              <div
-                className={`max-h-[56vh] overflow-y-auto w-full ${!sidebarOpen ? "max-w-[310px] mobileL:max-w-[330px] tab:max-w-[680px] laptop:max-w-[1424px] laptopL:max-w-[1550px] laptop4k:max-w-full" : "max-w-[220px] mobileL:max-w-[160px] tab:max-w-[480px] laptop:max-w-[1030px] laptopL:max-w-[1245px] laptop4k:max-w-full"}  mx-auto overflow-x-auto relative`}
-              >
-                <div className="flex gap-2">
-                  <table className="w-full text-sm border-collapse">
-                    <thead className="bg-slate-50 border-b">
-                      <tr className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
-                        <th className="px-5 py-4 font-semibold">
-                          <DateSortHeader
-                            label="Date"
-                            direction={paymentDateSort}
-                            onToggle={() =>
-                              setPaymentDateSort((prev) =>
-                                prev === "asc" ? "desc" : "asc",
-                              )
-                            }
-                          />
-                        </th>
-                        <th className="px-5 py-4 font-semibold">Type</th>
-                        <th className="px-5 py-4 font-semibold">Amount</th>
-                        <th className="px-5 py-4 font-semibold">Description</th>
-                        <th className="px-5 py-4 font-semibold">Party</th>
-                        <th className="px-5 py-4 font-semibold">Method</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredPayments.map((payment) => (
-                        <tr
-                          key={getId(payment)}
-                          className={` ${getRowStyle(payment.type)}`}
+              <div className="max-h-[56vh] overflow-y-auto relative">
+                <table className="w-full min-w-[1000px] whitespace-nowrap text-sm border-collapse">
+                  <thead className="bg-slate-50 border-b">
+                    <tr className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                      <th className="px-5 py-4 font-semibold">
+                        <DateSortHeader
+                          label="Date"
+                          direction={paymentDateSort}
+                          onToggle={() =>
+                            setPaymentDateSort((prev) =>
+                              prev === "asc" ? "desc" : "asc",
+                            )
+                          }
+                        />
+                      </th>
+                      <th className="px-5 py-4 font-semibold">Type</th>
+                      <th className="px-5 py-4 font-semibold">Amount</th>
+                      <th className="px-5 py-4 font-semibold">Description</th>
+                      <th className="px-5 py-4 font-semibold">Party</th>
+                      <th className="px-5 py-4 font-semibold">Method</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredPayments.map((payment) => (
+                      <tr
+                        key={getId(payment)}
+                        className={` ${getRowStyle(payment.type)}`}
+                      >
+                        <td className="px-5 py-4">
+                          {formatDateLabel(
+                            payment.paidAt || payment.createdAt,
+                          )}
+                        </td>
+                        <td className="px-5 py-4 capitalize">
+                          {payment.type}
+                        </td>
+                        <td className="px-5 py-4">
+                          Rs{Number(payment.amount).toLocaleString()}
+                        </td>
+                        <td
+                          className="px-5 py-4 max-w-[220px] truncate text-slate-600"
+                          title={payment.description || payment.notes || "-"}
                         >
-                          <td className="px-5 py-4">
-                            {formatDateLabel(
-                              payment.paidAt || payment.createdAt,
-                            )}
-                          </td>
-                          <td className="px-5 py-4 capitalize">
-                            {payment.type}
-                          </td>
-                          <td className="px-5 py-4">
-                            Rs{Number(payment.amount).toLocaleString()}
-                          </td>
-                          <td className="px-5 py-4 text-slate-600">
-                            {payment.description || payment.notes || "-"}
-                          </td>
-                          <td className="px-5 py-4">
-                            {payment.partyType === "vendor"
+                          {payment.description || payment.notes || "-"}
+                        </td>
+                        <td
+                          className="px-5 py-4 max-w-[160px] truncate"
+                          title={
+                            payment.partyType === "vendor"
                               ? payment.vendor?.name || "Vendor"
                               : payment.customerId?.name ||
                                 payment.customer?.name ||
-                                "Customer"}
-                          </td>
-                          <td className="px-5 py-4 capitalize">
-                            {payment.method}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                                "Customer"
+                          }
+                        >
+                          {payment.partyType === "vendor"
+                            ? payment.vendor?.name || "Vendor"
+                            : payment.customerId?.name ||
+                              payment.customer?.name ||
+                              "Customer"}
+                        </td>
+                        <td className="px-5 py-4 capitalize">
+                          {payment.method}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
