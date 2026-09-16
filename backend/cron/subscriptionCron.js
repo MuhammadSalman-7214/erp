@@ -23,7 +23,10 @@ const scheduleFallback = () => {
   const scheduleNextRun = () => {
     const now = new Date();
     const nextRun = new Date(now);
-    nextRun.setHours(24, 0, 0, 0);
+    nextRun.setHours(12, 0, 0, 0);
+    if (nextRun.getTime() <= now.getTime()) {
+      nextRun.setDate(nextRun.getDate() + 1);
+    }
 
     const timeoutMs = Math.max(nextRun.getTime() - now.getTime(), 0);
     setTimeout(async () => {
@@ -39,7 +42,7 @@ const startSubscriptionCron = () => {
   const timezone = process.env.CRON_TIMEZONE || "Asia/Karachi";
 
   if (cron?.schedule) {
-    cron.schedule("0 0 * * *", runDailySweep, {
+    cron.schedule("0 12 * * *", runDailySweep, {
       timezone,
     });
     return;

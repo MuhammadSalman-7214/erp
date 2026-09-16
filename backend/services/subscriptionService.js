@@ -35,6 +35,27 @@ const getBillingCycleMonthKeyForUser = (referenceDate = new Date()) =>
 const getSubscriptionDay = (referenceDate = new Date()) =>
   normalizeDate(referenceDate).getDate();
 
+const getEffectiveDeactivationDay = (referenceDate = new Date()) => {
+  const normalized = normalizeDate(referenceDate);
+  const deactivationDate = new Date(
+    normalized.getFullYear(),
+    normalized.getMonth(),
+    SUBSCRIPTION_DEACTIVATION_DAY,
+  );
+
+  const dayOfWeek = deactivationDate.getDay();
+
+  if (dayOfWeek === 6) {
+    return SUBSCRIPTION_DEACTIVATION_DAY - 1;
+  }
+
+  if (dayOfWeek === 0) {
+    return SUBSCRIPTION_DEACTIVATION_DAY - 2;
+  }
+
+  return SUBSCRIPTION_DEACTIVATION_DAY;
+};
+
 const getSubscriptionDueDate = (referenceDate = new Date()) => {
   const normalized = normalizeDate(referenceDate);
   return new Date(
@@ -218,7 +239,7 @@ const deactivateOverdueUsers = async (referenceDate = new Date()) => {
     skippedPaid: 0,
   };
 
-  if (currentDay < SUBSCRIPTION_DEACTIVATION_DAY) {
+  if (currentDay < getEffectiveDeactivationDay(referenceDate)) {
     return results;
   }
 
