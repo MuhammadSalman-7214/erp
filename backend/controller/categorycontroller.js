@@ -5,7 +5,7 @@ module.exports.createCategory = async (req, res) => {
   try {
     const { name } = req.body;
 
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     const ipAddress = req.ip;
     if (!name) {
       return res
@@ -31,7 +31,7 @@ module.exports.createCategory = async (req, res) => {
       description: `Category "${name}" was added`,
       entity: "category",
       entityId: insertResult.insertId,
-      userId,
+      userId: req.user.userId,
       ipAddress,
     });
 
@@ -51,7 +51,7 @@ module.exports.createCategory = async (req, res) => {
 module.exports.RemoveCategory = async (req, res) => {
   try {
     const { CategoryId } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     const ipAddress = req.ip;
     let DeletedCategory;
     try {
@@ -90,7 +90,7 @@ module.exports.RemoveCategory = async (req, res) => {
       description: `Category "${DeletedCategory.name}" was deleted.`,
       entity: "category",
       entityId: DeletedCategory.id,
-      userId: userId,
+      userId: req.user.userId,
       ipAddress: ipAddress,
     });
 
@@ -104,7 +104,7 @@ module.exports.RemoveCategory = async (req, res) => {
 
 module.exports.getCategory = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
 
     const isPaginated = req.query.page !== undefined;
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
@@ -190,7 +190,7 @@ module.exports.updateCategory = async (req, res) => {
   try {
     const { updatedCategory } = req.body;
     const { CategoryId } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     const ipAddress = req.ip;
     const updatedCategoryName =
       typeof updatedCategory === "string"
@@ -242,7 +242,7 @@ module.exports.updateCategory = async (req, res) => {
       description: `Category "${updatingCategory.name}" was updated.`,
       entity: "category",
       entityId: updatingCategory.id,
-      userId: userId,
+      userId: req.user.userId,
       ipAddress: ipAddress,
     });
 
@@ -258,7 +258,7 @@ module.exports.updateCategory = async (req, res) => {
 module.exports.Searchcategory = async (req, res) => {
   try {
     const { query: searchQueryRaw } = req.query;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     const searchQuery = String(searchQueryRaw || "").trim();
 
     if (!searchQuery) {

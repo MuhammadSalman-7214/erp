@@ -203,7 +203,7 @@ const buildTrendSummary = ({
 
 const getDashboardSummary = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     const requestedRange = String(req.query.range || "week").toLowerCase();
     const lowStockThreshold = 50;
     const now = new Date();
@@ -638,7 +638,7 @@ const getDashboardSummary = async (req, res) => {
 
 const getTodayBusinessInsight = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     const insightState = await getTodaysInsightStateForUser(userId);
 
     return res.status(200).json({
@@ -659,7 +659,7 @@ const getTodayBusinessInsight = async (req, res) => {
 
 const getBusinessInsightsHistory = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     const limit = Math.min(Number(req.query.limit) || 14, 14);
     const insights = await findInsightsForUser(userId, limit);
 
@@ -680,7 +680,7 @@ const getBusinessInsightsHistory = async (req, res) => {
 
 const markTodayBusinessInsightSeen = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     const insightIdFromBody = req.body?.insightId;
     let insightId = insightIdFromBody;
 

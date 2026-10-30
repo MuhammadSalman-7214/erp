@@ -322,6 +322,17 @@ const authLoginBody = Joi.object({
   password: Joi.string().min(6).required(),
 }).unknown(true);
 
+const authTeamMemberBody = Joi.object({
+  name: anyText.required(),
+  email: Joi.string()
+    .email({ tlds: { allow: false } })
+    .trim()
+    .lowercase()
+    .required(),
+  password: Joi.string().min(6).required(),
+  role: Joi.string().valid("staff", "manager").required(),
+}).unknown(true);
+
 const authOtpBody = Joi.object({
   challengeId: positiveId.required(),
   otp: Joi.string()
@@ -358,6 +369,86 @@ const companyInfoBody = Joi.object({
   .min(1)
   .unknown(true);
 
+const jobFunctionsBody = Joi.object({
+  jobFunctions: Joi.array().items(Joi.string()).required(),
+});
+
+const reportsToBody = Joi.object({
+  managerId: positiveId.allow(null).optional(),
+});
+
+const warehouseBody = Joi.object({
+  name: anyText.required(),
+  code: anyText.required(),
+}).unknown(true);
+
+const warehouseUpdateBody = Joi.object({
+  name: anyText.optional(),
+  code: anyText.optional(),
+  is_active: Joi.boolean().optional(),
+})
+  .min(1)
+  .unknown(true);
+
+const LOCATION_TYPES = [
+  "zone",
+  "aisle",
+  "rack",
+  "shelf",
+  "bin",
+  "receiving",
+  "qc",
+  "staging",
+  "quarantine",
+  "damaged",
+  "returns",
+];
+
+const locationBody = Joi.object({
+  code: anyText.required(),
+  name: anyText.required(),
+  location_type: Joi.string()
+    .valid(...LOCATION_TYPES)
+    .optional(),
+  parent_location_id: positiveId.optional(),
+}).unknown(true);
+
+const locationUpdateBody = Joi.object({
+  code: anyText.optional(),
+  name: anyText.optional(),
+  location_type: Joi.string()
+    .valid(...LOCATION_TYPES)
+    .optional(),
+  is_active: Joi.boolean().optional(),
+})
+  .min(1)
+  .unknown(true);
+
+const warehouseAccessBody = Joi.object({
+  staffUserId: positiveId.required(),
+});
+
+const createReceiptBody = Joi.object({
+  orderId: positiveId.required(),
+  warehouseId: positiveId.required(),
+});
+
+const createFulfillmentBody = Joi.object({
+  saleId: positiveId.required(),
+  warehouseId: positiveId.required(),
+});
+
+const updateReceiptLineBody = Joi.object({
+  receivedQty: Joi.number().positive().required(),
+  batchNo: optionalText.optional(),
+  expiryDate: Joi.date().iso().optional(),
+  condition: Joi.string()
+    .valid("ACCEPTED", "DAMAGED", "REJECTED", "QUARANTINE")
+    .required(),
+  locationId: positiveId.optional(),
+  confirmOverReceipt: Joi.boolean().optional(),
+});
+
 const paymentParam = idParam("id");
 
 module.exports = {
@@ -367,6 +458,7 @@ module.exports = {
   authOtpBody,
   authSignupBody,
   authResetPasswordBody,
+  authTeamMemberBody,
   categoryBody,
   categoryUpdateBody,
   companyInfoBody,
@@ -378,6 +470,8 @@ module.exports = {
   invoiceUpdateBody,
   inventoryBody,
   ledgerParam,
+  locationBody,
+  locationUpdateBody,
   orderBody,
   orderStatusBody,
   paymentBody,
@@ -396,4 +490,12 @@ module.exports = {
   subscriptionPaymentBody,
   supplierBody,
   supplierUpdateBody,
+  warehouseBody,
+  warehouseUpdateBody,
+  warehouseAccessBody,
+  createReceiptBody,
+  updateReceiptLineBody,
+  createFulfillmentBody,
+  jobFunctionsBody,
+  reportsToBody,
 };

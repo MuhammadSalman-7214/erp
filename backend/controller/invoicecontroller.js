@@ -83,7 +83,7 @@ module.exports.createInvoice = async (req, res) => {
       status,
       carage,
     } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
 
     if (!items || items.length === 0) {
       return res.status(400).json({ message: "Invoice must have items" });
@@ -223,7 +223,7 @@ module.exports.createInvoice = async (req, res) => {
 
 module.exports.getAllInvoices = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
     const pageSize = Math.min(
       Math.max(parseInt(req.query.pageSize, 10) || 5, 1),
@@ -325,7 +325,7 @@ module.exports.getAllInvoices = async (req, res) => {
 
 module.exports.getInvoiceById = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     let invoice;
     try {
       const rows = await query(
@@ -409,7 +409,7 @@ module.exports.getInvoiceById = async (req, res) => {
 
 module.exports.updateInvoice = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     let invoice;
     try {
       const rows = await query(
@@ -591,7 +591,7 @@ module.exports.updateInvoice = async (req, res) => {
 
 module.exports.deleteInvoice = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     let invoice;
     try {
       const rows = await query(
@@ -641,7 +641,7 @@ module.exports.deleteInvoice = async (req, res) => {
 
 module.exports.markInvoiceAsPaid = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     let updateResult;
     try {
       updateResult = await query(

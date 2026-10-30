@@ -6,15 +6,15 @@ const { activityBody, idParam } = require("../validation/schemas");
 const {
   authmiddleware,
   adminmiddleware,
-  managermiddleware,
+  checkPermission,
 } = require("../middleware/Authmiddleware");
 
-// 🔐 ADMIN → all logs
-router.get("/", authmiddleware, adminmiddleware, async (req, res) => {
+// 🔐 ADMIN/SUPER_ADMIN by default, or anyone tagged `audit` → all logs
+router.get("/", authmiddleware, checkPermission("activityLog", "read"), async (req, res) => {
   try {
     const logs = await query(
       "SELECT al.*, u.id AS userId_id, u.name AS userId_name, u.email AS userId_email, u.role AS userId_role, u.ProfilePic AS userId_ProfilePic FROM activity_logs al LEFT JOIN users u ON u.id = al.userId WHERE al.user_id = ? ORDER BY al.createdAt ASC",
-      [req.user.userId],
+      [req.user.accountId],
     );
     const formatted = logs.map((log) => ({
       ...log,
@@ -38,12 +38,12 @@ router.get("/", authmiddleware, adminmiddleware, async (req, res) => {
   }
 });
 
-// 🔐 ADMIN + MANAGER → recent logs (dashboard)
-router.get("/recent", authmiddleware, managermiddleware, async (req, res) => {
+// 🔐 ADMIN/MANAGER by default, or anyone tagged `audit` → recent logs (dashboard)
+router.get("/recent", authmiddleware, checkPermission("activityLog", "read"), async (req, res) => {
   try {
     const logs = await query(
       "SELECT al.*, u.id AS userId_id, u.name AS userId_name, u.email AS userId_email, u.role AS userId_role, u.ProfilePic AS userId_ProfilePic FROM activity_logs al LEFT JOIN users u ON u.id = al.userId WHERE al.user_id = ? ORDER BY al.createdAt DESC LIMIT 6",
-      [req.user.userId],
+      [req.user.accountId],
     );
     const formatted = logs.map((log) => ({
       ...log,
@@ -72,7 +72,7 @@ router.get("/me", authmiddleware, async (req, res) => {
   try {
     const logs = await query(
       "SELECT al.*, u.id AS userId_id, u.name AS userId_name, u.email AS userId_email, u.role AS userId_role, u.ProfilePic AS userId_ProfilePic FROM activity_logs al LEFT JOIN users u ON u.id = al.userId WHERE al.userId = ? AND al.user_id = ? ORDER BY al.createdAt ASC",
-      [req.user.userId, req.user.userId],
+      [req.user.userId, req.user.accountId],
     );
     const formatted = logs.map((log) => ({
       ...log,
@@ -113,7 +113,7 @@ router.post(
           entity,
           entityId,
           req.user.userId,
-          req.user.userId,
+          req.user.accountId,
           ipAddress || req.ip,
         ],
       );
@@ -159,7 +159,7 @@ router.delete(
     try {
       await query("DELETE FROM activity_logs WHERE id = ? AND user_id = ?", [
         req.params.id,
-        req.user.userId,
+        req.user.accountId,
       ]);
       res.json({ message: "Log deleted" });
     } catch (err) {

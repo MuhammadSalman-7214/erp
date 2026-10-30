@@ -89,7 +89,7 @@ const ensureCategoryCodes = async ({ userId, categoryId, codes = [] }) => {
 };
 
 module.exports.Addproduct = async (req, res) => {
-  const userId = req.user.userId;
+  const userId = req.user.accountId;
   const ipAddress = req.ip;
 
   try {
@@ -275,7 +275,7 @@ module.exports.Addproduct = async (req, res) => {
       description: `Product ${name} was added`,
       entity: "product",
       entityId: createdProductId,
-      userId: userId,
+      userId: req.user.userId,
       ipAddress: ipAddress,
     });
 
@@ -311,7 +311,9 @@ module.exports.Addproduct = async (req, res) => {
 
 module.exports.getProduct = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    // Business data (products/categories/codes) is scoped by the tenant's
+    // accountId, so every teammate sees the same catalog.
+    const userId = req.user.accountId;
 
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
     const pageSize = Math.min(
@@ -396,7 +398,9 @@ module.exports.getProduct = async (req, res) => {
 module.exports.RemoveProduct = async (req, res) => {
   try {
     const { productId } = req.params;
-    const userId = req.user.userId;
+    // Business data (products/categories/codes) is scoped by the tenant's
+    // accountId, so every teammate sees the same catalog.
+    const userId = req.user.accountId;
     const ipAddress = req.ip;
     let deletedProduct;
     try {
@@ -439,7 +443,7 @@ module.exports.RemoveProduct = async (req, res) => {
       description: `Product ${deletedProduct.name}" was deleted.`,
       entity: "product",
       entityId: deletedProduct.id,
-      userId: userId,
+      userId: req.user.userId,
       ipAddress: ipAddress,
     });
 
@@ -466,7 +470,9 @@ module.exports.EditProduct = async (req, res) => {
       Price,
     } = req.body;
     const { id } = req.params;
-    const userId = req.user.userId;
+    // Business data (products/categories/codes) is scoped by the tenant's
+    // accountId, so every teammate sees the same catalog.
+    const userId = req.user.accountId;
     const ipAddress = req.ip;
     if (!name) {
       return res.status(400).json({ message: "Required fields missing" });
@@ -655,7 +661,7 @@ module.exports.EditProduct = async (req, res) => {
       description: `Product "${updates.name}" was updated.`,
       entity: "product",
       entityId: id,
-      userId,
+      userId: req.user.userId,
       ipAddress,
     });
 
@@ -676,7 +682,9 @@ module.exports.EditProduct = async (req, res) => {
 module.exports.SearchProduct = async (req, res) => {
   try {
     const { query: searchQueryRaw } = req.query;
-    const userId = req.user.userId;
+    // Business data (products/categories/codes) is scoped by the tenant's
+    // accountId, so every teammate sees the same catalog.
+    const userId = req.user.accountId;
     const searchQuery = String(searchQueryRaw || "").trim();
 
     if (!searchQuery) {
@@ -743,7 +751,9 @@ module.exports.SearchProduct = async (req, res) => {
 
 module.exports.getTopProductsByQuantity = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    // Business data (products/categories/codes) is scoped by the tenant's
+    // accountId, so every teammate sees the same catalog.
+    const userId = req.user.accountId;
     let topProducts;
     try {
       topProducts = await query(
@@ -788,7 +798,9 @@ module.exports.getTopProductsByQuantity = async (req, res) => {
 
 module.exports.getProductCodesByProduct = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    // Business data (products/categories/codes) is scoped by the tenant's
+    // accountId, so every teammate sees the same catalog.
+    const userId = req.user.accountId;
     const { productId } = req.params;
 
     let product;
@@ -833,7 +845,9 @@ module.exports.getProductCodesByProduct = async (req, res) => {
 
 module.exports.addProductCode = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    // Business data (products/categories/codes) is scoped by the tenant's
+    // accountId, so every teammate sees the same catalog.
+    const userId = req.user.accountId;
     const { productId } = req.params;
     const { code, variantName, quantity } = req.body;
 
@@ -920,7 +934,9 @@ module.exports.addProductCode = async (req, res) => {
 
 module.exports.updateProductCode = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    // Business data (products/categories/codes) is scoped by the tenant's
+    // accountId, so every teammate sees the same catalog.
+    const userId = req.user.accountId;
     const { codeId } = req.params;
     const { code, variantName, quantity } = req.body || {};
 
@@ -1015,7 +1031,9 @@ module.exports.updateProductCode = async (req, res) => {
 
 module.exports.deleteProductCode = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    // Business data (products/categories/codes) is scoped by the tenant's
+    // accountId, so every teammate sees the same catalog.
+    const userId = req.user.accountId;
     const { codeId } = req.params;
 
     let deleted;
@@ -1084,7 +1102,9 @@ const mapCodeLookupRow = (row, userId) => ({
 
 module.exports.lookupProductCodeByCode = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    // Business data (products/categories/codes) is scoped by the tenant's
+    // accountId, so every teammate sees the same catalog.
+    const userId = req.user.accountId;
     const rawCode = String(req.query.code || "").trim();
 
     if (!rawCode) {
@@ -1151,7 +1171,9 @@ const generateUniqueCodeValue = async (userId) => {
 
 module.exports.generateProductCode = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    // Business data (products/categories/codes) is scoped by the tenant's
+    // accountId, so every teammate sees the same catalog.
+    const userId = req.user.accountId;
     const { productId } = req.params;
     const { variantName, quantity } = req.body || {};
 

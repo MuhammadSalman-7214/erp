@@ -30,7 +30,7 @@ const createPayment = async (req, res) => {
       description,
       notes,
     } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
 
     if (!type || amount === undefined || !partyType) {
       return res
@@ -231,7 +231,7 @@ const createPayment = async (req, res) => {
 
 const getPayments = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     const isPaginated = req.query.page !== undefined;
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
     const pageSize = Math.min(
@@ -342,7 +342,7 @@ const getPayments = async (req, res) => {
 
 const getPartyBalances = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     const [
       vendors,
       customers,
@@ -610,7 +610,7 @@ const getPartyBalances = async (req, res) => {
 const getVendorLedger = async (req, res) => {
   try {
     const { vendorId } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
 
     let vendor;
     try {
@@ -744,7 +744,7 @@ const getVendorLedger = async (req, res) => {
 const getCustomerLedger = async (req, res) => {
   try {
     const { customerId } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
 
     let customer;
     try {

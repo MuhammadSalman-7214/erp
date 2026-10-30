@@ -8,44 +8,45 @@ const {
 } = require("../validation/schemas");
 const {
   authmiddleware,
-  checkRole,
+  checkPermission,
 } = require("../middleware/Authmiddleware.js");
 
 const stockController = require("../controller/stocktransaction.js");
 
-// Stock Transaction - Admin and Manager only
+// Admin/manager/super_admin have this by default; staff only if tagged
+// `inventory_control` (see Authmiddleware's JOB_FUNCTION_PERMISSIONS).
 router.get(
   "/",
   authmiddleware,
-  checkRole("admin", "manager"),
+  checkPermission("stockTransaction", "read"),
   stockController.getAllStockTransactions,
 );
 router.post(
   "/",
   authmiddleware,
+  checkPermission("stockTransaction", "write"),
   validateRequest({ body: stockTransactionBody }),
-  checkRole("admin", "manager"),
   stockController.createStockTransaction,
 );
 router.get(
   "/searchstocks",
   authmiddleware,
+  checkPermission("stockTransaction", "read"),
   validateRequest({ query: stockSearchQuery }),
-  checkRole("admin", "manager"),
   stockController.searchStocks,
 );
 router.get(
   "/code/:productCodeId",
   authmiddleware,
+  checkPermission("stockTransaction", "read"),
   validateRequest({ params: idParam("productCodeId") }),
-  checkRole("admin", "manager"),
   stockController.getStockTransactionsByProductCode,
 );
 router.get(
   "/supplier/:supplierId",
   authmiddleware,
+  checkPermission("stockTransaction", "read"),
   validateRequest({ params: idParam("supplierId") }),
-  checkRole("admin", "manager"),
   stockController.getStockTransactionsBySupplier,
 );
 

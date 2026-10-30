@@ -14,7 +14,7 @@ const isLockedOrderStatus = (status = "") => {
 const createOrder = async (req, res) => {
   try {
     const { Product, products, status, supplier, vendor } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     if (!status) return res.status(400).json({ message: "Status is required" });
     const incomingProducts = Array.isArray(products) ? products : null;
     if (!incomingProducts && !Product?.productCode) {
@@ -307,7 +307,7 @@ const createOrder = async (req, res) => {
 const Removeorder = async (req, res) => {
   try {
     const { OrdertId } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     const ipAddress = req.ip;
 
     let Deletedorder;
@@ -358,7 +358,7 @@ const Removeorder = async (req, res) => {
       description: `Order was deleted.`,
       entity: "order",
       entityId: Deletedorder.id,
-      userId: userId,
+      userId: req.user.userId,
       ipAddress: ipAddress,
     });
 
@@ -435,7 +435,7 @@ const hydrateOrderRows = async (orders, userId) => {
 
 const getOrder = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     // let orders;
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
     const pageSize = Math.min(
@@ -498,7 +498,7 @@ const updatestatusOrder = async (req, res) => {
   try {
     const { OrderId } = req.params;
     const updates = req.body;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     let existingOrder;
     try {
       const rows = await query(
@@ -527,6 +527,24 @@ const updatestatusOrder = async (req, res) => {
 
     const previousStatus = existingOrder.status;
     const nextStatus = updates.status || previousStatus;
+
+    if (nextStatus === "delivered" && previousStatus !== "delivered") {
+      // Once a goods receipt has been started against this order, it's
+      // managed exclusively through the receiving workflow (which applies
+      // stock per-line via the inventory engine) — letting this endpoint
+      // also fire the instant "mark delivered" stock-in would double-count.
+      const receiptRows = await query(
+        "SELECT id FROM goods_receipts WHERE order_id = ? AND user_id = ? LIMIT 1",
+        [OrderId, userId],
+      );
+      if (receiptRows.length) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "This order has a goods receipt in progress. Complete it from the Receiving workflow instead of changing status directly.",
+        });
+      }
+    }
 
     try {
       await query("UPDATE orders SET status = ? WHERE id = ? AND user_id = ?", [
@@ -597,7 +615,7 @@ const updatestatusOrder = async (req, res) => {
 const searchOrder = async (req, res) => {
   try {
     const { query: searchQuery } = req.query;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
 
     if (!searchQuery) {
       return res.status(400).json({ message: "Query parameter is required" });
@@ -660,7 +678,7 @@ const searchOrder = async (req, res) => {
 
 const getOrderStatistics = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     let rows;
     try {
       rows = await query(
@@ -687,7 +705,7 @@ const getOrderStatistics = async (req, res) => {
 const getOrdersByVendor = async (req, res) => {
   try {
     const { vendorId } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
 
     let vendor;
     try {

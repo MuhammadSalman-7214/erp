@@ -60,7 +60,7 @@ module.exports.createSupplier = async (req, res) => {
       openingBalance,
       paymentTerms,
     } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
 
     if (!name || !contactInfo || !contactInfo.phone) {
       return res.status(400).json({
@@ -168,7 +168,7 @@ module.exports.createSupplier = async (req, res) => {
 
 module.exports.getAllSuppliers = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
     const pageSize = Math.min(
       Math.max(parseInt(req.query.pageSize, 10) || 5, 1),
@@ -241,7 +241,7 @@ module.exports.getAllSuppliers = async (req, res) => {
 module.exports.getSupplierById = async (req, res) => {
   try {
     const { supplierId } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
 
     let supplier;
     try {
@@ -302,7 +302,7 @@ module.exports.editSupplier = async (req, res) => {
     req.body;
 
   try {
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     let supplier;
     try {
       const rows = await query(
@@ -438,7 +438,7 @@ module.exports.editSupplier = async (req, res) => {
 module.exports.deleteSupplier = async (req, res) => {
   try {
     const { supplierId } = req.params; // <-- use req.params
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     let supplier;
     try {
       const rows = await query(
@@ -490,7 +490,7 @@ module.exports.deleteSupplier = async (req, res) => {
 module.exports.searchSupplier = async (req, res) => {
   try {
     const { query: searchQueryRaw } = req.query;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     const searchQuery = String(searchQueryRaw || "").trim();
 
     if (!searchQuery) {

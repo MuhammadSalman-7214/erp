@@ -382,6 +382,178 @@ const initDb = async () => {
       INDEX idx_user_insight_view_user (userId),
       INDEX idx_user_insight_view_insight (insightId)
     )`,
+    `CREATE TABLE IF NOT EXISTS warehouses (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      name VARCHAR(255) NOT NULL,
+      code VARCHAR(50) NOT NULL,
+      is_default TINYINT(1) NOT NULL DEFAULT 0,
+      is_active TINYINT(1) NOT NULL DEFAULT 1,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_warehouse_code (user_id, code),
+      INDEX idx_warehouses_user (user_id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS warehouse_locations (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      warehouse_id INT NOT NULL,
+      parent_location_id INT DEFAULT NULL,
+      code VARCHAR(100) NOT NULL,
+      name VARCHAR(255) NOT NULL,
+      location_type VARCHAR(50) NOT NULL DEFAULT 'bin',
+      barcode VARCHAR(255),
+      is_active TINYINT(1) NOT NULL DEFAULT 1,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_location_code (user_id, warehouse_id, code),
+      INDEX idx_locations_user (user_id),
+      INDEX idx_locations_warehouse (warehouse_id),
+      INDEX idx_locations_parent (parent_location_id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS user_warehouse_access (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      staff_user_id INT NOT NULL,
+      warehouse_id INT NOT NULL,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_user_warehouse (user_id, staff_user_id, warehouse_id),
+      INDEX idx_uwa_user (user_id),
+      INDEX idx_uwa_staff (staff_user_id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS inventory_batches (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      product_code_id INT NOT NULL,
+      warehouse_id INT NOT NULL,
+      location_id INT DEFAULT NULL,
+      batch_no VARCHAR(255) DEFAULT NULL,
+      expiry_date DATE DEFAULT NULL,
+      quantity DECIMAL(12,2) NOT NULL DEFAULT 0,
+      status VARCHAR(50) NOT NULL DEFAULT 'AVAILABLE',
+      cost_price DECIMAL(12,2) DEFAULT 0,
+      received_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_batches_user (user_id),
+      INDEX idx_batches_product_code (product_code_id),
+      INDEX idx_batches_warehouse (warehouse_id),
+      INDEX idx_batches_location (location_id),
+      INDEX idx_batches_status (status),
+      INDEX idx_batches_expiry (expiry_date)
+    )`,
+    `CREATE TABLE IF NOT EXISTS inventory_transactions (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      product_code_id INT NOT NULL,
+      batch_id INT DEFAULT NULL,
+      warehouse_id INT NOT NULL,
+      location_id INT DEFAULT NULL,
+      type VARCHAR(50) NOT NULL,
+      quantity DECIMAL(12,2) NOT NULL,
+      reference_type VARCHAR(50) DEFAULT NULL,
+      reference_id INT DEFAULT NULL,
+      previous_qty DECIMAL(12,2) DEFAULT NULL,
+      new_qty DECIMAL(12,2) DEFAULT NULL,
+      performed_by INT DEFAULT NULL,
+      reason TEXT,
+      idempotency_key VARCHAR(255) DEFAULT NULL,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_inventory_txn_idempotency (user_id, idempotency_key),
+      INDEX idx_inventory_txn_user (user_id),
+      INDEX idx_inventory_txn_product_code (product_code_id),
+      INDEX idx_inventory_txn_reference (reference_type, reference_id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS goods_receipts (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      warehouse_id INT NOT NULL,
+      order_id INT DEFAULT NULL,
+      receipt_no VARCHAR(255) NOT NULL,
+      status VARCHAR(50) NOT NULL DEFAULT 'DRAFT',
+      received_by INT DEFAULT NULL,
+      notes TEXT,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_goods_receipt_no (user_id, receipt_no),
+      INDEX idx_goods_receipts_user (user_id),
+      INDEX idx_goods_receipts_order (order_id),
+      INDEX idx_goods_receipts_warehouse (warehouse_id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS goods_receipt_lines (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      receipt_id INT NOT NULL,
+      order_item_id INT DEFAULT NULL,
+      product_code_id INT NOT NULL,
+      expected_qty DECIMAL(12,2) NOT NULL DEFAULT 0,
+      received_qty DECIMAL(12,2) NOT NULL DEFAULT 0,
+      batch_no VARCHAR(255) DEFAULT NULL,
+      expiry_date DATE DEFAULT NULL,
+      condition_status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+      location_id INT DEFAULT NULL,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_grl_user (user_id),
+      INDEX idx_grl_receipt (receipt_id),
+      INDEX idx_grl_product_code (product_code_id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS fulfillments (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      warehouse_id INT NOT NULL,
+      sale_id INT NOT NULL,
+      fulfillment_no VARCHAR(255) NOT NULL,
+      status VARCHAR(50) NOT NULL DEFAULT 'RESERVED',
+      created_by INT DEFAULT NULL,
+      dispatched_at DATETIME DEFAULT NULL,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_fulfillment_no (user_id, fulfillment_no),
+      INDEX idx_fulfillments_user (user_id),
+      INDEX idx_fulfillments_sale (sale_id),
+      INDEX idx_fulfillments_warehouse (warehouse_id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS fulfillment_lines (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      fulfillment_id INT NOT NULL,
+      sale_item_id INT DEFAULT NULL,
+      product_code_id INT NOT NULL,
+      quantity DECIMAL(12,2) NOT NULL DEFAULT 0,
+      status VARCHAR(50) NOT NULL DEFAULT 'RESERVED',
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_fl_user (user_id),
+      INDEX idx_fl_fulfillment (fulfillment_id),
+      INDEX idx_fl_product_code (product_code_id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS user_scope_access (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      staff_user_id INT NOT NULL,
+      scope_type VARCHAR(50) NOT NULL DEFAULT 'warehouse',
+      scope_id INT NOT NULL,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_user_scope (user_id, staff_user_id, scope_type, scope_id),
+      INDEX idx_usa_user (user_id),
+      INDEX idx_usa_staff (staff_user_id),
+      INDEX idx_usa_scope (scope_type, scope_id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS user_job_functions (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      staff_user_id INT NOT NULL,
+      job_function VARCHAR(50) NOT NULL,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_user_job_function (staff_user_id, job_function),
+      INDEX idx_ujf_user (user_id),
+      INDEX idx_ujf_staff (staff_user_id)
+    )`,
   ];
 
   for (const sql of statements) {
@@ -430,6 +602,74 @@ const initDb = async () => {
     }
 
     if (error?.errno !== 1060) {
+      throw error;
+    }
+  }
+
+  try {
+    await query("ALTER TABLE users ADD COLUMN account_id INT DEFAULT NULL");
+  } catch (error) {
+    if (isTableEngineError(error)) {
+      logTableEngineWarning("ALTER TABLE users ADD COLUMN account_id", error);
+    }
+
+    if (error?.errno !== 1060) {
+      throw error;
+    }
+  }
+
+  try {
+    await query("ALTER TABLE users ADD INDEX idx_users_account (account_id)");
+  } catch (error) {
+    if (isTableEngineError(error)) {
+      logTableEngineWarning("ALTER TABLE users ADD INDEX idx_users_account", error);
+    }
+
+    if (error?.errno !== 1061) {
+      throw error;
+    }
+  }
+
+  try {
+    // Every existing login becomes its own tenant, matching current behavior exactly.
+    await query("UPDATE users SET account_id = id WHERE account_id IS NULL");
+  } catch (error) {
+    throw error;
+  }
+
+  try {
+    // Who this login reports to, for "my team" visibility scoping and future
+    // approval workflows. Purely additive — nothing reads it yet unless a
+    // feature opts in, so leaving it NULL changes no existing behavior.
+    await query(
+      "ALTER TABLE users ADD COLUMN reports_to_user_id INT DEFAULT NULL",
+    );
+  } catch (error) {
+    if (isTableEngineError(error)) {
+      logTableEngineWarning(
+        "ALTER TABLE users ADD COLUMN reports_to_user_id",
+        error,
+      );
+    }
+
+    if (error?.errno !== 1060) {
+      throw error;
+    }
+  }
+
+  try {
+    await query(
+      "ALTER TABLE users ADD INDEX idx_users_reports_to (reports_to_user_id)",
+    );
+  } catch (error) {
+    if (isTableEngineError(error)) {
+      logTableEngineWarning(
+        "ALTER TABLE users ADD INDEX idx_users_reports_to",
+        error,
+      );
+    }
+
+    if (error?.errno !== 1061) {
       throw error;
     }
   }
@@ -515,6 +755,51 @@ const initDb = async () => {
        WHERE (s.invoiceNumber IS NULL OR s.invoiceNumber = '')
          AND i.invoiceNumber IS NOT NULL
          AND i.invoiceNumber <> ''`,
+    );
+  } catch (error) {
+    throw error;
+  }
+
+  try {
+    // Every tenant (account) gets one default warehouse so existing data has
+    // a home without requiring manual setup. Idempotent via the unique key
+    // on (user_id, code).
+    await query(
+      `INSERT IGNORE INTO warehouses (user_id, name, code, is_default, is_active)
+       SELECT DISTINCT account_id, 'Main Warehouse', 'MAIN', 1, 1
+       FROM users
+       WHERE account_id IS NOT NULL`,
+    );
+  } catch (error) {
+    throw error;
+  }
+
+  try {
+    await query(
+      `INSERT IGNORE INTO warehouse_locations (user_id, warehouse_id, code, name, location_type)
+       SELECT w.user_id, w.id, 'RECEIVING', 'Receiving Dock', 'receiving'
+       FROM warehouses w
+       WHERE w.code = 'MAIN'`,
+    );
+    await query(
+      `INSERT IGNORE INTO warehouse_locations (user_id, warehouse_id, code, name, location_type)
+       SELECT w.user_id, w.id, 'GENERAL', 'General Storage', 'bin'
+       FROM warehouses w
+       WHERE w.code = 'MAIN'`,
+    );
+  } catch (error) {
+    throw error;
+  }
+
+  try {
+    // One-time carry-over: `user_warehouse_access` is kept (not dropped) for
+    // safety, but every access check now reads from the generalized
+    // `user_scope_access` table (scope_type='warehouse'), so existing grants
+    // must exist there too. Idempotent via the unique key.
+    await query(
+      `INSERT IGNORE INTO user_scope_access (user_id, staff_user_id, scope_type, scope_id)
+       SELECT user_id, staff_user_id, 'warehouse', warehouse_id
+       FROM user_warehouse_access`,
     );
   } catch (error) {
     throw error;

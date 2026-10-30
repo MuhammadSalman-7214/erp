@@ -3,7 +3,7 @@ const query = require("../libs/dbQuery.js");
 module.exports.addOrUpdateInventory = async (req, res) => {
   try {
     const { productCode, quantity } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
 
     if (!productCode || quantity === undefined) {
       return res
@@ -124,7 +124,7 @@ module.exports.addOrUpdateInventory = async (req, res) => {
 
 module.exports.getAllInventory = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     let inventories;
     try {
       inventories = await query(
@@ -162,7 +162,7 @@ module.exports.getAllInventory = async (req, res) => {
 module.exports.getInventoryByProduct = async (req, res) => {
   try {
     const { productCodeId } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
 
     let inventory;
     try {
@@ -211,7 +211,7 @@ module.exports.getInventoryByProduct = async (req, res) => {
 module.exports.deleteInventory = async (req, res) => {
   try {
     const { productCodeId } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
 
     let inventory;
     try {

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest --runInBand --forceExit",
     "start": "node server",
     "fix:customer-codes": "node scripts/fix-null-customer-codes.js"
   },
@@ -25,5 +25,8 @@
     "nodemailer": "^8.0.5",
     "socket.io": "^4.8.1",
     "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "jest": "^30.5.1"
   }
 }

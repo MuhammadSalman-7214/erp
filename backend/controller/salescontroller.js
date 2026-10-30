@@ -1,5 +1,5 @@
 const query = require("../libs/dbQuery.js");
-const db = require("../db");
+const { withTransaction } = require("../libs/transaction");
 const { getNextInvoiceNumber } = require("../libs/invoiceNumber");
 const {
   validateSaleStockAvailability,
@@ -72,32 +72,6 @@ const getPaymentStatus = (paidAmount, totalAmount) => {
     return "unpaid";
   }
   return "partial";
-};
-
-const txQuery = (sql, values = []) =>
-  new Promise((resolve, reject) => {
-    db.query(sql, values, (err, result) => {
-      if (err) {
-        return reject(err);
-      }
-      resolve(result);
-    });
-  });
-
-const withTransaction = async (work) => {
-  await txQuery("START TRANSACTION");
-  try {
-    const result = await work(txQuery);
-    await txQuery("COMMIT");
-    return result;
-  } catch (error) {
-    try {
-      await txQuery("ROLLBACK");
-    } catch (rollbackError) {
-      console.error("Rollback failed:", rollbackError);
-    }
-    throw error;
-  }
 };
 
 const syncSalePayment = async ({
@@ -461,7 +435,26 @@ const hydrateSales = async (sales, userId) => {
     return hydrated;
   }
 
-  return attachCustomerPaymentStatus(hydrated, userId);
+  const enriched = await attachCustomerPaymentStatus(hydrated, userId);
+
+  // Lets the frontend disable edit/delete for a sale that's under an active
+  // (or completed) fulfillment — mirrors the backend guard in updateSale/
+  // deleteSale so the UI doesn't offer an action the API will just reject.
+  const saleIds = enriched.map((sale) => sale.id).filter(Boolean);
+  let lockedSaleIds = new Set();
+  if (saleIds.length) {
+    const fulfillmentRows = await query(
+      `SELECT DISTINCT sale_id FROM fulfillments
+       WHERE user_id = ? AND status <> 'CANCELLED' AND sale_id IN (${saleIds.map(() => "?").join(", ")})`,
+      [userId, ...saleIds],
+    );
+    lockedSaleIds = new Set(fulfillmentRows.map((row) => row.sale_id));
+  }
+
+  return enriched.map((sale) => ({
+    ...sale,
+    hasActiveFulfillment: lockedSaleIds.has(sale.id),
+  }));
 };
 
 const formatCurrency = (value) => `Rs ${Number(value || 0).toLocaleString()}`;
@@ -555,7 +548,7 @@ module.exports.createSale = async (req, res) => {
       receivedAmount,
       carage,
     } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
 
     if (!customerId) {
       return res.status(400).json({
@@ -959,7 +952,7 @@ module.exports.createSale = async (req, res) => {
 
 module.exports.getAllSales = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
     const pageSize = Math.min(
       Math.max(parseInt(req.query.pageSize, 10) || 5, 1),
@@ -1018,7 +1011,7 @@ module.exports.getAllSales = async (req, res) => {
 module.exports.getSaleById = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     let sale;
     try {
       const rows = await query(
@@ -1063,7 +1056,7 @@ module.exports.updateSale = async (req, res) => {
     if (Object.prototype.hasOwnProperty.call(updatedData, "paymentStatus")) {
       delete updatedData.paymentStatus;
     }
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     const hasReceivedAmount = Object.prototype.hasOwnProperty.call(
       updatedData,
       "receivedAmount",
@@ -1081,7 +1074,32 @@ module.exports.updateSale = async (req, res) => {
         throw error;
       }
 
-      if (normalizeText(updatedData.status) === "cancelled") {
+      const requestedStatus = normalizeText(updatedData.status);
+
+      // Once a fulfillment has been started for this sale — reserved,
+      // being picked, or already dispatched — it's managed exclusively
+      // through the Fulfillment workflow, which applies stock moves via
+      // the inventory engine rather than the old stockLifecycle path.
+      // This must be checked unconditionally (not just "when moving TO
+      // completed/cancelled"): a DISPATCHED fulfillment already flipped
+      // this sale to "completed", and letting this endpoint edit or
+      // cancel it afterwards would delete/rewrite the ERP record for
+      // stock that has physically left the warehouse, with no matching
+      // `stock_transactions` rows for the old rollback logic to find and
+      // reverse — silently orphaning the dispatched stock.
+      const fulfillmentRows = await executor(
+        "SELECT id, status FROM fulfillments WHERE sale_id = ? AND user_id = ? AND status <> 'CANCELLED' LIMIT 1",
+        [id, userId],
+      );
+      if (fulfillmentRows.length) {
+        const error = new Error(
+          "This sale has a fulfillment in progress or completed. Manage it from the Fulfillment workflow instead of editing the sale directly.",
+        );
+        error.statusCode = 400;
+        throw error;
+      }
+
+      if (requestedStatus === "cancelled") {
         await deleteSaleCascade({ executor, saleId: id, userId });
         return { canceled: true };
       }
@@ -1388,9 +1406,21 @@ module.exports.updateSale = async (req, res) => {
 module.exports.deleteSale = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
 
     const result = await withTransaction(async (executor) => {
+      const fulfillmentRows = await executor(
+        "SELECT id FROM fulfillments WHERE sale_id = ? AND user_id = ? AND status <> 'CANCELLED' LIMIT 1",
+        [id, userId],
+      );
+      if (fulfillmentRows.length) {
+        const error = new Error(
+          "This sale has a fulfillment in progress or completed. Cancel the fulfillment first if you need to undo it.",
+        );
+        error.statusCode = 400;
+        throw error;
+      }
+
       await deleteSaleCascade({ executor, saleId: id, userId });
       return true;
     });
@@ -1425,7 +1455,7 @@ module.exports.deleteSale = async (req, res) => {
 module.exports.SearchSales = async (req, res) => {
   try {
     const { query: searchQuery } = req.query;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     const likeQuery = `%${String(searchQuery || "").trim()}%`;
 
     let sales;
@@ -1481,7 +1511,7 @@ module.exports.SearchSales = async (req, res) => {
 module.exports.getSalesByCustomer = async (req, res) => {
   try {
     const { customerId } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
 
     let customer;
     try {

@@ -87,7 +87,7 @@ const hydrateTransactions = async (rows) =>
 module.exports.createStockTransaction = async (req, res) => {
   try {
     const { productCode, type, quantity, supplier, vendor, product } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
 
     if (!productCode || !type || !quantity) {
       return res.status(400).json({
@@ -248,7 +248,7 @@ module.exports.createStockTransaction = async (req, res) => {
 
 module.exports.getAllStockTransactions = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
     const pageSize = Math.min(
       Math.max(parseInt(req.query.pageSize, 10) || 5, 1),
@@ -299,7 +299,7 @@ module.exports.getAllStockTransactions = async (req, res) => {
 module.exports.getStockTransactionsByProductCode = async (req, res) => {
   try {
     const { productCodeId } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     let transactions;
     try {
       transactions = await query(
@@ -340,7 +340,7 @@ module.exports.getStockTransactionsByProductCode = async (req, res) => {
 module.exports.getStockTransactionsBySupplier = async (req, res) => {
   try {
     const { supplierId } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     let transactions;
     try {
       transactions = await query(
@@ -381,7 +381,7 @@ module.exports.getStockTransactionsBySupplier = async (req, res) => {
 module.exports.searchStocks = async (req, res) => {
   try {
     const { query: searchQuery } = req.query;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     if (!searchQuery) {
       return res.status(400).json({ message: "Query parameter is required" });
     }

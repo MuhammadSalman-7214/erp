@@ -7,9 +7,12 @@ const {
   authForgotPasswordBody,
   authOtpBody,
   authResetPasswordBody,
+  authTeamMemberBody,
   companyInfoBody,
   profileBody,
   idParam,
+  jobFunctionsBody,
+  reportsToBody,
 } = require("../validation/schemas");
 const {
   signup,
@@ -24,6 +27,10 @@ const {
   manageruser,
   adminuser,
   removeuser,
+  createTeamMember,
+  setJobFunctions,
+  setReportsTo,
+  getMyTeam,
   superadminAdmins,
   toggleAdminStatus,
   getCurrentUser,
@@ -58,6 +65,28 @@ router.delete(
   validateRequest({ params: idParam("UserId") }),
   removeuser,
 );
+router.post(
+  "/team-members",
+  authmiddleware,
+  managermiddleware,
+  validateRequest({ body: authTeamMemberBody }),
+  createTeamMember,
+);
+router.put(
+  "/team-members/:userId/job-functions",
+  authmiddleware,
+  managermiddleware,
+  validateRequest({ params: idParam("userId"), body: jobFunctionsBody }),
+  setJobFunctions,
+);
+router.put(
+  "/team-members/:userId/manager",
+  authmiddleware,
+  managermiddleware,
+  validateRequest({ params: idParam("userId"), body: reportsToBody }),
+  setReportsTo,
+);
+router.get("/my-team", authmiddleware, managermiddleware, getMyTeam);
 router.get("/staffuser", authmiddleware, staffuser);
 router.get("/manageruser", authmiddleware, manageruser);
 router.get("/adminuser", authmiddleware, adminuser);

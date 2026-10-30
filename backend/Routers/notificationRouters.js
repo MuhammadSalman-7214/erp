@@ -10,7 +10,7 @@ const {
   getAllNotifications,
   markAsRead,
   deleteNotification,
-} = require("../controller/NotificationController.js");
+} = require("../controller/notificationcontroller.js");
 
 // GET notifications - All authenticated users
 router.get("/", authmiddleware, getAllNotifications);

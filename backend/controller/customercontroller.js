@@ -3,7 +3,7 @@ const query = require("../libs/dbQuery.js");
 module.exports.createCustomer = async (req, res) => {
   try {
     const { name, contactInfo, openingBalance, openingBalanceNote } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
 
     if (!name || !name.trim()) {
       return res.status(400).json({
@@ -66,7 +66,7 @@ module.exports.createCustomer = async (req, res) => {
 
 module.exports.getAllCustomers = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
     const pageSize = Math.min(
       Math.max(parseInt(req.query.pageSize, 10) || 5, 1),
@@ -121,7 +121,7 @@ module.exports.getAllCustomers = async (req, res) => {
 module.exports.getCustomerById = async (req, res) => {
   try {
     const { customerId } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     let customer;
     try {
       const rows = await query(
@@ -167,7 +167,7 @@ module.exports.editCustomer = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, contactInfo, openingBalance, openingBalanceNote } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
 
     let customer;
     try {
@@ -267,7 +267,7 @@ module.exports.addCustomerOpeningBalance = async (req, res) => {
   try {
     const { id } = req.params;
     const { amount, notes } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
 
     const nextAmount = Number(amount);
     if (!Number.isFinite(nextAmount) || nextAmount <= 0) {
@@ -338,7 +338,7 @@ module.exports.addCustomerOpeningBalance = async (req, res) => {
 module.exports.deleteCustomerOpeningBalance = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
 
     let customer;
     try {
@@ -396,7 +396,7 @@ module.exports.deleteCustomerOpeningBalance = async (req, res) => {
 module.exports.deleteCustomer = async (req, res) => {
   try {
     const { customerId } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
     let customer;
     try {
       const rows = await query(
@@ -448,7 +448,7 @@ module.exports.deleteCustomer = async (req, res) => {
 module.exports.searchCustomer = async (req, res) => {
   try {
     const searchText = String(req.query.query || "").trim();
-    const userId = req.user.userId;
+    const userId = req.user.accountId;
 
     if (!searchText) {
       return res.status(400).json({

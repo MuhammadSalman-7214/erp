@@ -10,7 +10,7 @@ const productrouter = require("./Routers/ProductRouter.js");
 const authrouter = require("./Routers/authRouther.js");
 const orderrouter = require("./Routers/orderRouter.js");
 const categoryrouter = require("./Routers/categoryRouter.js");
-// const notificationrouter = require("./Routers/notificationRouters.js");
+const notificationrouter = require("./Routers/notificationRouters.js");
 const activityrouter = require("./Routers/activityRouter.js");
 const inventoryrouter = require("./Routers/inventoryRouter.js");
 const salesrouter = require("./Routers/salesRouter.js");
@@ -22,6 +22,9 @@ const paymentRouter = require("./Routers/paymentRouter.js");
 const subscriptionPaymentsRouter = require("./Routers/paymentsRouter.js");
 const usersRouter = require("./Routers/usersRouter.js");
 const dashboardRouter = require("./Routers/dashboardRouter.js");
+const warehouseRouter = require("./Routers/warehouseRouter.js");
+const receivingRouter = require("./Routers/receivingRouter.js");
+const fulfillmentRouter = require("./Routers/fulfillmentRouter.js");
 const startSubscriptionCron = require("./cron/subscriptionCron.js");
 const startDailyBusinessInsightsCron = require("./cron/dailyBusinessInsights.js");
 
@@ -33,7 +36,7 @@ const app = express();
 const server = http.createServer(app);
 
 const allowedOrigins = [
-  "http://localhost:3000",
+  "http://localhost:3001",
   "https://imrantraders.shop",
   "https://www.imrantraders.shop",
   "https://inventorysouq.dgexpense.com",
@@ -87,7 +90,7 @@ app.use("/api/auth", authrouter);
 app.use("/api/product", productrouter);
 app.use("/api/order", orderrouter);
 app.use("/api/category", categoryrouter);
-// app.use("/api/notification", notificationrouter);
+app.use("/api/notification", notificationrouter);
 app.use("/api/activitylogs", activityrouter);
 app.use("/api/inventory", inventoryrouter);
 app.use("/api/sales", salesrouter);
@@ -99,6 +102,9 @@ app.use("/api/payment", paymentRouter);
 app.use("/api/payments", subscriptionPaymentsRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/dashboard", dashboardRouter);
+app.use("/api/warehouse", warehouseRouter);
+app.use("/api/receiving", receivingRouter);
+app.use("/api/fulfillment", fulfillmentRouter);
 
 server.listen(PORT, () => {
   console.log(`The server is running at port ${PORT}`);

@@ -5,14 +5,17 @@ const Cloundinary = require("../libs/Cloundinary.js");
 const logActivity = require("../libs/logger.js");
 const { sendMail } = require("../libs/mailer.js");
 const { isPaid } = require("../services/subscriptionService.js");
+const { JOB_FUNCTION_TAGS } = require("../middleware/Authmiddleware.js");
+const { ensureDefaultWarehouse } = require("../libs/warehouseAccess.js");
 
 const OTP_EXPIRY_MINUTES = 1;
 const OTP_ATTEMPT_LIMIT = 5;
 const PASSWORD_RESET_EXPIRY_MINUTES = 5;
 const OTP_BYPASS_EMAIL = process.env.TEST_USER;
 const userSelectFields = `
-  id, name, email, role, ProfilePic, isActive, billingDay, createdAt, updatedAt
+  id, name, email, role, ProfilePic, isActive, billingDay, account_id, createdAt, updatedAt
 `;
+const TEAM_MEMBER_ROLES = ["staff", "manager"];
 const defaultCompanyInfo = {
   companyName: "",
   companyDescription: "",
@@ -40,8 +43,10 @@ const normalizeCompanyInfo = (companyInfo) => ({
   companyLogo: companyInfo?.companyLogo || "",
 });
 
-const getCompanyInfoByUserId = async (userId) => {
-  if (!userId) {
+// Company branding is a tenant-wide setting, not a personal one, so callers
+// should pass the account/tenant id (accountId), not a specific login's own id.
+const getCompanyInfoByAccountId = async (accountId) => {
+  if (!accountId) {
     return { ...defaultCompanyInfo };
   }
 
@@ -50,10 +55,32 @@ const getCompanyInfoByUserId = async (userId) => {
      FROM company_settings
      WHERE user_id = ?
      LIMIT 1`,
-    [userId],
+    [accountId],
   );
 
   return normalizeCompanyInfo(rows[0]);
+};
+
+const resolveAccountId = (user) => user?.account_id || user?.id;
+
+// One batched query instead of N — attaches each user's assigned job
+// function tags (if any) to the row, so the team-management screen can
+// show them without a round trip per row.
+const attachJobFunctions = async (users) => {
+  const userIds = users.map((u) => u.id).filter(Boolean);
+  if (!userIds.length) return users;
+
+  const rows = await query(
+    `SELECT staff_user_id, job_function FROM user_job_functions WHERE staff_user_id IN (${userIds.map(() => "?").join(", ")})`,
+    userIds,
+  );
+  const byUser = new Map();
+  rows.forEach((row) => {
+    if (!byUser.has(row.staff_user_id)) byUser.set(row.staff_user_id, []);
+    byUser.get(row.staff_user_id).push(row.job_function);
+  });
+
+  return users.map((u) => ({ ...u, jobFunctions: byUser.get(u.id) || [] }));
 };
 
 const generateOtpCode = () =>
@@ -167,6 +194,11 @@ module.exports.signup = async (req, res) => {
         "INSERT INTO users (name, email, password, ProfilePic, role, isActive, billingDay) VALUES (?, ?, ?, ?, ?, ?, ?)",
         [name, email, hashedpassword, "", resolvedRole, 1, billingDay],
       );
+      // A public signup always starts a brand-new, self-owned business/tenant.
+      await query("UPDATE users SET account_id = ? WHERE id = ?", [
+        insertResult.insertId,
+        insertResult.insertId,
+      ]);
     } catch (err) {
       return res.status(500).json({
         success: false,
@@ -179,6 +211,7 @@ module.exports.signup = async (req, res) => {
         "INSERT IGNORE INTO company_settings (user_id, companyName, companyDescription, companyLogo) VALUES (?, '', '', '')",
         [insertResult.insertId],
       );
+      await ensureDefaultWarehouse(insertResult.insertId);
     } catch (err) {
       return res.status(500).json({
         success: false,
@@ -201,7 +234,7 @@ module.exports.signup = async (req, res) => {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    const companyInfo = await getCompanyInfoByUserId(savedUser.id);
+    const companyInfo = await getCompanyInfoByAccountId(resolveAccountId(savedUser));
     const token = await generateToken(savedUser, res);
 
     res.status(201).json({
@@ -223,6 +256,193 @@ module.exports.signup = async (req, res) => {
   } catch (error) {
     console.error("Error during signup:", error.message);
     res.status(400).json({ message: "Error during signup: " + error.message });
+  }
+};
+
+// Adds a staff/manager login under the CALLER's own tenant (account_id),
+// unlike public signup which always starts a brand-new, empty business.
+module.exports.createTeamMember = async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body;
+    const accountId = req.user.accountId;
+    const callerRole = req.user.role;
+
+    if (!TEAM_MEMBER_ROLES.includes(role)) {
+      return res.status(400).json({
+        message: `Role must be one of: ${TEAM_MEMBER_ROLES.join(", ")}`,
+      });
+    }
+
+    if (role === "manager" && !["admin", "super_admin"].includes(callerRole)) {
+      return res.status(403).json({
+        message: "Only an admin can add a manager to the team.",
+      });
+    }
+
+    const normalizedEmail = normalizeEmailForLogin(email);
+
+    const duplicatedUser = await query(
+      "SELECT id FROM users WHERE LOWER(TRIM(email)) = ? LIMIT 1",
+      [normalizedEmail],
+    );
+
+    if (duplicatedUser.length > 0) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
+
+    const hashedpassword = await bcrypt.hash(password, 10);
+    const billingDay = new Date().getDate();
+
+    const insertResult = await query(
+      "INSERT INTO users (name, email, password, ProfilePic, role, isActive, billingDay, account_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      [name, normalizedEmail, hashedpassword, "", role, 1, billingDay, accountId],
+    );
+
+    const savedUserRows = await query(
+      `SELECT ${userSelectFields} FROM users WHERE id = ? LIMIT 1`,
+      [insertResult.insertId],
+    );
+    const companyInfo = await getCompanyInfoByAccountId(accountId);
+
+    res.status(201).json({
+      message: "Team member added successfully",
+      savedUser: mapUserResponse(savedUserRows[0], companyInfo),
+    });
+
+    await logActivity({
+      action: "Team Member Added",
+      description: `${callerRole} added ${role} "${name}" to the team.`,
+      entity: "user",
+      entityId: insertResult.insertId,
+      userId: req.user.userId,
+      ipAddress: req.ip,
+    });
+  } catch (error) {
+    console.error("Error creating team member:", error.message);
+    res.status(400).json({
+      message: "Error creating team member: " + error.message,
+    });
+  }
+};
+
+// Replaces a team member's full set of job function tags in one call — the
+// UI sends whichever checkboxes are ticked, the server reconciles.
+// Narrows what the member's role already allows; never grants beyond it.
+module.exports.setJobFunctions = async (req, res) => {
+  try {
+    const accountId = req.user.accountId;
+    const { userId } = req.params;
+    const jobFunctions = Array.isArray(req.body.jobFunctions)
+      ? [...new Set(req.body.jobFunctions)]
+      : [];
+
+    const targetRows = await query(
+      "SELECT id, role FROM users WHERE id = ? AND account_id = ? LIMIT 1",
+      [userId, accountId],
+    );
+    const target = targetRows[0];
+    if (!target) {
+      return res.status(404).json({ message: "Team member not found in your business" });
+    }
+    if (["admin", "super_admin"].includes(target.role)) {
+      return res.status(400).json({
+        message: "Job functions don't apply to admin accounts — they already have full access.",
+      });
+    }
+
+    const invalid = jobFunctions.filter((fn) => !JOB_FUNCTION_TAGS.includes(fn));
+    if (invalid.length) {
+      return res.status(400).json({
+        message: `Unknown job function(s): ${invalid.join(", ")}. Valid values: ${JOB_FUNCTION_TAGS.join(", ")}`,
+      });
+    }
+
+    await query("DELETE FROM user_job_functions WHERE staff_user_id = ?", [userId]);
+    if (jobFunctions.length) {
+      const values = jobFunctions.map((fn) => [accountId, userId, fn]);
+      await query(
+        "INSERT INTO user_job_functions (user_id, staff_user_id, job_function) VALUES ?",
+        [values],
+      );
+    }
+
+    await logActivity({
+      action: "Update Job Functions",
+      description: `Job functions for user #${userId} set to: ${jobFunctions.join(", ") || "none"}.`,
+      entity: "user",
+      entityId: Number(userId),
+      userId: req.user.userId,
+      ipAddress: req.ip,
+    });
+
+    res.status(200).json({ success: true, jobFunctions });
+  } catch (error) {
+    console.error("Error updating job functions:", error.message);
+    res.status(500).json({ message: "Error updating job functions", error: error.message });
+  }
+};
+
+// Who a team member reports to — used for "my team" visibility scoping,
+// not for permissions (a manager doesn't gain capability just because
+// people report to them; that's still governed by role + job function).
+module.exports.setReportsTo = async (req, res) => {
+  try {
+    const accountId = req.user.accountId;
+    const { userId } = req.params;
+    const { managerId } = req.body;
+
+    const targetRows = await query(
+      "SELECT id FROM users WHERE id = ? AND account_id = ? LIMIT 1",
+      [userId, accountId],
+    );
+    if (!targetRows.length) {
+      return res.status(404).json({ message: "Team member not found in your business" });
+    }
+
+    if (managerId) {
+      if (Number(managerId) === Number(userId)) {
+        return res.status(400).json({ message: "A team member cannot report to themselves" });
+      }
+      const managerRows = await query(
+        "SELECT id, role FROM users WHERE id = ? AND account_id = ? LIMIT 1",
+        [managerId, accountId],
+      );
+      if (!managerRows.length) {
+        return res.status(404).json({ message: "Manager not found in your business" });
+      }
+      if (!["admin", "manager", "super_admin"].includes(managerRows[0].role)) {
+        return res.status(400).json({
+          message: "A team member can only report to an admin or manager",
+        });
+      }
+    }
+
+    await query("UPDATE users SET reports_to_user_id = ? WHERE id = ? AND account_id = ?", [
+      managerId || null,
+      userId,
+      accountId,
+    ]);
+
+    res.status(200).json({ success: true, userId: Number(userId), managerId: managerId || null });
+  } catch (error) {
+    console.error("Error updating reporting manager:", error.message);
+    res.status(500).json({ message: "Error updating reporting manager", error: error.message });
+  }
+};
+
+// A manager's/supervisor's direct reports within their own tenant — for
+// scoping "my team" views (e.g. a filtered activity log) without exposing
+// the whole business's team to every manager.
+module.exports.getMyTeam = async (req, res) => {
+  try {
+    const accountId = req.user.accountId;
+    const rows = await query(
+      "SELECT id, name, email, role, isActive FROM users WHERE reports_to_user_id = ? AND account_id = ?",
+      [req.user.userId, accountId],
+    );
+    res.status(200).json({ success: true, team: await attachJobFunctions(rows) });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching team", error: error.message });
   }
 };
 
@@ -310,7 +530,9 @@ module.exports.login = async (req, res) => {
         console.error("Login activity log failed:", logError.message);
       }
 
-      const companyInfo = await getCompanyInfoByUserId(duplicatedUser.id);
+      const companyInfo = await getCompanyInfoByAccountId(
+        resolveAccountId(duplicatedUser),
+      );
 
       return res.status(200).json({
         message: "Login successful",
@@ -536,7 +758,7 @@ module.exports.verifyLoginOtp = async (req, res) => {
 
     const rows = await query(
       `SELECT ch.id, ch.user_id, ch.otp_hash, ch.attempts, ch.expiresAt, ch.verifiedAt,
-              u.id AS userId, u.name, u.email, u.role, u.ProfilePic, u.isActive, u.billingDay, u.createdAt, u.updatedAt
+              u.id AS userId, u.name, u.email, u.role, u.ProfilePic, u.isActive, u.billingDay, u.account_id, u.createdAt, u.updatedAt
        FROM login_otp_challenges ch
        INNER JOIN users u ON u.id = ch.user_id
        WHERE ch.id = ?
@@ -621,7 +843,9 @@ module.exports.verifyLoginOtp = async (req, res) => {
       console.error("Login activity log failed:", logError.message);
     }
 
-    const companyInfo = await getCompanyInfoByUserId(challenge.userId);
+    const companyInfo = await getCompanyInfoByAccountId(
+      challenge.account_id || challenge.userId,
+    );
 
     return res.status(200).json({
       message: "Login successful",
@@ -707,7 +931,7 @@ module.exports.updateProfile = async (req, res) => {
           });
         }
 
-        const companyInfo = await getCompanyInfoByUserId(userId);
+        const companyInfo = await getCompanyInfoByAccountId(req.user.accountId);
 
         return res.status(200).json({
           message: "Profile updated successfully",
@@ -732,6 +956,7 @@ module.exports.updateProfile = async (req, res) => {
 module.exports.updateCompanyInfo = async (req, res) => {
   try {
     const userId = req.user?.userId;
+    const accountId = req.user?.accountId;
     const { companyName, companyDescription, companyLogo } = req.body;
 
     if (!userId) {
@@ -749,7 +974,10 @@ module.exports.updateCompanyInfo = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const currentCompanyInfo = await getCompanyInfoByUserId(userId);
+    // Company branding is shared by the whole tenant, so it's keyed by
+    // accountId — a staff/manager updating it changes what their admin
+    // (and every teammate) sees too, not a private copy of their own.
+    const currentCompanyInfo = await getCompanyInfoByAccountId(accountId);
     const resolvedName =
       typeof companyName === "string"
         ? companyName.trim()
@@ -785,10 +1013,10 @@ module.exports.updateCompanyInfo = async (req, res) => {
          companyDescription = VALUES(companyDescription),
          companyLogo = VALUES(companyLogo),
          updatedAt = CURRENT_TIMESTAMP`,
-      [userId, resolvedName, resolvedDescription, resolvedLogo],
+      [accountId, resolvedName, resolvedDescription, resolvedLogo],
     );
 
-    const updatedCompanyInfo = await getCompanyInfoByUserId(userId);
+    const updatedCompanyInfo = await getCompanyInfoByAccountId(accountId);
 
     return res.status(200).json({
       message: "Company info updated successfully",
@@ -808,8 +1036,8 @@ module.exports.staffuser = async (req, res) => {
     let staffuser;
     try {
       staffuser = await query(
-        "SELECT id, name, email, role, ProfilePic, isActive, billingDay FROM users WHERE role = ?",
-        ["staff"],
+        "SELECT id, name, email, role, ProfilePic, isActive, billingDay, reports_to_user_id FROM users WHERE role = ? AND account_id = ?",
+        ["staff", req.user.accountId],
       );
     } catch (err) {
       return res.status(500).json({
@@ -825,7 +1053,7 @@ module.exports.staffuser = async (req, res) => {
         .json({ message: "There are no staff users available." });
     }
 
-    res.status(200).json(staffuser);
+    res.status(200).json(await attachJobFunctions(staffuser));
   } catch (error) {
     console.log("Error in get staff Controller:", error.message);
     res.status(500).json({ message: "Internal Server Error", error });
@@ -837,8 +1065,8 @@ module.exports.manageruser = async (req, res) => {
     let manageruser;
     try {
       manageruser = await query(
-        "SELECT id, name, email, role, ProfilePic, isActive, billingDay FROM users WHERE role = ?",
-        ["manager"],
+        "SELECT id, name, email, role, ProfilePic, isActive, billingDay, reports_to_user_id FROM users WHERE role = ? AND account_id = ?",
+        ["manager", req.user.accountId],
       );
     } catch (err) {
       return res.status(500).json({
@@ -854,7 +1082,7 @@ module.exports.manageruser = async (req, res) => {
         .json({ message: "There are no manager users available." });
     }
 
-    res.status(200).json(manageruser);
+    res.status(200).json(await attachJobFunctions(manageruser));
   } catch (error) {
     console.log("Error in get manager Controller:", error.message);
     res.status(500).json({ message: "Internal Server Error", error });
@@ -866,8 +1094,8 @@ module.exports.adminuser = async (req, res) => {
     let adminuser;
     try {
       adminuser = await query(
-        "SELECT id, name, email, role, ProfilePic, isActive, billingDay FROM users WHERE role = ?",
-        ["admin"],
+        "SELECT id, name, email, role, ProfilePic, isActive, billingDay FROM users WHERE role = ? AND account_id = ?",
+        ["admin", req.user.accountId],
       );
     } catch (err) {
       return res.status(500).json({
@@ -989,9 +1217,16 @@ module.exports.getCurrentUser = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const companyInfo = await getCompanyInfoByUserId(userId);
+    const companyInfo = await getCompanyInfoByAccountId(req.user.accountId);
 
-    return res.status(200).json({ user: mapUserResponse(user, companyInfo) });
+    return res.status(200).json({
+      user: {
+        ...mapUserResponse(user, companyInfo),
+        // Lets the frontend gate nav items/actions by job function, same
+        // narrowing the backend already enforces — not a new access grant.
+        jobFunctions: req.user.jobFunctions || [],
+      },
+    });
   } catch (error) {
     console.error("Error fetching current user:", error.message);
     return res.status(500).json({ message: "Internal Server Error", error });
