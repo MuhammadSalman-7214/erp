@@ -370,6 +370,58 @@ export const adminUser = createAsyncThunk(
   },
 );
 
+export const createTeamMember = createAsyncThunk(
+  "auth/createTeamMember",
+  async (payload, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post("auth/team-members", payload, {
+        withCredentials: true,
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to add team member",
+      );
+    }
+  },
+);
+
+export const setJobFunctions = createAsyncThunk(
+  "auth/setJobFunctions",
+  async ({ userId, jobFunctions }, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.put(
+        `auth/team-members/${userId}/job-functions`,
+        { jobFunctions },
+        { withCredentials: true },
+      );
+      return { userId, jobFunctions: response.data.jobFunctions };
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to update job functions",
+      );
+    }
+  },
+);
+
+export const setReportsTo = createAsyncThunk(
+  "auth/setReportsTo",
+  async ({ userId, managerId }, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.put(
+        `auth/team-members/${userId}/manager`,
+        { managerId },
+        { withCredentials: true },
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to update reporting manager",
+      );
+    }
+  },
+);
+
 export const removeusers = createAsyncThunk(
   "auth/removeuser",
   async (UserId, { rejectWithValue }) => {
@@ -567,6 +619,28 @@ const authSlice = createSlice({
       })
 
       .addCase(adminUser.rejected, (state, action) => {})
+
+      .addCase(setJobFunctions.fulfilled, (state, action) => {
+        const { userId, jobFunctions } = action.payload;
+        const patch = (list) =>
+          Array.isArray(list)
+            ? list.map((u) => (u.id === userId ? { ...u, jobFunctions } : u))
+            : list;
+        state.staffuser = patch(state.staffuser);
+        state.manageruser = patch(state.manageruser);
+      })
+
+      .addCase(setReportsTo.fulfilled, (state, action) => {
+        const { userId, managerId } = action.payload;
+        const patch = (list) =>
+          Array.isArray(list)
+            ? list.map((u) =>
+                u.id === userId ? { ...u, reports_to_user_id: managerId } : u,
+              )
+            : list;
+        state.staffuser = patch(state.staffuser);
+        state.manageruser = patch(state.manageruser);
+      })
 
       .addCase(removeusers.fulfilled, (state, action) => {})
 

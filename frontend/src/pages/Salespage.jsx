@@ -2612,7 +2612,13 @@ function Salespage() {
                         >
                           <div className="flex justify-center">
                             <div className="flex items-center justify-center gap-2 overflow-hidden">
-                              <Tooltip content="Edit sale">
+                              <Tooltip
+                                content={
+                                  sale.hasActiveFulfillment
+                                    ? "Locked — this sale has a fulfillment in progress or completed. Manage it from Fulfillment instead."
+                                    : "Edit sale"
+                                }
+                              >
                                 <Button
                                   type="button"
                                   onClick={() => handleEditClick(sale)}
@@ -2620,6 +2626,7 @@ function Salespage() {
                                   aria-label="Edit sale"
                                   size="sm"
                                   className="metal-btn"
+                                  disabled={sale.hasActiveFulfillment}
                                 >
                                   <MdEdit size={16} />
                                 </Button>

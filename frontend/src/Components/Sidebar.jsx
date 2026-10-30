@@ -4,7 +4,7 @@ import {
   RiMoneyDollarCircleLine,
   RiStockLine,
 } from "react-icons/ri";
-import { FiLogOut, FiShoppingCart } from "react-icons/fi";
+import { FiLogOut, FiShoppingCart, FiPackage } from "react-icons/fi";
 import { NavLink } from "react-router-dom";
 import { PiInvoiceBold } from "react-icons/pi";
 import {
@@ -62,6 +62,14 @@ function Sidebar() {
   const { user } = useSelector((state) => state.auth);
   const { sidebarOpen } = useSelector((state) => state.sidebar);
 
+  // Job function tags only NARROW a staff/manager's access (see
+  // Authmiddleware.js) — an untagged user is unaffected. Hiding a link the
+  // backend would 403 on anyway keeps the nav honest about what's usable.
+  const jobFunctions = user?.jobFunctions || [];
+  const isNarrowed = !["admin", "manager", "super_admin"].includes(user?.role) && jobFunctions.length > 0;
+  const canSeeReceiving = !isNarrowed || jobFunctions.includes("inbound") || jobFunctions.includes("quality");
+  const canSeeFulfillment = !isNarrowed || jobFunctions.includes("outbound");
+
   const handleLogout = async () => {
     dispatch(logout())
       .then(() => {
@@ -95,6 +103,22 @@ function Sidebar() {
           label="Dashboard"
           sidebarOpen={sidebarOpen}
         />
+        {canSeeReceiving && (
+          <NavItem
+            to="/warehouse/receiving"
+            icon={<FiPackage />}
+            label="Receiving"
+            sidebarOpen={sidebarOpen}
+          />
+        )}
+        {canSeeFulfillment && (
+          <NavItem
+            to="/warehouse/fulfillment"
+            icon={<FiShoppingCart />}
+            label="Fulfillment"
+            sidebarOpen={sidebarOpen}
+          />
+        )}
 
         {user?.role === "manager" && (
           <>
@@ -187,6 +211,12 @@ function Sidebar() {
               label="Users"
               sidebarOpen={sidebarOpen}
             />
+            <NavItem
+              to="/warehouses"
+              icon={<FiPackage />}
+              label="Warehouses"
+              sidebarOpen={sidebarOpen}
+            />
           </>
         )}
 
@@ -275,6 +305,19 @@ function Sidebar() {
             />
 
             <NavItem
+              to="/Userstatus"
+              icon={<LuUsers />}
+              label="Users"
+              sidebarOpen={sidebarOpen}
+            />
+            <NavItem
+              to="/warehouses"
+              icon={<FiPackage />}
+              label="Warehouses"
+              sidebarOpen={sidebarOpen}
+            />
+
+            <NavItem
               to="/setting"
               icon={<MdOutlineSettings />}
               label="Setting"
@@ -333,12 +376,14 @@ function Sidebar() {
               sidebarOpen={sidebarOpen}
             />
 
-            {/* <NavItem
-              to="/stock-transaction"
-              icon={<RiStockLine />}
-              label="Stock Transaction"
-              sidebarOpen={sidebarOpen}
-            /> */}
+            {jobFunctions.includes("inventory_control") && (
+              <NavItem
+                to="/stock-transaction"
+                icon={<RiStockLine />}
+                label="Stock Transaction"
+                sidebarOpen={sidebarOpen}
+              />
+            )}
 
             <NavItem
               to="/notifications"

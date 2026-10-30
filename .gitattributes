@@ -1,0 +1,13 @@
+# Normalize line endings to LF for text files so future diffs reflect real
+# content changes instead of CRLF/LF churn (several files in this repo had
+# inconsistently mixed line endings before this). Doesn't retroactively
+# rewrite already-committed files — only applies as files are touched.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.zip binary
+*.pdf binary

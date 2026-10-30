@@ -41,6 +41,11 @@ import { fetchCurrentUser } from "./features/authSlice";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import Settings from "./pages/Settings";
 import AIInsightsHistoryPage from "./pages/AIInsightsHistoryPage";
+import ReceivingTasksPage from "./pages/ReceivingTasksPage";
+import ReceiptDetailPage from "./pages/ReceiptDetailPage";
+import WarehouseSettingsPage from "./pages/WarehouseSettingsPage";
+import FulfillmentTasksPage from "./pages/FulfillmentTasksPage";
+import FulfillmentDetailPage from "./pages/FulfillmentDetailPage";
 
 const RoleDashboardLayout = () => {
   const { user } = useSelector((state) => state.auth);
@@ -62,6 +67,15 @@ const ProductByRole = () => {
   ) : (
     <Productpage />
   );
+};
+
+const StockTransactionGate = () => {
+  const { user } = useSelector((state) => state.auth);
+  const canAccess =
+    ["admin", "manager"].includes(user?.role) ||
+    (user?.jobFunctions || []).includes("inventory_control");
+
+  return canAccess ? <StockTransaction /> : <Navigate to="/" replace />;
 };
 
 const SupplierByRole = () => {
@@ -115,6 +129,41 @@ function App() {
               }
             />
 
+            {/* Lightweight, scan-first warehouse UI — intentionally outside the
+                full ERP dashboard shell (no sidebar/topnavbar) per WMS scope. */}
+            <Route
+              path="/warehouse/receiving"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager", "staff"]}>
+                  <ReceivingTasksPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/warehouse/receiving/:id"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager", "staff"]}>
+                  <ReceiptDetailPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/warehouse/fulfillment"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager", "staff"]}>
+                  <FulfillmentTasksPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/warehouse/fulfillment/:id"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager", "staff"]}>
+                  <FulfillmentDetailPage />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Protected App Routes (role-based) */}
             <Route
               path="/"
@@ -128,14 +177,7 @@ function App() {
               <Route path="product" element={<ProductByRole />} />
               <Route path="order" element={<Orderpage />} />
               <Route path="sales" element={<Salespage />} />
-              <Route
-                path="stock-transaction"
-                element={
-                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
-                    <StockTransaction />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="stock-transaction" element={<StockTransactionGate />} />
               <Route
                 path="category"
                 element={
@@ -191,6 +233,14 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={["admin", "manager"]}>
                     <Userstatus />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="warehouses"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                    <WarehouseSettingsPage />
                   </ProtectedRoute>
                 }
               />

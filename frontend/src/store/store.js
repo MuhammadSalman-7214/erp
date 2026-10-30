@@ -11,6 +11,9 @@ import salesReducer from "../features/salesSlice";
 import customerReducer from "../features/customerSlice";
 import dashboardReducer from "../features/dashboardSlice";
 import sidebarReducer from "../features/sidebarSlice";
+import warehouseReducer from "../features/warehouseSlice";
+import receivingReducer from "../features/receivingSlice";
+import fulfillmentReducer from "../features/fulfillmentSlice";
 
 const store = configureStore({
   reducer: {
@@ -26,6 +29,9 @@ const store = configureStore({
     customer: customerReducer,
     dashboard: dashboardReducer,
     sidebar: sidebarReducer,
+    warehouse: warehouseReducer,
+    receiving: receivingReducer,
+    fulfillment: fulfillmentReducer,
   },
 });
 export default store;
