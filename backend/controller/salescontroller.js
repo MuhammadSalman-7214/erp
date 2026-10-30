@@ -423,6 +423,8 @@ const hydrateSales = async (sales, userId) => {
 
       return {
         ...sale,
+        customerAddress:
+          sale.customerAddress || customer?.contactInfo?.address || "",
         products,
         customer,
       };
@@ -527,6 +529,7 @@ module.exports.createSale = async (req, res) => {
       status,
       receivedAmount,
       carage,
+      customerAddress,
     } = req.body;
     const userId = req.user.userId;
 
@@ -565,6 +568,9 @@ module.exports.createSale = async (req, res) => {
     }
 
     const customerName = customer.name;
+    const saleCustomerAddress =
+      String(customerAddress ?? "").trim() ||
+      String(customer.contact_address).trim();
 
     if (!products || !Array.isArray(products) || products.length === 0) {
       return res.status(400).json({
@@ -686,12 +692,13 @@ module.exports.createSale = async (req, res) => {
     let saleInsert;
     try {
       saleInsert = await query(
-        "INSERT INTO sales (user_id, invoiceNumber, customer, customerName, paymentMethod, status, paymentStatus, carage, totalAmount, stockOutRecorded) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO sales (user_id, invoiceNumber, customer, customerName, customerAddress, paymentMethod, status, paymentStatus, carage, totalAmount, stockOutRecorded) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
           userId,
           saleInvoiceNumber,
           customerId,
           customerName,
+          saleCustomerAddress,
           resolvedPaymentMethod,
           resolvedSaleStatus,
           salePaymentStatus,
@@ -774,7 +781,7 @@ module.exports.createSale = async (req, res) => {
           customerId,
           customerName,
           customer.contact_phone || "",
-          customer.contact_address || "",
+          saleCustomerAddress,
           resolvedCarage,
           0,
           0,
@@ -1058,6 +1065,12 @@ module.exports.updateSale = async (req, res) => {
         throw error;
       }
 
+      const sameCustomer = String(existingSale.customer) === String(customer.id);
+      const saleCustomerAddress =
+        String(updatedData.customerAddress ?? "").trim() ||
+        (sameCustomer && String(existingSale.customerAddress || "").trim()) ||
+        String(customer.contact_address).trim();
+
       if (!updatedData.products || !updatedData.products.length) {
         const error = new Error("Products are required.");
         error.statusCode = 400;
@@ -1140,10 +1153,11 @@ module.exports.updateSale = async (req, res) => {
       }
 
       await executor(
-        "UPDATE sales SET customer = ?, customerName = ?, paymentMethod = ?, status = ?, carage = ?, totalAmount = ?, stockOutRecorded = ? WHERE id = ? AND user_id = ?",
+        "UPDATE sales SET customer = ?, customerName = ?, customerAddress = ?, paymentMethod = ?, status = ?, carage = ?, totalAmount = ?, stockOutRecorded = ? WHERE id = ? AND user_id = ?",
         [
           customer.id,
           customer.name,
+          saleCustomerAddress,
           updatedData.paymentMethod || existingSale.paymentMethod,
           resolvedStatus,
           resolvedCarage,
@@ -1203,7 +1217,7 @@ module.exports.updateSale = async (req, res) => {
             customer.id,
             customer.name,
             customer.contact_phone || "",
-            customer.contact_address || "",
+            saleCustomerAddress,
             resolvedCarage,
             updatedTotalAmount,
             grandTotalAmount,

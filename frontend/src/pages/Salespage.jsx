@@ -87,6 +87,7 @@ function Salespage() {
   const [dateTo, setDateTo] = useState("");
 
   const [customerId, setCustomerId] = useState("");
+  const [saleAddress, setSaleAddress] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
   const [showCustomerOptions, setShowCustomerOptions] = useState(false);
   const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
@@ -187,7 +188,7 @@ function Salespage() {
         });
       });
     });
-    return results.slice(0, 20);
+    return results;
   }, [debouncedCodeQuery, getallproduct]);
 
   const availableQtyByCode = useMemo(() => {
@@ -755,7 +756,7 @@ function Salespage() {
       return;
     }
     const selectedCustomerAddress =
-      selectedCustomer?.contactInfo?.address?.trim() || "";
+      saleAddress.trim() || selectedCustomer?.contactInfo?.address?.trim() || "";
     if (!selectedCustomerAddress) {
       toast.error("Customer address is required");
       return;
@@ -800,6 +801,7 @@ function Salespage() {
 
     const updatedData = {
       customerId,
+      customerAddress: saleAddress.trim(),
       products: cartItems.map((item) => {
         const resolvedPrice = Number(item.unitPrice);
         return {
@@ -980,6 +982,7 @@ function Salespage() {
       customers.find((customer) => getId(customer) === resolvedCustomerId) ||
       null;
     const resolvedCustomerAddress =
+      (customerId && saleAddress.trim()) ||
       resolvedCustomer?.contactInfo?.address?.trim() ||
       newCustomerData.address.trim();
     if (!resolvedCustomerAddress) {
@@ -1054,6 +1057,9 @@ function Salespage() {
 
     const salesData = {
       customerId: resolvedCustomerId,
+      ...(customerId && saleAddress.trim()
+        ? { customerAddress: saleAddress.trim() }
+        : {}),
       products: cartItems.map((item) => {
         const quantityCheck = validateNumberInput(item.quantity, "Quantity", {
           min: 1,
@@ -1104,6 +1110,7 @@ function Salespage() {
   };
   const resetForm = () => {
     setCustomerId("");
+    setSaleAddress("");
     setCustomerSearch("");
     setShowCustomerOptions(false);
     setNewCustomerData({
@@ -1130,6 +1137,9 @@ function Salespage() {
     if (sale) {
       setselectedSales(sale);
       setCustomerId(getId(sale.customer) || sale.customer || "");
+      setSaleAddress(
+        sale.customerAddress || sale.customer?.contactInfo?.address || "",
+      );
       setCustomerSearch(sale.customer?.name || sale.customerName || "");
       setNewCustomerData({
         phone: "",
@@ -1381,6 +1391,7 @@ function Salespage() {
       partyPhone:
         billSale.customer?.contactInfo?.phone || billSale.customer?.phone || "",
       partyAddress:
+        billSale.customerAddress ||
         billSale.customer?.contactInfo?.address ||
         billSale.customer?.address ||
         "",
@@ -1420,6 +1431,7 @@ function Salespage() {
       partyPhone:
         billSale.customer?.contactInfo?.phone || billSale.customer?.phone || "",
       partyAddress:
+        billSale.customerAddress ||
         billSale.customer?.contactInfo?.address ||
         billSale.customer?.address ||
         "",
@@ -1482,6 +1494,7 @@ function Salespage() {
         billSale.customer?.phone ||
         "-",
       customerAddress:
+        billSale.customerAddress ||
         billSale.customer?.contactInfo?.address ||
         billSale.customer?.address ||
         "-",
@@ -1760,6 +1773,7 @@ function Salespage() {
       partyPhone:
         billSale.customer?.contactInfo?.phone || billSale.customer?.phone || "",
       partyAddress:
+        billSale.customerAddress ||
         billSale.customer?.contactInfo?.address ||
         billSale.customer?.address ||
         "",
@@ -1814,6 +1828,7 @@ function Salespage() {
       partyPhone:
         billSale.customer?.contactInfo?.phone || billSale.customer?.phone || "",
       partyAddress:
+        billSale.customerAddress ||
         billSale.customer?.contactInfo?.address ||
         billSale.customer?.address ||
         "",
@@ -1859,6 +1874,7 @@ function Salespage() {
 
   const handleSelectCustomer = (customer) => {
     setCustomerId(getId(customer));
+    setSaleAddress(customer.contactInfo?.address || "");
     setCustomerSearch(customer.name);
     setNewCustomerData({
       phone: "",
@@ -1956,6 +1972,7 @@ function Salespage() {
               onChange={(e) => {
                 setCustomerSearch(e.target.value);
                 setCustomerId("");
+                setSaleAddress("");
                 setShowCustomerOptions(true);
               }}
               onFocus={() => {
@@ -2015,9 +2032,16 @@ function Salespage() {
               </div>
               <div className="grid grid-cols-1 gap-1">
                 <span>Phone: {selectedCustomer.contactInfo?.phone || "-"}</span>
-                <span>
-                  Address: {selectedCustomer.contactInfo?.address || "-"}
-                </span>
+                <label className="flex flex-col gap-1">
+                  <span>Address (for this sale only):</span>
+                  <textarea
+                    value={saleAddress}
+                    onChange={(e) => setSaleAddress(e.target.value)}
+                    maxLength={255}
+                    rows={2}
+                    className="w-full px-3 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                  />
+                </label>
               </div>
             </div>
           )}
@@ -2407,7 +2431,8 @@ function Salespage() {
                       </p>
                       <p className="text-sm text-slate-600">
                         Address:{" "}
-                        {billSale.customer?.contactInfo?.address ||
+                        {billSale.customerAddress ||
+                          billSale.customer?.contactInfo?.address ||
                           billSale.customer?.address ||
                           "-"}
                       </p>

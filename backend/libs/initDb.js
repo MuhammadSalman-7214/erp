@@ -422,6 +422,18 @@ const initDb = async () => {
   }
 
   try {
+    await query("ALTER TABLE sales ADD COLUMN customerAddress TEXT");
+  } catch (error) {
+    if (isTableEngineError(error)) {
+      logTableEngineWarning("ALTER TABLE sales ADD COLUMN customerAddress", error);
+    }
+
+    if (error?.errno !== 1060) {
+      throw error;
+    }
+  }
+
+  try {
     await query("ALTER TABLE sales ADD COLUMN carage DECIMAL(12,2) DEFAULT 0");
   } catch (error) {
     if (isTableEngineError(error)) {
