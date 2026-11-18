@@ -7,9 +7,13 @@ const {
   getAccessibleWarehouseIds,
 } = require("../libs/warehouseAccess");
 const { canDecideReceivingCondition } = require("../middleware/Authmiddleware");
+const { verifyScannedProductCode } = require("../libs/scanVerification");
 
 const FULL_ACCESS_ROLES = ["admin", "super_admin", "manager"];
 const CONDITION_STATUSES = ["ACCEPTED", "DAMAGED", "REJECTED", "QUARANTINE"];
+// Set on lines left unprocessed when a receipt is closed as a short shipment.
+// Deliberately NOT ACCEPTED, so it never counts toward received quantity.
+const NOT_RECEIVED_STATUS = "NOT_RECEIVED";
 const BATCH_STATUS_BY_CONDITION = {
   ACCEPTED: "AVAILABLE",
   DAMAGED: "DAMAGED",
@@ -94,6 +98,21 @@ module.exports.createReceipt = async (req, res) => {
     const allowed = await hasWarehouseAccess(req.user, warehouseId);
     if (!allowed) {
       return res.status(403).json({ message: "You do not have access to this warehouse" });
+    }
+
+    // Two open receipts for the same order could each accept the full ordered
+    // quantity (the accepted-so-far total only counts processed lines), so
+    // stock would double with no over-receipt warning. One open receipt per
+    // order; the existing one is returned so the UI can resume it.
+    const openRows = await query(
+      "SELECT id, receipt_no FROM goods_receipts WHERE order_id = ? AND user_id = ? AND status <> 'COMPLETED' LIMIT 1",
+      [orderId, accountId],
+    );
+    if (openRows.length) {
+      return res.status(409).json({
+        message: `Receipt ${openRows[0].receipt_no} is already in progress for this order. Finish or complete it first.`,
+        existingReceiptId: openRows[0].id,
+      });
     }
 
     const orderItems = await query(
@@ -292,6 +311,15 @@ module.exports.updateReceiptLine = async (req, res) => {
       return res.status(400).json({ message: "receivedQty must be a positive number" });
     }
 
+    const scanFailure = await verifyScannedProductCode({
+      accountId,
+      productCodeId: line.product_code_id,
+      scannedCode: req.body.scannedCode,
+    });
+    if (scanFailure) {
+      return res.status(scanFailure.status).json(scanFailure.body);
+    }
+
     if (condition === "ACCEPTED" && !locationId) {
       return res.status(400).json({
         message: "A putaway location is required to accept stock into inventory",
@@ -411,6 +439,38 @@ module.exports.completeReceipt = async (req, res) => {
     const allowed = await hasWarehouseAccess(req.user, receipt.warehouse_id);
     if (!allowed) {
       return res.status(403).json({ message: "You do not have access to this warehouse" });
+    }
+
+    const lineStatusRows = await query(
+      "SELECT condition_status, COUNT(*) AS count FROM goods_receipt_lines WHERE receipt_id = ? AND user_id = ? GROUP BY condition_status",
+      [id, accountId],
+    );
+    const pendingCount = Number(
+      lineStatusRows.find((row) => row.condition_status === "PENDING")?.count || 0,
+    );
+    const processedCount = lineStatusRows
+      .filter((row) => row.condition_status !== "PENDING")
+      .reduce((sum, row) => sum + Number(row.count), 0);
+
+    if (processedCount === 0) {
+      return res.status(400).json({
+        message: "Process at least one line before completing this receipt",
+      });
+    }
+
+    const allowPartial = (req.body || {}).allowPartial === true;
+    if (pendingCount > 0 && !allowPartial) {
+      return res.status(409).json({
+        message: `${pendingCount} line(s) have not been processed. Process them, or complete anyway to record them as not received.`,
+        pendingLines: pendingCount,
+      });
+    }
+
+    if (pendingCount > 0) {
+      await query(
+        "UPDATE goods_receipt_lines SET condition_status = ? WHERE receipt_id = ? AND user_id = ? AND condition_status = 'PENDING'",
+        [NOT_RECEIVED_STATUS, id, accountId],
+      );
     }
 
     await query("UPDATE goods_receipts SET status = 'COMPLETED' WHERE id = ? AND user_id = ?", [

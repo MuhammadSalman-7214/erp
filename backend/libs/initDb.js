@@ -804,6 +804,48 @@ const initDb = async () => {
   } catch (error) {
     throw error;
   }
+
+  // Warehouse/scanning hardening migrations. Each is idempotent: the
+  // "duplicate column" (1060) / "duplicate key name" (1061) errors mean it
+  // already ran and are expected on every boot after the first.
+  const idempotentAlters = [
+    // Reservation buckets used to overwrite `batch_no` with an internal tag,
+    // destroying the original lot number. The tag now lives here instead.
+    {
+      sql: "ALTER TABLE inventory_batches ADD COLUMN reservation_ref VARCHAR(100) DEFAULT NULL",
+      okErrno: 1060,
+    },
+    {
+      sql: "ALTER TABLE inventory_batches ADD INDEX idx_batches_lookup (user_id, product_code_id, warehouse_id, status)",
+      okErrno: 1061,
+    },
+    {
+      sql: "ALTER TABLE inventory_batches ADD INDEX idx_batches_reservation (user_id, reservation_ref)",
+      okErrno: 1061,
+    },
+    {
+      sql: "ALTER TABLE goods_receipt_lines ADD INDEX idx_grl_order_item (order_item_id)",
+      okErrno: 1061,
+    },
+    {
+      sql: "ALTER TABLE fulfillments ADD INDEX idx_fulfillments_sale_status (sale_id, status)",
+      okErrno: 1061,
+    },
+  ];
+
+  for (const { sql, okErrno } of idempotentAlters) {
+    try {
+      await query(sql);
+    } catch (error) {
+      if (isTableEngineError(error)) {
+        logTableEngineWarning(sql, error);
+      }
+
+      if (error?.errno !== okErrno) {
+        throw error;
+      }
+    }
+  }
 };
 
 module.exports = initDb;

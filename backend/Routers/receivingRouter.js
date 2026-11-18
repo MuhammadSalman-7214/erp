@@ -7,6 +7,7 @@ const {
   idParam,
   createReceiptBody,
   updateReceiptLineBody,
+  completeReceiptBody,
 } = require("../validation/schemas");
 const {
   createReceipt,
@@ -45,7 +46,7 @@ router.patch(
 router.post(
   "/:id/complete",
   checkPermission("receiving", "write"),
-  validateRequest({ params: idParam("id") }),
+  validateRequest({ params: idParam("id"), body: completeReceiptBody }),
   completeReceipt,
 );
 

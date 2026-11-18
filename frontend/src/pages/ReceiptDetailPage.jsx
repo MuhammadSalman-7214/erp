@@ -42,6 +42,11 @@ const ReceiptDetailPage = () => {
   const [scannerOpenFor, setScannerOpenFor] = useState(null); // "product" | "location"
   const [scanMismatch, setScanMismatch] = useState("");
   const [pendingOverReceipt, setPendingOverReceipt] = useState(null);
+  // Code that was scanned/typed and matched the open line. Sent to the server,
+  // which re-verifies it; the Confirm button stays disabled until it's set.
+  const [verifiedCode, setVerifiedCode] = useState("");
+  // Set when the server refuses to complete because lines are unprocessed.
+  const [pendingPartial, setPendingPartial] = useState(null);
 
   useEffect(() => {
     dispatch(fetchReceiptById(id));
@@ -69,6 +74,7 @@ const ReceiptDetailPage = () => {
     setForm({ ...emptyForm, receivedQty: String(line.expected_qty) });
     setScanMismatch("");
     setPendingOverReceipt(null);
+    setVerifiedCode("");
   };
 
   const submitLine = async (extra = {}) => {
@@ -78,6 +84,10 @@ const ReceiptDetailPage = () => {
     const qty = Number(form.receivedQty);
     if (!Number.isFinite(qty) || qty <= 0) {
       toast.error("Enter a valid received quantity");
+      return;
+    }
+    if (!verifiedCode) {
+      toast.error("Scan or type the product barcode to verify this item first");
       return;
     }
     if (form.condition === "ACCEPTED" && !form.locationId) {
@@ -94,6 +104,7 @@ const ReceiptDetailPage = () => {
         expiryDate: form.expiryDate || undefined,
         condition: form.condition,
         locationId: form.locationId ? Number(form.locationId) : undefined,
+        scannedCode: verifiedCode,
         ...extra,
       }),
     );
@@ -102,6 +113,7 @@ const ReceiptDetailPage = () => {
       toast.success(`${line.productName} marked ${form.condition.toLowerCase()}`);
       setProcessingLineId(null);
       setPendingOverReceipt(null);
+      setVerifiedCode("");
     } else {
       const payload = result.payload;
       if (payload?.overReceived) {
@@ -118,8 +130,10 @@ const ReceiptDetailPage = () => {
     if (!line) return;
     if (String(code).trim().toUpperCase() === String(line.productCodeValue).toUpperCase()) {
       setScanMismatch("");
+      setVerifiedCode(String(code).trim());
       toast.success("Barcode matches this line");
     } else {
+      setVerifiedCode("");
       setScanMismatch(
         `Scanned "${code}" does not match this line's code (${line.productCodeValue}).`,
       );
@@ -128,8 +142,11 @@ const ReceiptDetailPage = () => {
 
   const handleLocationScan = (code) => {
     setScannerOpenFor(null);
+    const scanned = String(code).trim().toUpperCase();
     const match = locations.find(
-      (loc) => loc.code.toUpperCase() === String(code).trim().toUpperCase(),
+      (loc) =>
+        loc.code.toUpperCase() === scanned ||
+        (loc.barcode && String(loc.barcode).toUpperCase() === scanned),
     );
     if (match) {
       setForm((f) => ({ ...f, locationId: String(match.id) }));
@@ -139,12 +156,16 @@ const ReceiptDetailPage = () => {
     }
   };
 
-  const handleComplete = async () => {
-    const result = await dispatch(completeReceipt(id));
+  const handleComplete = async (allowPartial = false) => {
+    const result = await dispatch(completeReceipt({ id, allowPartial }));
     if (completeReceipt.fulfilled.match(result)) {
+      setPendingPartial(null);
       toast.success("Goods receipt completed");
+    } else if (result.payload?.pendingLines) {
+      // Don't silently drop unprocessed lines — ask the operator.
+      setPendingPartial({ count: result.payload.pendingLines });
     } else {
-      toast.error(result.payload || "Could not complete receipt");
+      toast.error(result.payload?.message || "Could not complete receipt");
     }
   };
 
@@ -211,10 +232,18 @@ const ReceiptDetailPage = () => {
                           variant="outline"
                           className="mt-6 h-fit"
                           onClick={() => setScannerOpenFor("product")}
+                          aria-label="Scan product barcode"
                         >
                           <FiCamera />
                         </Button>
                       </div>
+                      <p
+                        className={`text-xs ${verifiedCode ? "text-emerald-600" : "text-slate-500"}`}
+                      >
+                        {verifiedCode
+                          ? `Item verified (${verifiedCode})`
+                          : "Scan or type the product barcode to enable Confirm."}
+                      </p>
                       {scanMismatch && (
                         <p className="flex items-center gap-1 text-xs text-orange-600">
                           <FiAlertTriangle /> {scanMismatch}
@@ -312,6 +341,7 @@ const ReceiptDetailPage = () => {
                           size="lg"
                           onClick={() => submitLine()}
                           loading={isSubmittingLine}
+                          disabled={!verifiedCode}
                         >
                           <FiCheck /> Confirm
                         </Button>
@@ -341,7 +371,7 @@ const ReceiptDetailPage = () => {
                     </p>
                   </div>
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
-                    {line.condition_status}
+                    {String(line.condition_status).replace("_", " ")}
                   </span>
                 </li>
               ))}
@@ -352,15 +382,33 @@ const ReceiptDetailPage = () => {
 
       {!isCompleted && (
         <div className="fixed inset-x-0 bottom-0 border-t border-slate-200 bg-white p-4">
-          <Button
-            className="mx-auto block w-full max-w-2xl"
-            size="lg"
-            onClick={handleComplete}
-            loading={isCompleting}
-            disabled={!processedLines.length}
-          >
-            Complete Receipt
-          </Button>
+          {pendingPartial ? (
+            <div className="mx-auto max-w-2xl space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+              <p>
+                {pendingPartial.count} line{pendingPartial.count === 1 ? "" : "s"} not
+                processed yet. Complete anyway and record{" "}
+                {pendingPartial.count === 1 ? "it" : "them"} as not received?
+              </p>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={() => handleComplete(true)} loading={isCompleting}>
+                  Complete anyway
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setPendingPartial(null)}>
+                  Keep processing
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button
+              className="mx-auto block w-full max-w-2xl"
+              size="lg"
+              onClick={() => handleComplete(false)}
+              loading={isCompleting}
+              disabled={!processedLines.length}
+            >
+              Complete Receipt
+            </Button>
+          )}
         </div>
       )}
 

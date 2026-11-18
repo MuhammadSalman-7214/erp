@@ -47,16 +47,37 @@ const findExistingTransaction = async (txQuery, accountId, idempotencyKey) => {
 
 const findOrCreateBatch = async (
   txQuery,
-  { accountId, productCodeId, warehouseId, locationId, batchNo, expiryDate, costPrice, status },
+  {
+    accountId,
+    productCodeId,
+    warehouseId,
+    locationId,
+    batchNo,
+    expiryDate,
+    costPrice,
+    status,
+    // Set only for reservation/pick buckets: tags the bucket to one
+    // fulfillment line WITHOUT touching `batch_no`, so the original lot
+    // number survives reserve -> pick -> cancel/release.
+    reservationRef,
+  },
 ) => {
   const batchStatus = status || "AVAILABLE";
 
   const existing = await txQuery(
     `SELECT * FROM inventory_batches
      WHERE user_id = ? AND product_code_id = ? AND warehouse_id = ?
-       AND location_id <=> ? AND batch_no <=> ? AND status = ?
+       AND location_id <=> ? AND batch_no <=> ? AND status = ? AND reservation_ref <=> ?
      LIMIT 1`,
-    [accountId, productCodeId, warehouseId, locationId ?? null, batchNo ?? null, batchStatus],
+    [
+      accountId,
+      productCodeId,
+      warehouseId,
+      locationId ?? null,
+      batchNo ?? null,
+      batchStatus,
+      reservationRef ?? null,
+    ],
   );
 
   if (existing[0]) {
@@ -65,8 +86,8 @@ const findOrCreateBatch = async (
 
   const result = await txQuery(
     `INSERT INTO inventory_batches
-       (user_id, product_code_id, warehouse_id, location_id, batch_no, expiry_date, quantity, status, cost_price, received_at)
-     VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, NOW())`,
+       (user_id, product_code_id, warehouse_id, location_id, batch_no, expiry_date, quantity, status, cost_price, received_at, reservation_ref)
+     VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, NOW(), ?)`,
     [
       accountId,
       productCodeId,
@@ -76,6 +97,7 @@ const findOrCreateBatch = async (
       expiryDate ?? null,
       batchStatus,
       costPrice ?? 0,
+      reservationRef ?? null,
     ],
   );
 
@@ -387,7 +409,8 @@ const reserveStock = async ({
           productCodeId,
           warehouseId,
           locationId: batch.location_id,
-          batchNo: bucketTag,
+          batchNo: batch.batch_no,
+          reservationRef: bucketTag,
           expiryDate: batch.expiry_date,
           costPrice: batch.cost_price,
           status: "RESERVED",
@@ -470,16 +493,22 @@ const moveReservationBucket = async ({
         return { alreadyProcessed: true, transaction: existingTxn };
       }
 
+      // A single reservation can span several source batches in DIFFERENT
+      // bins/lots, which produces one bucket row per (bin, lot). Every one of
+      // them must move together — taking only the first would strand the rest
+      // in RESERVED/PICKED forever while the line looks fully handled.
+      // `batch_no = tag` matches buckets created before `reservation_ref`
+      // existed, so in-flight fulfillments survive the upgrade.
       const sourceRows = await txQuery(
         `SELECT * FROM inventory_batches
-         WHERE user_id = ? AND product_code_id = ? AND warehouse_id = ? AND batch_no = ? AND status = ?
-         LIMIT 1 FOR UPDATE`,
-        [accountId, productCodeId, warehouseId, bucketTag, fromStatus],
+         WHERE user_id = ? AND product_code_id = ? AND warehouse_id = ? AND status = ? AND quantity > 0
+           AND (reservation_ref = ? OR batch_no = ?)
+         ORDER BY id ASC
+         FOR UPDATE`,
+        [accountId, productCodeId, warehouseId, fromStatus, bucketTag, bucketTag],
       );
-      const source = sourceRows[0];
-      const moveQty = Number(source?.quantity || 0);
 
-      if (!source || moveQty <= 0) {
+      if (!sourceRows.length) {
         const error = new Error(
           `No ${fromStatus.toLowerCase()} reservation found for this line`,
         );
@@ -487,62 +516,81 @@ const moveReservationBucket = async ({
         throw error;
       }
 
-      await txQuery(
-        "UPDATE inventory_batches SET quantity = 0 WHERE id = ? AND user_id = ?",
-        [source.id, accountId],
-      );
+      let totalMoved = 0;
+      let anchorTxnId = null;
 
-      let destBatchId = null;
-      if (toStatus) {
-        const dest = await findOrCreateBatch(txQuery, {
-          accountId,
-          productCodeId,
-          warehouseId,
-          locationId: source.location_id,
-          batchNo: bucketTag,
-          expiryDate: source.expiry_date,
-          costPrice: source.cost_price,
-          status: toStatus,
-        });
-        const destNewQty = Number(dest.quantity) + moveQty;
+      for (const source of sourceRows) {
+        const moveQty = Number(source.quantity);
+
         await txQuery(
-          "UPDATE inventory_batches SET quantity = ? WHERE id = ? AND user_id = ?",
-          [destNewQty, dest.id, accountId],
+          "UPDATE inventory_batches SET quantity = 0 WHERE id = ? AND user_id = ?",
+          [source.id, accountId],
         );
-        destBatchId = dest.id;
-      }
 
-      const txnResult = await txQuery(
-        `INSERT INTO inventory_transactions
-           (user_id, product_code_id, batch_id, warehouse_id, location_id, type, quantity,
-            reference_type, reference_id, previous_qty, new_qty, performed_by, reason, idempotency_key)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          accountId,
-          productCodeId,
-          destBatchId || source.id,
-          warehouseId,
-          source.location_id,
-          transactionType,
-          moveQty,
-          referenceType,
-          referenceId,
-          moveQty,
-          0,
-          performedBy ?? null,
-          reason ?? null,
-          idempotencyKey ?? null,
-        ],
-      );
+        // Legacy buckets stored the internal tag in batch_no; the real lot
+        // number is unrecoverable, so returning to AVAILABLE drops the tag
+        // rather than leaking "FUL-..." into the lot field.
+        const isLegacyTagged =
+          !source.reservation_ref && String(source.batch_no || "").startsWith("FUL-");
+
+        let destBatchId = null;
+        if (toStatus) {
+          const toAvailable = toStatus === "AVAILABLE";
+          const dest = await findOrCreateBatch(txQuery, {
+            accountId,
+            productCodeId,
+            warehouseId,
+            locationId: source.location_id,
+            batchNo: toAvailable && isLegacyTagged ? null : source.batch_no,
+            reservationRef: toAvailable ? null : source.reservation_ref,
+            expiryDate: source.expiry_date,
+            costPrice: source.cost_price,
+            status: toStatus,
+          });
+          const destNewQty = Number(dest.quantity) + moveQty;
+          await txQuery(
+            "UPDATE inventory_batches SET quantity = ? WHERE id = ? AND user_id = ?",
+            [destNewQty, dest.id, accountId],
+          );
+          destBatchId = dest.id;
+        }
+
+        const txnResult = await txQuery(
+          `INSERT INTO inventory_transactions
+             (user_id, product_code_id, batch_id, warehouse_id, location_id, type, quantity,
+              reference_type, reference_id, previous_qty, new_qty, performed_by, reason, idempotency_key)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            accountId,
+            productCodeId,
+            destBatchId || source.id,
+            warehouseId,
+            source.location_id,
+            transactionType,
+            moveQty,
+            referenceType,
+            referenceId,
+            moveQty,
+            0,
+            performedBy ?? null,
+            reason ?? null,
+            // The UNIQUE key is per (user_id, key), so only the first ledger
+            // row of a multi-bucket move can carry it.
+            anchorTxnId === null ? idempotencyKey ?? null : null,
+          ],
+        );
+        if (anchorTxnId === null) anchorTxnId = txnResult.insertId;
+        totalMoved += moveQty;
+      }
 
       if (fromStatus === "AVAILABLE") {
-        await rollupProductCodeQuantity(txQuery, accountId, productCodeId, -moveQty);
+        await rollupProductCodeQuantity(txQuery, accountId, productCodeId, -totalMoved);
       }
       if (toStatus === "AVAILABLE") {
-        await rollupProductCodeQuantity(txQuery, accountId, productCodeId, moveQty);
+        await rollupProductCodeQuantity(txQuery, accountId, productCodeId, totalMoved);
       }
 
-      return { alreadyProcessed: false, transactionId: txnResult.insertId, movedQty: moveQty };
+      return { alreadyProcessed: false, transactionId: anchorTxnId, movedQty: totalMoved };
     });
   } catch (error) {
     if (isDuplicateIdempotencyError(error) && idempotencyKey) {

@@ -27,7 +27,9 @@ const FulfillmentDetailPage = () => {
 
   const [scanningLineId, setScanningLineId] = useState(null);
   const [scanMismatch, setScanMismatch] = useState("");
-  const [confirmedLineIds, setConfirmedLineIds] = useState(new Set());
+  // lineId -> the code that was scanned/typed and matched. Sent to the server on
+  // confirm, which re-verifies it — the button gate below is only the UX half.
+  const [scannedCodes, setScannedCodes] = useState({});
   const [isCancelling, setIsCancelling] = useState(false);
 
   useEffect(() => {
@@ -47,7 +49,7 @@ const FulfillmentDetailPage = () => {
     if (!line) return;
     if (String(code).trim().toUpperCase() === String(line.productCodeValue).toUpperCase()) {
       setScanMismatch("");
-      setConfirmedLineIds((prev) => new Set(prev).add(lineId));
+      setScannedCodes((prev) => ({ ...prev, [lineId]: String(code).trim() }));
       toast.success("Barcode matches — ready to confirm pick");
     } else {
       setScanMismatch(
@@ -57,9 +59,21 @@ const FulfillmentDetailPage = () => {
   };
 
   const handleConfirmPick = async (lineId) => {
-    const result = await dispatch(confirmPickLine({ fulfillmentId: id, lineId }));
+    const scannedCode = scannedCodes[lineId];
+    if (!scannedCode) {
+      toast.error("Scan or type the product barcode first");
+      return;
+    }
+    const result = await dispatch(
+      confirmPickLine({ fulfillmentId: id, lineId, scannedCode }),
+    );
     if (confirmPickLine.fulfilled.match(result)) {
       toast.success("Picked");
+      setScannedCodes((prev) => {
+        const next = { ...prev };
+        delete next[lineId];
+        return next;
+      });
     } else {
       toast.error(result.payload || "Could not confirm pick");
     }
@@ -116,7 +130,7 @@ const FulfillmentDetailPage = () => {
             <h2 className="mb-2 text-sm font-semibold text-slate-800">To pick</h2>
             <ul className="space-y-3">
               {reservedLines.map((line) => {
-                const isConfirmedByScan = confirmedLineIds.has(line.id);
+                const isConfirmedByScan = Boolean(scannedCodes[line.id]);
                 return (
                   <li
                     key={line.id}
@@ -133,6 +147,12 @@ const FulfillmentDetailPage = () => {
                         RESERVED
                       </span>
                     </div>
+
+                    {!isConfirmedByScan && !scanMismatch && (
+                      <p className="mt-2 text-xs text-slate-500">
+                        Scan or type the barcode to enable Confirm Pick.
+                      </p>
+                    )}
 
                     {scanMismatch && scanningLineId === null && (
                       <p className="mt-2 flex items-center gap-1 text-xs text-orange-600">
@@ -157,6 +177,7 @@ const FulfillmentDetailPage = () => {
                         className="flex-1"
                         onClick={() => handleConfirmPick(line.id)}
                         loading={isSubmittingLine}
+                        disabled={!isConfirmedByScan}
                       >
                         <FiCheck /> Confirm Pick
                       </Button>

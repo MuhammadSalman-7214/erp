@@ -49,9 +49,16 @@ export const createReceipt = createAsyncThunk(
       });
       return response.data;
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to start goods receipt",
-      );
+      const data = error.response?.data;
+      // An order can only have one open receipt; hand back its id so the UI
+      // can resume it instead of just showing an error.
+      if (data?.existingReceiptId) {
+        return rejectWithValue({
+          message: data.message,
+          existingReceiptId: data.existingReceiptId,
+        });
+      }
+      return rejectWithValue(data?.message || "Failed to start goods receipt");
     }
   },
 );
@@ -75,13 +82,18 @@ export const updateReceiptLine = createAsyncThunk(
 
 export const completeReceipt = createAsyncThunk(
   "receiving/completeReceipt",
-  async (id, { rejectWithValue }) => {
+  async ({ id, allowPartial = false }, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.post(`receiving/${id}/complete`);
+      const response = await axiosInstance.post(
+        `receiving/${id}/complete`,
+        allowPartial ? { allowPartial: true } : {},
+      );
       return response.data;
     } catch (error) {
+      // Carries `pendingLines` when the server refuses because some lines
+      // are still unprocessed, so the UI can offer "complete anyway".
       return rejectWithValue(
-        error.response?.data?.message || "Failed to complete goods receipt",
+        error.response?.data || { message: "Failed to complete goods receipt" },
       );
     }
   },

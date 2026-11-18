@@ -447,6 +447,20 @@ const updateReceiptLineBody = Joi.object({
     .required(),
   locationId: positiveId.optional(),
   confirmOverReceipt: Joi.boolean().optional(),
+  // Presence/match is enforced in the controller (so a missing scan gets a
+  // specific SCAN_REQUIRED error instead of a generic validation failure).
+  scannedCode: Joi.string().trim().max(255).optional(),
+});
+
+const completeReceiptBody = Joi.object({
+  // Lets the operator close a receipt knowingly leaving some lines
+  // unreceived (short shipment). Without it, completing with any
+  // unprocessed line is refused.
+  allowPartial: Joi.boolean().optional(),
+});
+
+const confirmPickBody = Joi.object({
+  scannedCode: Joi.string().trim().max(255).optional(),
 });
 
 const paymentParam = idParam("id");
@@ -495,6 +509,8 @@ module.exports = {
   warehouseAccessBody,
   createReceiptBody,
   updateReceiptLineBody,
+  completeReceiptBody,
+  confirmPickBody,
   createFulfillmentBody,
   jobFunctionsBody,
   reportsToBody,

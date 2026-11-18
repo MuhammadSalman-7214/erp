@@ -59,6 +59,10 @@ const ReceivingTasksPage = () => {
     setIsStarting(false);
     if (createReceipt.fulfilled.match(result)) {
       navigate(`/warehouse/receiving/${result.payload.receipt.id}`);
+    } else if (result.payload?.existingReceiptId) {
+      // One open receipt per order — resume it rather than failing.
+      toast.success("This order already has a receipt in progress — resuming it");
+      navigate(`/warehouse/receiving/${result.payload.existingReceiptId}`);
     } else {
       toast.error(result.payload || "Could not start goods receipt");
     }

@@ -1,6 +1,7 @@
 const { v4: uuidv4 } = require("uuid");
 const query = require("../libs/dbQuery.js");
 const logActivity = require("../libs/logger");
+const { nextCounterValue } = require("../libs/invoiceNumber");
 
 const toNumberOrUndefined = (value) => {
   if (value === "" || value === null || value === undefined) return undefined;
@@ -1158,13 +1159,10 @@ module.exports.lookupProductCodeByCode = async (req, res) => {
 };
 
 const generateUniqueCodeValue = async (userId) => {
-  const key = "barcode";
-
-  const result = await query(
-    "INSERT INTO counters (`key`, user_id, seq) VALUES (?, ?, 1) ON DUPLICATE KEY UPDATE seq = LAST_INSERT_ID(seq + 1)",
-    [key, userId],
-  );
-  const seq = result.insertId;
+  // On a tenant's first-ever barcode, the raw upsert's insertId is the new
+  // row's auto-increment id rather than the sequence — nextCounterValue
+  // handles that distinction so labels never start at a random number.
+  const seq = await nextCounterValue("barcode", userId);
 
   return `LB${String(userId).padStart(4, "0")}${String(seq).padStart(8, "0")}`;
 };

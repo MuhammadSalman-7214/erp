@@ -1,6 +1,7 @@
 require("dotenv").config();
 const pool = require("../db");
 const query = require("../libs/dbQuery");
+const initDb = require("../libs/initDb");
 const {
   receiveStock,
   adjustStock,
@@ -21,6 +22,10 @@ let warehouseId;
 let locationId;
 
 beforeAll(async () => {
+  // Idempotent; makes sure newer columns (e.g. reservation_ref) exist on the
+  // DB under test even if the server hasn't booted against it yet.
+  await initDb();
+
   const productResult = await query(
     "INSERT INTO products (user_id, name, company) VALUES (?, 'Jest Test Product', 'Jest Co')",
     [ACCOUNT_ID],

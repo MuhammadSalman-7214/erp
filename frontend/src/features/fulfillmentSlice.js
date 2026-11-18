@@ -55,10 +55,11 @@ export const createFulfillment = createAsyncThunk(
 
 export const confirmPickLine = createAsyncThunk(
   "fulfillment/confirmPickLine",
-  async ({ fulfillmentId, lineId }, { rejectWithValue }) => {
+  async ({ fulfillmentId, lineId, scannedCode }, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.patch(
         `fulfillment/${fulfillmentId}/lines/${lineId}/pick`,
+        { scannedCode },
       );
       return response.data;
     } catch (error) {

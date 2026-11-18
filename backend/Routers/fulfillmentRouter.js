@@ -3,7 +3,7 @@ const Joi = require("joi");
 const router = express.Router();
 const validateRequest = require("../middleware/validateRequest");
 const { authmiddleware, checkPermission } = require("../middleware/Authmiddleware");
-const { idParam, createFulfillmentBody } = require("../validation/schemas");
+const { idParam, createFulfillmentBody, confirmPickBody } = require("../validation/schemas");
 const {
   createFulfillment,
   getFulfillments,
@@ -36,7 +36,7 @@ router.get(
 router.patch(
   "/:fulfillmentId/lines/:lineId/pick",
   checkPermission("fulfillment", "write"),
-  validateRequest({ params: lineParam }),
+  validateRequest({ params: lineParam, body: confirmPickBody }),
   confirmPickLine,
 );
 router.post(

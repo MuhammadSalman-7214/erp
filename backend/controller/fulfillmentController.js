@@ -11,6 +11,7 @@ const {
   hasWarehouseAccess,
   getAccessibleWarehouseIds,
 } = require("../libs/warehouseAccess");
+const { verifyScannedProductCode } = require("../libs/scanVerification");
 
 const FULL_ACCESS_ROLES = ["admin", "super_admin", "manager"];
 const TERMINAL_FULFILLMENT_STATUSES = ["DISPATCHED", "CANCELLED"];
@@ -280,6 +281,16 @@ module.exports.confirmPickLine = async (req, res) => {
     }
     if (line.status !== "RESERVED") {
       return res.status(400).json({ message: "This line has already been picked" });
+    }
+
+    // A pick is only valid if the operator handled the right item.
+    const scanFailure = await verifyScannedProductCode({
+      accountId,
+      productCodeId: line.product_code_id,
+      scannedCode: (req.body || {}).scannedCode,
+    });
+    if (scanFailure) {
+      return res.status(scanFailure.status).json(scanFailure.body);
     }
 
     await confirmPick({
