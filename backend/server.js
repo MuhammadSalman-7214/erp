@@ -36,6 +36,8 @@ const app = express();
 const server = http.createServer(app);
 
 const allowedOrigins = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
   "http://localhost:3001",
   "https://imrantraders.shop",
   "https://www.imrantraders.shop",
